@@ -1,4 +1,4 @@
 #! /bin/bash -e
 
-git commit -am "$2"
-git push dillon $1
+git commit -am "$1"
+git push origin dillon_stm32f030f4p6
