@@ -17,7 +17,7 @@
 #include <rtthread.h>
 
 #include "board.h"
-
+#include "led.h"
 /**
  * @addtogroup STM32
  */
@@ -83,6 +83,9 @@ void rtthread_startup(void)
     rt_system_heap_init((void*)STM32_SRAM_BEGIN, (void*)STM32_SRAM_END);
 #endif
 
+	rt_hw_led_init();
+	rt_hw_led2_off();
+	//while(1);
 	/* init scheduler system */
 	rt_system_scheduler_init();
 

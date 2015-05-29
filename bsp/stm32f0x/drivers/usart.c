@@ -13,212 +13,40 @@
  */
 
 #include <stm32f0xx.h>
-#include <rtdevice.h>
+//#include <rtdevice.h>
 #include "usart.h"
-
+#include "led.h"
 /* USART1 */
-#define UART1_GPIO_TX			GPIO_Pin_9
-#define UART1_GPIO_TX_SOURCE	GPIO_PinSource9
-#define UART1_GPIO_RX			GPIO_Pin_10
-#define UART1_GPIO_RX_SOURCE	GPIO_PinSource10
+#define UART1_GPIO_TX			GPIO_Pin_2
+#define UART1_GPIO_TX_SOURCE	GPIO_PinSource2
+#define UART1_GPIO_RX			GPIO_Pin_3
+#define UART1_GPIO_RX_SOURCE	GPIO_PinSource3
 #define UART1_GPIO_AF			GPIO_AF_1
 #define UART1_GPIO				GPIOA
-
-/* USART2 */
-#define UART2_GPIO_TX			GPIO_Pin_2
-#define UART2_GPIO_TX_SOURCE	GPIO_PinSource2
-#define UART2_GPIO_RX			GPIO_Pin_3
-#define UART2_GPIO_RX_SOURCE	GPIO_PinSource3
-#define UART2_GPIO_AF			GPIO_AF_1
-#define UART2_GPIO				GPIOA
-
-/* STM32 uart driver */
-struct stm32_uart
+#define RT_SERIAL_RB_BUFSZ 64
+struct serial_ringbuffer
 {
-    USART_TypeDef* uart_device;
-    IRQn_Type irq;
+    unsigned char  buffer[RT_SERIAL_RB_BUFSZ];
+    unsigned short put_index, get_index;
 };
+struct serial_ringbuffer *rbuffer;
 
-static rt_err_t stm32_configure(struct rt_serial_device *serial, struct serial_configure *cfg)
+
+int uart_config()
 {
-    struct stm32_uart* uart;
-    USART_InitTypeDef USART_InitStructure;
+	USART_InitTypeDef USART_InitStructure;
+	GPIO_InitTypeDef GPIO_InitStructure;
+	/*rbuffer=rt_malloc(sizeof(struct serial_ringbuffer));
+	rt_memset(rbuffer->buffer, 0, sizeof(rbuffer->buffer));
+	rbuffer->put_index = 0;
+	rbuffer->get_index = 0;
+*/
+	/* Enable GPIO clock */
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+	/* Enable USART clock */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
-    RT_ASSERT(serial != RT_NULL);
-    RT_ASSERT(cfg != RT_NULL);
 
-    uart = (struct stm32_uart *)serial->parent.user_data;
-
-    USART_InitStructure.USART_BaudRate = cfg->baud_rate;
-
-    if (cfg->data_bits == DATA_BITS_8)
-        USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-
-    if (cfg->stop_bits == STOP_BITS_1)
-        USART_InitStructure.USART_StopBits = USART_StopBits_1;
-    else if (cfg->stop_bits == STOP_BITS_2)
-        USART_InitStructure.USART_StopBits = USART_StopBits_2;
-
-    USART_InitStructure.USART_Parity = USART_Parity_No;
-    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-    USART_Init(uart->uart_device, &USART_InitStructure);
-
-    /* Enable USART */
-    USART_Cmd(uart->uart_device, ENABLE);
-    /* enable interrupt */
-    USART_ITConfig(uart->uart_device, USART_IT_RXNE, ENABLE);
-
-    return RT_EOK;
-}
-
-static rt_err_t stm32_control(struct rt_serial_device *serial, int cmd, void *arg)
-{
-    struct stm32_uart* uart;
-
-    RT_ASSERT(serial != RT_NULL);
-    uart = (struct stm32_uart *)serial->parent.user_data;
-
-    switch (cmd)
-    {
-    case RT_DEVICE_CTRL_CLR_INT:
-        /* disable rx irq */
-        UART_DISABLE_IRQ(uart->irq);
-        break;
-    case RT_DEVICE_CTRL_SET_INT:
-        /* enable rx irq */
-        UART_ENABLE_IRQ(uart->irq);
-        break;
-    }
-
-    return RT_EOK;
-}
-
-static int stm32_putc(struct rt_serial_device *serial, char c)
-{
-    struct stm32_uart* uart;
-
-    RT_ASSERT(serial != RT_NULL);
-    uart = (struct stm32_uart *)serial->parent.user_data;
-
-    while (!(uart->uart_device->ISR & USART_FLAG_TXE));
-    uart->uart_device->TDR = c;
-
-    return 1;
-}
-
-static int stm32_getc(struct rt_serial_device *serial)
-{
-    int ch;
-    struct stm32_uart* uart;
-
-    RT_ASSERT(serial != RT_NULL);
-    uart = (struct stm32_uart *)serial->parent.user_data;
-
-    ch = -1;
-    if (uart->uart_device->ISR & USART_FLAG_RXNE)
-    {
-        ch = uart->uart_device->RDR & 0xff;
-    }
-
-    return ch;
-}
-
-static const struct rt_uart_ops stm32_uart_ops =
-{
-    stm32_configure,
-    stm32_control,
-    stm32_putc,
-    stm32_getc,
-};
-
-#if defined(RT_USING_UART1)
-/* UART1 device driver structure */
-struct stm32_uart uart1 =
-{
-    USART1,
-    USART1_IRQn,
-};
-struct rt_serial_device serial1;
-
-void USART1_IRQHandler(void)
-{
-    struct stm32_uart* uart;
-
-    uart = &uart1;
-
-    /* enter interrupt */
-    rt_interrupt_enter();
-    if(USART_GetITStatus(uart->uart_device, USART_IT_RXNE) != RESET)
-    {
-        rt_hw_serial_isr(&serial1, RT_SERIAL_EVENT_RX_IND);
-    }
-    if (USART_GetITStatus(uart->uart_device, USART_IT_TC) != RESET)
-    {
-        /* clear interrupt */
-        USART_ClearITPendingBit(uart->uart_device, USART_IT_TC);
-    }
-
-    /* leave interrupt */
-    rt_interrupt_leave();
-}
-#endif /* RT_USING_UART1 */
-
-#if defined(RT_USING_UART2)
-/* UART2 device driver structure */
-struct stm32_uart uart2 =
-{
-    USART2,
-    USART2_IRQn,
-};
-struct rt_serial_device serial2;
-
-void USART2_IRQHandler(void)
-{
-    struct stm32_uart* uart;
-
-    uart = &uart2;
-
-    /* enter interrupt */
-    rt_interrupt_enter();
-    if(USART_GetITStatus(uart->uart_device, USART_IT_RXNE) != RESET)
-    {
-        rt_hw_serial_isr(&serial2, RT_SERIAL_EVENT_RX_IND);
-    }
-    if (USART_GetITStatus(uart->uart_device, USART_IT_TC) != RESET)
-    {
-        /* clear interrupt */
-        USART_ClearITPendingBit(uart->uart_device, USART_IT_TC);
-    }
-
-    /* leave interrupt */
-    rt_interrupt_leave();
-}
-#endif /* RT_USING_UART2 */
-
-static void RCC_Configuration(void)
-{
-#ifdef RT_USING_UART1
-    /* Enable GPIO clock */
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
-    /* Enable USART clock */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-#endif /* RT_USING_UART1 */
-
-#ifdef RT_USING_UART2
-    /* Enable GPIO clock */
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
-    /* Enable USART clock */
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
-#endif /* RT_USING_UART2 */
-
-}
-
-static void GPIO_Configuration(void)
-{
-    GPIO_InitTypeDef GPIO_InitStructure;
-
-#ifdef RT_USING_UART1
 	/* Connect PXx to USARTx_Tx */
 	GPIO_PinAFConfig(UART1_GPIO, UART1_GPIO_TX_SOURCE, UART1_GPIO_AF);
 
@@ -232,71 +60,147 @@ static void GPIO_Configuration(void)
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_Init(UART1_GPIO, &GPIO_InitStructure);
-#endif /* RT_USING_UART1 */
 
-#ifdef RT_USING_UART2
-	/* Connect PXx to USARTx_Tx */
-	GPIO_PinAFConfig(UART2_GPIO, UART2_GPIO_TX_SOURCE, UART2_GPIO_AF);
+	NVIC_InitTypeDef NVIC_InitStructure;
 
-	/* Connect PXx to USARTx_Rx */
-	GPIO_PinAFConfig(UART2_GPIO, UART2_GPIO_RX_SOURCE, UART2_GPIO_AF);
+	/* Enable the USART Interrupt */
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
 
-	/* Configure USART Tx, Rx as alternate function push-pull */
-	GPIO_InitStructure.GPIO_Pin = UART2_GPIO_TX | UART2_GPIO_RX;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_Init(UART2_GPIO, &GPIO_InitStructure);
-#endif /* RT_USING_UART2 */
+	USART_InitStructure.USART_BaudRate = 115200;
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;
+	USART_InitStructure.USART_Parity = USART_Parity_No;
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+	USART_Init(USART1, &USART_InitStructure);
+
+	/* Enable USART */
+	/* enable interrupt */
+	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+	NVIC_EnableIRQ(USART1_IRQn);
+	USART_Cmd(USART1, ENABLE);
+	return 0;
 }
 
-static void NVIC_Configuration(struct stm32_uart* uart)
+int uart_send(int index,unsigned char byte)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
-
-    /* Enable the USART Interrupt */
-    NVIC_InitStructure.NVIC_IRQChannel = uart->irq;
-    NVIC_InitStructure.NVIC_IRQChannelPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+	while (!(USART1->ISR & USART_FLAG_TXE));
+	USART1->TDR = byte;
 }
-
-void rt_hw_usart_init(void)
+char uart_recv(int index)
 {
-    struct stm32_uart* uart;
-    struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+	char ch;
+	ch = -1;
+	if (USART1->ISR & USART_FLAG_RXNE)
+	{
+		ch = USART1->RDR & 0xff;
+		
+	}
+	return ch;
 
-    RCC_Configuration();
-    GPIO_Configuration();
-
-#ifdef RT_USING_UART1
-    uart = &uart1;
-    config.baud_rate = BAUD_RATE_115200;
-
-    serial1.ops    = &stm32_uart_ops;
-    serial1.config = config;
-
-    NVIC_Configuration(&uart1);
-
-    /* register UART1 device */
-    rt_hw_serial_register(&serial1, "uart1",
-                          RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
-                          uart);
-#endif /* RT_USING_UART1 */
-
-#ifdef RT_USING_UART2
-    uart = &uart2;
-
-    config.baud_rate = BAUD_RATE_115200;
-    serial2.ops    = &stm32_uart_ops;
-    serial2.config = config;
-
-    NVIC_Configuration(&uart2);
-
-    /* register UART1 device */
-    rt_hw_serial_register(&serial2, "uart2",
-                          RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
-                          uart);
-#endif /* RT_USING_UART2 */
 }
+
+void serial_ringbuffer_putc(struct serial_ringbuffer *rbuffer,
+                                      char                      ch)
+{
+    rt_base_t level;
+
+    /* disable interrupt */
+    level = rt_hw_interrupt_disable();
+
+    rbuffer->buffer[rbuffer->put_index] = ch;
+    rbuffer->put_index = (rbuffer->put_index + 1) & (RT_SERIAL_RB_BUFSZ - 1);
+
+    /* if the next position is read index, discard this 'read char' */
+    if (rbuffer->put_index == rbuffer->get_index)
+    {
+        rbuffer->get_index = (rbuffer->get_index + 1) & (RT_SERIAL_RB_BUFSZ - 1);
+    }
+
+    /* enable interrupt */
+    rt_hw_interrupt_enable(level);
+}
+int serial_ringbuffer_getc(struct serial_ringbuffer *rbuffer)
+{
+    int ch;
+    rt_base_t level;
+
+    ch = 0xff;
+    /* disable interrupt */
+    level = rt_hw_interrupt_disable();
+    if (rbuffer->get_index != rbuffer->put_index)
+    {
+        ch = rbuffer->buffer[rbuffer->get_index];
+        rbuffer->get_index = (rbuffer->get_index + 1) & (RT_SERIAL_RB_BUFSZ - 1);
+    }
+    /* enable interrupt */
+    rt_hw_interrupt_enable(level);
+
+    return ch;
+}
+
+void USART1_IRQHandler(void)
+{
+
+	int ch=-1;
+	/* enter interrupt */
+	
+	rt_interrupt_enter();
+	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
+	{
+		while (1)
+		{
+			ch = uart_recv(0);
+			if (ch == 0xff)
+			break;
+			//uart_send(0,ch);
+			serial_ringbuffer_putc(rbuffer, ch);
+		}
+		/* clear interrupt */
+		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+	}
+	if (USART_GetITStatus(USART1, USART_IT_TC) != RESET)
+	{
+		/* clear interrupt */
+		USART_ClearITPendingBit(USART1, USART_IT_TC);
+	}
+	/* leave interrupt */
+	rt_interrupt_leave();
+}
+void wifi_send(const char *s,int len)
+{
+	int i;
+	for(i=0;i<len;i++)
+	uart_send(0,s[i]);
+}
+unsigned long wifi_rcv(char *s,int size)
+{
+	//unsigned char *ptr;
+	int i=0,j;
+	unsigned long read_nbytes;
+	//ptr = (unsigned char  *)s;
+	
+	int ch;
+	j=0;
+	for(i=0;i<size;i++)
+	{
+		while((ch=serial_ringbuffer_getc(rbuffer))==0xff)
+		{
+			j++;
+			Delay_us(1);
+			if(j==3000)
+				return 0;
+		}
+		*s=ch;
+		s++;
+	}
+	//ptr=(unsigned char *)s;
+	//for(i=0;i<size;i++)
+	//uart_send(0,*(ptr+i));
+	return size;
+}
+//INIT_DEVICE_EXPORT(uart_config);
+

@@ -1,0 +1,8 @@
+r
+h
+speed 1200
+exec device=stm32f030f4
+loadbin D:\rtt\bsp\stm32f0x\rtthread.bin 0x08000000
+r
+g
+qc

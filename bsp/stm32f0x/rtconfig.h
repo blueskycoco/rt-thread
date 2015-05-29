@@ -16,7 +16,7 @@
 
 /* SECTION: RT_DEBUG */
 /* Thread Debug */
-#define RT_DEBUG
+/*#define RT_DEBUG*/
 #define RT_DEBUG_INIT 1
 #define RT_USING_OVERFLOW_CHECK
 
@@ -37,7 +37,7 @@
 /* #define RT_USING_MUTEX */
 
 /* Using Event */
-/* #define RT_USING_EVENT */
+/*#define RT_USING_EVENT*/
 
 /* Using MailBox */
 /* #define RT_USING_MAILBOX */
@@ -57,15 +57,15 @@
 #define RT_USING_TINY_SIZE
 
 // <bool name="RT_USING_COMPONENTS_INIT" description="Using RT-Thread components initialization" default="true" />
-#define RT_USING_COMPONENTS_INIT
+/*#define RT_USING_COMPONENTS_INIT*/
 
 /* SECTION: Device System */
 /* Using Device System */
-#define RT_USING_DEVICE
+/*#define RT_USING_DEVICE*/
 // <bool name="RT_USING_DEVICE_IPC" description="Using device communication" default="true" />
-#define RT_USING_DEVICE_IPC
+/*#define RT_USING_DEVICE_IPC*/
 // <bool name="RT_USING_SERIAL" description="Using Serial" default="true" />
-#define RT_USING_SERIAL
+/*#define RT_USING_SERIAL*/
 
 /* SECTION: Console options */
 #define RT_USING_CONSOLE
@@ -77,7 +77,7 @@
 
 
 /* SECTION: finsh, a C-Express shell */
-#define RT_USING_FINSH
+/*#define RT_USING_FINSH*/
 /* configure finsh parameters */
 #define FINSH_THREAD_PRIORITY 25
 #define FINSH_THREAD_STACK_SIZE	1024
@@ -87,7 +87,20 @@
 #define FINSH_USING_DESCRIPTION
 
 /* SECTION: libc management */
-#define RT_USING_LIBC
+#ifdef __CC_ARM
+/* #define RT_USING_MINILIBC */
+/* #define RT_USING_NEWLIB */
+#endif
+
+#ifdef __ICCARM__
+/* #define RT_USING_MINILIBC */
+/* #define RT_USING_NEWLIB */
+#endif
+
+#ifdef __GNUC__
+/* #define RT_USING_MINILIBC */
+#define RT_USING_NEWLIB
+#endif
 
 /* SECTION: device filesystem */
 /* #define RT_USING_DFS */

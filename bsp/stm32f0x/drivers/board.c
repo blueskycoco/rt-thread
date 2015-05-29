@@ -12,12 +12,14 @@
  * 2009-01-05     Bernard      first implementation
  * 2013-11-15     bright       add RCC initial and print RCC freq function
  */
-
 #include <rthw.h>
 #include <rtthread.h>
 
 #include "board.h"
 #include "usart.h"
+#include "adc.h"
+#include "timer.h"
+#include "led.h"
 /* RT_USING_COMPONENTS_INIT */
 #ifdef  RT_USING_COMPONENTS_INIT
 #include <components.h>
@@ -39,13 +41,12 @@ void NVIC_Configuration(void)
 {
 //    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 }
-
 /**
 * @brief  Inserts a delay time.
 * @param  nCount: specifies the delay time length.
 * @retval None
 */
-static void Delay(__IO uint32_t nCount)
+void Delay(__IO uint32_t nCount)
 {
 	/* Decrement nCount value */
 	while (nCount != 0)
@@ -132,26 +133,48 @@ void SysTick_Handler(void)
  */
 void rt_hw_board_init()
 {
+
 	/* NVIC Configuration */
 	NVIC_Configuration();
+	
 
 	/* Configure the SysTick */
 	RCC_Configuration();
 	SysTick_Config(SystemCoreClock / RT_TICK_PER_SECOND);
 
 	/* Initial usart deriver, and set console device */
-	rt_hw_usart_init();
+	uart_config();
+    	//rt_hw_batt_init();
 #ifdef RT_USING_CONSOLE
-	rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
+//rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
 #endif
 	/* Print RCC freq info */
 #ifdef PRINT_RCC_FREQ_INFO
 	print_rcc_freq_info();
 #endif
+
 	/* Call components board initial (use INIT_BOARD_EXPORT()) */
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();
 #endif
+
+}
+void rt_hw_console_output(const char* string)
+{
+//rt_hw_led1_on();
+#if 1
+	while (*string)
+	{
+		if (*string=='\n')
+			uart_send(1,'\r');
+		
+			uart_send(1,*string);
+		string++;
+	}
+#else
+//wifi_send(string,rt_strlen(string));
+#endif
+	//rt_hw_led1_off();
 }
 
 /*@}*/
