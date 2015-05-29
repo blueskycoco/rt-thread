@@ -5,6 +5,8 @@ from building import *
 # The set of source files associated with this SConscript file.
 cwd     = GetCurrentDir()
 src = Glob('driverlib/*.c')
+src += Glob('usblib/*.c')
+src += Glob('usblib/device/*.c')
 SrcRemove(src, 'onewire.c')
 
 # add for startup script 
@@ -14,8 +16,10 @@ elif rtconfig.CROSS_TOOL == 'keil':
 	src += ['startup/startup_rvmdk.S']
 elif rtconfig.CROSS_TOOL == 'iar':
 	src += ['startup/startup_ewarm.c']
+elif rtconfig.CROSS_TOOL == 'ccs':
+	src += ['startup/startup_ccs.c']
 
-CPPPATH = [cwd, cwd + '/inc', cwd + '/driverlib']
+CPPPATH = [cwd, cwd + '/inc', cwd + '/driverlib', cwd + '/usblib', cwd + '/usblib/device']
 
 CPPDEFINES = [rtconfig.PART_TYPE]
 if rtconfig.CROSS_TOOL == 'gcc':

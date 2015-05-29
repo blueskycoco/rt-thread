@@ -15,6 +15,6 @@
 #ifndef __TIVA_ETH_H__
 #define __TIVA_ETH_H__
 
-int rt_hw_tiva_eth_init(void);
+rt_err_t rt_hw_tiva_eth_init(void);
 
 #endif

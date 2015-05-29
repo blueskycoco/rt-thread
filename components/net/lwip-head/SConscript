@@ -110,7 +110,7 @@ if GetDepend(['RT_LWIP_PPP']):
 
 # For testing apps
 if GetDepend(['RT_USING_NETUTILS']):
-    src += Glob('./apps/*.c')
+    src += Glob('../lwip/apps/netio.c') +Glob('../lwip/apps/tcpecho.c')
 
 group = DefineGroup('LwIP', src, depend = ['RT_USING_LWIP', 'RT_USING_LWIP_HEAD'], CPPPATH = path)
 
