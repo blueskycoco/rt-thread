@@ -417,9 +417,11 @@ int ST7585_Init(void)
 {
 	init_spi();
 	GPIO_ResetBits(GPIOF, GPIO_Pin_0);
-	delay_ms(10);                  
+	//delay_ms(10);                  
+	rt_thread_delay(10);
 	GPIO_SetBits(GPIOF, GPIO_Pin_0);
-	delay_ms(10);
+	//delay_ms(10);
+	rt_thread_delay(10);
 
 	ST7585_Write(0x21,1);    
 	ST7585_Write(0x9C,1);  

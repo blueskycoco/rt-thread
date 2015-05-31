@@ -249,8 +249,8 @@ void b(unsigned char fuse)
 static void rt_init_thread_entry(void* parameter)
 {
 	rt_thread_t system_thread;
-	rt_uint8_t buf[128];
-	int i;
+	rt_uint8_t buf[256];
+	int i,count=0;
 
 	/* Initialization RT-Thread Components */
 #ifdef RT_USING_COMPONENTS_INIT
@@ -263,11 +263,17 @@ static void rt_init_thread_entry(void* parameter)
 #endif  /* RT_USING_FINSH */
 	//rt_hw_led1_off();
 	//cmx865a_init();
+	rt_hw_led_init();
+	ST7585_Init();
 
 
 	//unsigned int count=1000;
-	//rt_memset(buf,'\0',256);
-	rt_hw_led_init();
+	rt_memset(buf,'\0',256);
+	rt_sprintf(buf,"%s","- RT -    Thread Operating System");
+		
+	ST7585_Write_String(0,5,"- RT -    ");
+	ST7585_Write_String(0,4,"Thread Operating System");
+	Draw_bat(3);
 	while (1)
 	{
 		
@@ -277,22 +283,26 @@ static void rt_init_thread_entry(void* parameter)
 //#endif
 	
 		
-	//	rt_sprintf(buf,"led on , count : %d",count);
-	//	ST7585_Write_String(0,5,buf);
+		rt_sprintf(buf,"led on , count : %d",count);
+		ST7585_Write_String(0,5,buf);
 
 		//test_cmx865a();
-	//	count++;
-		rt_hw_led1_off();
+		count++;
+		//rt_hw_led1_off();
+		rt_hw_led2_on();
+
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 
 		/* led1 off */
 //#ifdef RT_USING_FINSH
 		rt_kprintf("led off\r\n");
 //#endif
-	//	rt_sprintf(buf,"led off, count : %d",count);
-	//	ST7585_Write_String(0,5,buf);
+		rt_sprintf(buf,"led off, count : %d",count);
+		ST7585_Write_String(0,5,buf);
 
-		rt_hw_led1_on();
+		//rt_hw_led1_on();
+		rt_hw_led2_off();
+
 		rt_thread_delay( RT_TICK_PER_SECOND/2 );
 	}
 
