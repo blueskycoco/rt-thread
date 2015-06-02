@@ -412,7 +412,7 @@ void Draw_bat(unsigned char level)
 
 		#endif
 }
-
+/*spi,gpb1 as reset pin*/
 int ST7585_Init(void)
 {
 	init_spi();
