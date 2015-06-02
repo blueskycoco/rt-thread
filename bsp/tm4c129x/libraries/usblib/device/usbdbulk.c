@@ -514,6 +514,8 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 {
     tUSBDBulkDevice *psBulkDevice;
     tBulkInstance *psInst;
+    uint32_t ui32EPStatus;
+    uint32_t ui32Size;
 
     ASSERT(pvBulkDevice != 0);
 
@@ -526,6 +528,10 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     // Get a pointer to the bulk device instance data pointer
     //
     psInst = &psBulkDevice->sPrivateData;
+    //
+    // Read out the current endpoint status.
+    //
+    ui32EPStatus = MAP_USBEndpointStatus(USB0_BASE, psInst->ui8OUTEndpoint);
 
     //
     // Handler for the bulk OUT data endpoint.
@@ -535,8 +541,49 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
         //
         // Data is being sent to us from the host.
         //
-        ProcessDataFromHost(psBulkDevice, ui32Status);
-    }
+        //ProcessDataFromHost(psBulkDevice, ui32Status);
+        
+		//
+		// Get the amount of data available in the FIFO.
+		//
+		ui32Size = USBEndpointDataAvail(psInst->ui32USBBase,
+										psInst->ui8OUTEndpoint);
+		psInst->sBuffer.ui32Size=ui32Size;
+	
+		//
+		// Clear the status bits.
+		//
+		MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,
+									  ui32EPStatus);
+	
+		//
+		// Configure the next DMA transfer.
+		//
+		USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,
+						  psInst->sBuffer.pvData, ui32Size);
+		psInst->ui32Flags=USBD_FLAG_DMA_IN;
+	}
+	else if((USBLibDMAChannelStatus(psInst->psDMAInstance,
+									psInst->ui8OUTDMA) ==
+			USBLIBSTATUS_DMA_COMPLETE)&&psInst->ui32Flags==USBD_FLAG_DMA_IN)
+	{
+		USBEndpointDMADisable(USB0_BASE,
+							  psInst->ui8OUTEndpoint, USB_EP_DEV_OUT);
+	
+		//
+		// Acknowledge that the data was read, this will not cause a bus
+		// acknowledgment.
+		//
+		MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);
+	
+		//
+		// Inform the callback of the new data.
+		//
+		psInst->sBuffer.pfnRxCallback(psInst->sBuffer.pvData,
+									psInst->sBuffer.ui32Size);
+		psInst->ui32Flags=0;
+	}
+    
 
     //
     // Handler for the bulk IN data endpoint.
@@ -645,6 +692,7 @@ HandleDevice(void *pvBulkDevice, uint32_t ui32Request, void *pvRequestData)
             if(pui8Data[0] & USB_EP_DESC_IN)
             {
                 psInst->ui8INEndpoint = IndexToUSBEP((pui8Data[1] & 0x7f));
+				
             }
             else
             {
@@ -652,6 +700,38 @@ HandleDevice(void *pvBulkDevice, uint32_t ui32Request, void *pvRequestData)
                 // Extract the new endpoint number.
                 //
                 psInst->ui8OUTEndpoint = IndexToUSBEP(pui8Data[1] & 0x7f);
+				
+                //
+                // If the DMA channel has already been allocated then clear
+                // that channel and prepare to possibly use a new one.
+                //
+                if(psInst->ui8OUTDMA != 0)
+                {
+                    USBLibDMAChannelRelease(psInst->psDMAInstance,
+                                            psInst->ui8OUTDMA);
+                }
+
+                //
+                // Allocate a DMA channel to the endpoint.
+                //
+                psInst->ui8OUTDMA =
+                    USBLibDMAChannelAllocate(psInst->psDMAInstance,
+                                             psInst->ui8OUTEndpoint,
+                                             DATA_OUT_EP_MAX_SIZE,
+                                             (USB_DMA_EP_RX |
+                                              USB_DMA_EP_DEVICE));
+
+                //
+                // Set the DMA individual transfer size.
+                //
+                USBLibDMAUnitSizeSet(psInst->psDMAInstance, psInst->ui8OUTDMA,
+                                     32);
+
+                //
+                // Set the DMA arbitration size.
+                //
+                USBLibDMAArbSizeSet(psInst->psDMAInstance, psInst->ui8OUTDMA,
+                                    16);
             }
             break;
         }
@@ -1020,6 +1100,7 @@ USBDBulkCompositeInit(uint32_t ui32Index, tUSBDBulkDevice *psBulkDevice,
     psInst->ui8INEndpoint = DATA_IN_ENDPOINT;
     psInst->ui8OUTEndpoint = DATA_OUT_ENDPOINT;
     psInst->ui8Interface = 0;
+    psInst->ui8OUTDMA = 0;
 
     //
     // Plug in the client's string stable to the device information
@@ -1040,6 +1121,11 @@ USBDBulkCompositeInit(uint32_t ui32Index, tUSBDBulkDevice *psBulkDevice,
     // Register our tick handler (this must be done after USBDCDInit).
     //
     InternalUSBRegisterTickHandler(BulkTickHandler, (void *)psBulkDevice);
+    //
+    // Get the DMA instance pointer.
+    //
+    psInst->psDMAInstance = USBLibDMAInit(0);
+
 
     //
     // Return the pointer to the instance indicating that everything went well.
@@ -1553,7 +1639,116 @@ USBDBulkRemoteWakeupRequest(void *pvBulkDevice)
     //
     return(USBDCDRemoteWakeupRequest(0));
 }
+int32_t
+USBBulkRxBufferOutInit(void *pvBulkDevice, void *pvBuffer,uint32_t ui32Size,
+                  tUSBBulkRxBufferCallback pfnRxCallback)
+{
+    tBulkInstance *psInst;
+    tUSBDBulkDevice *psBulkDevice;
 
+    //
+    // Make sure we were not passed NULL pointers.
+    //
+    ASSERT(psBulkDevice != 0);
+    ASSERT(pvBuffer != 0);
+
+    //
+    // Buffer must be at least one packet in size.
+    //
+    ASSERT(ui32Size >= DATA_OUT_EP_MAX_SIZE);
+    ASSERT(pfnRxCallback);
+
+    //
+    // The audio device structure pointer.
+    //
+    psBulkDevice = (tUSBDBulkDevice *)pvBulkDevice;
+
+    //
+    // Create a pointer to the audio instance data.
+    //
+    psInst = &psBulkDevice->sPrivateData;
+
+    //
+    // Initialize the buffer instance.
+    //
+    psInst->sBuffer.pvData = pvBuffer;
+    psInst->sBuffer.ui32Size = ui32Size;
+    psInst->sBuffer.pfnRxCallback = pfnRxCallback;
+
+    return(0);
+}
+
+int32_t
+USBBulkTxBufferInInit(void *pvBulkDevice,
+                  tUSBBulkTxBufferCallback pfnTxCallback)
+{
+    tBulkInstance *psInst;
+    tUSBDBulkDevice *psBulkDevice;
+
+    //
+    // Make sure we were not passed NULL pointers.
+    //
+    ASSERT(psBulkDevice != 0);
+
+    ASSERT(pfnTxCallback);
+
+    //
+    // The audio device structure pointer.
+    //
+    psBulkDevice = (tUSBDBulkDevice *)pvBulkDevice;
+
+    //
+    // Create a pointer to the audio instance data.
+    //
+    psInst = &psBulkDevice->sPrivateData;
+
+    //
+    // Initialize the buffer instance.
+    //
+    psInst->sBuffer.pfnTxCallback = pfnTxCallback;
+
+    return(0);
+}
+int32_t
+USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
+{	
+    tBulkInstance *psInst;
+    tUSBDBulkDevice *psBulkDevice;
+
+    //
+    // Make sure we were not passed NULL pointers.
+    //
+    ASSERT(psBulkDevice != 0);
+
+    ASSERT(pvBuffer);
+    ASSERT(ui32Size >= DATA_IN_EP_MAX_SIZE);
+
+    //
+    // The audio device structure pointer.
+    //
+    psBulkDevice = (tUSBDBulkDevice *)pvBulkDevice;
+
+    //
+    // Create a pointer to the audio instance data.
+    //
+    psInst = &psBulkDevice->sPrivateData;
+
+	while(psInst->trans_state!=USBD_FLAG_DMA_IN)
+		rt_thread_delay(1);
+	
+	//
+	// Configure and DMA for the IN transfer.
+	//
+	USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8INDMA,
+					  pvBuffer, ui32Size);
+	
+	//
+	// Remember that a DMA is in progress.
+	//
+	psInst->ui32Flags = USBD_FLAG_DMA_IN;
+
+	return 0;
+}
 //*****************************************************************************
 //
 // Close the Doxygen group.

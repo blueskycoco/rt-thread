@@ -84,6 +84,8 @@ typedef enum
     eBulkStateWaitClient
 }
 tBulkState;
+typedef void (* tUSBBulkRxBufferCallback)(void *pvBuffer, uint32_t ui32Length);
+typedef void (* tUSBBulkTxBufferCallback)();
 
 //*****************************************************************************
 //
@@ -147,6 +149,41 @@ typedef struct
     // The bulk class interface number, this is modified in composite devices.
     //
     uint8_t ui8Interface;
+	
+    struct
+    {
+        //
+        // Pointer to a buffer provided by caller.
+        //
+        void *pvData;
+
+        //
+        // Size of the data area provided in pvData in bytes.
+        //
+        uint32_t ui32Size;
+
+        //
+        // The buffer callback for this function.
+        //
+        tUSBBulkRxBufferCallback pfnRxCallback;
+		tUSBBulkTxBufferCallback pfnTxCallback;
+    }
+    sBuffer;
+	
+    //
+    // The OUT endpoint DMA channel in use by this instance.
+    //
+    uint8_t ui8OUTDMA;
+	
+    //
+    // A copy of the DMA instance data used with calls to USBLibDMA functions.
+    //
+    tUSBDMAInstance *psDMAInstance;
+	
+    //
+    // Holds the flag settings for this instance.
+    //
+    uint32_t ui32Flags;
 }
 tBulkInstance;
 
@@ -271,6 +308,13 @@ extern uint32_t USBDBulkPacketRead(void *pvBulkInstance, uint8_t *pi8Data,
 extern uint32_t USBDBulkTxPacketAvailable(void *pvBulkInstance);
 extern uint32_t USBDBulkRxPacketAvailable(void *pvBulkInstance);
 extern bool USBDBulkRemoteWakeupRequest(void *pvBulkInstance);
+extern int32_t USBBulkBufferOutInit(void *pvBulkDevice, void *pvBuffer,
+                                 uint32_t ui32Size,
+                                 tUSBBulkRxBufferCallback pfnRxCallback);
+extern int32_t USBBulkBufferInInit(void *pvBulkDevice,
+                                 tUSBBulkTxBufferCallback pfnTxCallback);
+
+
 
 //*****************************************************************************
 //
