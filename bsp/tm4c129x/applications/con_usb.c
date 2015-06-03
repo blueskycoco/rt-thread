@@ -31,7 +31,11 @@ extern uint8_t g_ppui8USBRxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE];
 extern uint8_t g_ppcUSBTxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE_TX];
 extern struct rt_semaphore rx_sem[4];
 extern struct rt_semaphore usbrx_sem[4];
+#define USB_BUF_LEN 512
+uint8_t g_usb_rcv_buf[5][USB_BUF_LEN];
 uint32_t send_len;
+void USBRxEventCallback(void *pvRxCBData,void *pvBuffer, uint32_t ui32Length);
+
 rt_size_t _usb_init()
 {
 
@@ -39,10 +43,11 @@ rt_size_t _usb_init()
 	PinoutSet(false, true); 
 	for(i=0;i<NUM_BULK_DEVICES;i++)
 	{
-	   USBBufferInit(&g_sTxBuffer[i]);
-	   USBBufferInit(&g_sRxBuffer[i]);
-	
+	   //USBBufferInit(&g_sTxBuffer[i]);
+	   //USBBufferInit(&g_sRxBuffer[i]);
+		
 	   g_sCompDevice.psDevices[i].pvInstance = USBDBulkCompositeInit(0, &g_psBULKDevice[i], &g_psCompEntries[i]);
+	   USBBulkRxBufferOutInit(&g_psBULKDevice[i],g_usb_rcv_buf[i],USB_BUF_LEN,USBRxEventCallback);
 	}
    USBDCompositeInit(0, &g_sCompDevice, DESCRIPTOR_DATA_SIZE,g_pucDescriptorData);
 
@@ -58,7 +63,7 @@ int which_usb_device(tUSBDBulkDevice *psDevice)
 	return i;
 }
 uint32_t
-TxHandlerBulk(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,
+USBTxEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,
           void *pvMsgData)
 {
     //
@@ -67,17 +72,15 @@ TxHandlerBulk(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,
     //
     if(ui32Event == USB_EVENT_TX_COMPLETE)
     {
-        //g_ui32TxCount += ui32MsgValue;
-         int index=which_usb_device((tUSBDBulkDevice *)pvCBData);
-		//rt_kprintf("packet sent %d,length %d\n",index,ui32MsgValue);
+         int index=*(int *)pvCBData;
+		rt_kprintf("packet sent %d,length %d\n",index,ui32MsgValue);
 		send_len=ui32MsgValue;
 		rt_sem_release(&(usbrx_sem[index]));
     }
     return(0);
 }
-
 uint32_t
-RxHandlerBulk(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,
+USBCommonEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,
           void *pvMsgData)
 {
     //
@@ -85,9 +88,7 @@ RxHandlerBulk(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,
     //
     
 	 unsigned char *tmpbuf;
-     tUSBDBulkDevice *psDevice;
-     psDevice = (tUSBDBulkDevice *)pvCBData;
-	 int index=which_usb_device(psDevice);
+	 int index=*(int *)pvCBData;
     switch(ui32Event)
     {
         //
@@ -98,8 +99,7 @@ RxHandlerBulk(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,
             //
             // Flush our buffers.
             //
-            USBBufferFlush(&g_sTxBuffer[index]);
-            USBBufferFlush(&g_sRxBuffer[index]);
+            rt_memset(g_usb_rcv_buf[index],'\0',USB_BUF_LEN);
 			rt_kprintf("usb connect %d\n",index);
 			if(index==1)
 				usb_1=1;
@@ -162,34 +162,32 @@ RxHandlerBulk(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,
     return(0);
 }
 
-int _usb_read(int index)
+void USBRxEventCallback(void *pvRxCBData,void *pvBuffer, uint32_t ui32Length)
 {   
     //return USBBufferRead(&g_sRxBuffer[index],buffer,size);
-   
+   	int index=*(int *)pvRxCBData;
 		//rt_kprintf("get sem %d\n",index);
-		unsigned char *tmpbuf=rt_malloc(64);
-		int bytes=USBBufferRead(&g_sRxBuffer[index],tmpbuf,64);
-		if(bytes!=0&&usb_1==1)
-		{
+		//int bytes=USBBufferRead(&g_sRxBuffer[index],tmpbuf,64);
+		if(ui32Length!=0&&usb_1==1)
+		{		
+			unsigned char *tmpbuf=rt_malloc(ui32Length);
+			rt_memcpy(tmpbuf,pvBuffer,ui32Length);
 			if(index!=0)
 			{
 			//	rt_kprintf("read index %d ,bytes %d\n",index,bytes);
 				//USBBufferWrite(&g_sTxBuffer[index],tmpbuf,bytes); 	
-				if(phy_link&&(bytes>0)&&g_socket[index-1].connected)
-					rt_data_queue_push(&g_data_queue[(index-1)*2], tmpbuf, bytes, RT_WAITING_FOREVER);	
+				if(phy_link&&(ui32Length>0)&&g_socket[index-1].connected)
+					rt_data_queue_push(&g_data_queue[(index-1)*2], tmpbuf, ui32Length, RT_WAITING_FOREVER);	
 				else
 					rt_free(tmpbuf);
 			}
 			else
 			{
-				USBBufferWrite(&g_sTxBuffer[index],tmpbuf,bytes);
+				//USBBufferWrite(&g_sTxBuffer[index],tmpbuf,bytes);
+				USBBulkTx(g_psBULKDevice[index],tmpbuf,ui32Length);
 				rt_free(tmpbuf);
 			}
-		}
-		else
-			rt_free(tmpbuf);
-
-	
+		}	
 }
 static void _delay_us(uint32_t us)
 {
@@ -214,6 +212,9 @@ int _usb_write(int index, void *buffer, int size)
 		index=3;
 	else if(index==7)
 		index=4;
+	USBBulkTx(g_psBULKDevice[index],buffer,size);
+	return 0;
+	#if 0
 	while(tmp_size!=0)
 	{
 		len_out=USBBufferSpaceAvailable(&g_sTxBuffer[index]);
@@ -293,5 +294,6 @@ int _usb_write(int index, void *buffer, int size)
 	}
 
 	return 0;
+	#endif
 }
 

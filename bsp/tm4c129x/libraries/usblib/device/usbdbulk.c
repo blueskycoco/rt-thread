@@ -85,6 +85,8 @@
 
 #define DATA_IN_EP_MAX_SIZE     USBFIFOSizeToBytes(DATA_IN_EP_FIFO_SIZE)
 #define DATA_OUT_EP_MAX_SIZE    USBFIFOSizeToBytes(DATA_OUT_EP_FIFO_SIZE)
+#define USBD_FLAG_DMA_IN        0x00000001
+#define USBD_FLAG_DMA_OUT       0x00000002
 
 //*****************************************************************************
 //
@@ -579,7 +581,7 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 		//
 		// Inform the callback of the new data.
 		//
-		psInst->sBuffer.pfnRxCallback(psInst->sBuffer.pvData,
+		psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer.pvData,
 									psInst->sBuffer.ui32Size);
 		psInst->ui32Flags=0;
 	}
@@ -1677,38 +1679,6 @@ USBBulkRxBufferOutInit(void *pvBulkDevice, void *pvBuffer,uint32_t ui32Size,
 
     return(0);
 }
-
-int32_t
-USBBulkTxBufferInInit(void *pvBulkDevice,
-                  tUSBBulkTxBufferCallback pfnTxCallback)
-{
-    tBulkInstance *psInst;
-    tUSBDBulkDevice *psBulkDevice;
-
-    //
-    // Make sure we were not passed NULL pointers.
-    //
-    ASSERT(psBulkDevice != 0);
-
-    ASSERT(pfnTxCallback);
-
-    //
-    // The audio device structure pointer.
-    //
-    psBulkDevice = (tUSBDBulkDevice *)pvBulkDevice;
-
-    //
-    // Create a pointer to the audio instance data.
-    //
-    psInst = &psBulkDevice->sPrivateData;
-
-    //
-    // Initialize the buffer instance.
-    //
-    psInst->sBuffer.pfnTxCallback = pfnTxCallback;
-
-    return(0);
-}
 int32_t
 USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 {	
@@ -1733,14 +1703,14 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
     //
     psInst = &psBulkDevice->sPrivateData;
 
-	while(psInst->trans_state!=USBD_FLAG_DMA_IN)
+	while(psInst->ui32Flags!=USBD_FLAG_DMA_IN)
 		rt_thread_delay(1);
 	
 	//
 	// Configure and DMA for the IN transfer.
 	//
-	USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8INDMA,
-					  pvBuffer, ui32Size);
+//	USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8INDMA,
+	//				  pvBuffer, ui32Size);
 	
 	//
 	// Remember that a DMA is in progress.

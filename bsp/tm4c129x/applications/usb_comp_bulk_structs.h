@@ -39,26 +39,10 @@
 #define NUM_BULK_DEVICES      5
 #define DESCRIPTOR_DATA_SIZE    (COMPOSITE_DBULK_SIZE*NUM_BULK_DEVICES)
 
-extern uint32_t RxHandlerBulk(void *pvCBData, uint32_t ui32Event,
-                              uint32_t ui32MsgValue, void *pvMsgData);
-extern uint32_t RxHandlerCmd(void *pvCBData, uint32_t ui32Event,
-                             uint32_t ui32MsgValue, void *pvMsgData);
-extern uint32_t TxHandlerBulk(void *pvlCBData, uint32_t ui32Event,
-                              uint32_t ui32MsgValue, void *pvMsgData);
-extern uint32_t TxHandlerCmd(void *pvlCBData, uint32_t ui32Event,
-                             uint32_t ui32MsgValue, void *pvMsgData);
-
-extern uint32_t ControlHandler(void *pvCBData, uint32_t ui32Event,
-                               uint32_t ui32MsgValue, void *pvMsgData);
-extern uint32_t EventHandler(void *pvCBData, uint32_t ui32Event,
-                             uint32_t ui32MsgData, void *pvMsgData);
-extern const tUSBBuffer g_sTxBuffer[NUM_BULK_DEVICES];
-extern const tUSBBuffer g_sRxBuffer[NUM_BULK_DEVICES];
 extern tUSBDBulkDevice g_psBULKDevice[NUM_BULK_DEVICES];
-extern uint8_t g_pui8USBTxBuffer[];
-extern uint8_t g_pui8USBRxBuffer[];
 extern tCompositeEntry g_psCompEntries[NUM_BULK_DEVICES];
 extern tUSBDCompositeDevice g_sCompDevice;
 extern uint8_t g_pui8DescriptorData[DESCRIPTOR_DATA_SIZE];
-
+extern uint32_t USBCommonEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,void *pvMsgData);
+extern uint32_t USBTxEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,void *pvMsgData);
 #endif // __USB_SERIAL_STRUCTS_H__

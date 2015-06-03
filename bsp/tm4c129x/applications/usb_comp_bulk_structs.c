@@ -151,10 +151,10 @@ tUSBDBulkDevice g_psBULKDevice[NUM_BULK_DEVICES] =
 	    USB_PID_BULK,
 	    500,
 	    USB_CONF_ATTR_SELF_PWR,
-	    USBBufferEventCallback,
-	    (void *)&g_sRxBuffer[0],
-	    USBBufferEventCallback,
-	    (void *)&g_sTxBuffer[0],
+	    USBCommonEventCallback,
+	    (void *)(0),
+	    USBTxEventCallback,
+	    (void *)(0),
 	    g_pui8StringDescriptors,
 	    NUM_STRING_DESCRIPTORS
 	},
@@ -163,10 +163,10 @@ tUSBDBulkDevice g_psBULKDevice[NUM_BULK_DEVICES] =
 	    USB_PID_BULK,
 	    500,
 	    USB_CONF_ATTR_SELF_PWR,
-	    USBBufferEventCallback,
-	    (void *)&g_sRxBuffer[1],
-	    USBBufferEventCallback,
-	    (void *)&g_sTxBuffer[1],
+	    USBCommonEventCallback,
+	    (void *)(1),
+	    USBTxEventCallback,
+	    (void *)(1),
 	    g_pui8StringDescriptors,
 	    NUM_STRING_DESCRIPTORS
 	},	
@@ -175,10 +175,10 @@ tUSBDBulkDevice g_psBULKDevice[NUM_BULK_DEVICES] =
 		USB_PID_BULK,
 		500,
 		USB_CONF_ATTR_SELF_PWR,
-		USBBufferEventCallback,
-		(void *)&g_sRxBuffer[2],
-		USBBufferEventCallback,
-		(void *)&g_sTxBuffer[2],
+	    USBCommonEventCallback,
+	    (void *)(2),
+	    USBTxEventCallback,
+	    (void *)(2),
 		g_pui8StringDescriptors,
 		NUM_STRING_DESCRIPTORS
 	},
@@ -187,10 +187,10 @@ tUSBDBulkDevice g_psBULKDevice[NUM_BULK_DEVICES] =
 		USB_PID_BULK,
 		500,
 		USB_CONF_ATTR_SELF_PWR,
-		USBBufferEventCallback,
-		(void *)&g_sRxBuffer[3],
-		USBBufferEventCallback,
-		(void *)&g_sTxBuffer[3],
+	    USBCommonEventCallback,
+	    (void *)(3),
+	    USBTxEventCallback,
+	    (void *)(3),
 		g_pui8StringDescriptors,
 		NUM_STRING_DESCRIPTORS
 	},
@@ -199,145 +199,13 @@ tUSBDBulkDevice g_psBULKDevice[NUM_BULK_DEVICES] =
 		USB_PID_BULK,
 		500,
 		USB_CONF_ATTR_SELF_PWR,
-		USBBufferEventCallback,
-		(void *)&g_sRxBuffer[4],
-		USBBufferEventCallback,
-		(void *)&g_sTxBuffer[4],
+	    USBCommonEventCallback,
+	    (void *)(4),
+	    USBTxEventCallback,
+	    (void *)(4),
 		g_pui8StringDescriptors,
 		NUM_STRING_DESCRIPTORS
 	}
-};
-
-//*****************************************************************************
-//
-// Receive buffer (from the USB perspective).
-//
-//*****************************************************************************
-uint8_t g_ppui8USBRxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE];
-uint8_t g_ppui8RxBufferWorkspace[NUM_BULK_DEVICES][USB_BUFFER_WORKSPACE_SIZE];
-const tUSBBuffer g_sRxBuffer[NUM_BULK_DEVICES] =
-{
-    {
-        false,                          // This is a receive buffer.
-        RxHandlerBulk,                  // pfnCallback
-        (void *)&g_psBULKDevice[0],      // Callback data is our device pointer.
-        USBDBulkPacketRead,              // pfnTransfer
-        USBDBulkRxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[0],      // pvHandle
-        g_ppui8USBRxBuffer[0],          // pcBuffer
-        UART_BUFFER_SIZE,               // ulBufferSize
-        g_ppui8RxBufferWorkspace[0]     // pvWorkspace
-    },
-    {
-        false,                          // This is a receive buffer.
-        RxHandlerBulk,                   // pfnCallback
-        (void *)&g_psBULKDevice[1],      // Callback data is our device pointer.
-        USBDBulkPacketRead,              // pfnTransfer
-        USBDBulkRxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[1],      // pvHandle
-        g_ppui8USBRxBuffer[1],          // pcBuffer
-        UART_BUFFER_SIZE,               // ulBufferSize
-        g_ppui8RxBufferWorkspace[1]     // pvWorkspace
-    },
-    {
-        false,                          // This is a receive buffer.
-        RxHandlerBulk,                   // pfnCallback
-        (void *)&g_psBULKDevice[2],      // Callback data is our device pointer.
-        USBDBulkPacketRead,              // pfnTransfer
-        USBDBulkRxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[2],      // pvHandle
-        g_ppui8USBRxBuffer[2],          // pcBuffer
-        UART_BUFFER_SIZE,               // ulBufferSize
-        g_ppui8RxBufferWorkspace[2]     // pvWorkspace
-    },
-    {
-        false,                          // This is a receive buffer.
-        RxHandlerBulk,                   // pfnCallback
-        (void *)&g_psBULKDevice[3],      // Callback data is our device pointer.
-        USBDBulkPacketRead,              // pfnTransfer
-        USBDBulkRxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[3],      // pvHandle
-        g_ppui8USBRxBuffer[3],          // pcBuffer
-        UART_BUFFER_SIZE,               // ulBufferSize
-        g_ppui8RxBufferWorkspace[3]     // pvWorkspace
-    },
-    {
-        false,                          // This is a receive buffer.
-        RxHandlerBulk,                   // pfnCallback
-        (void *)&g_psBULKDevice[4],      // Callback data is our device pointer.
-        USBDBulkPacketRead,              // pfnTransfer
-        USBDBulkRxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[4],      // pvHandle
-        g_ppui8USBRxBuffer[4],          // pcBuffer
-        UART_BUFFER_SIZE,               // ulBufferSize
-        g_ppui8RxBufferWorkspace[4]     // pvWorkspace
-    }
-};
-
-//*****************************************************************************
-//
-// Transmit buffer (from the USB perspective).
-//
-//*****************************************************************************
-uint8_t g_ppcUSBTxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE_TX];
-uint8_t g_ppucTxBufferWorkspace[NUM_BULK_DEVICES][USB_BUFFER_WORKSPACE_SIZE];
-const tUSBBuffer g_sTxBuffer[NUM_BULK_DEVICES] =
-{
-    {
-        true,                           // This is a transmit buffer.
-        TxHandlerBulk,                      // pfnCallback
-        (void *)&g_psBULKDevice[0],      // Callback data is our device pointer.
-        USBDBulkPacketWrite,             // pfnTransfer
-        USBDBulkTxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[0],      // pvHandle
-        g_ppcUSBTxBuffer[0],            // pcBuffer
-        UART_BUFFER_SIZE_TX,               // ulBufferSize
-        g_ppucTxBufferWorkspace[0]      // pvWorkspace
-    },
-    {
-        true,                           // This is a transmit buffer.
-        TxHandlerBulk,                   // pfnCallback
-        (void *)&g_psBULKDevice[1],      // Callback data is our device pointer.
-        USBDBulkPacketWrite,             // pfnTransfer
-        USBDBulkTxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[1],      // pvHandle
-        g_ppcUSBTxBuffer[1],            // pcBuffer
-        UART_BUFFER_SIZE_TX,               // ulBufferSize
-        g_ppucTxBufferWorkspace[1]      // pvWorkspace
-    },
-    {
-        true,                           // This is a transmit buffer.
-        TxHandlerBulk,                      // pfnCallback
-        (void *)&g_psBULKDevice[2],      // Callback data is our device pointer.
-        USBDBulkPacketWrite,             // pfnTransfer
-        USBDBulkTxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[2],      // pvHandle
-        g_ppcUSBTxBuffer[2],            // pcBuffer
-        UART_BUFFER_SIZE_TX,               // ulBufferSize
-        g_ppucTxBufferWorkspace[2]      // pvWorkspace
-    },
-    {
-        true,                           // This is a transmit buffer.
-        TxHandlerBulk,                      // pfnCallback
-        (void *)&g_psBULKDevice[3],      // Callback data is our device pointer.
-        USBDBulkPacketWrite,             // pfnTransfer
-        USBDBulkTxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[3],      // pvHandle
-        g_ppcUSBTxBuffer[3],            // pcBuffer
-        UART_BUFFER_SIZE_TX,               // ulBufferSize
-        g_ppucTxBufferWorkspace[3]      // pvWorkspace
-    },
-    {
-        true,                           // This is a transmit buffer.
-        TxHandlerBulk,                      // pfnCallback
-        (void *)&g_psBULKDevice[4],      // Callback data is our device pointer.
-        USBDBulkPacketWrite,             // pfnTransfer
-        USBDBulkTxPacketAvailable,       // pfnAvailable
-        (void *)&g_psBULKDevice[4],      // pvHandle
-        g_ppcUSBTxBuffer[4],            // pcBuffer
-        UART_BUFFER_SIZE_TX,               // ulBufferSize
-        g_ppucTxBufferWorkspace[4]      // pvWorkspace
-    }
 };
 
 //****************************************************************************

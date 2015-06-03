@@ -84,8 +84,7 @@ typedef enum
     eBulkStateWaitClient
 }
 tBulkState;
-typedef void (* tUSBBulkRxBufferCallback)(void *pvBuffer, uint32_t ui32Length);
-typedef void (* tUSBBulkTxBufferCallback)();
+typedef void (* tUSBBulkRxBufferCallback)(void *pvCBData, void *pvBuffer, uint32_t ui32Length);
 
 //*****************************************************************************
 //
@@ -166,7 +165,6 @@ typedef struct
         // The buffer callback for this function.
         //
         tUSBBulkRxBufferCallback pfnRxCallback;
-		tUSBBulkTxBufferCallback pfnTxCallback;
     }
     sBuffer;
 	
@@ -311,8 +309,6 @@ extern bool USBDBulkRemoteWakeupRequest(void *pvBulkInstance);
 extern int32_t USBBulkBufferOutInit(void *pvBulkDevice, void *pvBuffer,
                                  uint32_t ui32Size,
                                  tUSBBulkRxBufferCallback pfnRxCallback);
-extern int32_t USBBulkBufferInInit(void *pvBulkDevice,
-                                 tUSBBulkTxBufferCallback pfnTxCallback);
 
 
 
