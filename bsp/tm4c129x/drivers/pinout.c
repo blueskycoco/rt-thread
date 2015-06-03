@@ -105,6 +105,7 @@ PinoutSet(bool bEthernet, bool bUSB)
         MAP_GPIOPinTypeUSBDigital(GPIO_PORTD_BASE, GPIO_PIN_6);
         MAP_GPIOPinTypeUSBAnalog(GPIO_PORTL_BASE, GPIO_PIN_6 | GPIO_PIN_7);
         MAP_GPIOPinTypeGPIOInput(GPIO_PORTQ_BASE, GPIO_PIN_4);
+		MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_USB0);
     }
     else
     {

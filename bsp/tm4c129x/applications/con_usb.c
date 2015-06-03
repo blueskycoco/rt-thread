@@ -13,6 +13,8 @@
 #include "driverlib/pin_map.h"
 #include "driverlib/interrupt.h"
 #include "driverlib/rom_map.h"
+#include "driverlib/udma.h"
+
 #include "usblib/usblib.h"
 #include "usblib/usbcdc.h"
 #include "usblib/usb-ids.h"
@@ -32,8 +34,10 @@ extern uint8_t g_ppcUSBTxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE_TX];
 extern struct rt_semaphore rx_sem[4];
 extern struct rt_semaphore usbrx_sem[4];
 #define USB_BUF_LEN 512
-uint8_t g_usb_rcv_buf[5][USB_BUF_LEN];
+uint8_t g_usb_rcv_buf[NUM_BULK_DEVICES][USB_BUF_LEN];
 uint32_t send_len;
+tDMAControlTable psDMAControlTable[64] __attribute__ ((aligned(1024)));
+
 void USBRxEventCallback(void *pvRxCBData,void *pvBuffer, uint32_t ui32Length);
 
 rt_size_t _usb_init()
@@ -41,13 +45,16 @@ rt_size_t _usb_init()
 
 	int i=0;
 	PinoutSet(false, true); 
+	//MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
+    //SysCtlDelay(10);
+    //MAP_uDMAControlBaseSet(&psDMAControlTable[0]);
+    //MAP_uDMAEnable();
 	for(i=0;i<NUM_BULK_DEVICES;i++)
 	{
 	   //USBBufferInit(&g_sTxBuffer[i]);
 	   //USBBufferInit(&g_sRxBuffer[i]);
-		
 	   g_sCompDevice.psDevices[i].pvInstance = USBDBulkCompositeInit(0, &g_psBULKDevice[i], &g_psCompEntries[i]);
-	   USBBulkRxBufferOutInit(&g_psBULKDevice[i],g_usb_rcv_buf[i],USB_BUF_LEN,USBRxEventCallback);
+	   USBBulkRxBufferOutInit(&g_psBULKDevice[i],(void *)g_usb_rcv_buf[i],USB_BUF_LEN,USBRxEventCallback);
 	}
    USBDCompositeInit(0, &g_sCompDevice, DESCRIPTOR_DATA_SIZE,g_pucDescriptorData);
 
@@ -70,10 +77,11 @@ USBTxEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue,
     // We are not required to do anything in response to any transmit event
     // in this example. All we do is update our transmit counter.
     //
+         int index=*(int *)pvCBData;
+    rt_kprintf("USBTxEventCallback index %d,event %d\n",index,ui32Event);
     if(ui32Event == USB_EVENT_TX_COMPLETE)
     {
-         int index=*(int *)pvCBData;
-		rt_kprintf("packet sent %d,length %d\n",index,ui32MsgValue);
+		
 		send_len=ui32MsgValue;
 		rt_sem_release(&(usbrx_sem[index]));
     }
@@ -89,6 +97,7 @@ USBCommonEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue
     
 	 unsigned char *tmpbuf;
 	 int index=*(int *)pvCBData;
+	 rt_kprintf("USBCommonEventCallback index %d, event %d, %s ,%d\n",index,ui32Event,pvMsgData,ui32MsgValue);
     switch(ui32Event)
     {
         //
@@ -99,7 +108,7 @@ USBCommonEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue
             //
             // Flush our buffers.
             //
-            rt_memset(g_usb_rcv_buf[index],'\0',USB_BUF_LEN);
+            //rt_memset(g_usb_rcv_buf[index],'\0',USB_BUF_LEN);
 			rt_kprintf("usb connect %d\n",index);
 			if(index==1)
 				usb_1=1;
@@ -166,7 +175,7 @@ void USBRxEventCallback(void *pvRxCBData,void *pvBuffer, uint32_t ui32Length)
 {   
     //return USBBufferRead(&g_sRxBuffer[index],buffer,size);
    	int index=*(int *)pvRxCBData;
-		//rt_kprintf("get sem %d\n",index);
+		rt_kprintf("USBRxEventCallback %s %d\n",pvBuffer,ui32Length);
 		//int bytes=USBBufferRead(&g_sRxBuffer[index],tmpbuf,64);
 		if(ui32Length!=0&&usb_1==1)
 		{		
@@ -199,7 +208,7 @@ static void _delay_us(uint32_t us)
 int _usb_write(int index, void *buffer, int size)
 {
 	int len=0,len_out=0,tmp_size=size,size64=64,send_size=0,addr=0;
-	//rt_kprintf("_usb_write index %d,size %d\n",index,size);
+	rt_kprintf("_usb_write index %d,size %d\n",index,size);
 	//send_size=USBBufferWrite(&g_sTxBuffer[index],buffer,size);
 	//rt_sem_take(&(usbrx_sem[index]), RT_WAITING_FOREVER);
 	//rt_kprintf("_usb_write %d %d %d\n",size,send_size,send_len);
@@ -212,7 +221,7 @@ int _usb_write(int index, void *buffer, int size)
 		index=3;
 	else if(index==7)
 		index=4;
-	USBBulkTx(g_psBULKDevice[index],buffer,size);
+	//USBBulkTx(g_psBULKDevice[index],buffer,size);
 	return 0;
 	#if 0
 	while(tmp_size!=0)

@@ -534,13 +534,17 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     // Read out the current endpoint status.
     //
     ui32EPStatus = MAP_USBEndpointStatus(USB0_BASE, psInst->ui8OUTEndpoint);
-
+	
+	
+	rt_kprintf("epstatus %x\n",ui32EPStatus);
     //
     // Handler for the bulk OUT data endpoint.
     //
     if(ui32Status & (0x10000 << USBEPToIndex(psInst->ui8OUTEndpoint)))
     {
-        //
+		if(ui32EPStatus & USB_DEV_RX_PKT_RDY)
+		{
+		//
         // Data is being sent to us from the host.
         //
         //ProcessDataFromHost(psBulkDevice, ui32Status);
@@ -552,23 +556,23 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 										psInst->ui8OUTEndpoint);
 		psInst->sBuffer.ui32Size=ui32Size;
 	
-		//
-		// Clear the status bits.
-		//
-		MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,
-									  ui32EPStatus);
-	
+	//
+	// Clear the status bits.
+	//
+	MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,
+								  ui32EPStatus);
 		//
 		// Configure the next DMA transfer.
 		//
 		USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,
 						  psInst->sBuffer.pvData, ui32Size);
 		psInst->ui32Flags=USBD_FLAG_DMA_IN;
+		rt_kprintf("get data %d outdma %d , endpoint %d\n",ui32Size,psInst->ui8OUTDMA,psInst->ui8OUTEndpoint);
+		}
 	}
-	else if((USBLibDMAChannelStatus(psInst->psDMAInstance,
-									psInst->ui8OUTDMA) ==
-			USBLIBSTATUS_DMA_COMPLETE)&&psInst->ui32Flags==USBD_FLAG_DMA_IN)
+	else if((USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA) ==	USBLIBSTATUS_DMA_COMPLETE)&&psInst->ui32Flags==USBD_FLAG_DMA_IN)
 	{
+		rt_kprintf("rcv data over\n");
 		USBEndpointDMADisable(USB0_BASE,
 							  psInst->ui8OUTEndpoint, USB_EP_DEV_OUT);
 	
@@ -581,6 +585,7 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 		//
 		// Inform the callback of the new data.
 		//
+		rt_kprintf("recv data over\n");
 		psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer.pvData,
 									psInst->sBuffer.ui32Size);
 		psInst->ui32Flags=0;
@@ -592,7 +597,8 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     //
     if(ui32Status & (1 << USBEPToIndex(psInst->ui8INEndpoint)))
     {
-        ProcessDataToHost(psBulkDevice, ui32Status);
+        //ProcessDataToHost(psBulkDevice, ui32Status);
+        rt_kprintf("send data\n");
 		psInst->ui32Flags=0;
     }
 }
@@ -619,6 +625,31 @@ HandleConfigChange(void *pvBulkDevice, uint32_t ui32Info)
     // Get a pointer to the bulk device instance data pointer
     //
     psInst = &psBulkDevice->sPrivateData;
+	//
+	// If the DMA channel has already been allocated then clear
+	// that channel and prepare to possibly use a new one.
+	//
+	if(psBulkDevice->sPrivateData.ui8OUTDMA != 0)
+	{
+		USBLibDMAChannelRelease(psBulkDevice->sPrivateData.psDMAInstance,
+								psBulkDevice->sPrivateData.ui8OUTDMA);
+	}
+
+	//
+	// Configure the DMA for the OUT endpoint.
+	//
+	psBulkDevice->sPrivateData.ui8OUTDMA =
+		USBLibDMAChannelAllocate(psBulkDevice->sPrivateData.psDMAInstance,
+								 psBulkDevice->sPrivateData.ui8OUTEndpoint, 
+								 DATA_OUT_EP_MAX_SIZE,
+								 USB_DMA_EP_RX | USB_DMA_EP_DEVICE);
+
+	USBLibDMAUnitSizeSet(psBulkDevice->sPrivateData.psDMAInstance,
+						 psBulkDevice->sPrivateData.ui8OUTDMA, 32);
+
+	USBLibDMAArbSizeSet(psBulkDevice->sPrivateData.psDMAInstance,
+						psBulkDevice->sPrivateData.ui8OUTDMA, 16);
+	rt_kprintf("outdma %d,endpoint %d\n",psBulkDevice->sPrivateData.ui8OUTDMA,psBulkDevice->sPrivateData.ui8OUTEndpoint);
 
     //
     // Set all our endpoints to idle state.
@@ -699,6 +730,7 @@ HandleDevice(void *pvBulkDevice, uint32_t ui32Request, void *pvRequestData)
             }
             else
             {
+            	rt_kprintf("ep out change %d\n",pui8Data[1]);
                 //
                 // Extract the new endpoint number.
                 //
@@ -1118,16 +1150,18 @@ USBDBulkCompositeInit(uint32_t ui32Index, tUSBDBulkDevice *psBulkDevice,
     // Initialize the USB tick module, this will prevent it from being
     // initialized later in the call to USBDCDInit();
     //
-    InternalUSBTickInit();
+    //InternalUSBTickInit();
 
     //
     // Register our tick handler (this must be done after USBDCDInit).
     //
-    InternalUSBRegisterTickHandler(BulkTickHandler, (void *)psBulkDevice);
+    //InternalUSBRegisterTickHandler(BulkTickHandler, (void *)psBulkDevice);
     //
     // Get the DMA instance pointer.
     //
+    rt_kprintf("before USBLibDMAInit\n");
     psInst->psDMAInstance = USBLibDMAInit(0);
+	rt_kprintf("after USBLibDMAInit\n");
 
 
     //
@@ -1677,7 +1711,7 @@ USBBulkRxBufferOutInit(void *pvBulkDevice, void *pvBuffer,uint32_t ui32Size,
     psInst->sBuffer.pvData = pvBuffer;
     psInst->sBuffer.ui32Size = ui32Size;
     psInst->sBuffer.pfnRxCallback = pfnRxCallback;
-
+	
     return(0);
 }
 int32_t
