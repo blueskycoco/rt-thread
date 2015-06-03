@@ -593,6 +593,7 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     if(ui32Status & (1 << USBEPToIndex(psInst->ui8INEndpoint)))
     {
         ProcessDataToHost(psBulkDevice, ui32Status);
+		psInst->ui32Flags=0;
     }
 }
 
