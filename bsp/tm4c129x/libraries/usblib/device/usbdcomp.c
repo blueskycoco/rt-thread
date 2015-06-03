@@ -639,7 +639,7 @@ HandleEndpoints(void *pvCompositeInstance, uint32_t ui32Status)
     tUSBDCompositeDevice *psCompDevice;
 
     ASSERT(pvCompositeInstance != 0);
-
+rt_kprintf("handleEndpoints %x\n",ui32Status);
     //
     // Create the device instance pointer.
     //

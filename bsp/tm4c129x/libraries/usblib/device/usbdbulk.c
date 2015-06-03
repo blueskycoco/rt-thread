@@ -536,7 +536,7 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     ui32EPStatus = MAP_USBEndpointStatus(USB0_BASE, psInst->ui8OUTEndpoint);
 	
 	
-	rt_kprintf("epstatus %x\n",ui32EPStatus);
+	rt_kprintf("cur %d epstatus %x ui32Status %x\n",*(int *)psBulkDevice->pvRxCBData, ui32EPStatus,ui32Status);
     //
     // Handler for the bulk OUT data endpoint.
     //
@@ -556,11 +556,11 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 										psInst->ui8OUTEndpoint);
 		psInst->sBuffer.ui32Size=ui32Size;
 	
-	//
-	// Clear the status bits.
-	//
-	MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,
-								  ui32EPStatus);
+		//
+		// Clear the status bits.
+		//
+		MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,
+									  ui32EPStatus);
 		//
 		// Configure the next DMA transfer.
 		//
@@ -1159,10 +1159,8 @@ USBDBulkCompositeInit(uint32_t ui32Index, tUSBDBulkDevice *psBulkDevice,
     //
     // Get the DMA instance pointer.
     //
-    rt_kprintf("before USBLibDMAInit\n");
-    psInst->psDMAInstance = USBLibDMAInit(0);
-	rt_kprintf("after USBLibDMAInit\n");
 
+    psInst->psDMAInstance = USBLibDMAInit(0);
 
     //
     // Return the pointer to the instance indicating that everything went well.

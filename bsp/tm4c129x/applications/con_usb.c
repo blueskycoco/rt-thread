@@ -53,8 +53,8 @@ rt_size_t _usb_init()
 	{
 	   //USBBufferInit(&g_sTxBuffer[i]);
 	   //USBBufferInit(&g_sRxBuffer[i]);
-	   g_sCompDevice.psDevices[i].pvInstance = USBDBulkCompositeInit(0, &g_psBULKDevice[i], &g_psCompEntries[i]);
 	   USBBulkRxBufferOutInit(&g_psBULKDevice[i],(void *)g_usb_rcv_buf[i],USB_BUF_LEN,USBRxEventCallback);
+	   g_sCompDevice.psDevices[i].pvInstance = USBDBulkCompositeInit(0, &g_psBULKDevice[i], &g_psCompEntries[i]);
 	}
    USBDCompositeInit(0, &g_sCompDevice, DESCRIPTOR_DATA_SIZE,g_pucDescriptorData);
 
@@ -97,7 +97,7 @@ USBCommonEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue
     
 	 unsigned char *tmpbuf;
 	 int index=*(int *)pvCBData;
-	 rt_kprintf("USBCommonEventCallback index %d, event %d, %s ,%d\n",index,ui32Event,pvMsgData,ui32MsgValue);
+	 rt_kprintf("USBCommonEventCallback index %d, event %d, %d\n",index,ui32Event,ui32MsgValue);
     switch(ui32Event)
     {
         //
