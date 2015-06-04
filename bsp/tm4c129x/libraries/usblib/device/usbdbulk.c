@@ -621,7 +621,7 @@ HandleConfigChange(void *pvBulkDevice, uint32_t ui32Info)
 	//
 	// Configure the DMA for the IN endpoint.
 	//
-	psInst->ui8OUTDMA =
+	psInst->ui8INDMA =
 		USBLibDMAChannelAllocate(psInst->psDMAInstance,
 								 psInst->ui8INEndpoint, 
 								 DATA_OUT_EP_MAX_SIZE,
