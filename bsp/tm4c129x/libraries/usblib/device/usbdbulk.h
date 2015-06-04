@@ -24,6 +24,7 @@
 
 #ifndef __USBDBULK_H__
 #define __USBDBULK_H__
+#include <rtthread.h>
 
 //*****************************************************************************
 //
@@ -147,6 +148,17 @@ typedef struct
     // The bulk class interface number, this is modified in composite devices.
     //
     uint8_t ui8Interface;
+	struct rt_semaphore rx_sem,tx_sem;
+	//
+    // The OUT endpoint DMA channel in use by this instance.
+    //
+    uint8_t ui8OUTDMA;
+	uint8_t ui8INDMA;
+    //
+    // A copy of the DMA instance data used with calls to USBLibDMA functions.
+    //
+    tUSBDMAInstance *psDMAInstance;
+	
 }
 tBulkInstance;
 
