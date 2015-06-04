@@ -539,64 +539,65 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     //
     // Handler for the bulk OUT data endpoint.
     //
-    if((USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA) ==	USBLIBSTATUS_DMA_COMPLETE))
-    {
-    //	rt_kprintf("rcv data over\n");
-		USBEndpointDMADisable(USB0_BASE,
-							  psInst->ui8OUTEndpoint, USB_EP_DEV_OUT);
-		USBLibDMAChannelDisable(psInst->psDMAInstance,
-                                       psInst->ui8OUTDMA);
-		//
-		// Acknowledge that the data was read, this will not cause a bus
-		// acknowledgment.
-		//
-		MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);
-	
-		//
-		// Inform the callback of the new data.
-		//
-		//rt_kprintf("recv data over\n");
-		psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer.pvData,
-									psInst->sBuffer.ui32Size);
-		psInst->ui32Flags=0;
-		
-		
-	}
-	else if(ui32Status & (0x10000 << USBEPToIndex(psInst->ui8OUTEndpoint))/*&&psInst->ui32Flags==USBD_FLAG_DMA_IN*/)
+     if(ui32Status & (0x10000 << USBEPToIndex(psInst->ui8OUTEndpoint))/*&&psInst->ui32Flags==USBD_FLAG_DMA_IN*/)
 	{
-		if(ui32EPStatus & USB_DEV_RX_PKT_RDY)
-		{
-		//
-        // Data is being sent to us from the host.
-        //
-        //ProcessDataFromHost(psBulkDevice, ui32Status);
-        
-		//
-		// Get the amount of data available in the FIFO.
-		//
-		ui32Size = USBEndpointDataAvail(psInst->ui32USBBase,
-										psInst->ui8OUTEndpoint);
-		psInst->sBuffer.ui32Size=ui32Size;
-	
-		//
-		// Clear the status bits.
-		//
-		MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,
-									  ui32EPStatus);
-		//
-		// Configure the next DMA transfer.
-		//
-		USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,
-						  psInst->sBuffer.pvData, ui32Size);
-		psInst->ui32Flags=USBD_FLAG_DMA_IN;
-		USBLibDMAChannelEnable(psInst->psDMAInstance,
-                                       psInst->ui8OUTDMA);
-		//rt_kprintf("get data %d outdma %d , endpoint %d\n",ui32Size,psInst->ui8OUTDMA,psInst->ui8OUTEndpoint);
-		}
+		
+		//else if(ui32EPStatus & USB_DEV_RX_PKT_RDY)
+		//{
+			//
+	        // Data is being sent to us from the host.
+	        //
+	        //ProcessDataFromHost(psBulkDevice, ui32Status);
+	        
+			//
+			// Get the amount of data available in the FIFO.
+			//
+			ui32Size = USBEndpointDataAvail(psInst->ui32USBBase,
+											psInst->ui8OUTEndpoint);
+			psInst->sBuffer.ui32Size=ui32Size;
+		
+			//
+			// Clear the status bits.
+			//
+			MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,
+										  ui32EPStatus);
+			//
+			// Configure the next DMA transfer.
+			//
+			USBLibDMAChannelEnable(psInst->psDMAInstance,
+	                                       psInst->ui8OUTDMA);
+			
+			USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,
+							  psInst->sBuffer.pvData, ui32Size);
+			psInst->ui32Flags=USBD_FLAG_DMA_IN;
+			//rt_kprintf("get data %d outdma %d , endpoint %d\n",ui32Size,psInst->ui8OUTDMA,psInst->ui8OUTEndpoint);
+		//}
 	}
-    
+	 else if((USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA) ==	USBLIBSTATUS_DMA_COMPLETE))
+	    {
+	    //	rt_kprintf("rcv data over\n");
+			//USBEndpointDMADisable(USB0_BASE,
+			//					  psInst->ui8OUTEndpoint, USB_EP_DEV_OUT);
+			USBLibDMAChannelDisable(psInst->psDMAInstance,
+	                                       psInst->ui8OUTDMA);
+			//
+			// Acknowledge that the data was read, this will not cause a bus
+			// acknowledgment.
+			//
+			MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);
+		
+			//
+			// Inform the callback of the new data.
+			//
+			//rt_kprintf("recv data over\n");
+			psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer.pvData,
+										psInst->sBuffer.ui32Size);
+			psInst->ui32Flags=0;
+			
+			
+		}
 
-    //
+	 //
     // Handler for the bulk IN data endpoint.
     //
     if(ui32Status & (1 << USBEPToIndex(psInst->ui8INEndpoint)))
