@@ -3178,7 +3178,7 @@ USBDeviceIntHandlerInternal(uint32_t ui32Index, uint32_t ui32Status)
     if((g_ppsDevInfo[0]->psCallbacks->pfnEndpointHandler) &&
        ((ui32Status != 0) || (ui32DMAIntStatus != 0)))
     {
-    	rt_kprintf("ui32Status %x,ui32DMAIntStatus %x,endpoint ,dma \n",ui32Status,ui32DMAIntStatus);
+    	//rt_kprintf("ui32Status %x,ui32DMAIntStatus %x,endpoint ,dma \n",ui32Status,ui32DMAIntStatus);
         g_ppsDevInfo[0]->psCallbacks->pfnEndpointHandler(pvInstance, ui32Status);
     }
 }

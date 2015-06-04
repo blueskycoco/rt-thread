@@ -175,7 +175,8 @@ void USBRxEventCallback(void *pvRxCBData,void *pvBuffer, uint32_t ui32Length)
 {   
     //return USBBufferRead(&g_sRxBuffer[index],buffer,size);
    	int index=*(int *)pvRxCBData;
-		rt_kprintf("USBRxEventCallback %s %d\n",pvBuffer,ui32Length);
+		//rt_kprintf("%d ",ui32Length);
+		return ;
 		//int bytes=USBBufferRead(&g_sRxBuffer[index],tmpbuf,64);
 		if(ui32Length!=0&&usb_1==1)
 		{		
