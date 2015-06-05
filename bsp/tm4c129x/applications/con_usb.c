@@ -175,29 +175,29 @@ void USBRxEventCallback(void *pvRxCBData,void *pvBuffer, uint32_t ui32Length)
 {   
     //return USBBufferRead(&g_sRxBuffer[index],buffer,size);
    	int index=*(int *)pvRxCBData;
-		//rt_kprintf("%s",pvBuffer);
-		return ;
-		//int bytes=USBBufferRead(&g_sRxBuffer[index],tmpbuf,64);
-		if(ui32Length!=0&&usb_1==1)
-		{		
-			unsigned char *tmpbuf=rt_malloc(ui32Length);
-			rt_memcpy(tmpbuf,pvBuffer,ui32Length);
-			if(index!=0)
-			{
-			//	rt_kprintf("read index %d ,bytes %d\n",index,bytes);
-				//USBBufferWrite(&g_sTxBuffer[index],tmpbuf,bytes); 	
-				if(phy_link&&(ui32Length>0)&&g_socket[index-1].connected)
-					rt_data_queue_push(&g_data_queue[(index-1)*2], tmpbuf, ui32Length, RT_WAITING_FOREVER);	
-				else
-					rt_free(tmpbuf);
-			}
+	//rt_kprintf("%s",pvBuffer);
+	return ;
+	//int bytes=USBBufferRead(&g_sRxBuffer[index],tmpbuf,64);
+	if(ui32Length!=0&&usb_1==1)
+	{		
+		unsigned char *tmpbuf=rt_malloc(ui32Length);
+		rt_memcpy(tmpbuf,pvBuffer,ui32Length);
+		if(index!=0)
+		{
+		//	rt_kprintf("read index %d ,bytes %d\n",index,bytes);
+			//USBBufferWrite(&g_sTxBuffer[index],tmpbuf,bytes); 	
+			if(phy_link&&(ui32Length>0)&&g_socket[index-1].connected)
+				rt_data_queue_push(&g_data_queue[(index-1)*2], tmpbuf, ui32Length, RT_WAITING_FOREVER);	
 			else
-			{
-				//USBBufferWrite(&g_sTxBuffer[index],tmpbuf,bytes);
-				USBBulkTx(g_psBULKDevice[index],tmpbuf,ui32Length);
 				rt_free(tmpbuf);
-			}
-		}	
+		}
+		else
+		{
+			//USBBufferWrite(&g_sTxBuffer[index],tmpbuf,bytes);
+			USBBulkTx(g_psBULKDevice[index],tmpbuf,ui32Length);
+			rt_free(tmpbuf);
+		}
+	}	
 }
 static void _delay_us(uint32_t us)
 {

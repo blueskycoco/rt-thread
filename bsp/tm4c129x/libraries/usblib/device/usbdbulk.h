@@ -172,7 +172,7 @@ typedef struct
     // The OUT endpoint DMA channel in use by this instance.
     //
     uint8_t ui8OUTDMA;
-	
+	uint8_t ui8INDMA;
     //
     // A copy of the DMA instance data used with calls to USBLibDMA functions.
     //
@@ -182,6 +182,7 @@ typedef struct
     // Holds the flag settings for this instance.
     //
     uint32_t ui32Flags;
+	struct rt_semaphore tx_sem;
 }
 tBulkInstance;
 

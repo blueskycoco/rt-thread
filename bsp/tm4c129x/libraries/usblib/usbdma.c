@@ -950,7 +950,7 @@ iDMAUSBChannelAllocate(tUSBDMAInstance *psUSBDMAInst, uint8_t ui8Endpoint,
     //
     // Search for an available DMA channel to use.
     //
-    for(ui32Channel = 0; ui32Channel < USB_MAX_DMA_CHANNELS_0; ui32Channel++)
+    for(ui32Channel = 0; ui32Channel < USB_MAX_DMA_CHANNELS/*_0*/; ui32Channel++)
     {
         //
         // If the current endpoint value is zero then this channel is
