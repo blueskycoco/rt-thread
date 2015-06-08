@@ -1396,9 +1396,9 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 			_usb_init();
 			rt_kprintf("uub %d\n",i);
 			rt_sprintf(common,"common_wx%d",i);
-			//tid_common_w[i] = rt_thread_create(common,common_w_usb, (void *)(i*2),4096, 20, 10);	
-			//if(tid_common_w[i]!=RT_NULL)
-			//	rt_thread_startup(tid_common_w[i]);	
+			tid_common_w[i] = rt_thread_create(common,common_w_usb, (void *)(i*2),4096, 20, 10);	
+			if(tid_common_w[i]!=RT_NULL)
+				rt_thread_startup(tid_common_w[i]);	
 			if(i!=4){
 			rt_sprintf(common,"common_rx%d",i);
 			tid_common_r[i] = rt_thread_create(common,common_r, (void *)(i*2+1),2048, 20, 10);

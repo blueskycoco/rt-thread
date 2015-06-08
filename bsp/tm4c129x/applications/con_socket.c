@@ -361,6 +361,7 @@ bool socket_ip6(int dev)
 void socket_w(void *paramter)
 {
 	int dev=(int)paramter;
+	//int times=0;
 	rt_size_t data_size;
 	const void *last_data_ptr;
 	struct timeval tv;
@@ -368,10 +369,13 @@ void socket_w(void *paramter)
 	int status;
 	tv.tv_sec = 0; 
     tv.tv_usec = 10000; 
+	rt_err_t r;
 	rt_kprintf("socket_ip4_w==> %d , %s mode, %s , %s . Thread Enter\r\n",dev,is_right(g_conf.config[dev],CONFIG_SERVER)?"Server":"Client",is_right(g_conf.config[dev],CONFIG_IPV6)?"IPV6":"IPV4",is_right(g_conf.config[dev],CONFIG_TCP)?"TCP":"UDP");
 	while(1)
 	{
-		rt_data_queue_pop(&g_data_queue[dev*2], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
+		r=rt_data_queue_pop(&g_data_queue[dev*2], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
+		if(r==RT_EOK && last_data_ptr && data_size>0)
+		{
 		if(!g_socket[dev].connected)
 		{
 			rt_thread_delay(10);
@@ -397,7 +401,7 @@ void socket_w(void *paramter)
 				if(is_right(g_conf.config[dev],CONFIG_TCP))
 				{
 					status=send(sock, last_data_ptr, data_size, 0);
-				
+					//rt_kprintf("socet %d send times %d\n",dev,times++);
 				}
 				else
 				{
@@ -433,6 +437,7 @@ void socket_w(void *paramter)
 			}
 		rt_free(last_data_ptr);
 	}
+		}
 	rt_kprintf("socket_ip_w %d close\n",dev);
 }
 void socket_r(void *paramter)
