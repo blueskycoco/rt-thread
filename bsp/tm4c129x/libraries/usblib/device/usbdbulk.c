@@ -431,6 +431,7 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     tBulkInstance *psInst;
     uint32_t ui32EPStatus;
     uint32_t ui32Size;
+	
 
     ASSERT(pvBulkDevice != 0);
 
@@ -446,8 +447,6 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     //
     // Read out the current endpoint status.
     //
-    ui32EPStatus = MAP_USBEndpointStatus(USB0_BASE, psInst->ui8OUTEndpoint);
-	MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,ui32EPStatus);
 	
 	//rt_kprintf("cur %d epstatus %x ui32Status %x ,dma status \n",*(int *)psBulkDevice->pvRxCBData, ui32EPStatus,ui32Status/*,USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA)*/);
     //
@@ -468,20 +467,23 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     }
 	else
 	{
+		
+   	 	ui32EPStatus = MAP_USBEndpointStatus(USB0_BASE, psInst->ui8OUTEndpoint);
 	    if(ui32Status & (0x10000 << USBEPToIndex(psInst->ui8OUTEndpoint)))
 		{
-		
 			ui32Size = USBEndpointDataAvail(psInst->ui32USBBase,psInst->ui8OUTEndpoint);
-			psInst->sBuffer.ui32Size=ui32Size;
-			//
-			// Configure the next DMA transfer.
-			//
-			USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8OUTDMA);
-			
-			USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,psInst->sBuffer.pvData, ui32Size);
-			psInst->ui32Flags=USBD_FLAG_DMA_IN;
-			//rt_kprintf("get data %d outdma %d , endpoint %d\n",ui32Size,psInst->ui8OUTDMA,psInst->ui8OUTEndpoint);
-
+			if(ui32EPStatus & USB_DEV_RX_PKT_RDY)
+			{
+				psInst->sBuffer.ui32Size=ui32Size;
+				//
+				// Configure the next DMA transfer.
+				//
+				
+				USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,psInst->sBuffer.pvData, ui32Size);
+				psInst->ui32Flags=USBD_FLAG_DMA_IN;
+				USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8OUTDMA);
+				//rt_kprintf("get data %d outdma %d , endpoint %d\n",ui32Size,psInst->ui8OUTDMA,psInst->ui8OUTEndpoint);
+			}
 		}
 		else if((USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA) ==	USBLIBSTATUS_DMA_COMPLETE)&&psInst->ui32Flags == USBD_FLAG_DMA_IN)
 		{
@@ -489,8 +491,8 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 			//USBEndpointDMADisable(USB0_BASE,
 			//					  psInst->ui8OUTEndpoint, USB_EP_DEV_OUT);
 			
-			USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8OUTDMA);
 			
+			USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8OUTDMA);
 			psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer.pvData,psInst->sBuffer.ui32Size);
 			//
 			// Acknowledge that the data was read, this will not cause a bus
@@ -511,7 +513,8 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 			USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8INDMA);
 			rt_sem_release(&(psInst->tx_sem));
 			psInst->ui32Flags=0;
-	    }
+	    }		
+		MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,ui32EPStatus);
 	}
 }
 
