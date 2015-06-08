@@ -34,7 +34,7 @@ extern uint8_t g_ppcUSBTxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE_TX];
 extern struct rt_semaphore rx_sem[4];
 extern struct rt_semaphore usbrx_sem[4];
 #define USB_BUF_LEN 512
-//uint8_t *g_usb_rcv_buf[NUM_BULK_DEVICES];
+uint8_t *g_usb_rcv_buf[NUM_BULK_DEVICES];
 uint32_t send_len;
 tDMAControlTable psDMAControlTable[64] __attribute__ ((aligned(1024)));
 
@@ -53,8 +53,8 @@ rt_size_t _usb_init()
 	{
 	   //USBBufferInit(&g_sTxBuffer[i]);
 	   //USBBufferInit(&g_sRxBuffer[i]);
-	 //  g_usb_rcv_buf[i]=(uint8_t *)rt_malloc(USB_BUF_LEN);
-	   //USBBulkRxBufferOutInit(&g_psBULKDevice[i],(void *)g_usb_rcv_buf[i],USB_BUF_LEN,USBRxEventCallback);
+	   g_usb_rcv_buf[i]=(uint8_t *)rt_malloc(USB_BUF_LEN);
+	   USBBulkRxBufferOutInit(&g_psBULKDevice[i],(void *)g_usb_rcv_buf[i],USB_BUF_LEN,USBRxEventCallback);
 	   g_sCompDevice.psDevices[i].pvInstance = USBDBulkCompositeInit(0, &g_psBULKDevice[i], &g_psCompEntries[i]);
 	}
    USBDCompositeInit(0, &g_sCompDevice, DESCRIPTOR_DATA_SIZE,g_pucDescriptorData);
@@ -174,10 +174,15 @@ USBCommonEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue
 
 void USBRxEventCallback(void *pvRxCBData,void *pvBuffer, uint32_t ui32Length)
 {   
+
+	static int len=0;
+
     //return USBBufferRead(&g_sRxBuffer[index],buffer,size);
    	int index=*(int *)pvRxCBData;
-	//rt_kprintf("%d\n",ui32Length);
-	//return ;
+	len=len+ui32Length;
+	if((len%54766208)==0)
+	rt_kprintf("%d\n",len);
+	return ;
 	//int bytes=USBBufferRead(&g_sRxBuffer[index],tmpbuf,64);
 	//g_usb_rcv_buf[index]=pvBuffer;
 	uint8_t *tmp=(uint8_t *)rt_malloc(USB_BUF_LEN);
