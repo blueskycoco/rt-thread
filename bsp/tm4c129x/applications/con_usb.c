@@ -175,13 +175,16 @@ USBCommonEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue
 void USBRxEventCallback(void *pvRxCBData,void *pvBuffer, uint32_t ui32Length)
 {   
 
-	static int len=0;
+	static int len[5]={0,0,0,0,0};
 
     //return USBBufferRead(&g_sRxBuffer[index],buffer,size);
    	int index=*(int *)pvRxCBData;
-	len=len+ui32Length;
-	if((len%54766208)==0)
-	rt_kprintf("%d\n",len);
+	len[index]=len[index]+ui32Length;
+	if(len[index]==13030400)
+	{
+		rt_kprintf("usb %d, count %d\n",index,len[index]);
+		len[index]=0;
+	}
 	return ;
 	//int bytes=USBBufferRead(&g_sRxBuffer[index],tmpbuf,64);
 	//g_usb_rcv_buf[index]=pvBuffer;
