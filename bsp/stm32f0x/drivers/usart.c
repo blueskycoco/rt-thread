@@ -17,10 +17,10 @@
 #include "usart.h"
 #include "led.h"
 /* USART1 */
-#define UART1_GPIO_TX			GPIO_Pin_2
-#define UART1_GPIO_TX_SOURCE	GPIO_PinSource2
-#define UART1_GPIO_RX			GPIO_Pin_3
-#define UART1_GPIO_RX_SOURCE	GPIO_PinSource3
+#define UART1_GPIO_TX			GPIO_Pin_9
+#define UART1_GPIO_TX_SOURCE	GPIO_PinSource9
+#define UART1_GPIO_RX			GPIO_Pin_10
+#define UART1_GPIO_RX_SOURCE	GPIO_PinSource10
 #define UART1_GPIO_AF			GPIO_AF_1
 #define UART1_GPIO				GPIOA
 #define RT_SERIAL_RB_BUFSZ 64
@@ -154,10 +154,10 @@ void USART1_IRQHandler(void)
 		while (1)
 		{
 			ch = uart_recv(0);
-			if (ch == 0xff)
-			break;
-			//uart_send(0,ch);
-			serial_ringbuffer_putc(rbuffer, ch);
+			//if (ch == 0xff)
+			//break;
+			uart_send(0,ch);
+			//serial_ringbuffer_putc(rbuffer, ch);
 		}
 		/* clear interrupt */
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);

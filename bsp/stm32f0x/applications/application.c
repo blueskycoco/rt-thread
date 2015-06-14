@@ -255,21 +255,21 @@ static void rt_init_thread_entry(void* parameter)
 	
 	//cmx865a_init();
 	rt_hw_led_init();
-	ST7585_Init();
+	//ST7585_Init();
 	
-	rt_memset(buf,'\0',256);
-	rt_sprintf(buf,"%s","- RT -    Thread Operating System");
+	//rt_memset(buf,'\0',256);
+	//rt_sprintf(buf,"%s","- RT -    Thread Operating System");
 		
-	ST7585_Write_String(0,7,"- RT -    ");
-	ST7585_Write_String(0,6,"Thread Operating System");
-	Draw_bat(3);
+	//ST7585_Write_String(0,7,"- RT -    ");
+	//ST7585_Write_String(0,6,"Thread Operating System");
+	//Draw_bat(3);
 	while (1)
 	{		
 		/* led1 on */
 		rt_kprintf("led on , count : %d\r\n",count);	
 		
-		rt_sprintf(buf,"led on , count : %d",count);
-		ST7585_Write_String(0,3,buf);
+		//rt_sprintf(buf,"led on , count : %d",count);
+		//ST7585_Write_String(0,3,buf);
 
 		//test_cmx865a();
 		count++;
@@ -280,8 +280,8 @@ static void rt_init_thread_entry(void* parameter)
 
 		/* led1 off */
 		rt_kprintf("led off\r\n");
-		rt_sprintf(buf,"led off, count : %d",count);
-		ST7585_Write_String(0,3,buf);
+		//rt_sprintf(buf,"led off, count : %d",count);
+		//ST7585_Write_String(0,3,buf);
 
 		//rt_hw_led1_on();
 		rt_hw_led2_off();
