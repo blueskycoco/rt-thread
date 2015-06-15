@@ -249,14 +249,15 @@ void b(unsigned char fuse)
 static void rt_init_thread_entry(void* parameter)
 {
 	rt_thread_t system_thread;
-	rt_uint8_t buf[256];
+	rt_uint8_t buf[256],aic12k[]={0x04,0x8a,0x04,0x01,0x05,0x30,0x05,0x70,0x06,0x02};
 	int i;
 	long count=0;
 	
 	//cmx865a_init();
 	rt_hw_led_init();
 	//ST7585_Init();
-	
+	i2c_write(0x40,aic12k,10);
+	//i2c_write(0x40,&aic12k[2],2);
 	//rt_memset(buf,'\0',256);
 	//rt_sprintf(buf,"%s","- RT -    Thread Operating System");
 		
