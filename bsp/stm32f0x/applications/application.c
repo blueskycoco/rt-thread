@@ -253,7 +253,12 @@ static void rt_init_thread_entry(void* parameter)
 	int i;
 	long count=0;
 	
-	//cmx865a_init();
+	cmx865a_init();
+	test_cmx865a();
+	test_cmx865a();
+	test_cmx865a();
+	test_cmx865a();
+	test_cmx865a();
 	rt_hw_led_init();
 	//ST7585_Init();
 	//i2c_read(0x40,0x02,buf,1);

@@ -32,15 +32,15 @@ void init_irq()
 	EXTI_InitTypeDef EXTI_InitStructure;
 
 
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1|GPIO_Pin_10;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	//GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1;
 	//GPIO_Init(GPIOF, &GPIO_InitStructure);
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource1);
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource1);
 	//SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOF, EXTI_PinSource1);
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI0_1_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPriority = 1;
@@ -283,7 +283,7 @@ void cmx865a_isr(void)
 	static unsigned char  k=0; 
 	static unsigned char  fsk_long=0; 
 	read_cmx865a(Status_addr,&i,2);
-	//rt_kprintf("cmx865a_isr intr %x\r\n",i);
+	rt_kprintf("cmx865a_isr intr %x\r\n",i);
 	//if(GPIO_ReadInputDataBit(GPIOF,GPIO_Pin_1)==Bit_RESET)
 	//GPIO_SetBits(GPIOA, GPIO_Pin_9);
 	if(DTMF_MODE)
@@ -425,7 +425,7 @@ void test_cmx865a()
 	static int flag=1;
 	//while(1){
 		read_cmx865a(Status_addr,&data,2);
-		rt_kprintf("4 cmx865a_init status %x\r\n",data);
+		rt_kprintf("4 cmx865a_init status %x\n",data);
 		rt_thread_delay(5);
 		data=0;
 		//write_cmx865a(Transmit_Data_addr,data,1);
@@ -453,6 +453,7 @@ void cmx865a_init(void)
 	write_cmx865a(G_Control_Command_addr, NORMAL,2);
 
 	read_cmx865a(Status_addr,&data,2);
+	//rt_kprintf("data %x\n",data);
 	if(data&0x00ff)
 	{
 		rt_kprintf("init cmx865a failed");
@@ -469,13 +470,13 @@ void cmx865a_init(void)
 			{
 				write_cmx865a(Receive_Mode_addr, Received_DTMF|temp_int,2);//????
 			//	phone_state |= CID_Way;//??DTMF??
-				rt_kprintf("DTMF Re");
+				rt_kprintf("DTMF Re\n");
 			}
 			else
 			{
 				write_cmx865a(Receive_Mode_addr, Received_FSK|temp_int,2);//????
 			//	phone_state &=~ CID_Way;//??FSK??
-				rt_kprintf("FSK Re");
+				rt_kprintf("FSK Re\n");
 			}
 		//}
 		//else//??????
@@ -486,4 +487,4 @@ void cmx865a_init(void)
 	}	
 	return ;
 }
-INIT_DEVICE_EXPORT(cmx865a_init);
+//INIT_DEVICE_EXPORT(cmx865a_init);
