@@ -70,17 +70,18 @@ void SVC_Handler(void)
 #if 1
 void EXTI0_1_IRQHandler(void)
 {
-	extern void cmx865a_isr(void);
+	extern void cc1101_isr(void);
 	/* enter interrupt */
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line1))
 	{	 
-		cmx865a_isr();	
+		cc1101_isr();	
 		EXTI_ClearITPendingBit(EXTI_Line1);
 	}
 	/* leave interrupt */
 	rt_interrupt_leave();
 }
+#if 0
 void EXTI4_15_IRQHandler(void)
 {
 	extern void button_isr(void);
@@ -94,7 +95,7 @@ void EXTI4_15_IRQHandler(void)
 	/* leave interrupt */
 	rt_interrupt_leave();
 }
-
+#endif
 #endif
 /******************************************************************************/
 /*                 STM32F0xx Peripherals Interrupt Handlers                   */

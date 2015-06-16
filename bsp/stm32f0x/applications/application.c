@@ -249,126 +249,29 @@ void b(unsigned char fuse)
 static void rt_init_thread_entry(void* parameter)
 {
 	rt_thread_t system_thread;
-	rt_uint8_t buf[256],aic12k[10]={0x04,0x8a,0x04,0x01,0x05,0x30,0x70,0x06,0x02};
+	rt_uint8_t buf[256];
 	int i;
 	long count=0;
 	
 	
-	cmx865a_init();
-	//ST7585_Init();
 	rt_hw_led_init();
-	//i2c_read(0x40,0x02,buf,1);
-	//rt_kprintf("0x02 = %x\n",buf[0]);
-	i2c_write(0x40,&aic12k[0],2);	
-	i2c_write(0x40,&aic12k[2],2);
-	i2c_write(0x40,&aic12k[4],3);
-	i2c_write(0x40,&aic12k[7],2);
-	//i2c_write(0x40,&aic12k[2],2);
-	//rt_memset(buf,'\0',256);
-	//rt_sprintf(buf,"%s","- RT -    Thread Operating System");
-		
-	//ST7585_Write_String(0,7,"- RT -    ");
-	//ST7585_Write_String(0,6,"Thread Operating System");
-	//Draw_bat(3);
 	while (1)
 	{		
 		/* led1 on */
 		//rt_kprintf("led on , count : %d\r\n",count);	
 		
 		//rt_sprintf(buf,"led on , count : %d",count);
-		//ST7585_Write_String(0,3,buf);
-
-		//test_cmx865a();
 		count++;
-		//rt_hw_led1_off();
 		rt_hw_led2_on();
 
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 
 		/* led1 off */
 		//rt_kprintf("led off\r\n");
-		//rt_sprintf(buf,"led off, count : %d",count);
-		//ST7585_Write_String(0,3,buf);
-
-		//rt_hw_led1_on();
 		rt_hw_led2_off();
 
 		rt_thread_delay( RT_TICK_PER_SECOND/2 );
 	}
-
-	
-
-//	rt_kprintf("led on, count : %d\r\n",count);
-	//rt_sprintf(buf,"%s","- RT -    Thread Operating System");
-		
-	//	ST7585_Write_String(0,5,"- RT -    ");
-	//ST7585_Write_String(0,4,"Thread Operating System");
-	//	Draw_bat(3);
-	Virtual_Alloc();
-#if BURN
-	b(0);
-#else
-	at88 at88;
-	at88.data=buf;//(unsigned char *)malloc(32);
-	//memset(at88.data,123,128);
-	for(i=0;i<128;i++)
-		at88.data[i]=i;
-	for(i=0;i<3;i++)
-	{
-		at88.pw[i]=i;
-	}
-	for(i=0;i<8;i++)
-	{
-		at88.g[i]=i;
-	}
-	#if READ
-	
-	at88.addr=0;
-	at88.size=128;
-	ReadReg(&at88);
-	
-	AT88DBG("\nRead user zone data again:\n");
-	for(i=0;i<at88.size;i++)
-	{
-		if(i%8==0 && i!=0)
-			AT88DBG("\n");
-		AT88DBG("%4X ",at88.data[i]); 	
-	}
-
-	#else
-	at88.addr=0;
-	at88.size=128;
-	WriteReg(&at88);
-	#endif
-#endif
-	while (1)
-	{
-		
-		/* led1 on */
-#ifdef RT_USING_FINSH
-		rt_kprintf("led on , count : %d\r\n",count);
-#endif
-	
-		
-	//	rt_sprintf(buf,"led on , count : %d",count);
-	//	ST7585_Write_String(0,5,buf);
-
-		//test_cmx865a();
-	//	count++;
-		rt_hw_led1_off();
-		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
-
-		/* led1 off */
-#ifdef RT_USING_FINSH
-		rt_kprintf("led off\r\n");
-#endif
-	//	rt_sprintf(buf,"led off, count : %d",count);
-	//	ST7585_Write_String(0,5,buf);
-
-		rt_hw_led1_on();
-		rt_thread_delay( RT_TICK_PER_SECOND/2 );
-	}
-
 }
 
 int rt_application_init()

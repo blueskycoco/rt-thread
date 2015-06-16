@@ -300,26 +300,26 @@ int cc1101_init()
     /* cc1101 int init
      * */
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-    GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4;
-    GPIO_Init(GPIOC, &GPIO_InitStructure);
+    GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
 #if HW
  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOC, EXTI_PinSource4);
+SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource1);
 
     /* Configure the SPI interrupt priority */
-    NVIC_InitStructure.NVIC_IRQChannel = EXTI4_15_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI0_1_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
 
-    EXTI_InitStructure.EXTI_Line = EXTI_Line4;
+    EXTI_InitStructure.EXTI_Line = EXTI_Line1;
     EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
     EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
     EXTI_InitStructure.EXTI_LineCmd = ENABLE;
     EXTI_Init(&EXTI_InitStructure);
 
     /* Clear DM9000A EXTI line pending bit */
-    EXTI_ClearITPendingBit(EXTI_Line4);
+    EXTI_ClearITPendingBit(EXTI_Line1);
 #endif
     return RT_TRUE;
 }

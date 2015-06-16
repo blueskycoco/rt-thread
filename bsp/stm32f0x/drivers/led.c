@@ -53,10 +53,10 @@ int rt_hw_led_init(void)
     GPIO_Init(GPIOF, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
     GPIO_Init(GPIOF, &GPIO_InitStructure);
-	GPIO_SetBits(GPIOF, GPIO_Pin_1);
-	GPIO_ResetBits(GPIOF, GPIO_Pin_0);
-	delay(10);
-	GPIO_SetBits(GPIOF, GPIO_Pin_0);
+	//GPIO_SetBits(GPIOF, GPIO_Pin_1);
+	//GPIO_ResetBits(GPIOF, GPIO_Pin_0);
+	//delay(10);
+	//GPIO_SetBits(GPIOF, GPIO_Pin_0);
     return 0;
 }
 

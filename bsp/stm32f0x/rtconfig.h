@@ -37,7 +37,7 @@
 /* #define RT_USING_MUTEX */
 
 /* Using Event */
-/*#define RT_USING_EVENT*/
+#define RT_USING_EVENT
 
 /* Using MailBox */
 /* #define RT_USING_MAILBOX */
@@ -57,13 +57,13 @@
 #define RT_USING_TINY_SIZE
 
 // <bool name="RT_USING_COMPONENTS_INIT" description="Using RT-Thread components initialization" default="true" />
-/*#define RT_USING_COMPONENTS_INIT*/
+#define RT_USING_COMPONENTS_INIT
 
 /* SECTION: Device System */
 /* Using Device System */
-/*#define RT_USING_DEVICE*/
+#define RT_USING_DEVICE
 // <bool name="RT_USING_DEVICE_IPC" description="Using device communication" default="true" />
-/*#define RT_USING_DEVICE_IPC*/
+#define RT_USING_DEVICE_IPC
 // <bool name="RT_USING_SERIAL" description="Using Serial" default="true" />
 /*#define RT_USING_SERIAL*/
 
