@@ -253,17 +253,13 @@ static void rt_init_thread_entry(void* parameter)
 	int i;
 	long count=0;
 	
+	
 	cmx865a_init();
-	test_cmx865a();
-	test_cmx865a();
-	test_cmx865a();
-	test_cmx865a();
-	test_cmx865a();
-	rt_hw_led_init();
 	//ST7585_Init();
+	rt_hw_led_init();
 	//i2c_read(0x40,0x02,buf,1);
-	//rt_kprintf("0x02 = %x\n",buf[0]);	
-	i2c_write(0x40,&aic12k[0],2);
+	//rt_kprintf("0x02 = %x\n",buf[0]);
+	i2c_write(0x40,&aic12k[0],2);	
 	i2c_write(0x40,&aic12k[2],2);
 	i2c_write(0x40,&aic12k[4],3);
 	i2c_write(0x40,&aic12k[7],2);

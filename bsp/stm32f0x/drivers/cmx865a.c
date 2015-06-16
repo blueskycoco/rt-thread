@@ -64,26 +64,29 @@ void init_spi()
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 	#endif
 	/* Enable SCK, MOSI, MISO and NSS GPIO clocks */
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA|RCC_AHBPeriph_GPIOF, ENABLE);
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+	#if HW_SPI
 
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_0);//sck
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource6, GPIO_AF_0);//miso
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_0);//mosi
 	//GPIO_PinAFConfig(GPIOA, GPIO_PinSource4, GPIO_AF_0);//cs
-	#if HW_SPI
+	
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	#else
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	#endif
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
+	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_Level_3;
 
 	/* SPI SCK pin configuration */
+	GPIO_SetBits(GPIOA,GPIO_Pin_5);
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	/* SPI  MOSI pin configuration */
+	GPIO_SetBits(GPIOA,GPIO_Pin_7);
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
@@ -93,13 +96,14 @@ void init_spi()
 	#endif
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-	GPIO_Init(GPIOF, &GPIO_InitStructure);
+	//GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	//GPIO_Init(GPIOF, &GPIO_InitStructure);
 
 	/* SPI NSS pin configuration */
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+	GPIO_SetBits(GPIOA,GPIO_Pin_4);
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	#if HW_SPI
 	/* SPI configuration -------------------------------------------------------*/
@@ -283,7 +287,7 @@ void cmx865a_isr(void)
 	static unsigned char  k=0; 
 	static unsigned char  fsk_long=0; 
 	read_cmx865a(Status_addr,&i,2);
-	rt_kprintf("cmx865a_isr intr %x\r\n",i);
+	//rt_kprintf("cmx865a_isr intr %x\r\n",i);
 	//if(GPIO_ReadInputDataBit(GPIOF,GPIO_Pin_1)==Bit_RESET)
 	//GPIO_SetBits(GPIOA, GPIO_Pin_9);
 	if(DTMF_MODE)
