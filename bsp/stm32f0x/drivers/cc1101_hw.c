@@ -328,23 +328,23 @@ void cc1101_send_packet(uint8_t *txBuffer, uint8_t size)
     	for(i=0;i<size;i++)
         		DEBUG("%c",txBuffer[i]);
 	write_cc1101(CCxxx0_TXFIFO, &size,1,TYPE_REG);
-    	write_cc1101(CCxxx0_TXFIFO, txBuffer, size,TYPE_BURST);
+    write_cc1101(CCxxx0_TXFIFO, txBuffer, size,TYPE_BURST);
 	
 	write_cc1101(CCxxx0_STX,RT_NULL,0,TYPE_STROBE_STATUS);
 	
 	wait_int(RT_TRUE);
-    	wait_int(RT_FALSE);
+    wait_int(RT_FALSE);
 	write_cc1101(CCxxx0_SRX,RT_NULL,0,TYPE_STROBE_STATUS);  
 	if((read_cc1101(CCxxx0_TXBYTES,RT_NULL,0,TYPE_REG)&0x7f)==0)
 	{
-		rt_kprintf("cc1101 send ok\r\n");
+		rt_kprintf(" cc1101 send ok\r\n");
 		return ;
 	}
-	rt_kprintf("cc1101 send failed 2\r\n");
+	rt_kprintf(" cc1101 send failed 2\r\n");
 }
 uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length) 
 {
-#if 0
+	#if 0
 	uint8_t marc=read_cc1101(CCxxx0_MARCSTATE,RT_NULL,0,TYPE_REG)&0x1f;
 	DEBUG("marc %x\r\n",marc);
 	if(marc==0x11)
@@ -371,27 +371,27 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 	uint8_t marc=read_cc1101(CCxxx0_RXBYTES,RT_NULL,0,TYPE_REG)&0x7f;
 	//DEBUG("rxbytes %x\r\n",marc);
 	if(marc!=0)
-		{
-			uint8_t len=read_cc1101(CCxxx0_RXFIFO,RT_NULL,0,TYPE_STROBE_STATUS);
-			rt_kprintf("len is %d\r\n",len);
-			if(len<=*length)
-				{
-					read_cc1101(CCxxx0_RXFIFO, rxBuffer, len,TYPE_BURST);
-					for(i=0;i<len;i++)
-						rt_kprintf("%c",rxBuffer[i]);
-					rt_kprintf("cc1101 receive ok\r\n");
-					rt_hw_led1_on();
-					*length=len;
-					read_cc1101(CCxxx0_RXFIFO,status,2,TYPE_BURST);
-					return status[1]&CRC_OK;
-				}
-			else
-				{
-					*length=len;
-					write_cc1101(CCxxx0_SIDLE,RT_NULL,0,TYPE_STROBE_STATUS);     // Enter IDLE state
-					write_cc1101(CCxxx0_SFRX,RT_NULL,0,TYPE_STROBE_STATUS); 
-				}
-		}
+	{
+		uint8_t len=read_cc1101(CCxxx0_RXFIFO,RT_NULL,0,TYPE_STROBE_STATUS);
+		rt_kprintf("\nrcv len is %d\r\n",len);
+		if(len<=*length)
+			{
+				read_cc1101(CCxxx0_RXFIFO, rxBuffer, len,TYPE_BURST);
+				for(i=0;i<len;i++)
+					rt_kprintf("%c",rxBuffer[i]);
+				rt_kprintf("\ncc1101 receive ok\r\n");
+				rt_hw_led1_on();
+				*length=len;
+				read_cc1101(CCxxx0_RXFIFO,status,2,TYPE_BURST);
+				return status[1]&CRC_OK;
+			}
+		else
+			{
+				*length=len;
+				write_cc1101(CCxxx0_SIDLE,RT_NULL,0,TYPE_STROBE_STATUS);     // Enter IDLE state
+				write_cc1101(CCxxx0_SFRX,RT_NULL,0,TYPE_STROBE_STATUS); 
+			}
+	}
 	return 0;
 }
 #else
