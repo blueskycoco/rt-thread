@@ -287,7 +287,7 @@ void cmx865a_isr(void)
 	static unsigned char  k=0; 
 	static unsigned char  fsk_long=0; 
 	read_cmx865a(Status_addr,&i,2);
-	//rt_kprintf("cmx865a_isr intr %x\r\n",i);
+	rt_kprintf("cmx865a_isr intr %x\r\n",i);
 	//if(GPIO_ReadInputDataBit(GPIOF,GPIO_Pin_1)==Bit_RESET)
 	//GPIO_SetBits(GPIOA, GPIO_Pin_9);
 	if(DTMF_MODE)

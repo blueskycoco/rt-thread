@@ -329,15 +329,15 @@ void cc1101_isr()
     //DEBUG("Enter cc1101 isr\r\n");
     //halWait(5000);
     //DEBUG("Enter");
-    if(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_4) ==SET)
+    if(GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_1) ==SET)
     {
         rt_event_send(&cc1101_event,GDO0_H);
-		  //DEBUG("GDO0_H in int \r\n");
+		  rt_kprintf("GDO0_H in int \r\n");
     }
     else
     {
         rt_event_send(&cc1101_event,GDO0_L);
-		  //DEBUG("GDO0_L in int \r\n");
+		  rt_kprintf("GDO0_L in int \r\n");
     }
 }
 
@@ -351,7 +351,7 @@ int wait_int(int flag)
         if( rt_event_recv( &cc1101_event, GDO0_H, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, 100, &ev ) != RT_EOK ) 
         {
             rt_kprintf("wait for h failed\r\n");
-		  cc1101_hw_init();
+		 // cc1101_hw_init();
             return RT_FALSE;
         }
 #else
@@ -365,7 +365,7 @@ int wait_int(int flag)
         if( rt_event_recv( &cc1101_event, GDO0_L, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, 100, &ev ) != RT_EOK ) 
         {
             rt_kprintf("wait for l failed\r\n");
-		  cc1101_hw_init();
+		 // cc1101_hw_init();
             return RT_FALSE;
         }
 #else
@@ -392,7 +392,7 @@ uint8_t cc1101_recv(uint8_t len)
 void cc1101_read_reg(uint8_t reg)
 {
     uint8_t val=read_cc1101(reg, RT_NULL, 0,2);
-    DEBUG("reg %x , val is %x\r\n",reg,val);
+    rt_kprintf("reg %x , val is %x\r\n",reg,val);
 }
 #ifdef RT_USING_FINSH
 #include <finsh.h>

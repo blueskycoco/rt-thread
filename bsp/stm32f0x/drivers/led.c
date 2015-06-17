@@ -29,7 +29,7 @@ int rt_hw_led_init(void)
     GPIO_InitTypeDef  GPIO_InitStructure;
 
     /* Enable the GPIO_LED Clock */
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOF|RCC_AHBPeriph_GPIOA, ENABLE);
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOF|RCC_AHBPeriph_GPIOB, ENABLE);
 
     /* Configure the GPIO_LED pin */
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
@@ -39,20 +39,9 @@ int rt_hw_led_init(void)
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
     //GPIO_Init(GPIOF, &GPIO_InitStructure);
     //GPIO_ResetBits(GPIOF, GPIO_Pin_0);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);	
-	GPIO_SetBits(GPIOA, GPIO_Pin_2);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;	
-   	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	
-	GPIO_SetBits(GPIOA, GPIO_Pin_3);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;	
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-    GPIO_Init(GPIOF, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-    GPIO_Init(GPIOF, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+    GPIO_Init(GPIOF, &GPIO_InitStructure);	
+	GPIO_ResetBits(GPIOF, GPIO_Pin_0);
 	//GPIO_SetBits(GPIOF, GPIO_Pin_1);
 	//GPIO_ResetBits(GPIOF, GPIO_Pin_0);
 	//delay(10);

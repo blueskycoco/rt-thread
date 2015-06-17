@@ -1,5 +1,5 @@
 #include "cc1101.h"
-
+#include "led.h"
 #define 	WRITE_BURST     		0x40						//连续写入
 #define 	READ_SINGLE     		0x80						//读
 #define 	READ_BURST      		0xC0						//连续读
@@ -326,7 +326,7 @@ void cc1101_send_packet(uint8_t *txBuffer, uint8_t size)
 	int i;
 	DEBUG("cc1101 write \r\n");
     	for(i=0;i<size;i++)
-        		DEBUG("%x ",txBuffer[i]);
+        		DEBUG("%c",txBuffer[i]);
 	write_cc1101(CCxxx0_TXFIFO, &size,1,TYPE_REG);
     	write_cc1101(CCxxx0_TXFIFO, txBuffer, size,TYPE_BURST);
 	
@@ -373,13 +373,14 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 	if(marc!=0)
 		{
 			uint8_t len=read_cc1101(CCxxx0_RXFIFO,RT_NULL,0,TYPE_STROBE_STATUS);
-			DEBUG("len is %d\r\n",len);
+			rt_kprintf("len is %d\r\n",len);
 			if(len<=*length)
 				{
 					read_cc1101(CCxxx0_RXFIFO, rxBuffer, len,TYPE_BURST);
 					for(i=0;i<len;i++)
-						DEBUG("%x ",rxBuffer[i]);
-					DEBUG("cc1101 receive ok\r\n");
+						rt_kprintf("%c",rxBuffer[i]);
+					rt_kprintf("cc1101 receive ok\r\n");
+					rt_hw_led1_on();
 					*length=len;
 					read_cc1101(CCxxx0_RXFIFO,status,2,TYPE_BURST);
 					return status[1]&CRC_OK;

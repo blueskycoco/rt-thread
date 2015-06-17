@@ -249,28 +249,32 @@ void b(unsigned char fuse)
 static void rt_init_thread_entry(void* parameter)
 {
 	rt_thread_t system_thread;
-	rt_uint8_t buf[256];
-	int i;
+	rt_uint8_t buf[256]={0};
+	int i,len;
 	long count=0;
 	
 	
 	rt_hw_led_init();
+	cc1101_init();
 	while (1)
 	{		
 		/* led1 on */
 		//rt_kprintf("led on , count : %d\r\n",count);	
 		
 		//rt_sprintf(buf,"led on , count : %d",count);
-		count++;
-		rt_hw_led2_on();
+		//count++;
+		
+		//cc1101_read_reg(0x34);
+		//cc1101_send_packet(buf,strlen(buf));
+		cc1101_rcv_packet(buf,&len);
 
-		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
+		//rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 
 		/* led1 off */
 		//rt_kprintf("led off\r\n");
-		rt_hw_led2_off();
+		rt_hw_led1_off();
 
-		rt_thread_delay( RT_TICK_PER_SECOND/2 );
+		//rt_thread_delay( RT_TICK_PER_SECOND/2);
 	}
 }
 
