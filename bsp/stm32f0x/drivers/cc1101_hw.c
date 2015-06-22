@@ -148,12 +148,12 @@ RF_SETTINGS rfSettings =
     0x3f,   // FREQ0     Frequency control word, low byte.
     0xE8,   // MDMCFG4   Modem configuration.//old 0x5b
     0x83,   // MDMCFG3   Modem configuration.//old f8
-    0x0c,   // MDMCFG2   Modem configuration.//old 03
+    0x0F,   // MDMCFG2   Modem configuration.//old 03
     0x22,   // MDMCFG1   Modem configuration.
     0xF8,   // MDMCFG0   Modem configuration.
 
     0x01,   // CHANNR    Channel number.
-    0x43,   // DEVIATN   Modem deviation setting (when FSK modulation is enabled).
+    0x73,   // DEVIATN   Modem deviation setting (when FSK modulation is enabled).
     0xB6,   // FREND1    Front end RX configuration.
     0x10,   // FREND0    Front end RX configuration.
     0x18,   // MCSM0     Main Radio Control State Machine configuration.
@@ -173,9 +173,9 @@ RF_SETTINGS rfSettings =
     0x09,   // TEST0     Various test settings.
     0x29,   // IOCFG2    GDO2 output pin configuration.
     #if CC1101_RCV
-0x01,
+0x06,
 	#else
-0x03,
+0x06,
 	#endif
     //0x06,   // IOCFG0D   GDO0 output pin configuration. Refer to SmartRF?Studio User Manual for detailed pseudo register explanation. //old 0x06
 
@@ -341,8 +341,8 @@ void cc1101_send_packet(uint8_t *txBuffer, uint8_t size)
 	
 	write_cc1101(CCxxx0_STX,RT_NULL,0,TYPE_STROBE_STATUS);
 	while((read_cc1101(CCxxx0_TXBYTES,RT_NULL,0,TYPE_REG)&0x7f)!=0);
-	//wait_int(RT_TRUE);
-    //wait_int(RT_FALSE);
+	wait_int(RT_TRUE);
+    wait_int(RT_FALSE);
 	write_cc1101(CCxxx0_SRX,RT_NULL,0,TYPE_STROBE_STATUS);  
 	if((read_cc1101(CCxxx0_TXBYTES,RT_NULL,0,TYPE_REG)&0x7f)==0)
 	{
@@ -375,8 +375,8 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 	#endif
 	uint8_t i,status[2];
 	write_cc1101(CCxxx0_SRX,RT_NULL,0,TYPE_STROBE_STATUS);  
-	//wait_int(RT_TRUE);
-	//wait_int(RT_FALSE);
+	wait_int(RT_TRUE);
+	wait_int(RT_FALSE);
 	uint8_t marc=read_cc1101(CCxxx0_RXBYTES,RT_NULL,0,TYPE_REG)&0x7f;
 	//DEBUG("rxbytes %x\r\n",marc);
 	if(marc!=0)

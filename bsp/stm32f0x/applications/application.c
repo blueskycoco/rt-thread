@@ -250,7 +250,7 @@ static void rt_init_thread_entry(void* parameter)
 {
 	rt_thread_t system_thread;
 	rt_uint8_t buf[256]={0};
-	int i,len;
+	int i,len=256;
 	long count=0;
 	
 	
