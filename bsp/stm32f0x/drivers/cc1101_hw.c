@@ -148,12 +148,12 @@ RF_SETTINGS rfSettings =
     0x3f,   // FREQ0     Frequency control word, low byte.
     0xE8,   // MDMCFG4   Modem configuration.//old 0x5b
     0x83,   // MDMCFG3   Modem configuration.//old f8
-    0x0F,   // MDMCFG2   Modem configuration.//old 03
+    0x03,   // MDMCFG2   Modem configuration.//old 03
     0x22,   // MDMCFG1   Modem configuration.
     0xF8,   // MDMCFG0   Modem configuration.
 
     0x01,   // CHANNR    Channel number.
-    0x73,   // DEVIATN   Modem deviation setting (when FSK modulation is enabled).
+    0x43,   // DEVIATN   Modem deviation setting (when FSK modulation is enabled).
     0xB6,   // FREND1    Front end RX configuration.
     0x10,   // FREND0    Front end RX configuration.
     0x18,   // MCSM0     Main Radio Control State Machine configuration.
@@ -179,11 +179,11 @@ RF_SETTINGS rfSettings =
 	#endif
     //0x06,   // IOCFG0D   GDO0 output pin configuration. Refer to SmartRF?Studio User Manual for detailed pseudo register explanation. //old 0x06
 
-    0x00,   // PKTCTRL1  Packet automation control.
-    0x01,   // PKTCTRL0  Packet automation control.//old 0x05
+    0x04,   // PKTCTRL1  Packet automation control.
+    0x05,   // PKTCTRL0  Packet automation control.//old 0x05
     0x00,   // ADDR      Device address.
     #if CC1101_RCV
-    0x58    // PKTLEN    Packet length.
+    0xff    // PKTLEN    Packet length.
     #else
 	0x0c
 	#endif
@@ -340,7 +340,7 @@ void cc1101_send_packet(uint8_t *txBuffer, uint8_t size)
     write_cc1101(CCxxx0_TXFIFO, txBuffer, size,TYPE_BURST);
 	
 	write_cc1101(CCxxx0_STX,RT_NULL,0,TYPE_STROBE_STATUS);
-	while((read_cc1101(CCxxx0_TXBYTES,RT_NULL,0,TYPE_REG)&0x7f)!=0);
+	//while((read_cc1101(CCxxx0_TXBYTES,RT_NULL,0,TYPE_REG)&0x7f)!=0);
 	wait_int(RT_TRUE);
     wait_int(RT_FALSE);
 	write_cc1101(CCxxx0_SRX,RT_NULL,0,TYPE_STROBE_STATUS);  
@@ -381,19 +381,23 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 	//DEBUG("rxbytes %x\r\n",marc);
 	if(marc!=0)
 	{
+		//*length=255;
 		uint8_t len=read_cc1101(CCxxx0_RXFIFO,RT_NULL,0,TYPE_STROBE_STATUS);
 		rt_kprintf("\nrcv len is %d\r\n",len);
 		if(len<=*length)
 			{
 				read_cc1101(CCxxx0_RXFIFO, rxBuffer, len,TYPE_BURST);
+				read_cc1101(CCxxx0_RXFIFO,status,2,TYPE_BURST);
+				if(status[1]&CRC_OK)
+					rt_kprintf("\ncc1101 receive ok\r\n");
+				else
+					rt_kprintf("\ncc1101 receive crc failed\n");				
 				for(i=0;i<len;i++)
 					rt_kprintf("%c",rxBuffer[i]);
-				rt_kprintf("\ncc1101 receive ok\r\n");
 				rt_hw_led1_on();
-				rt_thread_delay(5);
+				rt_thread_delay(25);
 				rt_hw_led1_off();
 				*length=len;
-				read_cc1101(CCxxx0_RXFIFO,status,2,TYPE_BURST);
 				return status[1]&CRC_OK;
 			}
 		else
