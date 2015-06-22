@@ -300,6 +300,7 @@ int cc1101_init()
     /* cc1101 int init
      * */
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
     GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 #if HW
@@ -332,12 +333,12 @@ void cc1101_isr()
     if(GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_1) ==SET)
     {
         rt_event_send(&cc1101_event,GDO0_H);
-		  rt_kprintf("GDO0_H in int \r\n");
+		  //rt_kprintf("GDO0_H in int \r\n");
     }
     else
     {
         rt_event_send(&cc1101_event,GDO0_L);
-		  rt_kprintf("GDO0_L in int \r\n");
+		 // rt_kprintf("GDO0_L in int \r\n");
     }
 }
 
@@ -348,10 +349,16 @@ int wait_int(int flag)
     {
         /*wait for gdo0 to h */
 #if 1
-        if( rt_event_recv( &cc1101_event, GDO0_H, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ) != RT_EOK ) 
-        {
+#if CC1101_RCV
+		if( rt_event_recv( &cc1101_event, GDO0_H, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ) != RT_EOK ) 
+#else
+        if( rt_event_recv( &cc1101_event, GDO0_H, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, 200, &ev ) != RT_EOK ) 
+#endif
+		{
+			#if !CC1101_RCV
             rt_kprintf("wait for h failed\r\n");
-		  	//cc1101_hw_init();
+		  	cc1101_hw_init();
+			#endif
             return RT_FALSE;
         }
 #else
@@ -362,10 +369,16 @@ int wait_int(int flag)
     {
         /*wait for gdo0 to l */
 #if 1
-        if( rt_event_recv( &cc1101_event, GDO0_L, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ) != RT_EOK ) 
-        {
+#if CC1101_RCV
+		if( rt_event_recv( &cc1101_event, GDO0_L, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ) != RT_EOK ) 
+#else
+        if( rt_event_recv( &cc1101_event, GDO0_L, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, 200, &ev ) != RT_EOK ) 
+#endif
+		{
+			#if !CC1101_RCV
             rt_kprintf("wait for l failed\r\n");
-		 	//cc1101_hw_init();
+		 	cc1101_hw_init();
+		 	#endif
             return RT_FALSE;
         }
 #else

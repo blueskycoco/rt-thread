@@ -141,19 +141,19 @@ typedef struct S_RF_SETTINGS
 RF_SETTINGS rfSettings = 
 {
     0x00,
-    0x08,   // FSCTRL1   Frequency synthesizer control.
+    0x0A,   // FSCTRL1   Frequency synthesizer control.
     0x00,   // FSCTRL0   Frequency synthesizer control.
     0x10,   // FREQ2     Frequency control word, high byte.
-    0xA7,   // FREQ1     Frequency control word, middle byte.
-    0x62,   // FREQ0     Frequency control word, low byte.
-    0x5B,   // MDMCFG4   Modem configuration.
-    0xF8,   // MDMCFG3   Modem configuration.
-    0x03,   // MDMCFG2   Modem configuration.
+    0xB0,   // FREQ1     Frequency control word, middle byte.
+    0x3f,   // FREQ0     Frequency control word, low byte.
+    0xE8,   // MDMCFG4   Modem configuration.//old 0x5b
+    0x83,   // MDMCFG3   Modem configuration.//old f8
+    0x0c,   // MDMCFG2   Modem configuration.//old 03
     0x22,   // MDMCFG1   Modem configuration.
     0xF8,   // MDMCFG0   Modem configuration.
 
-    0x00,   // CHANNR    Channel number.
-    0x47,   // DEVIATN   Modem deviation setting (when FSK modulation is enabled).
+    0x01,   // CHANNR    Channel number.
+    0x43,   // DEVIATN   Modem deviation setting (when FSK modulation is enabled).
     0xB6,   // FREND1    Front end RX configuration.
     0x10,   // FREND0    Front end RX configuration.
     0x18,   // MCSM0     Main Radio Control State Machine configuration.
@@ -161,23 +161,32 @@ RF_SETTINGS rfSettings =
     0x1C,   // BSCFG     Bit synchronization Configuration.
     0xC7,   // AGCCTRL2  AGC control.
     0x00,   // AGCCTRL1  AGC control.
-    0xB2,   // AGCCTRL0  AGC control.
+    0xB0,   // AGCCTRL0  AGC control.
 
-    0xEA,   // FSCAL3    Frequency synthesizer calibration.
+    0xE9,   // FSCAL3    Frequency synthesizer calibration.
     0x2A,   // FSCAL2    Frequency synthesizer calibration.
     0x00,   // FSCAL1    Frequency synthesizer calibration.
-    0x11,   // FSCAL0    Frequency synthesizer calibration.
+    0x1f,   // FSCAL0    Frequency synthesizer calibration.
     0x59,   // FSTEST    Frequency synthesizer calibration.
     0x81,   // TEST2     Various test settings.
     0x35,   // TEST1     Various test settings.
     0x09,   // TEST0     Various test settings.
-    0x0B,   // IOCFG2    GDO2 output pin configuration.
-    0x06,   // IOCFG0D   GDO0 output pin configuration. Refer to SmartRF?Studio User Manual for detailed pseudo register explanation.
+    0x29,   // IOCFG2    GDO2 output pin configuration.
+    #if CC1101_RCV
+0x01,
+	#else
+0x03,
+	#endif
+    //0x06,   // IOCFG0D   GDO0 output pin configuration. Refer to SmartRF?Studio User Manual for detailed pseudo register explanation. //old 0x06
 
-    0x04,   // PKTCTRL1  Packet automation control.
-    0x05,   // PKTCTRL0  Packet automation control.
+    0x00,   // PKTCTRL1  Packet automation control.
+    0x01,   // PKTCTRL0  Packet automation control.//old 0x05
     0x00,   // ADDR      Device address.
-    0x0c    // PKTLEN    Packet length.
+    #if CC1101_RCV
+    0x58    // PKTLEN    Packet length.
+    #else
+	0x0c
+	#endif
 };
 
 void reset_cc1101()
@@ -324,16 +333,16 @@ void init_rf(void)
 void cc1101_send_packet(uint8_t *txBuffer, uint8_t size) 
 {
 	int i;
-	DEBUG("cc1101 write \r\n");
+	DEBUG("cc1101 write %d\r\n",size);
     	for(i=0;i<size;i++)
         		DEBUG("%c",txBuffer[i]);
 	write_cc1101(CCxxx0_TXFIFO, &size,1,TYPE_REG);
     write_cc1101(CCxxx0_TXFIFO, txBuffer, size,TYPE_BURST);
 	
 	write_cc1101(CCxxx0_STX,RT_NULL,0,TYPE_STROBE_STATUS);
-	
-	wait_int(RT_TRUE);
-    wait_int(RT_FALSE);
+	while((read_cc1101(CCxxx0_TXBYTES,RT_NULL,0,TYPE_REG)&0x7f)!=0);
+	//wait_int(RT_TRUE);
+    //wait_int(RT_FALSE);
 	write_cc1101(CCxxx0_SRX,RT_NULL,0,TYPE_STROBE_STATUS);  
 	if((read_cc1101(CCxxx0_TXBYTES,RT_NULL,0,TYPE_REG)&0x7f)==0)
 	{
@@ -366,8 +375,8 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 	#endif
 	uint8_t i,status[2];
 	write_cc1101(CCxxx0_SRX,RT_NULL,0,TYPE_STROBE_STATUS);  
-	wait_int(RT_TRUE);
-	wait_int(RT_FALSE);
+	//wait_int(RT_TRUE);
+	//wait_int(RT_FALSE);
 	uint8_t marc=read_cc1101(CCxxx0_RXBYTES,RT_NULL,0,TYPE_REG)&0x7f;
 	//DEBUG("rxbytes %x\r\n",marc);
 	if(marc!=0)
@@ -381,6 +390,8 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 					rt_kprintf("%c",rxBuffer[i]);
 				rt_kprintf("\ncc1101 receive ok\r\n");
 				rt_hw_led1_on();
+				rt_thread_delay(25);
+				rt_hw_led1_off();
 				*length=len;
 				read_cc1101(CCxxx0_RXFIFO,status,2,TYPE_BURST);
 				return status[1]&CRC_OK;

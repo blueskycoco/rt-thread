@@ -28,7 +28,7 @@
 
 #include "led.h"
 #include "s1.h"
-
+#include "cc1101.h"
 int one_page_max=0;//one page size
 int one_userzone_max=0;//one user zone size
 int userzone_num=0;//userzone num
@@ -260,21 +260,25 @@ static void rt_init_thread_entry(void* parameter)
 	{		
 		/* led1 on */
 		//rt_kprintf("led on , count : %d\r\n",count);	
+		#if !CC1101_RCV
+		rt_sprintf(buf,"led on , count : %d",count);
+		count++;
 		
-		//rt_sprintf(buf,"led on , count : %d",count);
-		//count++;
-		
-		//cc1101_read_reg(0x34);
-		//cc1101_send_packet(buf,strlen(buf));
+		rt_hw_led1_on();
+		//cc1101_read_reg(0x00);
+		cc1101_send_packet(buf,strlen(buf));
+		#else
 		cc1101_rcv_packet(buf,&len);
-
-		//rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
-
+		#endif
+		#if !CC1101_RCV
+		rt_thread_delay( RT_TICK_PER_SECOND/4 ); /* sleep 0.5 second and switch to other thread */
+		#endif
 		/* led1 off */
 		//rt_kprintf("led off\r\n");
+		#if !CC1101_RCV
 		rt_hw_led1_off();
-
-		//rt_thread_delay( RT_TICK_PER_SECOND/2);
+		rt_thread_delay( RT_TICK_PER_SECOND/4);
+		#endif
 	}
 }
 
