@@ -390,7 +390,7 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 					rt_kprintf("%c",rxBuffer[i]);
 				rt_kprintf("\ncc1101 receive ok\r\n");
 				rt_hw_led1_on();
-				rt_thread_delay(25);
+				rt_thread_delay(5);
 				rt_hw_led1_off();
 				*length=len;
 				read_cc1101(CCxxx0_RXFIFO,status,2,TYPE_BURST);
