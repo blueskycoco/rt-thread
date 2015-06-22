@@ -138,6 +138,10 @@ typedef struct S_RF_SETTINGS
     uint8_t ADDR;      // Device address.
     uint8_t PKTLEN;    // Packet length.
 } RF_SETTINGS;
+#define mdmcfg2 0x03 //non MANCHESTER_EN,0x0b
+#define pktctrl1 0x04 //use crc check , 0x00 no crc
+#define pktctrl0 0x05 //sync check,use crc check ,0x01 just sync check,0x00 no sync,preamble check"
+#define deviatn 0x43 //bigest ,0x73
 RF_SETTINGS rfSettings = 
 {
     0x00,
@@ -148,7 +152,7 @@ RF_SETTINGS rfSettings =
     0x3f,   // FREQ0     Frequency control word, low byte.
     0xE8,   // MDMCFG4   Modem configuration.//old 0x5b
     0x83,   // MDMCFG3   Modem configuration.//old f8
-    0x03,   // MDMCFG2   Modem configuration.//old 03
+    0x0b,   // MDMCFG2   Modem configuration.//old 03
     0x22,   // MDMCFG1   Modem configuration.
     0xF8,   // MDMCFG0   Modem configuration.
 
@@ -383,20 +387,24 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 	{
 		//*length=255;
 		uint8_t len=read_cc1101(CCxxx0_RXFIFO,RT_NULL,0,TYPE_STROBE_STATUS);
-		rt_kprintf("\nrcv len is %d\r\n",len);
+		//rt_kprintf("\nrcv len is %d\r\n",len);
 		if(len<=*length)
 			{
 				read_cc1101(CCxxx0_RXFIFO, rxBuffer, len,TYPE_BURST);
 				read_cc1101(CCxxx0_RXFIFO,status,2,TYPE_BURST);
 				if(status[1]&CRC_OK)
-					rt_kprintf("\ncc1101 receive ok\r\n");
+				{
+					//rt_kprintf("\ncc1101 receive ok\r\n");
+					for(i=0;i<len;i++)
+					rt_kprintf("%c",rxBuffer[i]);
+					rt_kprintf("\n");
+					rt_hw_led1_on();
+					rt_thread_delay(25);
+					rt_hw_led1_off();
+				}
 				else
 					rt_kprintf("\ncc1101 receive crc failed\n");				
-				for(i=0;i<len;i++)
-					rt_kprintf("%c",rxBuffer[i]);
-				rt_hw_led1_on();
-				rt_thread_delay(25);
-				rt_hw_led1_off();
+				
 				*length=len;
 				return status[1]&CRC_OK;
 			}
