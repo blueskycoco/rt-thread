@@ -65,6 +65,7 @@
 #define RT_USING_UART1
 #define RT_USING_UART2
 #define RT_USING_UART3
+#define RT_USING_UART6
 
 /* Using GPIO pin framework */
 #define RT_USING_PIN
@@ -102,9 +103,10 @@
 
 /* Using ROM file system */
 // #define RT_USING_DFS_ROMFS
+#define RT_USING_NETUTILS
 
 /* SECTION: lwip, a lighwight TCP/IP protocol stack */
-/* #define RT_USING_LWIP */
+#define RT_USING_LWIP
 /* LwIP uses RT-Thread Memory Management */
 #define RT_LWIP_USING_RT_MEM
 /* Enable ICMP protocol*/

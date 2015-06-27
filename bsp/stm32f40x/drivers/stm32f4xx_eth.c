@@ -33,7 +33,7 @@
 #include "stm32f4xx_rcc.h"
 
 /* STM32F ETH dirver options */
-#define RMII_MODE                       /* MII_MODE or RMII_MODE */
+#define MII_MODE                       /* MII_MODE or RMII_MODE */
 #define RMII_TX_GPIO_GROUP        2     /* 1:GPIOB or 2:GPIOG */
 #define CHECKSUM_BY_HARDWARE
 
@@ -3248,9 +3248,9 @@ uint32_t ETH_HandlePTPRxPkt(uint8_t *ppkt, uint32_t *PTPRxTab)
 #include "lwipopts.h"
 
 /* debug option */
-//#define ETH_DEBUG
-//#define ETH_RX_DUMP
-//#define ETH_TX_DUMP
+#define ETH_DEBUG
+#define ETH_RX_DUMP
+#define ETH_TX_DUMP
 
 #ifdef ETH_DEBUG
 #define STM32_ETH_PRINTF          rt_kprintf
@@ -3418,7 +3418,7 @@ static rt_err_t rt_stm32_eth_init(rt_device_t dev)
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_ETH_MAC | RCC_AHB1Periph_ETH_MAC_Tx |
                            RCC_AHB1Periph_ETH_MAC_Rx, ENABLE);
 
-    SYSCFG_ETH_MediaInterfaceConfig(SYSCFG_ETH_MediaInterface_RMII);
+    SYSCFG_ETH_MediaInterfaceConfig(SYSCFG_ETH_MediaInterface_MII);
 
     /* Reset ETHERNET on AHB Bus */
     ETH_DeInit();
@@ -3791,7 +3791,67 @@ static void GPIO_Configuration(void)
     ETH_MII_TXD3  -------> PE2
 */
 
-#error insert MII GPIO initial.
+//GPIO_InitTypeDef GPIO_InitStructure;
+  
+  /* Enable GPIOs clocks */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB |
+                         RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOI |
+                         RCC_AHB1Periph_GPIOG | RCC_AHB1Periph_GPIOH |
+                         RCC_AHB1Periph_GPIOF, ENABLE);
+
+  /* Enable SYSCFG clock */
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);  
+
+  /* Configure MCO (PA8) */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;  
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+  RCC_MCO1Config(RCC_MCO1Source_HSE, RCC_MCO1Div_1);
+  /* Configure PA1, PA2 and PA7 */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_7;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_ETH);
+  
+	/* Configure PB5 and PB8 */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_8;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_ETH);	  
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource8, GPIO_AF_ETH);
+  
+	/* Configure PC1, PC2, PC3, PC4 and PC5 */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
+	GPIO_PinAFConfig(GPIOC, GPIO_PinSource1, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOC, GPIO_PinSource2, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOC, GPIO_PinSource3, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOC, GPIO_PinSource4, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOC, GPIO_PinSource5, GPIO_AF_ETH);
+								  
+	/* Configure PG11, PG14 and PG13 */
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_11 | GPIO_Pin_13 | GPIO_Pin_14;
+	GPIO_Init(GPIOG, &GPIO_InitStructure);
+	GPIO_PinAFConfig(GPIOG, GPIO_PinSource11, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOG, GPIO_PinSource13, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOG, GPIO_PinSource14, GPIO_AF_ETH);
+  
+	/* Configure PH2, PH3, PH6, PH7 */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_6 | GPIO_Pin_7;
+	GPIO_Init(GPIOH, &GPIO_InitStructure);
+	GPIO_PinAFConfig(GPIOH, GPIO_PinSource2, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOH, GPIO_PinSource3, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOH, GPIO_PinSource6, GPIO_AF_ETH);
+	GPIO_PinAFConfig(GPIOH, GPIO_PinSource7, GPIO_AF_ETH);
+  
+	/* Configure PI10 */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+	GPIO_Init(GPIOI, &GPIO_InitStructure);
+	GPIO_PinAFConfig(GPIOI, GPIO_PinSource10, GPIO_AF_ETH);
+
 #elif defined(RMII_MODE)
 /*
     ETH_MDIO ------------> PA2
@@ -3897,7 +3957,7 @@ static void phy_monitor_thread_entry(void *parameter)
     while(1)
     {
         uint16_t status  = ETH_ReadPHYRegister(phy_addr, PHY_BSR);
-        STM32_ETH_PRINTF("LAN8720 status:0x%04X\r\n", status);
+        //STM32_ETH_PRINTF("LAN8720 status:0x%04X\r\n", status);
 
         phy_speed_new = 0;
 
@@ -3905,13 +3965,13 @@ static void phy_monitor_thread_entry(void *parameter)
         {
             uint16_t SR;
 
-            SR = ETH_ReadPHYRegister(phy_addr, 31);
-            STM32_ETH_PRINTF("LAN8720 REG 31:0x%04X\r\n", SR);
+            SR = ETH_ReadPHYRegister(phy_addr, PHY_SR);
+            //STM32_ETH_PRINTF("LAN8720 REG 16:0x%04X\r\n", SR);
 
             SR = (SR >> 2) & 0x07; /* LAN8720, REG31[4:2], Speed Indication. */
             phy_speed_new = PHY_LINK_MASK;
 
-            if((SR & 0x03) == 2)
+            if(!(SR & 0x02))
             {
                 phy_speed_new |= PHY_100M_MASK;
             }
@@ -3972,6 +4032,7 @@ static void phy_monitor_thread_entry(void *parameter)
 void rt_hw_stm32_eth_init(void)
 {
     /* PHY RESET: PC0 */
+	#if 0
     {
         GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -3990,7 +4051,7 @@ void rt_hw_stm32_eth_init(void)
         GPIO_SetBits(GPIOC, GPIO_Pin_0);
         rt_thread_delay(2);
     }
-
+#endif
     GPIO_Configuration();
     NVIC_Configuration();
 
