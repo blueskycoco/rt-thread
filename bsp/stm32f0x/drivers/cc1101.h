@@ -1,7 +1,7 @@
 #include <rtthread.h>
 #include "stm32f0xx.h"
 #define DEBUG rt_kprintf
-#define CC1101_RCV 1
+#define CC1101_RCV 0
 uint8_t spi_send_rcv(uint8_t data);
 int wait_int(int flag);
 void cc1101_hw_init();
