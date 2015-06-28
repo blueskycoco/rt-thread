@@ -1,7 +1,7 @@
 // usbtest.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "lusb0_usb.h"
 #include <stdio.h>
 #include <time.h> 
@@ -53,16 +53,16 @@ void TcharToChar (const TCHAR * tchar, char ** _char)
 {  
     int iLength ;  
 //获取字节长度   
-iLength = WideCharToMultiByte(CP_ACP, 0, tchar, -1, NULL, 0, NULL, NULL);  
+iLength = WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, NULL, 0, NULL, NULL);  
 //printf("iLength %d\n",iLength);
 *_char=(char *)malloc(iLength);
 memset(*_char,'\0',iLength);
 //将tchar值赋给_char    
-WideCharToMultiByte(CP_ACP, 0, tchar, -1, *_char, iLength, NULL, NULL);   
+WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, *_char, iLength, NULL, NULL);   
 //printf("%s\n",*_char);
 }  
 #define W_OP 1
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, _TCHAR* argv[])
 {
 	usb_dev_handle *dev[5] ={NULL,NULL,NULL,NULL,NULL}; /* the device handle */
     char tmp[BUF_SIZE],tmp1[BUF_SIZE],*index,*file_out,*file_in;
@@ -94,7 +94,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		 printf("Can not open %s\n",file_out);
 #else
 	TcharToChar(argv[2],&file_in);
-	 HANDLE hFile_in = CreateFile((LPCWSTR)(argv[2]),  
+	 HANDLE hFile_in = CreateFile((const CHAR *)(LPCWSTR)(argv[2]),  
         GENERIC_READ,  
         FILE_SHARE_READ,  
         NULL,  

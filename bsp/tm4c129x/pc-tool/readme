@@ -1,0 +1,5 @@
+compile for cygwin
+gcc bulk.c -o bulk-cyg -lusb -I./ -L./
+
+compile for windows
+i686-pc-mingw32-gcc bulk.c -o bulk-win -lusb -I./ -L./
