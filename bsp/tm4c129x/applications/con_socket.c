@@ -4,7 +4,7 @@
 #include <lwip/sockets.h>
 
 /*client use socket,server use netconn*/
-#define BUF_SIZE 2048
+#define BUF_SIZE 1024
 rt_thread_t tid_w[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL},tid_r[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL};
 extern struct rt_semaphore fifo_sem;
 struct rt_mutex mutex[4];
@@ -445,6 +445,7 @@ void socket_r(void *paramter)
 	int dev=(int)paramter;
 	int status;
 	fd_set myset; 
+	unsigned char rcv_buf[1024];
   	struct timeval tv; 
   	socklen_t lon; 
 	int valopt,ret; 
@@ -568,23 +569,25 @@ void socket_r(void *paramter)
         if(select(sock+1, &myset, NULL, NULL, &tv) > 0) 
 		{ 
 			lock(dev);			
-			g_socket[dev].recv_data=rt_malloc(BUF_SIZE);
-			if(g_socket[dev].recv_data==NULL)
-			{
-				rt_kprintf("malloc recv_data failed\n");
-				//rt_thread_delay(10);
-				unlock(dev);
-				continue;
-			}
+			
 			if(is_right(g_conf.config[dev],CONFIG_TCP))
 			{
-				status=recv(sock, g_socket[dev].recv_data, BUF_SIZE, 0);					
+				status=recv(sock, rcv_buf, BUF_SIZE, 0);					
 				unlock(dev);
 				if(status>0)
 				{				
 					//rt_kprintf("get %d %d\n",status,ind[dev]);
 					if(ind[dev])
 					{
+						g_socket[dev].recv_data=rt_malloc(status);
+						if(g_socket[dev].recv_data==NULL)
+						{
+							rt_kprintf("malloc recv_data failed\n");
+							//rt_thread_delay(10);
+							unlock(dev);
+							continue;
+						}
+						rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
 						rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
 					}
 					else

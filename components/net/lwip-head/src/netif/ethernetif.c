@@ -463,28 +463,6 @@ void set_if(char* netif_name, char* ip_addr, char* gw_addr, char* nm_addr)
         netif_set_netmask(netif, ip);
     }
 }
-#ifdef RT_USING_FINSH
-#include <finsh.h>
-
-FINSH_FUNCTION_EXPORT(set_if, set network interface address);
-
-#if LWIP_IPV6
-FINSH_FUNCTION_EXPORT(set_if6, set ipv6 local address)
-#endif
-
-#if LWIP_DNS
-#include <lwip/dns.h>
-void set_dns(char* dns_server)
-{
-    struct ip_addr addr;
-
-    if ((dns_server != RT_NULL) && ipaddr_aton(dns_server, &addr))
-    {
-        dns_setserver(0, &addr);
-    }
-}
-FINSH_FUNCTION_EXPORT(set_dns, set DNS server address);
-#endif
 
 void list_if(void)
 {
@@ -526,13 +504,13 @@ void list_if(void)
         netif = netif->next;
     }
 
-#if LWIP_DNS
+#if 0
     {
         struct ip_addr ip_addr;
 
         for(index=0; index<DNS_MAX_SERVERS; index++)
         {
-            ip_addr = dns_getserver(index);
+            ip_addr = (u32_t)dns_getserver(index);
             rt_kprintf("dns server #%d: %s\n", index, ipaddr_ntoa(&(ip_addr)));
         }
     }
@@ -540,6 +518,29 @@ void list_if(void)
 
     rt_exit_critical();
 }
+
+#ifdef RT_USING_FINSH
+#include <finsh.h>
+
+FINSH_FUNCTION_EXPORT(set_if, set network interface address);
+
+#if LWIP_IPV6
+FINSH_FUNCTION_EXPORT(set_if6, set ipv6 local address)
+#endif
+
+#if LWIP_DNS
+#include <lwip/dns.h>
+void set_dns(char* dns_server)
+{
+    struct ip_addr addr;
+
+    if ((dns_server != RT_NULL) && ipaddr_aton(dns_server, &addr))
+    {
+        dns_setserver(0, &addr);
+    }
+}
+FINSH_FUNCTION_EXPORT(set_dns, set DNS server address);
+#endif
 FINSH_FUNCTION_EXPORT(list_if, list network interface information);
 
 #if LWIP_TCP

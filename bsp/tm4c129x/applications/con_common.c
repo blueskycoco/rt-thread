@@ -158,7 +158,7 @@ void default_config()
 		g_conf.config[2]=CONFIG_TCP|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP|CONFIG_SERVER;
 		memset(g_conf.remote_ip[0],'\0',16);
-		strcpy(g_conf.remote_ip[0],"192.168.2.6");
+		strcpy(g_conf.remote_ip[0],"16.168.0.4");
 		memset(g_conf.remote_ip[1],'\0',16);
 		strcpy(g_conf.remote_ip[1],"192.168.2.6");
 		memset(g_conf.remote_ip[2],'\0',16);
@@ -175,7 +175,7 @@ void default_config()
 		g_conf.config[2]=CONFIG_TCP;//|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP;//|CONFIG_SERVER;
 		memset(g_conf.remote_ip[0],'\0',16);
-		strcpy(g_conf.remote_ip[0],"192.168.2.32");
+		strcpy(g_conf.remote_ip[0],"16.168.0.4");
 		memset(g_conf.remote_ip[1],'\0',16);
 		strcpy(g_conf.remote_ip[1],"192.168.2.32");
 		memset(g_conf.remote_ip[2],'\0',16);
@@ -1236,7 +1236,8 @@ static void common_r(void* parameter)
 					#endif
 					//dillon rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
 					//rt_kprintf("write index %d,%d\n",dev,data_size);
-					_usb_write(dev,last_data_ptr,data_size);
+					//_usb_write(dev,last_data_ptr,data_size);
+					rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
 					#if CONFIG_IT
 					times++;}
 					#endif
@@ -1244,7 +1245,7 @@ static void common_r(void* parameter)
 				//else
 					//rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
 				//if(dev==1)
-				rt_free(last_data_ptr);
+				//rt_free(last_data_ptr);
 			}
         //}
 		//else
@@ -1393,19 +1394,19 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 			//init usbbulk,read data from usb,and transfer data to 4 socket thread by 4 ctl line
 			//create 4 common_r thread read data from 4 socket thread,and put data to usb,control 4 ind line
 			if(i==0)
-			_usb_init();
+				_usb_init();
 			//rt_kprintf("uub %d\n",i);
 			//rt_sprintf(common,"common_wx%d",i);
 			//tid_common_w[i] = rt_thread_create(common,common_w_usb, (void *)(i*2),4096, 20, 10);	
 			//if(tid_common_w[i]!=RT_NULL)
 			//	rt_thread_startup(tid_common_w[i]);	
-			if(i!=4){
-			rt_sprintf(common,"common_rx%d",i);
-			tid_common_r[i] = rt_thread_create(common,common_r, (void *)(i*2+1),2048, 20, 10);
-				
-			if(tid_common_r[i]!=RT_NULL)
-				rt_thread_startup(tid_common_r[i]);
-				}
+			if(i!=4)
+			{
+				rt_sprintf(common,"common_rx%d",i);
+				tid_common_r[i] = rt_thread_create(common,common_r, (void *)(i*2+1),2048, 20, 10);
+				if(tid_common_r[i]!=RT_NULL)
+					rt_thread_startup(tid_common_r[i]);
+			}
 		}
 	}
 	print_config(g_conf);
