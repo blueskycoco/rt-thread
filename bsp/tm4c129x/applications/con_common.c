@@ -166,7 +166,7 @@ void default_config()
 		memset(g_conf.remote_ip[3],'\0',16);
 		strcpy(g_conf.remote_ip[3],"16.168.0.2");
 		memset(g_conf.local_ip,'\0',16);
-		strcpy(g_conf.local_ip,"192.168.2.32");	
+		strcpy(g_conf.local_ip,"16.168.0.4");	
 	}
 	else
 	{//client mode
@@ -183,7 +183,7 @@ void default_config()
 		memset(g_conf.remote_ip[3],'\0',16);
 		strcpy(g_conf.remote_ip[3],"16.168.0.2");
 		memset(g_conf.local_ip,'\0',16);
-		strcpy(g_conf.local_ip,"192.168.2.6");	
+		strcpy(g_conf.local_ip,"16.168.0.4");	
 	}
 	
 	memset(g_conf.remote_ip6[0],'\0',64);
@@ -204,7 +204,7 @@ void default_config()
 	strcpy(g_conf.local_ip6,"fe80::1");
 	
 	memset(g_conf.gw,'\0',16);
-	strcpy(g_conf.gw,"192.168.2.1");	
+	strcpy(g_conf.gw,"16.168.0.1");	
 	memset(g_conf.sub_msk,'\0',16);
 	strcpy(g_conf.sub_msk,"255.255.255.0");
 	memset(g_conf.mac,'\0',64);	
@@ -1395,11 +1395,11 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 			//create 4 common_r thread read data from 4 socket thread,and put data to usb,control 4 ind line
 			if(i==0)
 				_usb_init();
-			//rt_kprintf("uub %d\n",i);
-			//rt_sprintf(common,"common_wx%d",i);
-			//tid_common_w[i] = rt_thread_create(common,common_w_usb, (void *)(i*2),4096, 20, 10);	
-			//if(tid_common_w[i]!=RT_NULL)
-			//	rt_thread_startup(tid_common_w[i]);	
+			rt_kprintf("uub %d\n",i);
+			rt_sprintf(common,"common_wx%d",i);
+			tid_common_w[i] = rt_thread_create(common,common_w_usb, (void *)(i*2),4096, 20, 10);	
+			if(tid_common_w[i]!=RT_NULL)
+				rt_thread_startup(tid_common_w[i]);	
 			if(i!=4)
 			{
 				rt_sprintf(common,"common_rx%d",i);

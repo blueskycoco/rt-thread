@@ -217,11 +217,16 @@ void USBRxEventCallback(void *pvRxCBData,void **pvBuffer, uint32_t ui32Length)
 				//unsigned char *tmpbuf=rt_malloc(ui32Length);
 				//rt_memcpy(tmpbuf,pvBuffer,ui32Length);
 				//send_index_socket(index-1,*pvBuffer,ui32Length);
-				while(rt_data_queue_check_buf(&g_data_queue[(index-1)*2])!=RT_EOK)
-					_delay_us(10);
-				rt_data_queue_push(&g_data_queue[(index-1)*2], *pvBuffer, ui32Length, 0);				
-				rt_kprintf("push addr %2x bytes %d\r\n",*pvBuffer,ui32Length);
-				*pvBuffer=rt_malloc(USB_BUF_LEN);
+				//if(rt_data_queue_check_buf(&g_data_queue[(index-1)*2])==RT_EOK)
+				{
+					rt_data_queue_push(&g_data_queue[(index-1)*2], *pvBuffer, ui32Length, RT_WAITING_FOREVER);				
+					//rt_kprintf("push addr %2x bytes %d\r\n",*pvBuffer,ui32Length);
+					*pvBuffer=rt_malloc(USB_BUF_LEN);
+				}
+				//else
+				//{
+
+				//}
 				//ptr[index]=*pvBuffer;
 				//len[index]=0;
 			}
@@ -231,37 +236,40 @@ void USBRxEventCallback(void *pvRxCBData,void **pvBuffer, uint32_t ui32Length)
 		else
 		{
 			//USBBufferWrite(&g_sTxBuffer[index],tmpbuf,bytes);
-			USBBulkTx(g_psBULKDevice[index],*pvBuffer,ui32Length);
+			USBBulkTx(&g_psBULKDevice[index],*pvBuffer,ui32Length);
 			//rt_free(tmpbuf);
 		}
 	}	
 }
+uint8_t *usbbuf=NULL;
 
 void _usb_read(int dev)
 {
-	uint8_t *usbbuf;
+
 	int len;
-	static int times=0;
-	//if(usb_1==1)
-	{				
+		static int len1=0;
+	//rt_kprintf("usb read dev %d\n",dev);
+	if((len=USBBulkRx(&g_psBULKDevice[dev],&(g_usb_rcv_buf[dev])+len1))>0)
+	{		
+		len1+=len;
 		if(dev!=0)
 		{
+			if(len1<2048)
+				return ;
 			if(phy_link&&g_socket[dev-1].connected)
 			{
-				rt_data_queue_push(&g_data_queue[(dev-1)*2], g_usb_rcv_buf[dev], USB_BUF_LEN, RT_WAITING_FOREVER);				
-				rt_kprintf("push dev %d addr %2x bytes %d\n",dev,g_usb_rcv_buf[dev],times*USB_BUF_LEN);
-				times++;
-				g_usb_rcv_buf[dev]=rt_malloc(USB_BUF_LEN);
-				USBBulkRxBufferOutInit(&g_psBULKDevice[dev],(void *)g_usb_rcv_buf[dev],USB_BUF_LEN,USBRxEventCallback);
-
+					rt_data_queue_push(&g_data_queue[(dev-1)*2], g_usb_rcv_buf[dev], len1, RT_WAITING_FOREVER);				
+					rt_kprintf("push addr %2x bytes %d\r\n",g_usb_rcv_buf[dev],len1);		
+					g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
+					len1=0;
 			}
 		}
 		else
 		{
-			USBBulkTx(g_psBULKDevice[dev],g_usb_rcv_buf[dev],USB_BUF_LEN);
+			USBBulkTx(&g_psBULKDevice[dev],g_usb_rcv_buf[dev],len);
+			//rt_free(g_usb_rcv_buf[dev]);
 		}
-	}
-	USBBulkAckHost(&g_psBULKDevice[dev]);	
+	}	
 }
 
 int _usb_write(int index, void *buffer, int size)

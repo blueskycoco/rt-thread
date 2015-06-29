@@ -96,7 +96,7 @@ rt_err_t rt_data_queue_push(struct rt_data_queue *queue,
 
         /* reset thread error number */
         thread->error = RT_EOK;
-
+		//rt_kprintf("push to sleep\n");
         /* suspend thread on the push list */
         rt_thread_suspend(thread);
         rt_list_insert_before(&(queue->suspended_push_list), &(thread->tlist));
@@ -134,6 +134,8 @@ rt_err_t rt_data_queue_push(struct rt_data_queue *queue,
         thread = rt_list_entry(queue->suspended_pop_list.next,
                                struct rt_thread,
                                tlist);
+		
+		//rt_kprintf("to wake up pop\n");
 
         /* resume it */
         rt_thread_resume(thread);
@@ -189,9 +191,10 @@ rt_err_t rt_data_queue_pop(struct rt_data_queue *queue,
 
         /* reset thread error number */
         thread->error = RT_EOK;
-        
+       // rt_kprintf("pop to sleep\n");
         /* suspend thread on the pop list */
         rt_thread_suspend(thread);
+		
         rt_list_insert_before(&(queue->suspended_pop_list), &(thread->tlist));
         /* start timer */
         if (timeout > 0)
@@ -218,7 +221,7 @@ rt_err_t rt_data_queue_pop(struct rt_data_queue *queue,
 
     *data_ptr = queue->queue[queue->get_index & mask].data_ptr;
     *size     = queue->queue[queue->get_index & mask].data_size;
-
+	//rt_kprintf("pop %d %d\n",queue->get_index,queue->put_index);
     queue->get_index += 1;
 
     if ((queue->waiting_lwm == RT_TRUE) && 
@@ -232,15 +235,15 @@ rt_err_t rt_data_queue_pop(struct rt_data_queue *queue,
          */
         if (!rt_list_isempty(&(queue->suspended_push_list)))
         {
+        
             /* get thread entry */
             thread = rt_list_entry(queue->suspended_push_list.next,
                                    struct rt_thread,
                                    tlist);
-
+			//rt_kprintf("to wake up push\n");
             /* resume it */
             rt_thread_resume(thread);
             rt_hw_interrupt_enable(level);
-
             /* perform a schedule */
             rt_schedule();
         }
@@ -304,7 +307,7 @@ rt_err_t rt_data_queue_check_buf(struct rt_data_queue *queue)
     if (queue->put_index - queue->get_index == queue->size) 
     {
         rt_hw_interrupt_enable(level);
-        
+        rt_kprintf("put_index %d get_index %d \n",queue->put_index,queue->get_index);
         return -RT_EEMPTY;
     }
     rt_hw_interrupt_enable(level);

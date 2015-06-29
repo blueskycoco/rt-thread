@@ -383,13 +383,12 @@ void socket_w(void *paramter)
 	rt_kprintf("socket_ip4_w==> %d , %s mode, %s , %s . Thread Enter\r\n",dev,is_right(g_conf.config[dev],CONFIG_SERVER)?"Server":"Client",is_right(g_conf.config[dev],CONFIG_IPV6)?"IPV6":"IPV4",is_right(g_conf.config[dev],CONFIG_TCP)?"TCP":"UDP");
 	while(1)
 	{
-		r=rt_data_queue_pop(&g_data_queue[dev*2], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
-		if(r==RT_EOK && last_data_ptr && data_size>0)
-		{
+		//rt_kprintf("begin to pop\n");
+		
 		if(!g_socket[dev].connected)
 		{
 			rt_thread_delay(10);
-			rt_free(last_data_ptr);
+			//rt_free(last_data_ptr);
 			continue;
 		}
 		cnn_out(dev,1);	
@@ -404,9 +403,11 @@ void socket_w(void *paramter)
 		{		
 		FD_SET(sock, &myset);
 		if(select(sock+1,NULL, &myset,  NULL, &tv) > 0) 
-		{ 		
-			if(data_size>0)
+		{ 	
+			r=rt_data_queue_pop(&g_data_queue[dev*2], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
+			if(r==RT_EOK && last_data_ptr && data_size>0)
 			{
+			
 				lock(dev);
 				if(is_right(g_conf.config[dev],CONFIG_TCP))
 				{
@@ -440,14 +441,14 @@ void socket_w(void *paramter)
 						//g_socket[dev].connected=false;
 					}//EINPROGRESS
 				} 
-			}
-		}
-		
+			
 				
-			}
-		rt_free(last_data_ptr);
+			rt_free(last_data_ptr);
+			last_data_ptr=NULL;
+			}		
+		}		
 	}
-		}
+	}
 	rt_kprintf("socket_ip_w %d close\n",dev);
 }
 void socket_r(void *paramter)
