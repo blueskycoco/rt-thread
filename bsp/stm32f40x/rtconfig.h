@@ -161,6 +161,7 @@
 #define CHECKSUM_GEN_TCP                0
 #define CHECKSUM_GEN_IP                 0
 #define CHECKSUM_GEN_UDP                0
+#define RT_LWIP_DHCP 1
 
 /* RT_GDB_STUB */
 //#define RT_USING_GDB

@@ -42,7 +42,7 @@
 #define LWIP_SO_RCVTIMEO            1
 #define LWIP_SO_SNDTIMEO            1
 
-#define RT_LWIP_DEBUG
+//#define RT_LWIP_DEBUG
 
 #ifdef RT_LWIP_DEBUG
 #define LWIP_DEBUG
@@ -55,18 +55,18 @@
 #define PPP_DEBUG                   LWIP_DBG_OFF
 #define MEM_DEBUG                   LWIP_DBG_OFF
 #define MEMP_DEBUG                  LWIP_DBG_OFF
-#define PBUF_DEBUG                  LWIP_DBG_ON
+#define PBUF_DEBUG                  LWIP_DBG_OFF
 #define API_LIB_DEBUG               LWIP_DBG_OFF
 #define API_MSG_DEBUG               LWIP_DBG_OFF
-#define TCPIP_DEBUG                 LWIP_DBG_ON
-#define NETIF_DEBUG                 LWIP_DBG_ON
+#define TCPIP_DEBUG                 LWIP_DBG_OFF
+#define NETIF_DEBUG                 LWIP_DBG_OFF
 #define SOCKETS_DEBUG               LWIP_DBG_OFF
 #define DNS_DEBUG                   LWIP_DBG_OFF
 #define AUTOIP_DEBUG                LWIP_DBG_OFF
 #define DHCP_DEBUG                  LWIP_DBG_OFF
-#define IP_DEBUG                    LWIP_DBG_ON
+#define IP_DEBUG                    LWIP_DBG_OFF
 #define IP_REASS_DEBUG              LWIP_DBG_OFF
-#define ICMP_DEBUG                  LWIP_DBG_ON
+#define ICMP_DEBUG                  LWIP_DBG_OFF
 #define IGMP_DEBUG                  LWIP_DBG_OFF
 #define UDP_DEBUG                   LWIP_DBG_OFF
 #define TCP_DEBUG                   LWIP_DBG_OFF
