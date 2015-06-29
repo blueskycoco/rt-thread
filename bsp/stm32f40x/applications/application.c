@@ -48,7 +48,9 @@ void rt_init_thread_entry(void* parameter)
         /* init lwip system */
         lwip_sys_init();
         rt_kprintf("TCP/IP initialized!\n");
-		
+		rt_thread_delay(200);
+		list_if();
+		tcpecho(1);
     }
 #endif
 }
