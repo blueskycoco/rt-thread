@@ -3320,7 +3320,6 @@ void ETH_IRQHandler(void)
         if((status & ier) & ETH_DMA_IT_R) /* packet reception */
         {
             STM32_ETH_PRINTF("ETH_DMA_IT_R\r\n");
-			rt_kprintf("ETH_DMA_IT_R\r\n");
             /* a frame has been received */
             eth_device_ready(&(stm32_eth_device.parent));
 
