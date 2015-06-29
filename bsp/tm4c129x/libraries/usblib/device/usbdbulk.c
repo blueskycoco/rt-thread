@@ -432,7 +432,7 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     tBulkInstance *psInst;
     uint32_t ui32EPStatus;
     uint32_t ui32Size;
-	
+	static int len=0,len1=0;
 
     ASSERT(pvBulkDevice != 0);
 
@@ -475,12 +475,13 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 			ui32Size = USBEndpointDataAvail(psInst->ui32USBBase,psInst->ui8OUTEndpoint);
 			if(ui32EPStatus & USB_DEV_RX_PKT_RDY)
 			{
-				psInst->sBuffer.ui32Size=ui32Size;
+				//psInst->sBuffer.ui32Size=ui32Size;
 				//
 				// Configure the next DMA transfer.
 				//
 				
-				USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,psInst->sBuffer.pvData, ui32Size);
+				USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,(psInst->sBuffer.pvData+len), ui32Size);
+				len+=ui32Size;
 				psInst->ui32Flags=USBD_FLAG_DMA_IN;
 				USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8OUTDMA);
 				//rt_kprintf("get data %d outdma %d , endpoint %d\n",ui32Size,psInst->ui8OUTDMA,psInst->ui8OUTEndpoint);
@@ -490,16 +491,22 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 		{
 		    //	rt_kprintf("rcv data over\n");
 			//USBEndpointDMADisable(USB0_BASE,
-			//					  psInst->ui8OUTEndpoint, USB_EP_DEV_OUT);
-			
-			
+			//					  psInst->ui8OUTEndpoint, USB_EP_DEV_OUT);			
 			USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8OUTDMA);
-			psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer.pvData,psInst->sBuffer.ui32Size);
+			if(len==psInst->sBuffer.ui32Size)
+			{
+				psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,&(psInst->sBuffer.pvData),psInst->sBuffer.ui32Size);
+				len=0;
+				//psBulkDevice->pfnRxCallback(psBulkDevice->pvRxCBData,
+                 //                   USB_EVENT_RX_AVAILABLE, len,
+                   //                 (void *)0);
+			}
+			else
+				MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
 			//
 			// Acknowledge that the data was read, this will not cause a bus
 			// acknowledgment.
 			//
-			MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
 			//
 			// Inform the callback of the new data.
 			//
@@ -1788,7 +1795,7 @@ void USBBulkAckHost(void *pvBulkDevice)
 {
 	tBulkInstance *psInst;
     tUSBDBulkDevice *psBulkDevice;
-	
+	static int times=0;
 	ASSERT(psBulkDevice != 0);
 	// The audio device structure pointer.
 	//
@@ -1798,8 +1805,8 @@ void USBBulkAckHost(void *pvBulkDevice)
 	// Create a pointer to the audio instance data.
 	//
 	psInst = &psBulkDevice->sPrivateData;
-
-	MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
+	rt_kprintf("release %d times\n",times++);
+	//MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
 	psInst->ui32Flags=0;
 
 }

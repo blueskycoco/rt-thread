@@ -358,6 +358,16 @@ bool socket_ip6(int dev)
 	return true;
 }
 #endif
+void send_index_socket(int index,void *last_data_ptr,int data_size)
+{
+	struct timeval tv;
+	fd_set myset;
+	FD_SET(g_socket[index].sockfd, &myset);
+	if(select(g_socket[index].sockfd+1,NULL, &myset,	NULL, &tv) > 0) 
+	{	
+		send(g_socket[index].sockfd, last_data_ptr, data_size, 0);
+	}
+}
 void socket_w(void *paramter)
 {
 	int dev=(int)paramter;
@@ -401,7 +411,7 @@ void socket_w(void *paramter)
 				if(is_right(g_conf.config[dev],CONFIG_TCP))
 				{
 					status=send(sock, last_data_ptr, data_size, 0);
-					//rt_kprintf("socet %d send times %d\n",dev,times++);
+					//rt_kprintf("socet %d send bytes %d\n",dev,data_size);
 				}
 				else
 				{

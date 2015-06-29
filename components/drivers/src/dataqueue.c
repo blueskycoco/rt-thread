@@ -96,7 +96,7 @@ rt_err_t rt_data_queue_push(struct rt_data_queue *queue,
 
         /* reset thread error number */
         thread->error = RT_EOK;
-        
+
         /* suspend thread on the push list */
         rt_thread_suspend(thread);
         rt_list_insert_before(&(queue->suspended_push_list), &(thread->tlist));
@@ -290,6 +290,28 @@ rt_err_t rt_data_queue_peak(struct rt_data_queue *queue,
     return RT_EOK;
 }
 RTM_EXPORT(rt_data_queue_peak);
+rt_err_t rt_data_queue_check_buf(struct rt_data_queue *queue)
+{
+    rt_ubase_t  level;
+    rt_uint16_t mask;
+
+    RT_ASSERT(queue != RT_NULL);
+
+    mask = queue->size - 1;
+
+    level = rt_hw_interrupt_disable();
+
+    if (queue->put_index - queue->get_index == queue->size) 
+    {
+        rt_hw_interrupt_enable(level);
+        
+        return -RT_EEMPTY;
+    }
+    rt_hw_interrupt_enable(level);
+
+    return RT_EOK;
+}
+RTM_EXPORT(rt_data_queue_check_buf);
 
 void rt_data_queue_reset(struct rt_data_queue *queue)
 {

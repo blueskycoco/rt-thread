@@ -184,7 +184,7 @@ void rt_init_thread_entry(void *parameter)
 	//ping_test6("fe80::483:d903:e2ee:d05e%12",5,32);
 	//ping_test("192.168.2.32",5,32);
 	//ping_test("192.168.2.32",5,32);
-	rt_thread_delay(300);
+	rt_thread_delay(400);
 	list_if();
 }
 

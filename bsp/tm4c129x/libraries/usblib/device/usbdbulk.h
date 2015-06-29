@@ -84,7 +84,7 @@ typedef enum
     eBulkStateWaitClient
 }
 tBulkState;
-typedef void (* tUSBBulkRxBufferCallback)(void *pvCBData, void *pvBuffer, uint32_t ui32Length);
+typedef void (* tUSBBulkRxBufferCallback)(void *pvCBData, void **pvBuffer, uint32_t ui32Length);
 
 //*****************************************************************************
 //

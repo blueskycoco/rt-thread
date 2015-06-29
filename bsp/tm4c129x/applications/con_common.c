@@ -158,13 +158,13 @@ void default_config()
 		g_conf.config[2]=CONFIG_TCP|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP|CONFIG_SERVER;
 		memset(g_conf.remote_ip[0],'\0',16);
-		strcpy(g_conf.remote_ip[0],"16.168.0.4");
+		strcpy(g_conf.remote_ip[0],"16.168.0.2");
 		memset(g_conf.remote_ip[1],'\0',16);
-		strcpy(g_conf.remote_ip[1],"192.168.2.6");
+		strcpy(g_conf.remote_ip[1],"16.168.0.2");
 		memset(g_conf.remote_ip[2],'\0',16);
-		strcpy(g_conf.remote_ip[2],"192.168.2.6");
+		strcpy(g_conf.remote_ip[2],"16.168.0.2");
 		memset(g_conf.remote_ip[3],'\0',16);
-		strcpy(g_conf.remote_ip[3],"192.168.2.6");
+		strcpy(g_conf.remote_ip[3],"16.168.0.2");
 		memset(g_conf.local_ip,'\0',16);
 		strcpy(g_conf.local_ip,"192.168.2.32");	
 	}
@@ -175,13 +175,13 @@ void default_config()
 		g_conf.config[2]=CONFIG_TCP;//|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP;//|CONFIG_SERVER;
 		memset(g_conf.remote_ip[0],'\0',16);
-		strcpy(g_conf.remote_ip[0],"16.168.0.4");
+		strcpy(g_conf.remote_ip[0],"16.168.0.2");
 		memset(g_conf.remote_ip[1],'\0',16);
-		strcpy(g_conf.remote_ip[1],"192.168.2.32");
+		strcpy(g_conf.remote_ip[1],"16.168.0.2");
 		memset(g_conf.remote_ip[2],'\0',16);
-		strcpy(g_conf.remote_ip[2],"192.168.2.32");
+		strcpy(g_conf.remote_ip[2],"16.168.0.2");
 		memset(g_conf.remote_ip[3],'\0',16);
-		strcpy(g_conf.remote_ip[3],"192.168.2.32");
+		strcpy(g_conf.remote_ip[3],"16.168.0.2");
 		memset(g_conf.local_ip,'\0',16);
 		strcpy(g_conf.local_ip,"192.168.2.6");	
 	}
@@ -1236,8 +1236,8 @@ static void common_r(void* parameter)
 					#endif
 					//dillon rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
 					//rt_kprintf("write index %d,%d\n",dev,data_size);
-					//_usb_write(dev,last_data_ptr,data_size);
-					rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
+					_usb_write(dev,last_data_ptr,data_size);
+					//rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
 					#if CONFIG_IT
 					times++;}
 					#endif
