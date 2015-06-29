@@ -52,6 +52,16 @@
 #define UART3_TX_DMA        DMA1_Stream1
 #define UART3_RX_DMA        DMA1_Stream3
 
+#define UART6_GPIO_TX       GPIO_Pin_6
+#define UART6_TX_PIN_SOURCE GPIO_PinSource6
+#define UART6_GPIO_RX       GPIO_Pin_7
+#define UART6_RX_PIN_SOURCE GPIO_PinSource7
+#define UART6_GPIO          GPIOC
+#define UART6_GPIO_RCC      RCC_AHB1Periph_GPIOC
+#define RCC_APBPeriph_UART6 RCC_APB2Periph_USART6
+#define UART6_TX_DMA        DMA1_Stream1
+#define UART6_RX_DMA        DMA1_Stream3
+
 /* STM32 uart driver */
 struct stm32_uart
 {
@@ -252,6 +262,37 @@ void USART3_IRQHandler(void)
     rt_interrupt_leave();
 }
 #endif /* RT_USING_UART3 */
+#if defined(RT_USING_UART6)
+/* UART3 device driver structure */
+struct stm32_uart uart6 =
+{
+    USART6,
+    USART6_IRQn,
+};
+struct rt_serial_device serial6;
+
+void USART6_IRQHandler(void)
+{
+    struct stm32_uart *uart;
+
+    uart = &uart6;
+
+    /* enter interrupt */
+    rt_interrupt_enter();
+    if (USART_GetITStatus(uart->uart_device, USART_IT_RXNE) != RESET)
+    {
+        rt_hw_serial_isr(&serial6, RT_SERIAL_EVENT_RX_IND);
+    }
+    if (USART_GetITStatus(uart->uart_device, USART_IT_TC) != RESET)
+    {
+        /* clear interrupt */
+        USART_ClearITPendingBit(uart->uart_device, USART_IT_TC);
+    }
+
+    /* leave interrupt */
+    rt_interrupt_leave();
+}
+#endif /* RT_USING_UART3 */
 
 static void RCC_Configuration(void)
 {
@@ -275,6 +316,13 @@ static void RCC_Configuration(void)
     /* Enable UART3 clock */
     RCC_APB1PeriphClockCmd(RCC_APBPeriph_UART3, ENABLE);
 #endif /* RT_USING_UART3 */
+#ifdef RT_USING_UART6
+    /* Enable UART3 GPIO clocks */
+    RCC_AHB1PeriphClockCmd(UART6_GPIO_RCC, ENABLE);
+    /* Enable UART3 clock */
+    RCC_APB2PeriphClockCmd(RCC_APBPeriph_UART6, ENABLE);
+#endif /* RT_USING_UART3 */
+
 }
 
 static void GPIO_Configuration(void)
@@ -315,6 +363,16 @@ static void GPIO_Configuration(void)
     GPIO_PinAFConfig(UART3_GPIO, UART3_TX_PIN_SOURCE, GPIO_AF_USART3);
     GPIO_PinAFConfig(UART3_GPIO, UART3_RX_PIN_SOURCE, GPIO_AF_USART3);
 #endif /* RT_USING_UART3 */
+#ifdef RT_USING_UART6
+    /* Configure USART3 Rx/tx PIN */
+    GPIO_InitStructure.GPIO_Pin = UART6_GPIO_TX | UART6_GPIO_RX;
+    GPIO_Init(UART6_GPIO, &GPIO_InitStructure);
+
+    /* Connect alternate function */
+    GPIO_PinAFConfig(UART6_GPIO, UART6_TX_PIN_SOURCE, GPIO_AF_USART6);
+    GPIO_PinAFConfig(UART6_GPIO, UART6_RX_PIN_SOURCE, GPIO_AF_USART6);
+#endif /* RT_USING_UART3 */
+
 }
 
 static void NVIC_Configuration(struct stm32_uart *uart)
@@ -380,6 +438,20 @@ int stm32_hw_usart_init(void)
                           "uart3",
                           RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
                           uart);
+#endif /* RT_USING_UART3 */
+#ifdef RT_USING_UART6
+		uart = &uart6;
+	
+		serial6.ops    = &stm32_uart_ops;
+		serial6.config = config;
+	
+		NVIC_Configuration(&uart6);
+	
+		/* register UART3 device */
+		rt_hw_serial_register(&serial6,
+							  "uart6",
+							  RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
+							  uart);
 #endif /* RT_USING_UART3 */
 
     return 0;

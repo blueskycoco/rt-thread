@@ -42,7 +42,7 @@
 #define LWIP_SO_RCVTIMEO            1
 #define LWIP_SO_SNDTIMEO            1
 
-/* #define RT_LWIP_DEBUG */
+//#define RT_LWIP_DEBUG
 
 #ifdef RT_LWIP_DEBUG
 #define LWIP_DEBUG
