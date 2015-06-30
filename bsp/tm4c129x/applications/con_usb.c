@@ -33,7 +33,7 @@ extern uint8_t g_ppui8USBRxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE];
 extern uint8_t g_ppcUSBTxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE_TX];
 extern struct rt_semaphore rx_sem[4];
 extern struct rt_semaphore usbrx_sem[4];
-#define USB_BUF_LEN 2048
+#define USB_BUF_LEN 8*1024
 uint8_t *g_usb_rcv_buf[NUM_BULK_DEVICES];
 uint32_t send_len;
 tDMAControlTable psDMAControlTable[64] __attribute__ ((aligned(1024)));
@@ -248,8 +248,11 @@ void _usb_read(int dev)
 
 	int len;
 	static int len1=0;
-	//rt_kprintf("usb read dev %d\n",dev);
-	len=USBBulkRx(&g_psBULKDevice[dev],g_usb_rcv_buf[dev]+len1);
+	len=USBBulkRx(&g_psBULKDevice[dev],g_usb_rcv_buf[dev]);	
+	len1=len1+len;
+	rt_kprintf("usb read dev %x %d\n",g_usb_rcv_buf[dev],len1);
+	//rt_free(g_usb_rcv_buf[dev]);
+	return ;
 	if(len>0)
 	{
 		if(len==64)
@@ -267,9 +270,10 @@ void _usb_read(int dev)
 		{
 			if(phy_link&&g_socket[dev-1].connected)
 			{
-				rt_data_queue_push(&g_data_queue[(dev-1)*2], g_usb_rcv_buf[dev], len1, RT_WAITING_FOREVER);				
-				rt_kprintf("push addr %2x bytes %d\r\n",g_usb_rcv_buf[dev],len1);		
-				g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
+				//rt_data_queue_push(&g_data_queue[(dev-1)*2], g_usb_rcv_buf[dev], len1, RT_WAITING_FOREVER);				
+				//rt_kprintf("push addr %2x bytes %d\r\n",g_usb_rcv_buf[dev],len1);		
+				//rt_free(g_usb_rcv_buf[dev]);
+				//g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
 			}
 		}
 		//else

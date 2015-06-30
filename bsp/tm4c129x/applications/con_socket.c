@@ -412,7 +412,7 @@ void socket_w(void *paramter)
 				if(is_right(g_conf.config[dev],CONFIG_TCP))
 				{
 					status=send(sock, last_data_ptr, data_size, 0);
-					rt_kprintf("socet %d send bytes %d\n",dev,data_size);
+					//rt_kprintf("socet %d send bytes %d\n",dev,data_size);
 				}
 				else
 				{

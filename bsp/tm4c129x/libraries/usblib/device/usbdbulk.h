@@ -85,6 +85,23 @@ typedef enum
 }
 tBulkState;
 typedef void (* tUSBBulkRxBufferCallback)(void *pvCBData, void **pvBuffer, uint32_t ui32Length);
+struct sBuffer
+{
+   //
+   // Pointer to a buffer provided by caller.
+   //
+   void *pvData;
+
+   //
+   // Size of the data area provided in pvData in bytes.
+   //
+   uint32_t ui32Size;
+
+   //
+   // The buffer callback for this function.
+   //
+   tUSBBulkRxBufferCallback pfnRxCallback;
+};
 
 //*****************************************************************************
 //
@@ -149,24 +166,7 @@ typedef struct
     //
     uint8_t ui8Interface;
 	
-    struct
-    {
-        //
-        // Pointer to a buffer provided by caller.
-        //
-        void *pvData;
-
-        //
-        // Size of the data area provided in pvData in bytes.
-        //
-        uint32_t ui32Size;
-
-        //
-        // The buffer callback for this function.
-        //
-        tUSBBulkRxBufferCallback pfnRxCallback;
-    }
-    sBuffer;
+   struct sBuffer sBuffer;
 	
     //
     // The OUT endpoint DMA channel in use by this instance.
@@ -185,6 +185,9 @@ typedef struct
 	struct rt_semaphore tx_sem;
 	struct rt_semaphore rx_sem_begin;
 	struct rt_semaphore rx_sem_done;
+	char               rx_pbuf_mb_pool[8*4];
+	struct rt_mailbox  eth_rx_pbuf_mb;
+	rt_mailbox_t rx_pbuf_mb;
 }
 tBulkInstance;
 
