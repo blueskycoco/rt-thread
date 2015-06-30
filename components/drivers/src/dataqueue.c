@@ -96,7 +96,7 @@ rt_err_t rt_data_queue_push(struct rt_data_queue *queue,
 
         /* reset thread error number */
         thread->error = RT_EOK;
-		//rt_kprintf("push to sleep\n");
+		rt_kprintf("push to sleep\n");
         /* suspend thread on the push list */
         rt_thread_suspend(thread);
         rt_list_insert_before(&(queue->suspended_push_list), &(thread->tlist));
@@ -125,6 +125,7 @@ rt_err_t rt_data_queue_push(struct rt_data_queue *queue,
     queue->queue[queue->put_index & mask].data_ptr  = data_ptr;
     queue->queue[queue->put_index & mask].data_size = data_size;
     queue->put_index += 1;
+	rt_kprintf("push get %d put %d\n",queue->get_index,queue->put_index);
 
     if (!rt_list_isempty(&(queue->suspended_pop_list)))
     {
@@ -135,7 +136,7 @@ rt_err_t rt_data_queue_push(struct rt_data_queue *queue,
                                struct rt_thread,
                                tlist);
 		
-		//rt_kprintf("to wake up pop\n");
+		rt_kprintf("to wake up pop\n");
 
         /* resume it */
         rt_thread_resume(thread);
@@ -191,7 +192,7 @@ rt_err_t rt_data_queue_pop(struct rt_data_queue *queue,
 
         /* reset thread error number */
         thread->error = RT_EOK;
-       // rt_kprintf("pop to sleep\n");
+        rt_kprintf("pop to sleep\n");
         /* suspend thread on the pop list */
         rt_thread_suspend(thread);
 		
@@ -221,7 +222,7 @@ rt_err_t rt_data_queue_pop(struct rt_data_queue *queue,
 
     *data_ptr = queue->queue[queue->get_index & mask].data_ptr;
     *size     = queue->queue[queue->get_index & mask].data_size;
-	//rt_kprintf("pop %d %d\n",queue->get_index,queue->put_index);
+	rt_kprintf("pop get %d put %d\n",queue->get_index,queue->put_index);
     queue->get_index += 1;
 
     if ((queue->waiting_lwm == RT_TRUE) && 
@@ -240,7 +241,7 @@ rt_err_t rt_data_queue_pop(struct rt_data_queue *queue,
             thread = rt_list_entry(queue->suspended_push_list.next,
                                    struct rt_thread,
                                    tlist);
-			//rt_kprintf("to wake up push\n");
+			rt_kprintf("to wake up push\n");
             /* resume it */
             rt_thread_resume(thread);
             rt_hw_interrupt_enable(level);

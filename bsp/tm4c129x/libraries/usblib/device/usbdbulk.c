@@ -479,9 +479,9 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 				//
 				// Configure the next DMA transfer.
 				//
-				psBulkDevice->pfnRxCallback(psBulkDevice->pvRxCBData,
-                                    USB_EVENT_RX_AVAILABLE, ui32Size,
-                                   (void *)0);
+				//psBulkDevice->pfnRxCallback(psBulkDevice->pvRxCBData,
+                //                    USB_EVENT_RX_AVAILABLE, ui32Size,
+                //                   (void *)0);
 				//rt_kprintf("data in %d\n",ui32Size);
 				#if 0
 				USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,(psInst->sBuffer.pvData+len), ui32Size);
@@ -491,6 +491,8 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 				USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8OUTDMA);
 				//rt_kprintf("get data %d outdma %d , endpoint %d\n",ui32Size,psInst->ui8OUTDMA,psInst->ui8OUTEndpoint);
 				#endif
+				//rt_kprintf("data in %d\n",ui32Size);
+				rt_sem_release(&(psInst->rx_sem_begin));
 			}
 		}
 		else if((USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA) ==	USBLIBSTATUS_DMA_COMPLETE)&&psInst->ui32Flags == USBD_FLAG_DMA_IN)
@@ -522,7 +524,7 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 			#endif
 			USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8OUTDMA);
 			//rt_kprintf("data rcv done\n");
-			rt_sem_release(&(psInst->rx_sem));
+			rt_sem_release(&(psInst->rx_sem_done));
 			MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
 			psInst->ui32Flags=0;
 		}
@@ -1137,8 +1139,10 @@ USBDBulkCompositeInit(uint32_t ui32Index, tUSBDBulkDevice *psBulkDevice,
 	psInst->ui8INDMA = 0;
 	rt_sprintf(common,"usb%dtx",in);
 	rt_sem_init(&(psInst->tx_sem), common, 0, 0);
-	rt_sprintf(common,"usb%drx",in);
-	rt_sem_init(&(psInst->rx_sem), common, 0, 0);
+	rt_sprintf(common,"usb%dbx",in);
+	rt_sem_init(&(psInst->rx_sem_begin), common, 0, 0);
+	rt_sprintf(common,"usb%dex",in);
+	rt_sem_init(&(psInst->rx_sem_done), common, 0, 0);
 	in++;
 	
     //
@@ -1769,7 +1773,7 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 	}
 	return 0;
 }
-int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer)
+int32_t USBBulkRx(void *pvBulkDevice,void *pvBuffer)
 {
 	int32_t ui32Size=0;
 	tBulkInstance *psInst;
@@ -1777,7 +1781,7 @@ int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer)
 	
 	ASSERT(psBulkDevice != 0);
 	
-	ASSERT(*pvBuffer);
+	ASSERT(pvBuffer);
 	//
 	// The audio device structure pointer.
 	//
@@ -1787,6 +1791,8 @@ int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer)
 	// Create a pointer to the audio instance data.
 	//
 	psInst = &psBulkDevice->sPrivateData;
+	//rt_kprintf("wait for rx_sem_begin\n");
+	rt_sem_take(&(psInst->rx_sem_begin), RT_WAITING_FOREVER);
 
 	ui32Size = USBEndpointDataAvail(psInst->ui32USBBase,psInst->ui8OUTEndpoint);
 	//ui32Size=64;
@@ -1807,13 +1813,13 @@ int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer)
 		// Configure the next DMA transfer.
 		//	
 		psInst->ui32Flags=USBD_FLAG_DMA_IN;
-		USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,*pvBuffer, ui32Size);
+		USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,pvBuffer, ui32Size);
 		//rt_kprintf("debug 2\n");
 		//rt_kprintf("to start %d dma %d\n",*(int *)psBulkDevice->pvRxCBData,ui32Size);
 		USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8OUTDMA);	
 		//rt_kprintf("to rcv ...\n");
-		rt_sem_take(&(psInst->rx_sem), RT_WAITING_FOREVER);
-		//rt_kprintf("wait rx done\n");
+		rt_sem_take(&(psInst->rx_sem_done), RT_WAITING_FOREVER);
+		//rt_kprintf("wait rx done %d\n",ui32Size);
 	}
 	return ui32Size;
 }

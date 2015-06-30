@@ -171,9 +171,9 @@ void rt_init_thread_entry(void *parameter)
 	for(i=0;i<8;i++)//0,1 for socket0,2,3 for socket1,4,5 for socket2,6,7 for socket3
 	{
 		if((i%2)==0)
-			rt_data_queue_init(&g_data_queue[i], 32, 1, RT_NULL);
+			rt_data_queue_init(&g_data_queue[i], 32, 4, RT_NULL);
 		else
-			rt_data_queue_init(&g_data_queue[i], 32, 1, RT_NULL);
+			rt_data_queue_init(&g_data_queue[i], 32, 4, RT_NULL);
 	}
 	common_init(DEV_USB);
 	//test_select_connect();

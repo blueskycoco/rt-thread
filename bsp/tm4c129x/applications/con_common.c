@@ -1208,7 +1208,7 @@ void common_w_usb(void* parameter)
 	rt_kprintf("common_w_usb %d\n",dev);
 	while(1)
 	{
-		if (rt_sem_take(&(rx_sem[dev]), RT_WAITING_FOREVER) != RT_EOK) continue;
+		//if (rt_sem_take(&(rx_sem[dev]), RT_WAITING_FOREVER) != RT_EOK) continue;
 		_usb_read(dev);
 	}
 	

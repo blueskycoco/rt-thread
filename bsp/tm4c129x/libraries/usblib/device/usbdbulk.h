@@ -183,7 +183,8 @@ typedef struct
     //
     uint32_t ui32Flags;
 	struct rt_semaphore tx_sem;
-	struct rt_semaphore rx_sem;
+	struct rt_semaphore rx_sem_begin;
+	struct rt_semaphore rx_sem_done;
 }
 tBulkInstance;
 

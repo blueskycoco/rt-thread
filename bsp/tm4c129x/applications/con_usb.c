@@ -247,28 +247,37 @@ void _usb_read(int dev)
 {
 
 	int len;
-		static int len1=0;
+	static int len1=0;
 	//rt_kprintf("usb read dev %d\n",dev);
-	if((len=USBBulkRx(&g_psBULKDevice[dev],&(g_usb_rcv_buf[dev])+len1))>0)
-	{		
-		len1+=len;
-		if(dev!=0)
+	len=USBBulkRx(&g_psBULKDevice[dev],g_usb_rcv_buf[dev]+len1);
+	if(len>0)
+	{
+		if(len==64)
 		{
-			if(len1<2048)
-				return ;
-			if(phy_link&&g_socket[dev-1].connected)
+			len1=len1+64;
+			if((len1+64)<=USB_BUF_LEN)
 			{
-					rt_data_queue_push(&g_data_queue[(dev-1)*2], g_usb_rcv_buf[dev], len1, RT_WAITING_FOREVER);				
-					rt_kprintf("push addr %2x bytes %d\r\n",g_usb_rcv_buf[dev],len1);		
-					g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
-					len1=0;
+				//rt_kprintf("len1 = %d\n",len1);
+				return ;
 			}
 		}
 		else
+			len1=len1+len;
+		//if(dev!=0)
 		{
-			USBBulkTx(&g_psBULKDevice[dev],g_usb_rcv_buf[dev],len);
-			//rt_free(g_usb_rcv_buf[dev]);
+			if(phy_link&&g_socket[dev-1].connected)
+			{
+				rt_data_queue_push(&g_data_queue[(dev-1)*2], g_usb_rcv_buf[dev], len1, RT_WAITING_FOREVER);				
+				rt_kprintf("push addr %2x bytes %d\r\n",g_usb_rcv_buf[dev],len1);		
+				g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
+			}
 		}
+		//else
+		//{
+			//USBBulkTx(&g_psBULKDevice[dev],g_usb_rcv_buf[dev],len1);
+			//rt_free(g_usb_rcv_buf[dev]);
+		//}
+		len1=0;
 	}	
 }
 
