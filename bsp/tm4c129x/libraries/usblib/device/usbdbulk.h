@@ -96,6 +96,7 @@ struct sBuffer
    // Size of the data area provided in pvData in bytes.
    //
    uint32_t ui32Size;
+   uint32_t ui32LastSize;
 
    //
    // The buffer callback for this function.

@@ -248,10 +248,11 @@ void _usb_read(int dev)
 
 	int len;
 	static int len1=0;
-	len=USBBulkRx(&g_psBULKDevice[dev],g_usb_rcv_buf[dev]);	
+	rt_uint8_t *buf;
+	len=USBBulkRx(&g_psBULKDevice[dev],&buf);	
 	len1=len1+len;
-	rt_kprintf("usb read dev %x %d\n",g_usb_rcv_buf[dev],len1);
-	//rt_free(g_usb_rcv_buf[dev]);
+	//rt_kprintf("usb read dev %x %d\n",g_usb_rcv_buf[dev],len1);
+	rt_free(buf);
 	return ;
 	if(len>0)
 	{

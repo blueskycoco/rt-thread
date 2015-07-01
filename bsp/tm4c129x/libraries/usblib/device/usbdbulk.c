@@ -487,19 +487,22 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 				#if 1
 				if(ui32Size!=64)
 				{
-					rt_uint8_t pi8Data[64];
-					int ui32Count;
-					rt_kprintf("size %d\n",ui32Size);
+					//rt_uint8_t pi8Data[64];
+					int ui32Count=psInst->sBuffer.ui32Size;
+					
+					rt_kprintf("last size %d len %d\n",ui32Size,len);
 					MAP_USBEndpointDataGet(psInst->ui32USBBase,
                                             psInst->ui8OUTEndpoint,
-                                            pi8Data, &ui32Count);
+                                            psInst->sBuffer.pvData, &(psInst->sBuffer.ui32LastSize));
 					MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);
+					psInst->sBuffer.ui32LastSize=len+ui32Size;
+					rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(&(psInst->sBuffer)));
+					psInst->sBuffer.ui32Size=ui32Count;
+					psInst->sBuffer.pvData=rt_malloc(psInst->sBuffer.ui32Size);
 					len=len+ui32Size;
-					if(len==9575177)
-					{
-						rt_kprintf("got 9575177\n");
-						len=0;
-					}
+					rt_kprintf("got %d\n",len);
+					wait_flag=1;
+					len=0;
 				}
 				else
 				{
@@ -529,21 +532,19 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 			//if(len1!=64)
 			//	USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8OUTDMA);
 			
-			#if 0
-			if(len==psInst->sBuffer.ui32Size||len1!=64)
+			#if 1
+			if(len==psInst->sBuffer.ui32Size)
 			{
 				//psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,&(psInst->sBuffer.pvData),psInst->sBuffer.ui32Size);
 				//psBulkDevice->pfnRxCallback(psBulkDevice->pvRxCBData,
                  //                   USB_EVENT_RX_AVAILABLE, len,
                    //                 (void *)0);
-                int tmp=psInst->sBuffer.ui32Size;
-				psInst->sBuffer.ui32Size=len;
 				len=0;
 				len1=0;
+				psInst->sBuffer.ui32LastSize=0;
                 rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(&(psInst->sBuffer)));
-				psInst->sBuffer.ui32Size=tmp;
-				//psInst->sBuffer.pvData=rt_malloc(psInst->sBuffer.ui32Size);
-				//rt_kprintf("create %x\n",psInst->sBuffer.pvData);
+				psInst->sBuffer.pvData=rt_malloc(psInst->sBuffer.ui32Size);
+				//rt_kprintf("create %x %d\n",psInst->sBuffer.pvData,len);
 			}
 			#endif
 				//MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
@@ -1755,6 +1756,7 @@ USBBulkRxBufferOutInit(void *pvBulkDevice, void *pvBuffer,uint32_t ui32Size,
     //
     psInst->sBuffer.pvData = pvBuffer;
     psInst->sBuffer.ui32Size = ui32Size;
+	psInst->sBuffer.ui32LastSize = 0;
     psInst->sBuffer.pfnRxCallback = pfnRxCallback;
 	
     return(0);
@@ -1812,16 +1814,16 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 	}
 	return 0;
 }
-int32_t USBBulkRx(void *pvBulkDevice,void *pvBuffer)
+int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer)
 {
-	int32_t ui32Size=0;
+	static int32_t ui32Size=0;
 	tBulkInstance *psInst;
     tUSBDBulkDevice *psBulkDevice;
 	rt_uint32_t temp =0;
 	struct sBuffer *st;
 	ASSERT(psBulkDevice != 0);
 	
-	ASSERT(pvBuffer);
+	ASSERT(*pvBuffer);
 	//
 	// The audio device structure pointer.
 	//
@@ -1834,9 +1836,19 @@ int32_t USBBulkRx(void *pvBulkDevice,void *pvBuffer)
 	if(rt_mb_recv(psInst->rx_pbuf_mb, &temp, RT_WAITING_FOREVER)==RT_EOK)
 	{
 		st=(struct sBuffer *)temp;
-		pvBuffer=st->pvData;
-		ui32Size=st->ui32Size;
-		//rt_kprintf("new %x %d\n",pvBuffer,ui32Size);
+		*pvBuffer=st->pvData;
+		if(st->ui32LastSize==0)
+		{
+			ui32Size=st->ui32Size+ui32Size;
+			//rt_kprintf("new %x %d\n",*pvBuffer, ui32Size);
+		}
+		else
+		{
+			ui32Size=st->ui32LastSize+ui32Size;
+			wait_flag=0;
+			rt_kprintf("new %x %d\n",*pvBuffer, ui32Size);
+			ui32Size=0;
+		}
 	}
 	
 	#if 0
