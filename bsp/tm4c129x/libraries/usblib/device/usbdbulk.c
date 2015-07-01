@@ -1816,7 +1816,7 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 }
 int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer)
 {
-	static int32_t ui32Size=0;
+	int32_t ui32Size=0;
 	tBulkInstance *psInst;
     tUSBDBulkDevice *psBulkDevice;
 	rt_uint32_t temp =0;
@@ -1839,15 +1839,15 @@ int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer)
 		*pvBuffer=st->pvData;
 		if(st->ui32LastSize==0)
 		{
-			ui32Size=st->ui32Size+ui32Size;
+			ui32Size=st->ui32Size;
 			//rt_kprintf("new %x %d\n",*pvBuffer, ui32Size);
 		}
 		else
 		{
-			ui32Size=st->ui32LastSize+ui32Size;
-			wait_flag=0;
+			ui32Size=st->ui32LastSize;
+			//wait_flag=0;
 			rt_kprintf("new %x %d\n",*pvBuffer, ui32Size);
-			ui32Size=0;
+			//ui32Size=0;
 		}
 	}
 	

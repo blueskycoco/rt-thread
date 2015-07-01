@@ -250,9 +250,25 @@ void _usb_read(int dev)
 	static int len1=0;
 	rt_uint8_t *buf;
 	len=USBBulkRx(&g_psBULKDevice[dev],&buf);	
-	len1=len1+len;
+	if(dev!=0)
+		{
+			if(phy_link&&g_socket[dev-1].connected)
+			{
+				rt_data_queue_push(&g_data_queue[(dev-1)*2],buf, len, RT_WAITING_FOREVER);	
+				len1=len1+len;
+				//rt_kprintf("push addr %2x bytes %d\r\n",buf,len1);		
+				//rt_free(g_usb_rcv_buf[dev]);
+				//g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
+			}
+		}
+		else
+		{
+			USBBulkTx(&g_psBULKDevice[dev],buf,len);
+			rt_free(buf);
+		}
+	//len1=len1+len;
 	//rt_kprintf("usb read dev %x %d\n",g_usb_rcv_buf[dev],len1);
-	rt_free(buf);
+	//rt_free(buf);
 	return ;
 	if(len>0)
 	{
