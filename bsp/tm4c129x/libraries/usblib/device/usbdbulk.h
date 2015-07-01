@@ -103,6 +103,9 @@ struct sBuffer
    //
    tUSBBulkRxBufferCallback pfnRxCallback;
 };
+#define USB_BUF_LEN 8192
+#define USB_SBUF_CNT 64
+
 
 //*****************************************************************************
 //
@@ -167,8 +170,8 @@ typedef struct
     //
     uint8_t ui8Interface;
 	
-   struct sBuffer sBuffer;
-	
+   	struct sBuffer sBuffer[USB_SBUF_CNT];
+	uint8_t sBuffer_id;
     //
     // The OUT endpoint DMA channel in use by this instance.
     //

@@ -1420,7 +1420,6 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	//list_mem1();	
 	//list_tcps1();
 	//list_thread();
-	
 	DBG("common_init ok\n");
 	//list_mem1();	
 	return 1;

@@ -33,7 +33,7 @@ extern uint8_t g_ppui8USBRxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE];
 extern uint8_t g_ppcUSBTxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE_TX];
 extern struct rt_semaphore rx_sem[4];
 extern struct rt_semaphore usbrx_sem[4];
-#define USB_BUF_LEN 8*1024
+
 uint8_t *g_usb_rcv_buf[NUM_BULK_DEVICES];
 uint32_t send_len;
 tDMAControlTable psDMAControlTable[64] __attribute__ ((aligned(1024)));
@@ -53,8 +53,8 @@ rt_size_t _usb_init()
 	{
 	   //USBBufferInit(&g_sTxBuffer[i]);
 	   //USBBufferInit(&g_sRxBuffer[i]);
-	   g_usb_rcv_buf[i]=(uint8_t *)rt_malloc(USB_BUF_LEN);
-	   USBBulkRxBufferOutInit(&g_psBULKDevice[i],(void *)g_usb_rcv_buf[i],USB_BUF_LEN,USBRxEventCallback);
+	   //g_usb_rcv_buf[i]=(uint8_t *)rt_malloc(USB_BUF_LEN);
+	   //USBBulkRxBufferOutInit(&g_psBULKDevice[i],(void *)g_usb_rcv_buf[i],USB_BUF_LEN,USBRxEventCallback);
 	   g_sCompDevice.psDevices[i].pvInstance = USBDBulkCompositeInit(0, &g_psBULKDevice[i], &g_psCompEntries[i]);
 	}
    USBDCompositeInit(0, &g_sCompDevice, DESCRIPTOR_DATA_SIZE,g_pucDescriptorData);
@@ -246,7 +246,7 @@ uint8_t *usbbuf=NULL;
 void _usb_read(int dev)
 {
 
-	int len;
+	int len,i;
 	static int len1=0;
 	rt_uint8_t *buf;
 	len=USBBulkRx(&g_psBULKDevice[dev],&buf);	
@@ -255,8 +255,13 @@ void _usb_read(int dev)
 			if(phy_link&&g_socket[dev-1].connected)
 			{
 				rt_data_queue_push(&g_data_queue[(dev-1)*2],buf, len, RT_WAITING_FOREVER);	
-				len1=len1+len;
-				//rt_kprintf("push addr %2x bytes %d\r\n",buf,len1);		
+				//for(i=0;i<len;i++)
+				//rt_kprintf("%c",buf[i]);
+				//rt_kprintf("\nto free buf %x len %d\n",buf,len);
+				//rt_free(buf);
+				
+				//len1=len1+len;
+				//rt_kprintf("push addr %2x bytes %d\r\n",buf,len);		
 				//rt_free(g_usb_rcv_buf[dev]);
 				//g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
 			}
