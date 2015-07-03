@@ -102,9 +102,9 @@ int main(int argc, _TCHAR* argv[])
         0,  
         NULL ); 
 	  if(hFile_in!=INVALID_HANDLE_VALUE)
-		 printf("Open %s ok\n",file_in);
+		 printf("Open %s ok\n",argv[2]);
 	 else
-		 printf("Can not open %s\n",file_in);
+		 printf("Can not open %s\n",argv[2]);
 #endif	  
     if (!(dev[i] = open_dev(i)))
     {
