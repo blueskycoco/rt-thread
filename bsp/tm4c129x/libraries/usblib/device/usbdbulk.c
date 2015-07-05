@@ -36,8 +36,10 @@
 #include "usblib/device/usbdbulk.h"
 #include "usblib/device/usbdcomp.h"
 #include "usblib/usblibpriv.h"
+#include "con_socket.h"
 extern struct rt_semaphore rx_sem[4];
 int wait_flag=0;
+extern bool phy_link;
 //*****************************************************************************
 //
 //! \addtogroup bulk_device_class_api
@@ -441,7 +443,7 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     // The bulk device structure pointer.
     //
     psBulkDevice = (tUSBDBulkDevice *)pvBulkDevice;
-
+	int index=	which_usb_device(psBulkDevice);
     //
     // Get a pointer to the bulk device instance data pointer
     //
@@ -538,6 +540,11 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
                 //                    USB_EVENT_RX_AVAILABLE, ui32Size,
                 //                   (void *)0);
 				//rt_kprintf("data in %d\n",ui32Size);
+				//if(!phy_link || !g_socket[index-1].connected)
+				//{
+				//	rt_kprintf("phy_link %d,%d connected %d\n",phy_link,g_socket[index-1].connected);
+				//	return ;
+				//}
 				#if 1
 				if(ui32Size!=64)
 				{
@@ -614,6 +621,8 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 				}				
 				psInst->sBuffer_id++;
 				psInst->sBuffer[psInst->sBuffer_id].pvData=rt_malloc(USB_BUF_LEN);
+				if(psInst->sBuffer[psInst->sBuffer_id].pvData==RT_NULL)
+					rt_kprintf("malloc buf failed\n");
 				psInst->sBuffer[psInst->sBuffer_id].ui32Size=USB_BUF_LEN;
 				psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=0;
 				//rt_kprintf("next2 buf %x %d\n",psInst->sBuffer[psInst->sBuffer_id].pvData,psInst->sBuffer_id);
@@ -1926,7 +1935,7 @@ int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer)
 			//ui32Size=0;
 			//for(i=0;i<ui32Size;i++)
 				//rt_kprintf("%c",((rt_uint8_t *)(*pvBuffer))[i]);
-				list_mem1();
+				//list_mem1();
 		}
 	}
 	

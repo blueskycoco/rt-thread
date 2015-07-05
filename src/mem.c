@@ -253,11 +253,13 @@ void *rt_malloc(rt_size_t size)
 {
     rt_size_t ptr, ptr2;
     struct heap_mem *mem, *mem2;
+	register rt_base_t temp;
 
     RT_DEBUG_NOT_IN_INTERRUPT;
 
     if (size == 0)
         return RT_NULL;
+	temp = rt_hw_interrupt_disable();
 
     if (size != RT_ALIGN(size, RT_ALIGN_SIZE))
         RT_DEBUG_LOG(RT_DEBUG_MEM, ("malloc size %d, but align to %d\n",
@@ -271,6 +273,7 @@ void *rt_malloc(rt_size_t size)
     if (size > mem_size_aligned)
     {
         RT_DEBUG_LOG(RT_DEBUG_MEM, ("no memory\n"));
+		rt_hw_interrupt_enable(temp);
 
         return RT_NULL;
     }
@@ -280,7 +283,7 @@ void *rt_malloc(rt_size_t size)
         size = MIN_SIZE_ALIGNED;
 
     /* take memory semaphore */
-    rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
+    //rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
 
     for (ptr = (rt_uint8_t *)lfree - heap_ptr;
          ptr < mem_size_aligned - size;
@@ -356,7 +359,7 @@ void *rt_malloc(rt_size_t size)
                 RT_ASSERT(((lfree == heap_end) || (!lfree->used)));
             }
 
-            rt_sem_release(&heap_sem);
+          //  rt_sem_release(&heap_sem);
             RT_ASSERT((rt_uint32_t)mem + SIZEOF_STRUCT_MEM + size <= (rt_uint32_t)heap_end);
             RT_ASSERT((rt_uint32_t)((rt_uint8_t *)mem + SIZEOF_STRUCT_MEM) % RT_ALIGN_SIZE == 0);
             RT_ASSERT((((rt_uint32_t)mem) & (RT_ALIGN_SIZE-1)) == 0);
@@ -368,13 +371,15 @@ void *rt_malloc(rt_size_t size)
 
             RT_OBJECT_HOOK_CALL(rt_malloc_hook,
                                 (((void *)((rt_uint8_t *)mem + SIZEOF_STRUCT_MEM)), size));
+			rt_hw_interrupt_enable(temp);
 
             /* return the memory data except mem struct */
             return (rt_uint8_t *)mem + SIZEOF_STRUCT_MEM;
         }
     }
 
-    rt_sem_release(&heap_sem);
+    //rt_sem_release(&heap_sem);
+	rt_hw_interrupt_enable(temp);
 
     return RT_NULL;
 }
@@ -510,11 +515,13 @@ RTM_EXPORT(rt_calloc);
 void rt_free(void *rmem)
 {
     struct heap_mem *mem;
+	register rt_base_t temp;
 
     RT_DEBUG_NOT_IN_INTERRUPT;
 
     if (rmem == RT_NULL)
         return;
+	temp = rt_hw_interrupt_disable();
     RT_ASSERT((((rt_uint32_t)rmem) & (RT_ALIGN_SIZE-1)) == 0);
     RT_ASSERT((rt_uint8_t *)rmem >= (rt_uint8_t *)heap_ptr &&
               (rt_uint8_t *)rmem < (rt_uint8_t *)heap_end);
@@ -525,6 +532,7 @@ void rt_free(void *rmem)
         (rt_uint8_t *)rmem >= (rt_uint8_t *)heap_end)
     {
         RT_DEBUG_LOG(RT_DEBUG_MEM, ("illegal memory\n"));
+		rt_hw_interrupt_enable(temp);
 
         return;
     }
@@ -539,7 +547,7 @@ void rt_free(void *rmem)
 
 
     /* protect the heap from concurrent access */
-    rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
+    //rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
 
     /* ... which has to be in a used state ... */
     RT_ASSERT(mem->used);
@@ -560,7 +568,8 @@ void rt_free(void *rmem)
 
     /* finally, see if prev or next are free also */
     plug_holes(mem);
-    rt_sem_release(&heap_sem);
+   // rt_sem_release(&heap_sem);
+	rt_hw_interrupt_enable(temp);
 }
 RTM_EXPORT(rt_free);
 

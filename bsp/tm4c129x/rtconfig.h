@@ -238,7 +238,7 @@
 #define CHECKSUM_CHECK_ICMP 0
 #define CHECKSUM_CHECK_ICMP6 0
 #define RT_SERIAL_RB_BUFSZ 2048
-//#define RT_LWIP_DHCP 1
+#define RT_LWIP_DHCP 1
 
 // </RDTConfigurator>
 
