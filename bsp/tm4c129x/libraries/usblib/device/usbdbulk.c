@@ -546,6 +546,17 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 				//	return ;
 				//}
 				#if 1
+				if(psInst->sBuffer[psInst->sBuffer_id].pvData==RT_NULL)
+				{
+					psInst->sBuffer[psInst->sBuffer_id].pvData=rt_malloc(USB_BUF_LEN);	
+					if(psInst->sBuffer[psInst->sBuffer_id].pvData==RT_NULL)
+					{
+						rt_kprintf("malloc buf failed 2\n");
+						//MAP_USBDevEndpointStall(USB0_BASE, psInst->ui8OUTEndpoint,
+						//							   USB_EP_DEV_OUT);
+						return ;
+					}
+				}
 				if(ui32Size!=64)
 				{
 					//rt_uint8_t pi8Data[64];
