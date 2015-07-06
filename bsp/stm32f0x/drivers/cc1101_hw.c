@@ -185,8 +185,8 @@ RF_SETTINGS rfSettings =
 	#endif
     //0x06,   // IOCFG0D   GDO0 output pin configuration. Refer to SmartRF?Studio User Manual for detailed pseudo register explanation. //old 0x06
 
-    0x00,   // PKTCTRL1  Packet automation control.
-    0x01,   // PKTCTRL0  Packet automation control.//old 0x05
+    0x04,   // PKTCTRL1  Packet automation control.
+    0x05,   // PKTCTRL0  Packet automation control.//old 0x05
     0x00,   // ADDR      Device address.
     #if CC1101_RCV
     0xff,    // PKTLEN    Packet length.
@@ -398,7 +398,7 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 			{
 				read_cc1101(CCxxx0_RXFIFO, rxBuffer, len,TYPE_BURST);
 				read_cc1101(CCxxx0_RXFIFO,status,2,TYPE_BURST);
-			//	if(status[1]&CRC_OK)
+				if(status[1]&CRC_OK)
 				{
 					rt_kprintf("\n\ncc1101 receive %d bytes\r\n",len);
 					for(i=0;i<len;i++)
@@ -408,8 +408,11 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 					rt_thread_delay(25);
 					rt_hw_led1_off();
 				}
-			//	else
-				//	rt_kprintf("\ncc1101 receive crc failed\n");				
+				else
+				{
+					rt_kprintf("\ncc1101 receive crc failed\n");	
+					cc1101_hw_init();
+					}
 				
 				*length=len;
 				return status[1]&CRC_OK;
