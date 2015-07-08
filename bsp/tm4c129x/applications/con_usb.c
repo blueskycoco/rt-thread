@@ -260,8 +260,8 @@ void _usb_read(int dev)
 				//rt_kprintf("\nto free buf %x len %d\n",buf,len);
 				//rt_free(buf);
 				
-				//len1=len1+len;
-				//rt_kprintf("push addr %2x bytes %d\r\n",buf,len);		
+				len1=len1+len;
+			//	rt_kprintf("push addr %2x bytes %d\r\n",buf,len1);		
 				//rt_free(g_usb_rcv_buf[dev]);
 				//g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
 			}

@@ -444,8 +444,9 @@ void socket_w(void *paramter)
 			
 			
 			rt_free(last_data_ptr);
+			//rt_kprintf("%x free\n",last_data_ptr);
 			last_data_ptr=NULL;
-			if(data_size!=USB_BUF_LEN)
+			if(data_size!=8192)
 				list_mem1();
 			}		
 		}		

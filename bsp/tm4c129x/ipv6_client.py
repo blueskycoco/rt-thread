@@ -44,12 +44,9 @@ class MiniClient:
         tcpT4Client.connect((self.h, self.p))
         print "TCP IPv6 TCP mode connecting..."
         while True:
-            tcpT4Client.send('hello')
-            self.d = self.d + len('hello')
             buf = tcpT4Client.recv(1024)
-            print "Receive  ", buf
             self.c = self.c + len(buf)
-            print "Received length = ", self.c, "Sent length = ", self.d
+            print "Received length = ", self.c
         
     def udpC6(self):
         udpU6Client = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)

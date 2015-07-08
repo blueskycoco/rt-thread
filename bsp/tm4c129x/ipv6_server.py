@@ -50,12 +50,12 @@ class MiniServer:
             clientSock, clientaddr = tcpT6Server.accept()
             print "Connected from: ", clientSock.getpeername() 
             while True:
-			clientSock.send('Congratulations........')
+			#clientSock.send('Congratulations........')
 			buf = clientSock.recv(1024)
 			self.c = self.c + len(buf)
-			self.d = self.d + len('Congratulations........')
-			print "Received length = ", self.c, ",Sent length = ", self.d
-            #clientSock.close()
+			#self.d = self.d + len('Congratulations........')
+			print "Received length = ", self.c
+			#clientSock.close()
     def udpT6(self):
         udpT6Server = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
         print "UDP IPv6 Mode Start....."
