@@ -39,6 +39,9 @@ uint32_t send_len;
 tDMAControlTable psDMAControlTable[64] __attribute__ ((aligned(1024)));
 
 void USBRxEventCallback(void *pvRxCBData,void **pvBuffer, uint32_t ui32Length);
+extern void PinoutSet(bool bEthernet, bool bUSB);
+extern int32_t USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size);
+extern int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer);
 
 rt_size_t _usb_init()
 {
@@ -323,7 +326,7 @@ int _usb_write(int index, void *buffer, int size)
 		index=3;
 	else if(index==7)
 		index=4;
-	//USBBulkTx(g_psBULKDevice[index],buffer,size);
+	USBBulkTx(&(g_psBULKDevice[index]),buffer,size);
 	return 0;
 	#if 0
 	while(tmp_size!=0)

@@ -40,6 +40,7 @@
 extern struct rt_semaphore rx_sem[4];
 int wait_flag=0;
 extern bool phy_link;
+extern int which_usb_device(tUSBDBulkDevice *psDevice);
 //*****************************************************************************
 //
 //! \addtogroup bulk_device_class_api

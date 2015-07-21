@@ -20,7 +20,7 @@ int intf[5]={0,1,2,3,4};
 int ep_in[5]={0x81,0x82,0x83,0x84,0x85};
 int ep_out[5]={0x01,0x02,0x03,0x04,0x05};
 // Device of bytes to transfer.
-#define BUF_SIZE 64*1024
+#define BUF_SIZE 1024
 usb_dev_handle *open_dev(void);
 
 static int transfer_bulk_async(usb_dev_handle *dev,
