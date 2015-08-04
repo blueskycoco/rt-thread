@@ -170,7 +170,7 @@ void default_config()
 	}
 	else
 	{//client mode
-		g_conf.config[0]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
+		g_conf.config[0]=CONFIG_TCP;//|CONFIG_SERVER;
 		g_conf.config[1]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[2]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
@@ -1346,7 +1346,7 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	config_local_ip6[68]=0xfa;
 */
 	if(dev==DEV_USB)
-		max_devices=5;
+		max_devices=2;
 	for(i=0;i<max_devices;i++)
 	{
 		//config sem
@@ -1411,7 +1411,14 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 		}
 	}
 	print_config(g_conf);
-	//rt_thread_delay(300);	
+	//rt_thread_delay(300);
+	if(dev==DEV_USB)
+	{
+		g_chang[0].cs=g_chang[0].lip6c=g_chang[0].lpc=g_chang[0].mode=g_chang[0].protol=g_chang[0].rip4c=g_chang[0].rip6c=g_chang[0].rpc=0;
+		socket_thread_start(0);
+	}
+	
+	else
 	for(i=0;i<4;i++)
 	{
 		g_chang[i].cs=g_chang[i].lip6c=g_chang[i].lpc=g_chang[i].mode=g_chang[i].protol=g_chang[i].rip4c=g_chang[i].rip6c=g_chang[i].rpc=0;

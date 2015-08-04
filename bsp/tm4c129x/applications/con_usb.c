@@ -33,6 +33,9 @@ extern uint8_t g_ppui8USBRxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE];
 extern uint8_t g_ppcUSBTxBuffer[NUM_BULK_DEVICES][UART_BUFFER_SIZE_TX];
 extern struct rt_semaphore rx_sem[4];
 extern struct rt_semaphore usbrx_sem[4];
+unsigned char check_mem[1+8]					={0xF5,0x8A,0x25,0xff,0x26,0xfa,0x03,0xc3};
+unsigned char result_mem[1+8]					={0xF5,0x8B,0x25,0x01,0x26,0xfa,0x00,0x00};
+
 
 uint8_t *g_usb_rcv_buf[NUM_BULK_DEVICES];
 uint32_t send_len;
@@ -249,65 +252,43 @@ uint8_t *usbbuf=NULL;
 void _usb_read(int dev)
 {
 
-	int len,i;
-	static int len1=0;
+	int len,i,crc=0;
 	rt_uint8_t *buf;
 	len=USBBulkRx(&g_psBULKDevice[dev],&buf);	
 	if(dev!=0)
-		{
-			if(phy_link&&g_socket[dev-1].connected)
-			{
-				rt_data_queue_push(&g_data_queue[(dev-1)*2],buf, len, RT_WAITING_FOREVER);	
-				//for(i=0;i<len;i++)
-				//rt_kprintf("%c",buf[i]);
-				//rt_kprintf("\nto free buf %x len %d\n",buf,len);
-				//rt_free(buf);
-				
-				len1=len1+len;
-			//	rt_kprintf("push addr %2x bytes %d\r\n",buf,len1);		
-				//rt_free(g_usb_rcv_buf[dev]);
-				//g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
-			}
-		}
-		else
-		{
-			USBBulkTx(&g_psBULKDevice[dev],buf,len);
-			rt_free(buf);
-		}
-	//len1=len1+len;
-	//rt_kprintf("usb read dev %x %d\n",g_usb_rcv_buf[dev],len1);
-	//rt_free(buf);
-	return ;
-	if(len>0)
 	{
-		if(len==64)
+		if(phy_link&&g_socket[dev-1].connected)
 		{
-			len1=len1+64;
-			if((len1+64)<=USB_BUF_LEN)
-			{
-				//rt_kprintf("len1 = %d\n",len1);
-				return ;
-			}
+			rt_data_queue_push(&g_data_queue[(dev-1)*2],buf, len, RT_WAITING_FOREVER);	
 		}
-		else
-			len1=len1+len;
-		//if(dev!=0)
+	}
+	else
+	{
+		//for(i=0;i<8;i++)
+		//	rt_kprintf("%x ",buf[i]);
+		//rt_kprintf("\nlen %d\n",len);
+		if(rt_memcmp(buf,check_mem,8)==0)
 		{
-			if(phy_link&&g_socket[dev-1].connected)
+			char *tmp=(char *)rt_malloc(USB_BUF_LEN);
+			if(tmp!=NULL)
 			{
-				//rt_data_queue_push(&g_data_queue[(dev-1)*2], g_usb_rcv_buf[dev], len1, RT_WAITING_FOREVER);				
-				//rt_kprintf("push addr %2x bytes %d\r\n",g_usb_rcv_buf[dev],len1);		
-				//rt_free(g_usb_rcv_buf[dev]);
-				//g_usb_rcv_buf[dev]=(uint8_t *)rt_malloc(USB_BUF_LEN);
+				result_mem[3]=0x01;
+				rt_free(tmp);
 			}
+			else
+				result_mem[3]=0x0;
+			for(i=0;i<6;i++)
+			crc=crc+result_mem[i];
+			result_mem[6]=(crc>>8)&0xff;
+			result_mem[7]=(crc)&0xff;
+			//rt_kprintf("send \n");
+			//for(i=0;i<8;i++)
+			//rt_kprintf("%x ",result_mem[i]);
+			if(USBBulkTx(&g_psBULKDevice[dev],result_mem,8)<0)
+				rt_kprintf("usb sent failed\n");;
 		}
-		//else
-		//{
-			//USBBulkTx(&g_psBULKDevice[dev],g_usb_rcv_buf[dev],len1);
-			//rt_free(g_usb_rcv_buf[dev]);
-		//}
-		len1=0;
-	}	
+		//rt_free(buf);
+	}
 }
 
 int _usb_write(int index, void *buffer, int size)

@@ -38,7 +38,6 @@
 #include "usblib/usblibpriv.h"
 #include "con_socket.h"
 extern struct rt_semaphore rx_sem[4];
-int wait_flag=0;
 extern bool phy_link;
 extern int which_usb_device(tUSBDBulkDevice *psDevice);
 //*****************************************************************************
@@ -364,6 +363,7 @@ ProcessDataFromHost(tUSBDBulkDevice *psBulkDevice, uint32_t ui32Status)
     tBulkInstance *psInst;
 	uint32_t ui32Count, ui32Pkt;
 	int32_t i32Retcode;
+	struct sBuffer **sbuf;
 
     //
     // Get a pointer to the bulk device instance data pointer
@@ -413,8 +413,13 @@ ProcessDataFromHost(tUSBDBulkDevice *psBulkDevice, uint32_t ui32Status)
 		i32Retcode = MAP_USBEndpointDataGet(psInst->ui32USBBase,
                                             psInst->ui8OUTEndpoint,
                                             psInst->sBuffer[psInst->sBuffer_id].pvData, &ui32Count);
-		psInst->sBuffer[psInst->sBuffer_id].pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer[psInst->sBuffer_id].pvData,ui32Count);
+		//psInst->sBuffer[psInst->sBuffer_id].pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer[psInst->sBuffer_id].pvData,ui32Count);
 		MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);
+		//rt_kprintf("have ep0 data %d\n",ui32Size);
+		psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=ui32Size;
+		sbuf=&(psInst->sBuffer[psInst->sBuffer_id]);
+		rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(sbuf));
+
     }
     
     return(true);
@@ -435,29 +440,15 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
     tBulkInstance *psInst;
     uint32_t ui32EPStatus;
     uint32_t ui32Size;
-	static int len=0,len1=0;
+	static int one_packet_len=0;
 	register rt_base_t temp;
 	struct sBuffer **sbuf;
     ASSERT(pvBulkDevice != 0);
 
-    //
-    // The bulk device structure pointer.
-    //
     psBulkDevice = (tUSBDBulkDevice *)pvBulkDevice;
 	int index=	which_usb_device(psBulkDevice);
-    //
-    // Get a pointer to the bulk device instance data pointer
-    //
-    psInst = &psBulkDevice->sPrivateData;
-    //
-    // Read out the current endpoint status.
-    //
-	
-	//rt_kprintf("cur %d epstatus %x ui32Status %x ,dma status %d\n",*(int *)psBulkDevice->pvRxCBData, ui32EPStatus,ui32Status,USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA));
-	
-	//
-    // Handler for the bulk OUT data endpoint.
-    //
+	psInst = &psBulkDevice->sPrivateData;
+  
     if(*(int *)(psBulkDevice->pvRxCBData)==0)
     {
     	/*usbbulk 0 just for param config*/
@@ -472,194 +463,75 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 		}
     }
 	else
-	{
-		
+	{		
    	 	ui32EPStatus = MAP_USBEndpointStatus(USB0_BASE, psInst->ui8OUTEndpoint);
-	    if(ui32Status & (0x10000 << USBEPToIndex(psInst->ui8OUTEndpoint)))
-		{
+	    if((ui32Status & (0x10000 << USBEPToIndex(psInst->ui8OUTEndpoint)))||
+			((USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA) == USBLIBSTATUS_DMA_COMPLETE)&&psInst->ui32Flags == USBD_FLAG_DMA_IN))
+		{//data in
 			if((USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA) ==	USBLIBSTATUS_DMA_COMPLETE)&&psInst->ui32Flags == USBD_FLAG_DMA_IN)
 			{
-		    //	rt_kprintf("rcv data over\n");
-			 //USBEndpointDMADisable(USB0_BASE,
-			//					  psInst->ui8OUTEndpoint, USB_EP_DEV_OUT);	
-			//MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
-			#if 1
-			//if(len1!=64)
-			//	USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8OUTDMA);
-			
-			#if 1
-			if(len==USB_BUF_LEN)
-			{
-				//psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,&(psInst->sBuffer.pvData),psInst->sBuffer.ui32Size);
-				//psBulkDevice->pfnRxCallback(psBulkDevice->pvRxCBData,
-                 //                   USB_EVENT_RX_AVAILABLE, len,
-                   //                 (void *)0);
-				len=0;
-				len1=0;
-				psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=0;
-				sbuf=&(psInst->sBuffer[psInst->sBuffer_id]);
-				//rt_kprintf("out1 buf %x %d\n",psInst->sBuffer[psInst->sBuffer_id].pvData,psInst->sBuffer_id);
-                rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(sbuf));
-				if(psInst->sBuffer_id==(USB_SBUF_CNT-1))
+				if(one_packet_len==USB_BUF_LEN)
 				{
-					psInst->sBuffer_id=0;
+
+					one_packet_len=0;
+					psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=0;
+					sbuf=&(psInst->sBuffer[psInst->sBuffer_id]);
+	                rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(sbuf));
+					if(psInst->sBuffer_id==(USB_SBUF_CNT-1))
+					{
+						psInst->sBuffer_id=0;
+					}				
+					psInst->sBuffer_id++;
+					psInst->sBuffer[psInst->sBuffer_id].pvData=RT_NULL;
+					psInst->sBuffer[psInst->sBuffer_id].ui32Size=USB_BUF_LEN;
+					psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=0;			
 				}				
-				psInst->sBuffer_id++;
-				psInst->sBuffer[psInst->sBuffer_id].pvData=rt_malloc(USB_BUF_LEN);
-				psInst->sBuffer[psInst->sBuffer_id].ui32Size=USB_BUF_LEN;
-				psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=0;
-				//rt_kprintf("next1 buf %x %d\n",psInst->sBuffer[psInst->sBuffer_id].pvData,psInst->sBuffer_id);
+				psInst->ui32Flags=0;			
 			}
-			#endif
-				//MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
-			//
-			// Acknowledge that the data was read, this will not cause a bus
-			// acknowledgment.
-			//
-			//
-			// Inform the callback of the new data.
-			//
-			//rt_kprintf("recv data %d\n",len1);
-			psInst->ui32Flags=0;
-			#else
-			USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8OUTDMA);
-			//rt_kprintf("data rcv done\n");
-			rt_sem_release(&(psInst->rx_sem_done));
-			MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
-			psInst->ui32Flags=0;
-			#endif
-			}
-			ui32Size = USBEndpointDataAvail(psInst->ui32USBBase,psInst->ui8OUTEndpoint);
-			//rt_kprintf("last ui32Size %d\n",ui32Size);
 			if(ui32EPStatus & USB_DEV_RX_PKT_RDY)
 			{
-				//psInst->sBuffer.ui32Size=ui32Size;
-				//
-				// Configure the next DMA transfer.
-				//
-				//psBulkDevice->pfnRxCallback(psBulkDevice->pvRxCBData,
-                //                    USB_EVENT_RX_AVAILABLE, ui32Size,
-                //                   (void *)0);
-				//rt_kprintf("data in %d\n",ui32Size);
-				//if(!phy_link || !g_socket[index-1].connected)
-				//{
-				//	rt_kprintf("phy_link %d,%d connected %d\n",phy_link,g_socket[index-1].connected);
-				//	return ;
-				//}
-				#if 1
+				ui32Size = USBEndpointDataAvail(psInst->ui32USBBase,psInst->ui8OUTEndpoint);
 				if(psInst->sBuffer[psInst->sBuffer_id].pvData==RT_NULL)
 				{
 					psInst->sBuffer[psInst->sBuffer_id].pvData=rt_malloc(USB_BUF_LEN);	
 					if(psInst->sBuffer[psInst->sBuffer_id].pvData==RT_NULL)
 					{
-						rt_kprintf("malloc buf failed 2\n");
-						//MAP_USBDevEndpointStall(USB0_BASE, psInst->ui8OUTEndpoint,
-						//							   USB_EP_DEV_OUT);
+						rt_kprintf("malloc buf failed \n");
+						while(1);
 						return ;
 					}
 				}
 				if(ui32Size!=64)
 				{
-					//rt_uint8_t pi8Data[64];
 					int ui32Count=psInst->sBuffer[psInst->sBuffer_id].ui32Size;
 					int result;
 					result=MAP_USBEndpointDataGet(psInst->ui32USBBase,
                                             psInst->ui8OUTEndpoint,
-                                            (uint8_t *)((int32_t)(psInst->sBuffer[psInst->sBuffer_id].pvData)+len), &ui32Count);
+                                            (uint8_t *)((int32_t)(psInst->sBuffer[psInst->sBuffer_id].pvData)+one_packet_len), &ui32Count);
 					MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);
-					rt_kprintf("last size %d len %d,real get %d,result %d \n",ui32Size,len,ui32Count,result);
-					psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=len+ui32Size;
+					//rt_kprintf("last size %d len %d,real get %d,result %d \n",ui32Size,one_packet_len,ui32Count,result);
+					psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=one_packet_len+ui32Size;
 					sbuf=&(psInst->sBuffer[psInst->sBuffer_id]);
-					//rt_kprintf("out last buf %x %d\n",psInst->sBuffer[psInst->sBuffer_id].pvData,psInst->sBuffer_id);
 					rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(sbuf));
-					//psInst->sBuffer[psInst->sBuffer_id].ui32Size=ui32Count;
 					if(psInst->sBuffer_id==(USB_SBUF_CNT-1))
 						psInst->sBuffer_id=0;
 					psInst->sBuffer_id++;
-					psInst->sBuffer[psInst->sBuffer_id].pvData=rt_malloc(USB_BUF_LEN);					
+					psInst->sBuffer[psInst->sBuffer_id].pvData=RT_NULL;
 					psInst->sBuffer[psInst->sBuffer_id].ui32Size=USB_BUF_LEN;
 					psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=0;
-					//rt_kprintf("next last buf %x %d\n",psInst->sBuffer[psInst->sBuffer_id].pvData,psInst->sBuffer_id);
-					len=0;//len+ui32Size;
-					//rt_kprintf("got %d\n",len);
-					wait_flag=1;
-					len=0;
+					one_packet_len=0;
 				}
 				else
 				{
-					USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,(void *)((int32_t)(psInst->sBuffer[psInst->sBuffer_id].pvData+len)), ui32Size);
+					USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8OUTDMA,(void *)((int32_t)(psInst->sBuffer[psInst->sBuffer_id].pvData+one_packet_len)), ui32Size);
 					USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8OUTDMA);
-					//rt_kprintf("fill buf %x %d\n",psInst->sBuffer[psInst->sBuffer_id].pvData,psInst->sBuffer_id);
-					len+=ui32Size;
-					len1=ui32Size;
+					one_packet_len+=ui32Size;
 					psInst->ui32Flags=USBD_FLAG_DMA_IN;
-				}
-				//rt_kprintf("get data %d outdma %d , endpoint %d\n",ui32Size,psInst->ui8OUTDMA,psInst->ui8OUTEndpoint);
-				#else
-				//rt_kprintf("data in %d\n",ui32Size);
-				temp = rt_hw_interrupt_disable();
-				wait_flag=1;
-				rt_hw_interrupt_enable(temp);
-				rt_sem_release(&(psInst->rx_sem_begin));
-				#endif
-			}
-		}		
-		else if((USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8OUTDMA) ==	USBLIBSTATUS_DMA_COMPLETE)&&psInst->ui32Flags == USBD_FLAG_DMA_IN)
-			{
-		    //	rt_kprintf("rcv data over\n");
-			// USBEndpointDMADisable(USB0_BASE,
-			//					  psInst->ui8OUTEndpoint, USB_EP_DEV_OUT);	
-			//MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
-			#if 1
-			//if(len1!=64)
-			//	USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8OUTDMA);
-			
-			#if 1
-			if(len==USB_BUF_LEN)
-			{
-				//psInst->sBuffer.pfnRxCallback(psBulkDevice->pvRxCBData,&(psInst->sBuffer.pvData),psInst->sBuffer.ui32Size);
-				//psBulkDevice->pfnRxCallback(psBulkDevice->pvRxCBData,
-                 //                   USB_EVENT_RX_AVAILABLE, len,
-                   //                 (void *)0);
-				len=0;
-				len1=0;
-				psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=0;
-				sbuf=&(psInst->sBuffer[psInst->sBuffer_id]);
-				//rt_kprintf("out2 buf %x %d\n",psInst->sBuffer[psInst->sBuffer_id].pvData,psInst->sBuffer_id);
-                rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(sbuf));
-				if(psInst->sBuffer_id==(USB_SBUF_CNT-1))
-				{
-					psInst->sBuffer_id=0;
 				}				
-				psInst->sBuffer_id++;
-				psInst->sBuffer[psInst->sBuffer_id].pvData=rt_malloc(USB_BUF_LEN);
-				if(psInst->sBuffer[psInst->sBuffer_id].pvData==RT_NULL)
-					rt_kprintf("malloc buf failed\n");
-				psInst->sBuffer[psInst->sBuffer_id].ui32Size=USB_BUF_LEN;
-				psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=0;
-				//rt_kprintf("next2 buf %x %d\n",psInst->sBuffer[psInst->sBuffer_id].pvData,psInst->sBuffer_id);
 			}
-			#endif
-				//MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
-			//
-			// Acknowledge that the data was read, this will not cause a bus
-			// acknowledgment.
-			//
-			//
-			// Inform the callback of the new data.
-			//
-			//rt_kprintf("recv data %d\n",len1);
-			psInst->ui32Flags=0;
-			#else
-			USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8OUTDMA);
-			//rt_kprintf("data rcv done\n");
-			rt_sem_release(&(psInst->rx_sem_done));
-			MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);	
-			psInst->ui32Flags=0;
-			#endif
-			}
+		}				
 	    else if((USBLibDMAChannelStatus(psInst->psDMAInstance,psInst->ui8INDMA) ==	USBLIBSTATUS_DMA_COMPLETE)&&psInst->ui32Flags == USBD_FLAG_DMA_OUT)
-	    {
+	    {//data out
 		 	//
 	    	// Handler for the bulk IN data endpoint.
 	    	//
@@ -1278,6 +1150,7 @@ USBDBulkCompositeInit(uint32_t ui32Index, tUSBDBulkDevice *psBulkDevice,
                         RT_IPC_FLAG_PRIO);
 	psInst->rx_pbuf_mb = &psInst->eth_rx_pbuf_mb;	
 	in++;
+	psInst->sBuffer_id=0;
 	psInst->sBuffer[psInst->sBuffer_id].pvData = rt_malloc(USB_BUF_LEN);
 	rt_kprintf("usb pvData %x\n",psInst->sBuffer[psInst->sBuffer_id].pvData);
     psInst->sBuffer[psInst->sBuffer_id].ui32Size = USB_BUF_LEN;

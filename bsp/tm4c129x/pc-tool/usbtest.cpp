@@ -20,7 +20,10 @@ int intf[5]={0,1,2,3,4};
 int ep_in[5]={0x81,0x82,0x83,0x84,0x85};
 int ep_out[5]={0x01,0x02,0x03,0x04,0x05};
 // Device of bytes to transfer.
-#define BUF_SIZE 1024
+#define BUF_SIZE 4096
+char check_mem[1+8]					={0xF5,0x8A,0x25,0xff,0x26,0xfa,0x03,0xc3};
+char result_mem[1+8]					={0xF5,0x8B,0x25,0x01,0x26,0xfa,0x02,0xc6};
+
 usb_dev_handle *open_dev(void);
 
 static int transfer_bulk_async(usb_dev_handle *dev,
@@ -62,6 +65,39 @@ WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, *_char, iLength, NULL, 
 //printf("%s\n",*_char);
 }  
 #define W_OP 1
+int check_target_mem(usb_dev_handle *dev)
+{
+	int ret,result=0;
+	char tmp1[9]={0};
+	ret = usb_bulk_write(dev, ep_out[0], check_mem, 8, 5000);
+	if (ret < 0)
+	{
+		printf("error 0 writing:\n%s\n", usb_strerror());
+	}
+	else
+	{
+		ret = usb_bulk_read(dev, ep_in[0], tmp1, 8, 5000);
+		if (ret < 0)
+		{
+			printf("error 0 reading:\n%s\n", usb_strerror());
+		}
+		else
+		{
+			int i;
+			if(memcmp(result_mem,tmp1,8)==0)
+				result=1;
+			else
+			{
+				result=0;
+				for(i=0;i<8;i++)
+				printf("%x ",tmp1[i]);
+				printf("usb 0 bulk read bytes\n");
+			}
+		}
+	}
+
+	return result;
+}
 int main(int argc, _TCHAR* argv[])
 {
 	usb_dev_handle *dev[5] ={NULL,NULL,NULL,NULL,NULL}; /* the device handle */
@@ -142,7 +178,14 @@ int main(int argc, _TCHAR* argv[])
                           2,  /* test type    */
                           intf[i],  /* interface id */
                           tmp, 1, 1000);
-	 
+	 dev[0] = open_dev(0);
+	 usb_set_configuration(dev[0], MY_CONFIG);
+	 usb_claim_interface(dev[0], intf[0]);
+	 usb_control_msg(dev[0], USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN,
+                          14, /* set/get test */
+                          2,  /* test type    */
+                          intf[0],  /* interface id */
+                          tmp, 1, 1000);
 	 DWORD nBytes; 
 	int bytes_w=0,bytes_r=0;	
 	BOOL bResult;  
@@ -153,6 +196,8 @@ int main(int argc, _TCHAR* argv[])
 		bResult = ReadFile(hFile_in,tmp,sizeof(tmp),&nBytes,NULL);
 		if(nBytes>0)
 		{
+			while(check_target_mem(dev[0])==0)
+				Sleep(1);
 			ret = usb_bulk_write(dev[i], ep_out[i], tmp, nBytes, 5000);
 			if (ret < 0)
 			{
