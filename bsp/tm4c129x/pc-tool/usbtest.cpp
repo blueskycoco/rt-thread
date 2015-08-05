@@ -89,9 +89,9 @@ int check_target_mem(usb_dev_handle *dev)
 			else
 			{
 				result=0;
-				for(i=0;i<8;i++)
-				printf("%x ",tmp1[i]);
-				printf("usb 0 bulk read bytes\n");
+				//for(i=0;i<8;i++)
+				//printf("%x ",tmp1[i]);
+				//printf("usb 0 bulk read bytes\n");
 			}
 		}
 	}
