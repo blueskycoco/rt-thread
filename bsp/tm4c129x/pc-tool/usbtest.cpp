@@ -190,6 +190,7 @@ int main(int argc, _TCHAR* argv[])
 	int bytes_w=0,bytes_r=0;	
 	BOOL bResult;  
 	time (&ltime1);
+	printf("Start Time %ld\n",ltime1);
 	while(1)
 	{	
 #if W_OP
@@ -230,6 +231,7 @@ int main(int argc, _TCHAR* argv[])
 			
 	}
 	time (&ltime2);
+	printf("Stop Time %ld\n",ltime2);
 #if !W_OP
 	CloseHandle(hFile_out);  	
 	if(file_out)
