@@ -103,7 +103,7 @@ struct sBuffer
    //
    tUSBBulkRxBufferCallback pfnRxCallback;
 };
-#define USB_BUF_LEN 10240
+#define USB_BUF_LEN 16384
 #define USB_SBUF_CNT 64
 
 
