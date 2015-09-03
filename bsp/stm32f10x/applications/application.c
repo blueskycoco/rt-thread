@@ -20,6 +20,7 @@
 
 #include <board.h>
 #include <rtthread.h>
+#include <rtdevice.h>
 
 #ifdef  RT_USING_COMPONENTS_INIT
 #include <components.h>
@@ -43,7 +44,9 @@
 #include "led.h"
 static rt_uint8_t lcd_stack[ 512 ];
 static struct rt_thread lcd_thread;
-
+struct rt_semaphore co2_rx_sem;
+rt_device_t dev_co2;
+int data_co2=0;
 ALIGN(RT_ALIGN_SIZE)
 static rt_uint8_t led_stack[ 512 ];
 static struct rt_thread led_thread;
@@ -73,16 +76,63 @@ static void led_thread_entry(void* parameter)
         rt_thread_delay( RT_TICK_PER_SECOND/2 );
     }
 }
+static rt_err_t co2_rx_ind(rt_device_t dev, rt_size_t size)
+{
+	/* release semaphore to let finsh thread rx data */	
+	//DBG("dev %d common_rx_ind %d\r\n",which_common_dev(common_dev,dev),size);    
+	rt_sem_release(&(co2_rx_sem));    
+	return RT_EOK;
+}
+void common_w_usb(void* parameter)
+{	
+	while(1)	
+	{		
+		if (rt_sem_take(&(co2_rx_sem), RT_WAITING_FOREVER) != RT_EOK) continue;		
+		char *ptr=rt_malloc(128);	
+		int len=rt_device_read(dev_co2, 0, ptr, 128);	
+		if(len>0)	
+		{	
+			int i;		
+			rt_kprintf("Get from CO2:\n");
+			for(i=0;i<len;i++)		
+			{		
+				rt_kprintf("%x ",ptr[i]);
+			}	
+			data_co2=ptr[2]*256+ptr[3];
+			rt_kprintf(" %d\n",data_co2);
+		}	
+		rt_free(ptr);	
+	}	
+}
+
 static void lcd_thread_entry(void* parameter)
 {
 	int val1=0,val2=1,val3=2,val4=3,val5=4,val6=5;
 	uint8_t bat1=20,bat2=0;
+	unsigned char read_co2[10]={0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79};
 	u8 str[100];	/*将数字信息填充到str里*/
 	sprintf(str,"%d%d%d%d%d.%d",val1,val2,val3,val4,val5,val6);
 	/*初始化ssd1306*/    
 	ssd1306_init();	/*绘制缓冲区，包含电池信息和数字信息*/
 	draw(bat1,bat2,str);	/*打开显示*/
 	display();
+	dev_co2=rt_device_find("uart4");
+	if (rt_device_open(dev_co2, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX) == RT_EOK)			
+	{
+		struct serial_configure config;			
+		config.baud_rate=9600;
+		config.bit_order = BIT_ORDER_LSB;			
+		config.data_bits = DATA_BITS_8;			
+		config.parity	 = PARITY_NONE;			
+		config.stop_bits = STOP_BITS_1;				
+		config.invert	 = NRZ_NORMAL;				
+		config.bufsz	 = RT_SERIAL_RB_BUFSZ;			
+		rt_device_control(dev_co2,RT_DEVICE_CTRL_CONFIG,&config);	
+		rt_sem_init(&(co2_rx_sem), "co2_rx", 0, 0);
+		rt_device_set_rx_indicate(dev_co2, co2_rx_ind);
+		rt_thread_startup(rt_thread_create("thread_co2",common_w_usb, 0,512, 20, 10));
+		rt_device_write(dev_co2, 0, (void *)read_co2, 9);
+	}
 	while(1){
 		val1++;
 		val2++;
@@ -92,10 +142,12 @@ static void lcd_thread_entry(void* parameter)
 		val6++;
 		bat1++;
 		bat2++;
-		sprintf(str,"%d%d%d%d%d.%d",val1,val2,val3,val4,val5,val6);
+		//rt_kprintf("cur str is %s\n",str);
+		rt_thread_delay(30);
+		rt_device_write(dev_co2, 0, (void *)read_co2, 9);
+		sprintf(str,"%07d",data_co2);
 		draw(bat1,bat2,str);
 		display();
-		//rt_thread_delay(30);
 		if(val1==9)
 			val1=0;
 		if(val2==9)

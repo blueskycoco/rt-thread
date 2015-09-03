@@ -11,6 +11,7 @@ stm32f10x_it.c
 led.c
 usart.c
 LM096.c
+jlink-print.c
 """)
 
 # add Ethernet drivers.
