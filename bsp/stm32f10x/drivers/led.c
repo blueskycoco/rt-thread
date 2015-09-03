@@ -26,13 +26,22 @@
 
 #else
 
-#define led1_rcc                    RCC_APB2Periph_GPIOE
-#define led1_gpio                   GPIOE
-#define led1_pin                    (GPIO_Pin_2)
+#define led1_rcc                    RCC_APB2Periph_GPIOC
+#define led1_gpio                   GPIOC
+#define led1_pin                    (GPIO_Pin_13)//13
 
 #define led2_rcc                    RCC_APB2Periph_GPIOE
 #define led2_gpio                   GPIOE
 #define led2_pin                    (GPIO_Pin_3)
+
+
+#define led3_rcc                    RCC_APB2Periph_GPIOC
+#define led3_gpio                   GPIOC
+#define led3_pin                    (GPIO_Pin_12)
+
+#define led4_rcc                    RCC_APB2Periph_GPIOD
+#define led4_gpio                   GPIOD
+#define led4_pin                    (GPIO_Pin_0)
 
 #endif // led define #ifdef STM32_SIMULATOR
 
@@ -40,7 +49,7 @@ void rt_hw_led_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
 
-    RCC_APB2PeriphClockCmd(led1_rcc|led2_rcc,ENABLE);
+    RCC_APB2PeriphClockCmd(led1_rcc|led2_rcc|led3_rcc|led4_rcc,ENABLE);
 
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -50,6 +59,12 @@ void rt_hw_led_init(void)
 
     GPIO_InitStructure.GPIO_Pin   = led2_pin;
     GPIO_Init(led2_gpio, &GPIO_InitStructure);
+    
+    GPIO_InitStructure.GPIO_Pin   = led3_pin;
+    GPIO_Init(led3_gpio, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin   = led4_pin;
+    GPIO_Init(led4_gpio, &GPIO_InitStructure);
 }
 
 void rt_hw_led_on(rt_uint32_t n)
@@ -61,6 +76,12 @@ void rt_hw_led_on(rt_uint32_t n)
         break;
     case 1:
         GPIO_SetBits(led2_gpio, led2_pin);
+        break;
+    case 2:
+        GPIO_SetBits(led3_gpio, led3_pin);
+        break;
+    case 3:
+        GPIO_SetBits(led4_gpio, led4_pin);
         break;
     default:
         break;
@@ -76,6 +97,12 @@ void rt_hw_led_off(rt_uint32_t n)
         break;
     case 1:
         GPIO_ResetBits(led2_gpio, led2_pin);
+        break;
+    case 2:
+        GPIO_ResetBits(led3_gpio, led3_pin);
+        break;
+    case 3:
+        GPIO_ResetBits(led4_gpio, led4_pin);
         break;
     default:
         break;
