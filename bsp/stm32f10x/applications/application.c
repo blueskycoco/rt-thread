@@ -46,7 +46,7 @@
 #include "led.h"
 static rt_uint8_t lcd_stack[ 1024 ];
 static struct rt_thread lcd_thread;
-struct rt_semaphore co2_rx_sem,wifi_rx_sem;
+struct rt_semaphore co2_rx_sem,wifi_rx_sem,server_sem;
 rt_device_t dev_co2,dev_wifi;
 int data_co2=0;
 char *http_parse_result(const char*lpbuf);
@@ -88,23 +88,31 @@ static rt_err_t co2_rx_ind(rt_device_t dev, rt_size_t size)
 }
 void common_w_usb(void* parameter)
 {	
-	
+	int len1=0,m=0;
 	char *ptr=rt_malloc(128);			
 	while(1)	
 	{		
 		if (rt_sem_take(&(co2_rx_sem), RT_WAITING_FOREVER) != RT_EOK) continue;		
-		int len=rt_device_read(dev_co2, 0, ptr, 128);
+		int len=rt_device_read(dev_co2, 0, ptr+m, 128);		
 		if(len>0)	
 		{	
 			int i;		
-			rt_kprintf("Get from CO2:\n");
-			for(i=0;i<len;i++)		
-			{		
-				rt_kprintf("%x ",ptr[i]);
-			}	
-			data_co2=ptr[2]*256+ptr[3];
-			rt_kprintf(" %d\n",data_co2);
-			//rt_free(ptr);
+			len1=len1+len;
+			if(len1==9)
+			{
+				rt_kprintf("Get from CO2:\n");
+				for(i=0;i<len1;i++)		
+				{		
+					rt_kprintf("%x ",ptr[i]);
+				}	
+				data_co2=ptr[2]*256+ptr[3];
+				rt_kprintf(" %d\n",data_co2);
+				len1=0;
+				m=0;
+				//rt_free(ptr);
+			}
+			else
+				m=m+len;
 		}		
 	}	
 }
@@ -177,11 +185,18 @@ void wifi_rcv(void* parameter)
 		len=i;
 		#else
 		len=rt_device_read(dev_wifi, 0, ptr+i, 128);
+		if((len==1 && (ptr[0]=='+'||ptr[0]=='A'))||strstr(ptr,"+ERR")!=RT_NULL)
+			continue;
 		if(len>0)
 		{
 			i=i+len;
 		#endif
-		if(/*strstr(ptr,"HTTP/1.1")!=RT_NULL && */strchr(ptr,'}')!=RT_NULL)	
+		if(strstr(ptr,"ok")!=RT_NULL)
+		{
+			memset(ptr,'\0',256);
+			i=0;
+		}
+		else if(/*strstr(ptr,"HTTP/1.1")!=RT_NULL && */strchr(ptr,'}')!=RT_NULL)	
 		{	
 			int j,m=0;	
 			while(1)
@@ -196,7 +211,7 @@ void wifi_rcv(void* parameter)
 				i=0;
 				continue;
 			}
-			//rt_kprintf("Get from Wifi:\n");
+			rt_kprintf("Get from Server:\n");
 			//for(j=m;j<i;j++)		
 			//{		
 			//	rt_kprintf("%c",ptr[j]);
@@ -226,6 +241,7 @@ void wifi_rcv(void* parameter)
 				}
 				rt_free(result);
 			}
+			rt_sem_release(&(server_sem));    
 			memset(ptr,'\0',256);
 			i=0;
 			//rt_free(ptr);				
@@ -263,11 +279,42 @@ char *http_parse_result(const char*lpbuf)
 	strcpy(response,ptmp+4); 
 	return response;
 }  
+char *add_item(char *old,char *id,char *text)
+{
+	cJSON *root;
+	char *out;
+	int i=0,j=0;
+	if(old!=RT_NULL)
+		root=cJSON_Parse(old);
+	else
+		root=cJSON_CreateObject();	
+	cJSON_AddItemToObject(root, id, cJSON_CreateString(text));
+	out=cJSON_Print(root);	
+	cJSON_Delete(root);
+	if(old)
+		free(old);
+	
+	return out;
+}
+char *add_obj(char *old,char *id,char *pad)
+{
+	cJSON *root,*fmt;
+	char *out;
+	root=cJSON_Parse(old);
+	fmt=cJSON_Parse(pad);
+	cJSON_AddItemToObject(root, id, fmt);
+	out=cJSON_Print(root);
+	cJSON_Delete(root);
+	cJSON_Delete(fmt);
+	free(pad);
+	return out;
+}
 
 static void lcd_thread_entry(void* parameter)
 {
 	int val1=0,val2=1,val3=2,val4=3,val5=4,val6=5;
 	uint8_t bat1=20,bat2=0;
+	char *post_message=RT_NULL;
 	unsigned char read_co2[10]={0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79};
 	unsigned char switch_at='+';
 	unsigned char done='a';
@@ -303,19 +350,22 @@ static void lcd_thread_entry(void* parameter)
 		unsigned char httpd_local[64]={0};//"AT+HTTPPH=/mango/checkDataYes\r\n";
 		strcpy(httpd_url,"AT+HTTPURL=http://101.200.182.92,8080\r\n");
 		strcpy(httpd_mode,"AT+HTTPTP=GET\r\n");
-		strcpy(httpd_local,"AT+HTTPPH=/mango/checkDataYes\r\n");
-		strcpy(httpd_send,"AT+HTTPDT\r\n");
+		strcpy(httpd_local,"AT+HTTPPH=/mango/test\r\n");
+		strcpy(httpd_send,"AT+HTTPDT");
 		rt_sem_init(&(wifi_rx_sem), "wifi_rx", 0, 0);
+		rt_sem_init(&(server_sem), "server_rx", 0, 0);
 		rt_device_set_rx_indicate(dev_wifi, wifi_rx_ind);
 		rt_thread_startup(rt_thread_create("thread_wifi",wifi_rcv, 0,512, 20, 10));
 		rt_thread_delay(300);
 		rt_device_write(dev_wifi, 0, (void *)&switch_at, 1);
-		rt_thread_delay(10);
+		rt_thread_delay(20);
 		rt_device_write(dev_wifi, 0, (void *)&switch_at, 1);
-		rt_thread_delay(10);
+		rt_thread_delay(20);
 		rt_device_write(dev_wifi, 0, (void *)&switch_at, 1);
-		rt_thread_delay(10);
+		rt_thread_delay(3);
 		rt_device_write(dev_wifi, 0, (void *)&done, 1);
+		rt_thread_delay(1);
+		rt_device_write(dev_wifi, 0, (void *)httpd_url, strlen(httpd_url));
 		rt_thread_delay(30);
 		rt_device_write(dev_wifi, 0, (void *)httpd_url, strlen(httpd_url));
 		rt_thread_delay(30);
@@ -334,12 +384,52 @@ static void lcd_thread_entry(void* parameter)
 		bat1++;
 		bat2++;
 		//rt_kprintf("cur str is %s\n",str);
-		rt_device_write(dev_wifi, 0, (void *)httpd_send, strlen(httpd_send));
-		rt_thread_delay(500);
 		rt_device_write(dev_co2, 0, (void *)read_co2, 9);
 		rt_sprintf(str,"%07d",data_co2);
 		draw(bat1,bat2,str);
-		display();
+		display();		
+		//get device uid,ip,port,cap data,cap time send to server
+		post_message=add_item(NULL,ID_DGRAM_TYPE,TYPE_DGRAM_DATA);
+		post_message=add_item(post_message,ID_DEVICE_UID,"230FFEE9981283737D");
+		post_message=add_item(post_message,ID_DEVICE_IP_ADDR,"192.168.1.63");
+		post_message=add_item(post_message,ID_DEVICE_PORT,"6547");
+		post_message=add_item(post_message,ID_CAP_CO2,str);
+		//post_message=add_item(post_message,id1,data1);
+		post_message=add_item(post_message,ID_DEVICE_CAP_TIME,"2015-08-06 00:00");
+		int i,j=0;
+		for(i=0;i<strlen(post_message);i++)
+		{
+			if(post_message[i]=='\r' || post_message[i]=='\n')
+				j++;
+		}
+		char *out1=malloc(strlen(post_message)-j+1);
+		memset(out1,'\0',strlen(post_message)-j+1);
+		j=0;
+		for(i=0;i<strlen(post_message);i++)
+		{
+			if(post_message[i]!='\r'&&post_message[i]!='\n')
+			//{
+			//	out1[j++]='[';out1[j++]='0';out1[j++]='D';out1[j++]=']';
+			//}
+			//else if(post_message[i]=='\n')
+			//{
+			//	out1[j++]='[';out1[j++]='0';out1[j++]='A';out1[j++]=']';
+			//} 
+			//else
+				out1[j++]=post_message[i];
+		}
+		free(post_message);
+		char *send=(char *)malloc(strlen(out1)+strlen(httpd_send)+strlen("=a=\r\n")+1);
+		memset(send,'\0',strlen(out1)+strlen(httpd_send)+strlen("=a=\r\n")+1);
+		strcpy(send,httpd_send);
+		strcat(send,"=a=");
+		strcat(send,out1);
+		strcat(send,"\r\n");
+		rt_kprintf("send %s",send);
+		rt_device_write(dev_wifi, 0, (void *)send, strlen(send));
+		rt_free(send);
+		rt_free(out1);
+		rt_sem_take(&(server_sem), RT_WAITING_FOREVER);
 		if(val1==9)
 			val1=0;
 		if(val2==9)
