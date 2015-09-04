@@ -98,7 +98,7 @@
 #define DFS_FILESYSTEMS_MAX			2
 /* the max number of opened files 		*/
 #define DFS_FD_MAX					4
-
+#define RT_USING_LIBC 1
 /* SECTION: lwip, a lighwight TCP/IP protocol stack */
 /* #define RT_USING_LWIP */
 /* LwIP uses RT-Thread Memory Management */
