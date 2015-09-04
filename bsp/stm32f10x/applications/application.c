@@ -21,6 +21,8 @@
 #include <board.h>
 #include <rtthread.h>
 #include <rtdevice.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifdef  RT_USING_COMPONENTS_INIT
 #include <components.h>
@@ -40,13 +42,14 @@
 #include <rtgui/driver.h>
 #include <rtgui/calibration.h>
 #endif
-
+#include "cJSON.h"
 #include "led.h"
 static rt_uint8_t lcd_stack[ 1024 ];
 static struct rt_thread lcd_thread;
 struct rt_semaphore co2_rx_sem,wifi_rx_sem;
 rt_device_t dev_co2,dev_wifi;
 int data_co2=0;
+char *http_parse_result(const char*lpbuf);
 ALIGN(RT_ALIGN_SIZE)
 static rt_uint8_t led_stack[ 512 ];
 static struct rt_thread led_thread;
@@ -112,12 +115,43 @@ static rt_err_t wifi_rx_ind(rt_device_t dev, rt_size_t size)
 	rt_sem_release(&(wifi_rx_sem));    
 	return RT_EOK;
 }
+char *doit_data(char *text,const char *item_str)
+{	
+	char *out=RT_NULL;
+	cJSON *item_json;	
+	item_json=cJSON_Parse(text);	
+	if (!item_json)
+	{
+		rt_kprintf("Error before: [%s]\n",cJSON_GetErrorPtr());
+	}
+	else	
+	{	
+		if (item_json)
+		{	 		
+			cJSON *data;	
+			data=cJSON_GetObjectItem(item_json,item_str);
+			if(data)		
+			{			
+				int nLen = strlen(data->valuestring);
+				//rt_kprintf("%s ,%d %s\n",item_str,nLen,data->valuestring);			
+				out=(char *)malloc(nLen+1);		
+				memset(out,'\0',nLen+1);	
+				memcpy(out,data->valuestring,nLen);	
+			}		
+			else		
+				rt_kprintf("can not find %s\n",item_str);	
+		} 
+		else	
+			rt_kprintf("get %s failed\n",item_str); 
+			cJSON_Delete(item_json);	
+	}	
+	return out;
+}
 void wifi_rcv(void* parameter)
 {	
 	int len=0,i=0,state=0;
 	unsigned char ch;	
-	char *ptr=rt_malloc(256);	
-
+	char *ptr=(char *)malloc(256);
 	while(1)	
 	{		
 		if (rt_sem_take(&(wifi_rx_sem), RT_WAITING_FOREVER) != RT_EOK) continue;	
@@ -143,34 +177,103 @@ void wifi_rcv(void* parameter)
 		len=i;
 		#else
 		len=rt_device_read(dev_wifi, 0, ptr+i, 128);
-		i+=len;
+		if(len>0)
+		{
+			i=i+len;
 		#endif
-		if(strstr(ptr,"+ok")!=RT_NULL)	
+		if(/*strstr(ptr,"HTTP/1.1")!=RT_NULL && */strchr(ptr,'}')!=RT_NULL)	
 		{	
-			int j;		
-			rt_kprintf("Get from Wifi:\n");
-			for(j=0;j<i;j++)		
-			{		
-				rt_kprintf("%c",ptr[j]);
-			}	
-			rt_kprintf("\n");
-			memset(ptr,0,256);
+			int j,m=0;	
+			while(1)
+			{
+				if(ptr[m]=='H'&&ptr[m+1]=='T'&&ptr[m+2]=='T'&&ptr[m+3]=='P'&&ptr[m+4]=='/'&&ptr[m+5]=='1'&&ptr[m+6]=='.'&&ptr[m+7]=='1')
+					break;
+				m++;
+			}
+			if(m==i)
+			{
+				memset(ptr,'\0',256);
+				i=0;
+				continue;
+			}
+			//rt_kprintf("Get from Wifi:\n");
+			//for(j=m;j<i;j++)		
+			//{		
+			//	rt_kprintf("%c",ptr[j]);
+			//}	
+			//rt_kprintf("\n");
+			char *result=http_parse_result(ptr+m);
+			if(result!=RT_NULL)
+			{
+				char *id=doit_data(result,"30");
+				char *start=doit_data(result,"101");
+				char *stop=doit_data(result,"102");
+				//rt_kprintf("result is %s\n",result);
+				if(id!=RT_NULL)
+				{
+					rt_kprintf("ID %s\n",id);
+					rt_free(id);
+				}
+				if(start!=RT_NULL)
+				{
+					rt_kprintf("start time %s\n",start);
+					rt_free(start);
+				}
+				if(stop!=RT_NULL)
+				{
+					rt_kprintf("stop time %s\n",stop);
+					rt_free(stop);
+				}
+				rt_free(result);
+			}
+			memset(ptr,'\0',256);
 			i=0;
-			//rt_free(ptr);	
+			//rt_free(ptr);				
 		}	
+		}
 	}	
 }
+char *http_parse_result(const char*lpbuf)  
+{
+	char *ptmp = RT_NULL;      
+	char *response = RT_NULL;   
+	ptmp = (char*)strstr(lpbuf,"HTTP/1.1");  
+	if(!ptmp)
+	{
+		rt_kprintf("http/1.1 not find\n");  
+		return RT_NULL;
+	}
+	if(atoi(ptmp + 9)!=200)
+	{
+		rt_kprintf("result:\n%s\n",lpbuf);   
+		return RT_NULL; 
+	}
+	ptmp = (char*)strstr(lpbuf,"\r\n\r\n"); 
+	if(!ptmp)
+	{
+		rt_kprintf("ptmp is NULL\n");
+		return RT_NULL;  
+	}
+	response = (char *)malloc(strlen(ptmp)+1);  
+	if(!response)
+	{
+		rt_kprintf("malloc failed %d\n",strlen(ptmp)+1);   
+		return RT_NULL;  
+	}
+	strcpy(response,ptmp+4); 
+	return response;
+}  
 
 static void lcd_thread_entry(void* parameter)
 {
 	int val1=0,val2=1,val3=2,val4=3,val5=4,val6=5;
 	uint8_t bat1=20,bat2=0;
 	unsigned char read_co2[10]={0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79};
-	unsigned char switch_at[4]={'+','+','+'};
+	unsigned char switch_at='+';
 	unsigned char done='a';
 	unsigned char httpd_send[64]={0};//"AT+HTTPDT\r\n";
 	u8 str[100];	/*将数字信息填充到str里*/
-	sprintf(str,"%d%d%d%d%d.%d",val1,val2,val3,val4,val5,val6);
+	rt_sprintf(str,"%d%d%d%d%d.%d",val1,val2,val3,val4,val5,val6);
 	/*初始化ssd1306*/    
 	ssd1306_init();	/*绘制缓冲区，包含电池信息和数字信息*/
 	draw(bat1,bat2,str);	/*打开显示*/
@@ -205,7 +308,12 @@ static void lcd_thread_entry(void* parameter)
 		rt_sem_init(&(wifi_rx_sem), "wifi_rx", 0, 0);
 		rt_device_set_rx_indicate(dev_wifi, wifi_rx_ind);
 		rt_thread_startup(rt_thread_create("thread_wifi",wifi_rcv, 0,512, 20, 10));
-		rt_device_write(dev_wifi, 0, (void *)switch_at, 3);
+		rt_thread_delay(300);
+		rt_device_write(dev_wifi, 0, (void *)&switch_at, 1);
+		rt_thread_delay(10);
+		rt_device_write(dev_wifi, 0, (void *)&switch_at, 1);
+		rt_thread_delay(10);
+		rt_device_write(dev_wifi, 0, (void *)&switch_at, 1);
 		rt_thread_delay(10);
 		rt_device_write(dev_wifi, 0, (void *)&done, 1);
 		rt_thread_delay(30);
@@ -214,7 +322,7 @@ static void lcd_thread_entry(void* parameter)
 		rt_device_write(dev_wifi, 0, (void *)httpd_mode, strlen(httpd_mode));
 		rt_thread_delay(30);
 		rt_device_write(dev_wifi, 0, (void *)httpd_local, strlen(httpd_local));
-		rt_thread_delay(30);
+		rt_thread_delay(80);
 	}
 	while(1){
 		val1++;
@@ -226,10 +334,10 @@ static void lcd_thread_entry(void* parameter)
 		bat1++;
 		bat2++;
 		//rt_kprintf("cur str is %s\n",str);
+		rt_device_write(dev_wifi, 0, (void *)httpd_send, strlen(httpd_send));
 		rt_thread_delay(500);
 		rt_device_write(dev_co2, 0, (void *)read_co2, 9);
-		sprintf(str,"%07d",data_co2);
-		rt_device_write(dev_wifi, 0, (void *)httpd_send, strlen(httpd_send));
+		rt_sprintf(str,"%07d",data_co2);
 		draw(bat1,bat2,str);
 		display();
 		if(val1==9)

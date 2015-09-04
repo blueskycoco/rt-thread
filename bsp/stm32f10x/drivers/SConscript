@@ -12,6 +12,7 @@ led.c
 usart.c
 LM096.c
 jlink-print.c
+cJSON.c
 """)
 
 # add Ethernet drivers.
