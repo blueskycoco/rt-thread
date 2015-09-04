@@ -185,6 +185,7 @@ void wifi_rcv(void* parameter)
 		len=i;
 		#else
 		len=rt_device_read(dev_wifi, 0, ptr+i, 128);
+		rt_sem_release(&(server_sem));    
 		continue;
 		if((len==1 && (ptr[0]=='+'||ptr[0]=='A'))||strstr(ptr,"+ERR")!=RT_NULL)
 			continue;
@@ -376,27 +377,21 @@ static void lcd_thread_entry(void* parameter)
 		//rt_thread_delay(80);
 	}
 	while(1){
-		val1++;
-		val2++;
-		val3++;
-		val4++;
-		val5++;
-		val6++;
-		bat1++;
-		bat2++;
 		//rt_kprintf("cur str is %s\n",str);
 		rt_device_write(dev_co2, 0, (void *)read_co2, 9);
-		rt_sprintf(str,"%07d",data_co2);
-		draw(bat1,bat2,str);
+		rt_sprintf(str,"%03d",data_co2);
+		clear();
+		draw(str,str);
 		display();		
+		post_message=RT_NULL;
 		//get device uid,ip,port,cap data,cap time send to server
-		post_message=add_item(NULL,ID_DGRAM_TYPE,TYPE_DGRAM_DATA);
-		post_message=add_item(post_message,ID_DEVICE_UID,"230FFEE9981283737D");
-		post_message=add_item(post_message,ID_DEVICE_IP_ADDR,"192.168.1.63");
-		post_message=add_item(post_message,ID_DEVICE_PORT,"6547");
+		//post_message=add_item(NULL,ID_DGRAM_TYPE,TYPE_DGRAM_DATA);
+		//post_message=add_item(post_message,ID_DEVICE_UID,"230FFEE9981283737D");
+		//post_message=add_item(post_message,ID_DEVICE_IP_ADDR,"192.168.1.63");
+		//post_message=add_item(post_message,ID_DEVICE_PORT,"6547");
 		post_message=add_item(post_message,ID_CAP_CO2,str);
 		//post_message=add_item(post_message,id1,data1);
-		post_message=add_item(post_message,ID_DEVICE_CAP_TIME,"2015-08-06 00:00");
+		//post_message=add_item(post_message,ID_DEVICE_CAP_TIME,"2015-08-06 00:00");
 		int i,j=0;
 		for(i=0;i<strlen(post_message);i++)
 		{
@@ -440,23 +435,8 @@ static void lcd_thread_entry(void* parameter)
 		rt_device_write(dev_wifi, 0, (void *)httpd_send, strlen(httpd_send));
 		rt_free(send);
 		rt_free(out1);
-		rt_sem_take(&(server_sem), RT_WAITING_FOREVER);
-		if(val1==9)
-			val1=0;
-		if(val2==9)
-			val2=0;
-		if(val3==9)
-			val3=0;
-		if(val4==9)
-			val4=0;
-		if(val5==9)
-			val5=0;
-		if(val6==9)
-			val6=0;
-		if(bat1==100)
-			bat1=0;
-		if(bat2==100)
-			bat2=0;
+		//rt_sem_take(&(server_sem), RT_WAITING_FOREVER);
+		rt_thread_delay(600);
 		}
 }
 #ifdef RT_USING_RTGUI

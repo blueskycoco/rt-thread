@@ -12,7 +12,8 @@ void display(void);
 /*清除显示缓冲区*/
 void clear(void);
 /*绘图电池图标和数字信息，bat1是第一个电池的电量，bat2是第二个电池的电量，从0到100,c是数字串，总共6个数字，一个.*/
-void draw(uint8_t bat1,uint8_t bat2,char *c);
+void draw(char *co2,char *co1);
+
 #ifdef __cplusplus
 }
 #endif

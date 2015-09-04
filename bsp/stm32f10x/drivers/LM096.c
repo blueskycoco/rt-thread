@@ -203,8 +203,215 @@ void fillrect(uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t clear) {
 		  }
 	 }
 }
+void draw(char *co2,char *co1)
+{
+	 int x=0,line=0,x1=0,j;
+   for(j=0;j<8;j++)
+   {				
+		buffer[x]=hzdot[j];
+		x++;				
+   }
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+128-8]=hzdot[j+8];
+		x++;				
+   }   
+   x1+=8;
+   x=x1;
+   for(j=0;j<8;j++)
+   {				
+		buffer[x]=hzdot[16+j];
+		x++;				
+   }
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+128-8]=hzdot[16+j+8];
+		x++;				
+   }
+   x1+=8;
+    x=x1;
+   for(j=0;j<8;j++)
+   {				
+		buffer[x]=hzdot[6*8+j];
+		x++;				
+   }
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+128-8]=hzdot[6*8+j+8];
+		x++;				
+   }
+   x1+=8;
+   //return ;
+	while(co2[0]!=0)
+	{
+	  //need to draw char ,like 3300 4.7
+	  if(co2[0]!='.')
+	  { /*绘制数字0到9*/
+		   x=x1;
+		   /*从字库里提取数字的字模到显示缓冲区，一个数字占用4行每行32个点*/
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line)*128)]=font32[(co2[0]-48)*128+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+1)*128)-32]=font32[(co2[0]-48)*128+32+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+2)*128)-64]=font32[(co2[0]-48)*128+64+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+3)*128)-96]=font32[(co2[0]-48)*128+96+j];
+				x++;				
+		   }
+	  }
+	  else
+	  {
+		   /*绘制 .*/
+		   x=x1;
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line)*128)]=font32[1280+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+1)*128)-32]=font32[1280+32+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+2)*128)-64]=font32[1280+64+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+3)*128)-96]=font32[1280+96+j];
+				x++;				
+		   }
+	  }
+	  /*x坐标增加31，一个数字或者.需要32个点*/
+	 x1=x1+31;
+	  if(x1+31>SSD1306_LCDWIDTH)
+	  {/*超过了一行的边界，则行数+4，x从33开始绘制数字，绕过了电池的区域*/
+		   x1=0;
+		   line=line+4;
+		   break;
+	  }
+	  co2++;
+	}
+	#if 1
+	  //line=line+4;
+	  //x1=0;
+	  x=0;
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+((line)*128)]=hzdot[j];
+		x++;				
+   }
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+((line+1)*128)-8]=hzdot[j+8];
+		x++;				
+   }   
+   x1+=8;
+   x=x1;
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+((line)*128)]=hzdot[16+j];
+		x++;				
+   }
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+((line+1)*128)-8]=hzdot[16+j+8];
+		x++;				
+   }
+   x1+=8;
+    x=x1;
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+((line)*128)]=hzdot[4*8+j];
+		x++;				
+   }
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+((line+1)*128)-8]=hzdot[4*8+j+8];
+		x++;				
+   }
+   x1+=8;
+	while(co1[0]!=0)
+	{
+	  //need to draw char ,like 3300 4.7
+	  if(co1[0]!='.')
+	  { /*绘制数字0到9*/
+		   x=x1;
+		   /*从字库里提取数字的字模到显示缓冲区，一个数字占用4行每行32个点*/
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line)*128)]=font32[(co1[0]-48)*128+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+1)*128)-32]=font32[(co1[0]-48)*128+32+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+2)*128)-64]=font32[(co1[0]-48)*128+64+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+3)*128)-96]=font32[(co1[0]-48)*128+96+j];
+				x++;				
+		   }
+	  }
+	  else
+	  {
+		   /*绘制 .*/
+		   x=x1;
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line)*128)]=font32[1280+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+1)*128)-32]=font32[1280+32+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+2)*128)-64]=font32[1280+64+j];
+				x++;				
+		   }
+		   for(j=0;j<32;j++)
+		   {				
+				buffer[x+((line+3)*128)-96]=font32[1280+96+j];
+				x++;				
+		   }
+	  }
+	  /*x坐标增加31，一个数字或者.需要32个点*/
+	  x1=x1+31;
+	  if(x1+31>SSD1306_LCDWIDTH)
+	 {/*超过了一行的边界，则行数+4，x从33开始绘制数字，绕过了电池的区域*/
+		   x1=0;
+		   line=line+4;
+		   break;
+	  }
+	  co1++;
+	}
+	#endif
+}
+
 /*绘图电池图标和数字信息，bat1是第一个电池的电量，bat2是第二个电池的电量，从0到100,c是数字串，总共6个数字，一个.*/
-void draw(uint8_t bat1,uint8_t bat2,char *c)
+void draw1(uint8_t bat1,uint8_t bat2,char *c)
 {
 	 int x=0,line=0,x1=0,i,j;
 	 /*确定参数是否合法*/
