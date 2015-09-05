@@ -46,9 +46,9 @@
 #include "led.h"
 static rt_uint8_t lcd_stack[ 1024 ];
 static struct rt_thread lcd_thread;
-struct rt_semaphore co2_rx_sem,wifi_rx_sem,server_sem;
-rt_device_t dev_co2,dev_wifi;
-int data_co2=0;
+struct rt_semaphore co2_rx_sem,wifi_rx_sem,server_sem,ch2o_rx_sem;
+rt_device_t dev_co2,dev_wifi,dev_ch2o;
+int data_co2=0,data_ch2o;
 char *http_parse_result(const char*lpbuf);
 ALIGN(RT_ALIGN_SIZE)
 static rt_uint8_t led_stack[ 512 ];
@@ -116,6 +116,44 @@ void common_w_usb(void* parameter)
 		}		
 	}	
 }
+static rt_err_t ch2o_rx_ind(rt_device_t dev, rt_size_t size)
+{
+	/* release semaphore to let finsh thread rx data */	
+	//DBG("dev %d common_rx_ind %d\r\n",which_common_dev(common_dev,dev),size);    
+	rt_sem_release(&(ch2o_rx_sem));    
+	return RT_EOK;
+}
+void ch2o_rcv(void* parameter)
+{	
+	int len1=0,m=0;
+	char *ptr=rt_malloc(32);			
+	while(1)	
+	{		
+		if (rt_sem_take(&(ch2o_rx_sem), RT_WAITING_FOREVER) != RT_EOK) continue;		
+		int len=rt_device_read(dev_ch2o, 0, ptr+m, 128);		
+		if(len>0)	
+		{	
+			int i;		
+			len1=len1+len;
+			if(len1==9)
+			{
+				rt_kprintf("Get from CH2O:\n");
+				for(i=0;i<len1;i++)		
+				{		
+					rt_kprintf("%x ",ptr[i]);
+				}	
+				data_ch2o=ptr[4]*256+ptr[5];
+				rt_kprintf(" %d\n",data_ch2o);
+				len1=0;
+				m=0;
+				//rt_free(ptr);
+			}
+			else
+				m=m+len;
+		}		
+	}	
+}
+
 static rt_err_t wifi_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	/* release semaphore to let finsh thread rx data */	
@@ -316,18 +354,20 @@ static void lcd_thread_entry(void* parameter)
 {
 	int val1=0,val2=1,val3=2,val4=3,val5=4,val6=5;
 	uint8_t bat1=20,bat2=0;
+	char flag=0;
 	char *post_message=RT_NULL;
 	unsigned char read_co2[10]={0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79};
 	unsigned char switch_at='+';
 	unsigned char done='a';
 	unsigned char httpd_send[64]={0};//"AT+HTTPDT\r\n";
 	unsigned char httpd_local[64]={0};//"AT+HTTPPH=/mango/checkDataYes\r\n";
-	u8 str[100];	/*将数字信息填充到str里*/
+	u8 str[100],str1[100];	/*将数字信息填充到str里*/
 	rt_sprintf(str,"%d%d%d%d%d.%d",val1,val2,val3,val4,val5,val6);
 	/*初始化ssd1306*/    
 	ssd1306_init();	/*绘制缓冲区，包含电池信息和数字信息*/
-	draw(bat1,bat2,str);	/*打开显示*/
+	draw("000","000");	/*打开显示*/
 	display();
+	rt_thread_delay(300);
 	dev_co2=rt_device_find("uart4");
 	if (rt_device_open(dev_co2, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX) == RT_EOK)			
 	{
@@ -344,7 +384,23 @@ static void lcd_thread_entry(void* parameter)
 		rt_device_set_rx_indicate(dev_co2, co2_rx_ind);
 		rt_thread_startup(rt_thread_create("thread_co2",common_w_usb, 0,512, 20, 10));
 		rt_device_write(dev_co2, 0, (void *)read_co2, 9);
-	}	
+	}
+	dev_ch2o=rt_device_find("uart1");
+	if (rt_device_open(dev_ch2o, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX) == RT_EOK)			
+	{
+		struct serial_configure config;			
+		config.baud_rate=9600;
+		config.bit_order = BIT_ORDER_LSB;			
+		config.data_bits = DATA_BITS_8;			
+		config.parity	 = PARITY_NONE;			
+		config.stop_bits = STOP_BITS_1;				
+		config.invert	 = NRZ_NORMAL;				
+		config.bufsz	 = RT_SERIAL_RB_BUFSZ;			
+		rt_device_control(dev_ch2o,RT_DEVICE_CTRL_CONFIG,&config);	
+		rt_sem_init(&(ch2o_rx_sem), "ch2o_rx", 0, 0);
+		rt_device_set_rx_indicate(dev_ch2o, ch2o_rx_ind);
+		rt_thread_startup(rt_thread_create("thread_ch2o",ch2o_rcv, 0,512, 20, 10));
+	}
 	dev_wifi=rt_device_find("uart2");
 	if (rt_device_open(dev_wifi, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX) == RT_EOK)			
 	{		
@@ -380,8 +436,9 @@ static void lcd_thread_entry(void* parameter)
 		//rt_kprintf("cur str is %s\n",str);
 		rt_device_write(dev_co2, 0, (void *)read_co2, 9);
 		rt_sprintf(str,"%03d",data_co2);
+		rt_sprintf(str1,"%03d",data_ch2o);
 		clear();
-		draw(str,str);
+		draw(str,str1);
 		display();		
 		post_message=RT_NULL;
 		//get device uid,ip,port,cap data,cap time send to server
@@ -389,7 +446,11 @@ static void lcd_thread_entry(void* parameter)
 		//post_message=add_item(post_message,ID_DEVICE_UID,"230FFEE9981283737D");
 		//post_message=add_item(post_message,ID_DEVICE_IP_ADDR,"192.168.1.63");
 		//post_message=add_item(post_message,ID_DEVICE_PORT,"6547");
-		post_message=add_item(post_message,ID_CAP_CO2,str);
+		if(flag)
+			post_message=add_item(post_message,ID_CAP_CO2,str);
+		else
+		post_message=add_item(post_message,ID_CAP_HCHO,str1);
+		flag=!flag;
 		//post_message=add_item(post_message,id1,data1);
 		//post_message=add_item(post_message,ID_DEVICE_CAP_TIME,"2015-08-06 00:00");
 		int i,j=0;

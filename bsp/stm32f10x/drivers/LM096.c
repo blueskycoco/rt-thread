@@ -318,29 +318,41 @@ void draw(char *co2,char *co1)
    {				
 		buffer[x+((line+1)*128)-8]=hzdot[j+8];
 		x++;				
-   }   
+   }  
    x1+=8;
    x=x1;
    for(j=0;j<8;j++)
    {				
-		buffer[x+((line)*128)]=hzdot[16+j];
+		buffer[x+((line)*128)]=hzdot[8*8+j];
 		x++;				
    }
    for(j=0;j<8;j++)
    {				
-		buffer[x+((line+1)*128)-8]=hzdot[16+j+8];
+		buffer[x+((line+1)*128)-8]=hzdot[8*8+j+8];
+		x++;				
+   } 
+   x1+=8;
+   x=x1;
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+((line)*128)]=hzdot[6*8+j];
+		x++;				
+   }
+   for(j=0;j<8;j++)
+   {				
+		buffer[x+((line+1)*128)-8]=hzdot[6*8+j+8];
 		x++;				
    }
    x1+=8;
     x=x1;
    for(j=0;j<8;j++)
    {				
-		buffer[x+((line)*128)]=hzdot[4*8+j];
+		buffer[x+((line)*128)]=hzdot[2*8+j];
 		x++;				
    }
    for(j=0;j<8;j++)
    {				
-		buffer[x+((line+1)*128)-8]=hzdot[4*8+j+8];
+		buffer[x+((line+1)*128)-8]=hzdot[2*8+j+8];
 		x++;				
    }
    x1+=8;
