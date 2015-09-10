@@ -201,7 +201,7 @@ int rt_application_init(void)
     /* Create led thread */
     led_thread = rt_thread_create("led",
 			    led_thread_entry, RT_NULL,
-			    2048, 20, 20);
+			    128, 20, 20);
     if(led_thread != RT_NULL)
 		  rt_thread_startup(led_thread);
 	#if 0
