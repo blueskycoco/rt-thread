@@ -134,9 +134,9 @@ static rt_size_t used_mem, max_mem;
 #endif
 void list_mem1(void)
 {
-    rt_kprintf("total memory: %d\n", mem_size_aligned);
-    rt_kprintf("used memory : %d\n", used_mem);
-    rt_kprintf("maximum allocated memory: %d\n", max_mem);
+    rt_kprintf("total memory: %d\r\n", mem_size_aligned);
+    rt_kprintf("used memory : %d\r\n", used_mem);
+    rt_kprintf("maximum allocated memory: %d\r\n", max_mem);
 }
 
 static void plug_holes(struct heap_mem *mem)

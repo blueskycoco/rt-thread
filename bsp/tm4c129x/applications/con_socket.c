@@ -446,8 +446,8 @@ void socket_w(void *paramter)
 			rt_free(last_data_ptr);
 			//rt_kprintf("%x free\n",last_data_ptr);
 			last_data_ptr=NULL;
-			if(data_size!=16384)
-				list_mem1();
+			//if(data_size!=16384)
+			//	list_mem1();
 			}		
 		}		
 	}
@@ -974,7 +974,7 @@ bool socket_config(int dev)
 			g_socket[dev].server_addr.sin_port = htons(g_conf.remote_port[dev]);
 			rt_memset(&(g_socket[dev].server_addr.sin_zero),0, sizeof(g_socket[dev].server_addr.sin_zero));
 			g_socket[dev].server_addr.sin_addr.s_addr=inet_addr(g_conf.remote_ip[dev]);
-			rt_kprintf("to connect %s,port %d\n",g_conf.remote_ip[dev],g_conf.remote_port[dev]);
+			rt_kprintf("to connect %s,port %d\r\n",g_conf.remote_ip[dev],g_conf.remote_port[dev]);
 			if(!is_right(g_conf.config[dev],CONFIG_TCP))
 			{
 				g_socket[dev].client_addr.sin_family = AF_INET;
