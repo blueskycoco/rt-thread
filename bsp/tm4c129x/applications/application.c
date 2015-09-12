@@ -25,6 +25,13 @@
 
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
+#include "inc/hw_memmap.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/gpio.h"
+#include "driverlib/uart.h"
+#include "driverlib/pin_map.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/rom_map.h"
 
 char buf[]="123456789";
 extern void set_if6(char* netif_name, char* ip6_addr);
@@ -152,7 +159,7 @@ static void dump_thread_entry1(void* parameter)
 void rt_init_thread_entry(void *parameter)
 {
     /* Initialization RT-Thread Components */
-	int i;
+	int i,num,cur_set;
 #ifdef RT_USING_LWIP
 		rt_hw_tiva_eth_init();
 #endif
@@ -167,15 +174,46 @@ void rt_init_thread_entry(void *parameter)
 	//ring_buffer_init();
 	//ping_test("192.168.1.7",5,32);
 	//usbtest();
-	g_data_queue=(struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*8);
-	for(i=0;i<8;i++)//0,1 for socket0,2,3 for socket1,4,5 for socket2,6,7 for socket3
+	
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);
+	//MAP_GPIOIntDisable(GPIO_PORTJ_BASE, GPIO_PIN_0);
+	//MAP_GPIOIntDisable(GPIO_PORTJ_BASE, GPIO_PIN_1);
+	MAP_GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_0);//USR_SW1
+	MAP_GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_1);//USR_SW2
+	MAP_GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA,GPIO_PIN_TYPE_STD_WPU);
+	MAP_GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA,GPIO_PIN_TYPE_STD_WPU);
+	//MAP_GPIOIntTypeSet(GPIO_PORTJ_BASE, GPIO_PIN_0, GPIO_BOTH_EDGES);
+	//MAP_GPIOIntTypeSet(GPIO_PORTJ_BASE, GPIO_PIN_1, GPIO_BOTH_EDGES);
+	//MAP_IntEnable(INT_GPIOJ);
+	//MAP_GPIOIntEnable(GPIO_PORTJ_BASE, GPIO_PIN_0);
+	//MAP_GPIOIntEnable(GPIO_PORTJ_BASE, GPIO_PIN_1);
+	//int ui32Status = MAP_GPIOIntStatus(GPIO_PORTJ_BASE, true);
+	//MAP_GPIOIntClear(GPIO_PORTJ_BASE, ui32Status);	
+	//rt_kprintf("USER_SW1 %d,USER_SW2 %d\r\n",MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0),MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1));
+	if((MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0)==GPIO_PIN_0)&&(MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1)==GPIO_PIN_1))
+	{
+		num=8;
+		cur_set=DEV_UART;
+	}
+	else if((MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0)!=GPIO_PIN_0)&&(MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1)==GPIO_PIN_1))
+	{
+		num=2;
+		cur_set=DEV_USB;
+	}
+	else
+	{
+		num=8;
+		cur_set=DEV_BUS;
+	}
+	g_data_queue=(struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*num);
+	for(i=0;i<num;i++)//0,1 for socket0,2,3 for socket1,4,5 for socket2,6,7 for socket3
 	{
 		if((i%2)==0)
 			rt_data_queue_init(&g_data_queue[i], 64, 4, RT_NULL);
 		else
 			rt_data_queue_init(&g_data_queue[i], 32, 4, RT_NULL);
 	}
-	common_init(DEV_USB);
+	common_init(cur_set);
 	//test_select_connect();
 	//test_select_accept();
 	netio_init();

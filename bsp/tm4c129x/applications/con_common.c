@@ -179,7 +179,8 @@ void default_config()
 	strcpy(g_conf.local_ip,"192.168.1.3");	
 	memset(g_conf.remote_ip6[0],'\0',64);//fe80::2f0:cfff:fe84:5452%7
 	//strcpy(g_conf.remote_ip6[0],"fe80::5867:8730:e9e6:d5c5%11");
-	strcpy(g_conf.remote_ip6[0],"fe80::9132:fea4:7252:16e%13");
+	//strcpy(g_conf.remote_ip6[0],"fe80::9132:fea4:7252:16e%13");
+	strcpy(g_conf.remote_ip6[0],"fe80::216:17ff:fe89:870b%4");
 	memset(g_conf.remote_ip6[1],'\0',64);
 	strcpy(g_conf.remote_ip6[1],"fe80::5867:8730:e9e6:d5c5%11");
 	//strcpy(g_conf.remote_ip6[1],"fe80::9132:fea4:7252:16e%13");
