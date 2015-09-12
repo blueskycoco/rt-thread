@@ -261,6 +261,8 @@ void _usb_read(int dev)
 		{
 			rt_data_queue_push(&g_data_queue[(dev-1)*2],buf, len, RT_WAITING_FOREVER);	
 		}
+		else
+			rt_free(buf);
 	}
 	else
 	{

@@ -130,7 +130,7 @@ void IntGpioD()
 	if(MAP_GPIOIntStatus(GPIO_PORTD_BASE, true)&GPIO_PIN_2)
 	{		
 		MAP_GPIOIntClear(GPIO_PORTD_BASE, GPIO_PIN_2);
-		ind[0]=RT_TRUE;//((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
+		ind[0]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
 		ind[1]=RT_TRUE;
 		ind[2]=RT_TRUE;
 		ind[3]=RT_TRUE;
@@ -152,20 +152,20 @@ void IntGpioB()
 void default_config()
 {
 	struct netif * netif=netif_list;
-	if(((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE)
-	{//server mode high level
-		g_conf.config[0]=CONFIG_TCP|CONFIG_SERVER|CONFIG_IPV6;
-		g_conf.config[1]=CONFIG_TCP|CONFIG_SERVER|CONFIG_IPV6;
-		g_conf.config[2]=CONFIG_TCP|CONFIG_SERVER|CONFIG_IPV6;
-		g_conf.config[3]=CONFIG_TCP|CONFIG_SERVER|CONFIG_IPV6;
-	}
-	else
-	{//client mode
+	//if(((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE)
+	//{//server mode high level
+	//	g_conf.config[0]=CONFIG_TCP|CONFIG_SERVER|CONFIG_IPV6;
+	//	g_conf.config[1]=CONFIG_TCP|CONFIG_SERVER|CONFIG_IPV6;
+	//	g_conf.config[2]=CONFIG_TCP|CONFIG_SERVER|CONFIG_IPV6;
+	//	g_conf.config[3]=CONFIG_TCP|CONFIG_SERVER|CONFIG_IPV6;
+	//}
+	//else
+	//{//client mode
 		g_conf.config[0]=CONFIG_TCP;//|CONFIG_SERVER;
 		g_conf.config[1]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[2]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
-	}
+	//}
 	
 	memset(g_conf.remote_ip[0],'\0',16);
 	strcpy(g_conf.remote_ip[0],"192.168.1.4");
@@ -1112,7 +1112,7 @@ int common_w_socket(int dev)
 	if(phy_link&&g_socket[dev].connected)
 	{
 		ptr=rt_malloc(256);
-		len=rt_device_read(common_dev[dev], 0, ptr, 2048);
+		len=rt_device_read(common_dev[dev], 0, ptr, 256);
 		#if CONFIG_IT	
 		if(phy_link&&(len>0)&&g_socket[dev].connected)
 		{
@@ -1344,7 +1344,10 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	config_local_ip6[68]=0xfa;
 */
 	if(dev==DEV_USB)
+	{
 		max_devices=2;
+		g_dev=1;
+	}
 	for(i=0;i<max_devices;i++)
 	{
 		//config sem		
