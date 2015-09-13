@@ -303,13 +303,15 @@ int _usb_write(int index, void *buffer, int size)
 	//return 0;
 	//len_out=USBBufferSpaceAvailable(&g_sTxBuffer[index]);
 	//rt_kprintf("===>%d %d\n",size,len_out);
-	if(index==3)
-		index=2;
-	else if(index==5)
-		index=3;
-	else if(index==7)
-		index=4;
-	USBBulkTx(&(g_psBULKDevice[index]),buffer,size);
+	//if(index==3)
+	//	index=2;
+	//else if(index==5)
+	//	index=3;
+	//else if(index==7)
+	//	index=4;
+	USBBulkTx(&(g_psBULKDevice[1]),buffer,size);
+	if(buffer)
+		rt_free(buffer);
 	return 0;
 	#if 0
 	while(tmp_size!=0)

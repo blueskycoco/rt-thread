@@ -64,7 +64,7 @@ memset(*_char,'\0',iLength);
 WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, *_char, iLength, NULL, NULL);   
 //printf("%s\n",*_char);
 }  
-#define W_OP 1
+#define W_OP 0
 int check_target_mem(usb_dev_handle *dev)
 {
 	int ret,result=0;
@@ -117,7 +117,7 @@ int main(int argc, _TCHAR* argv[])
 	printf("open usb device %d \n",i);
 #if !W_OP
 	TcharToChar(argv[2],&file_out);
-	HANDLE hFile_out = CreateFile((LPCWSTR)(argv[2]),
+	HANDLE hFile_out = CreateFile((const CHAR *)(LPCWSTR)(argv[2]),
         GENERIC_WRITE,  
         FILE_SHARE_WRITE,  
         NULL,  
@@ -125,9 +125,9 @@ int main(int argc, _TCHAR* argv[])
         0,  
         NULL );
 	if(hFile_out!=INVALID_HANDLE_VALUE)
-		 printf("Create %s ok\n",file_out);
+		 printf("Create %s ok\n",argv[2]);
 	 else
-		 printf("Can not open %s\n",file_out);
+		 printf("Can not open %s\n",argv[2]);
 #else
 	TcharToChar(argv[2],&file_in);
 	 HANDLE hFile_in = CreateFile((const CHAR *)(LPCWSTR)(argv[2]),  

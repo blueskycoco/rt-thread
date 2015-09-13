@@ -539,6 +539,10 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 			rt_sem_release(&(psInst->tx_sem));
 			psInst->ui32Flags=0;
 	    }		
+		else if(ui32Status & (1 << USBEPToIndex(psInst->ui8INEndpoint)))
+		{
+			rt_sem_release(&(psInst->tx_sem));
+		}
 		MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,ui32EPStatus);
 	}
 }
@@ -1762,7 +1766,7 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 			i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
 		
 		if(i32Retcode!=-1)			
-			rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
+			rt_sem_take(&(psInst->tx_sem), 100);
 		else
 			return -1;
 
@@ -1780,7 +1784,7 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 		//
 		// Remember that a DMA is in progress.
 		//		
-		rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
+		rt_sem_take(&(psInst->tx_sem), 100);
 	}
 	return 0;
 }

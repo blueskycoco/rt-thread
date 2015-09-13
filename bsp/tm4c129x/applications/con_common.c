@@ -1237,8 +1237,8 @@ static void common_r(void* parameter)
 					if(times<=10){
 					#endif
 					//dillon rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
-					//rt_kprintf("write index %d,%d\n",dev,data_size);
-					_usb_write(dev,last_data_ptr,data_size);
+					rt_kprintf("write index %d,%d\n",dev,data_size);
+					_usb_write((dev-1)/2,last_data_ptr,data_size);
 					//rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
 					#if CONFIG_IT
 					times++;}

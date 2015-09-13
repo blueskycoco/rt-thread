@@ -9,6 +9,7 @@ rt_thread_t tid_w[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL},tid_r[4]={RT_NULL,RT_NULL
 extern struct rt_semaphore fifo_sem;
 struct rt_mutex mutex[4];
 extern bool ind[4];
+
 bool socket_config(int dev);
 
 bool is_right(char config,char flag)
@@ -593,7 +594,7 @@ void socket_r(void *paramter)
 				status=recv(sock, rcv_buf, BUF_SIZE, 0);					
 				unlock(dev);
 				if(status>0)
-				{				
+				{			
 					//rt_kprintf("get %d %d\n",status,ind[dev]);
 					if(ind[dev])
 					{
