@@ -436,7 +436,7 @@ int rt_hw_uart_init(int use_uart)
 	MAP_IntPrioritySet(INT_UART2, 0);
 
 	/* register UART0 device */
-	rt_hw_serial_register(&serial2, "uart2",RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX| RT_DEVICE_FLAG_INT_TX,uart);
+	rt_hw_serial_register(&serial2, "uart6",RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX| RT_DEVICE_FLAG_INT_TX,uart);
 #endif
 #ifdef RT_USING_UART3
 	uart = &uart3;
@@ -507,7 +507,7 @@ int rt_hw_uart_init(int use_uart)
 		MAP_UARTEnable(uart->hw_base);
 		MAP_IntPrioritySet(INT_UART6, 0);
 		/* register UART0 device */
-		rt_hw_serial_register(&serial6, "uart6",RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX| RT_DEVICE_FLAG_INT_TX,uart);
+		rt_hw_serial_register(&serial6, "uart2",RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX| RT_DEVICE_FLAG_INT_TX,uart);
 #endif
 
 	}

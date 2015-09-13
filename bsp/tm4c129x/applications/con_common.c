@@ -130,14 +130,16 @@ void IntGpioD()
 	if(MAP_GPIOIntStatus(GPIO_PORTD_BASE, true)&GPIO_PIN_2)
 	{		
 		MAP_GPIOIntClear(GPIO_PORTD_BASE, GPIO_PIN_2);
-		ind[0]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
+		ind[0]=RT_TRUE;//((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
 		ind[1]=RT_TRUE;
-		ind[2]=RT_TRUE;
-		ind[3]=RT_TRUE;
+		ind[2]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
+		ind[3]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
 		rt_kprintf("gpiod 2 int %d\r\n",ind[0]);
 		
 	}	
-}/*
+}
+
+/*
 void IntGpioB()
 {
 	if(MAP_GPIOIntStatus(GPIO_PORTB_BASE, true)&GPIO_PIN_4)
@@ -966,6 +968,7 @@ void common_rw_config(int dev)
 		}
 		else
 		{
+			while(rt_device_read(common_dev[dev], 0, &ch, 1)==1);
 			state=GET_F5;			
 			break;
 		}
@@ -1128,7 +1131,9 @@ int common_w_socket(int dev)
 		rt_free(ptr);
 		#else
 		if(phy_link&&(len>0)&&g_socket[dev].connected)
+		{
 			rt_data_queue_push(&g_data_queue[dev*2], ptr, len, RT_WAITING_FOREVER);	
+		}
 		else
 			rt_free(ptr);
 		#endif
@@ -1380,10 +1385,12 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 			{
 				//create common_w,r thread to read data from socket write to uart,parallel,usb
 				//or read from uart,parallel,usb write to socket
+				char buf[32]="DEV Opened";
 				rt_sprintf(common,"common_wx%d",i);
 				tid_common_w[i] = rt_thread_create(common,common_w, (void *)(i*2),4096, 20, 10);
 				rt_sprintf(common,"common_rx%d",i);
 				tid_common_r[i] = rt_thread_create(common,common_r, (void *)(i*2+1),2048, 20, 10);
+				rt_device_write(common_dev[i], 0, buf, strlen(buf));
 
 				rt_device_set_rx_indicate(common_dev[i], common_rx_ind);
 
