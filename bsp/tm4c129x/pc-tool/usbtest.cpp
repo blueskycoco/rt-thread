@@ -178,6 +178,7 @@ int main(int argc, _TCHAR* argv[])
                           2,  /* test type    */
                           intf[i],  /* interface id */
                           tmp, 1, 1000);
+ #if W_OP
 	 dev[0] = open_dev(0);
 	 usb_set_configuration(dev[0], MY_CONFIG);
 	 usb_claim_interface(dev[0], intf[0]);
@@ -186,6 +187,7 @@ int main(int argc, _TCHAR* argv[])
                           2,  /* test type    */
                           intf[0],  /* interface id */
                           tmp, 1, 1000);
+#endif
 	 DWORD nBytes; 
 	int bytes_w=0,bytes_r=0;	
 	BOOL bResult;  
@@ -217,8 +219,8 @@ int main(int argc, _TCHAR* argv[])
 		ret = usb_bulk_read(dev[i], ep_in[i], tmp1, sizeof(tmp1), 5000);
 		if (ret < 0)
 		{
-			printf("error reading:\n%s\n %d", usb_strerror(),bytes_r);
-			printf("success: bulk read %d bytes\n", bytes_r);
+			printf("error reading:\nep_in[%d]=%x %d %s", i,ep_in[i],bytes_r,usb_strerror());
+			//printf("success: bulk read %d bytes\n", bytes_r);
 		}
 		else
 		{

@@ -536,11 +536,13 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 	    	// Handler for the bulk IN data endpoint.
 	    	//
 			USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8INDMA);
+			rt_kprintf("dma %d out done\r\n",psInst->ui8INDMA);
 			rt_sem_release(&(psInst->tx_sem));
 			psInst->ui32Flags=0;
 	    }		
 		else if(ui32Status & (1 << USBEPToIndex(psInst->ui8INEndpoint)))
 		{
+			rt_kprintf("ep %d last out done\r\n",psInst->ui8INEndpoint);
 			rt_sem_release(&(psInst->tx_sem));
 		}
 		MAP_USBDevEndpointStatusClear(USB0_BASE, psInst->ui8OUTEndpoint,ui32EPStatus);
@@ -692,7 +694,8 @@ HandleDevice(void *pvBulkDevice, uint32_t ui32Request, void *pvRequestData)
             //
             if(pui8Data[0] & USB_EP_DESC_IN)
             {
-                psInst->ui8INEndpoint = IndexToUSBEP((pui8Data[1] & 0x7f));	
+                psInst->ui8INEndpoint = IndexToUSBEP((pui8Data[1] & 0x7f));
+				rt_kprintf("%d new INEndpoint %d\n",*(int *)psBulkDevice->pvRxCBData,psInst->ui8INEndpoint);
 				if(*(int *)psBulkDevice->pvRxCBData!=0)
 				{
 	            	rt_kprintf("ep in change %d\n",pui8Data[1]);
@@ -736,6 +739,7 @@ HandleDevice(void *pvBulkDevice, uint32_t ui32Request, void *pvRequestData)
                 // Extract the new endpoint number.
                 //
                 psInst->ui8OUTEndpoint = IndexToUSBEP(pui8Data[1] & 0x7f);
+				rt_kprintf("%d new OUTEndpoint %d\n",*(int *)psBulkDevice->pvRxCBData,psInst->ui8OUTEndpoint);
 				if(*(int *)psBulkDevice->pvRxCBData!=0)
 				{					
 	            	rt_kprintf("ep out change %d\n",pui8Data[1]);
@@ -1777,14 +1781,38 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 		//
 		// Configure and DMA for the IN transfer.
 		//	
-		psInst->ui32Flags = USBD_FLAG_DMA_OUT;
-		USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8INDMA);
-		USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8INDMA,pvBuffer, ui32Size);
+		int i,tmp;
+		char *ptr=pvBuffer;
+		if(ui32Size>64)
+		{
+			rt_kprintf("ui32Size %d\n",ui32Size);
+			for(i=0;i<(ui32Size/64);i=i+1)
+			{
+				psInst->ui32Flags = USBD_FLAG_DMA_OUT;
+				USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8INDMA);
+				USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8INDMA,ptr+i*64, 64);			
+				//
+				// Remember that a DMA is in progress.
+				//		
+				rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
+				rt_kprintf("dma %d to next %d\r\n",psInst->ui8INDMA,i);
+			}
+		}
+		if((tmp=(ui32Size%64))!=0)
+		{
+			rt_kprintf("ep %d send last %d bytes\r\n",psInst->ui8INEndpoint,tmp);
+			i32Retcode = MAP_USBEndpointDataPut(psInst->ui32USBBase,psInst->ui8INEndpoint,pvBuffer+ui32Size-tmp-1, tmp);
+			if(i32Retcode!=-1)
+			i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
 		
-		//
-		// Remember that a DMA is in progress.
-		//		
-		rt_sem_take(&(psInst->tx_sem), 100);
+			if(i32Retcode!=-1)			
+			{
+				rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
+				rt_kprintf("this transfer done\r\n");
+			}
+			else
+				return -1;
+		}
 	}
 	return 0;
 }

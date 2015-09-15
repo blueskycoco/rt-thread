@@ -607,6 +607,7 @@ void socket_r(void *paramter)
 							continue;
 						}
 						rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
+						//rt_kprintf("push %x ,bytes %d\r\n",g_socket[dev].recv_data,status);
 						rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
 					}
 					//else

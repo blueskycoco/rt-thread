@@ -296,7 +296,7 @@ void _usb_read(int dev)
 int _usb_write(int index, void *buffer, int size)
 {
 	int len=0,len_out=0,tmp_size=size,size64=64,send_size=0,addr=0;
-	rt_kprintf("_usb_write index %d,size %d\n",index,size);
+	//rt_kprintf("_usb_write index %d,size %d\n",index,size);
 	//send_size=USBBufferWrite(&g_sTxBuffer[index],buffer,size);
 	//rt_sem_take(&(usbrx_sem[index]), RT_WAITING_FOREVER);
 	//rt_kprintf("_usb_write %d %d %d\n",size,send_size,send_len);
@@ -309,9 +309,7 @@ int _usb_write(int index, void *buffer, int size)
 	//	index=3;
 	//else if(index==7)
 	//	index=4;
-	USBBulkTx(&(g_psBULKDevice[1]),buffer,size);
-	if(buffer)
-		rt_free(buffer);
+	USBBulkTx(&(g_psBULKDevice[1]),buffer,size);	
 	return 0;
 	#if 0
 	while(tmp_size!=0)

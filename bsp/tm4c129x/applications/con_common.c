@@ -1219,16 +1219,18 @@ void common_w_usb(void* parameter)
 static void common_r(void* parameter)
 {
     rt_size_t data_size;
-    const void *last_data_ptr;
+    const void *last_data_ptr=RT_NULL;
 	void *data_ptr;
 	int dev=(int)parameter;
-	rt_err_t r;
+	rt_err_t r;	
+    rt_kprintf("common_r %d Enter\r\n",dev);
 	while(1)
 	{
 		r=rt_data_queue_pop(&g_data_queue[dev], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 		//rt_data_queue_pop(&(g_data_queue[dev]), &last_data_ptr, &data_size, 0);
        // if (rt_data_queue_peak(&(g_data_queue[dev]), &data_ptr, &data_size) == RT_EOK)
        // {
+     //  rt_kprintf("last_data_ptr %x,r %d,data_size %d\r\n",last_data_ptr,r,data_size);
 			if(r==RT_EOK && data_size!=0 && last_data_ptr)
 			{		
 				if(g_dev==1)
@@ -1237,8 +1239,8 @@ static void common_r(void* parameter)
 					if(times<=10){
 					#endif
 					//dillon rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
-					rt_kprintf("write index %d,%d\n",dev,data_size);
-					_usb_write((dev-1)/2,last_data_ptr,data_size);
+					//rt_kprintf("write index %d,%d\n",dev,data_size);
+					_usb_write(dev,last_data_ptr,data_size);
 					//rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
 					#if CONFIG_IT
 					times++;}
@@ -1250,12 +1252,17 @@ static void common_r(void* parameter)
 					//rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
 				//if(dev==1)
 				//rt_free(last_data_ptr);
-			}
+			
         //}
 		//else
 			//rt_thread_delay(1);
-		if(last_data_ptr)
-			rt_free(last_data_ptr);
+				if(last_data_ptr)
+				{
+					//rt_kprintf("free %x\r\n",last_data_ptr);
+					rt_free(last_data_ptr);
+					last_data_ptr=RT_NULL;
+				}
+		}
 	}
 }
 
@@ -1415,7 +1422,7 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 			tid_common_w[i] = rt_thread_create(common,common_w_usb, (void *)(i*2),4096, 20, 10);	
 			if(tid_common_w[i]!=RT_NULL)
 				rt_thread_startup(tid_common_w[i]);	
-			if(i!=4)
+			if(i==0)
 			{
 				rt_sprintf(common,"common_rx%d",i);
 				tid_common_r[i] = rt_thread_create(common,common_r, (void *)(i*2+1),2048, 20, 10);

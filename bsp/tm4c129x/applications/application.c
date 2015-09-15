@@ -192,13 +192,17 @@ void rt_init_thread_entry(void *parameter)
 	//rt_kprintf("USER_SW1 %d,USER_SW2 %d\r\n",MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0),MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1));
 	if((MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0)==GPIO_PIN_0)&&(MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1)==GPIO_PIN_1))
 	{
-		num=8;
-		cur_set=DEV_UART;
+		//num=8;
+		//cur_set=DEV_UART;
+		num=2;
+		cur_set=DEV_USB;
 	}
 	else if((MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0)!=GPIO_PIN_0)&&(MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1)==GPIO_PIN_1))
 	{
-		num=2;
-		cur_set=DEV_USB;
+		//num=2;
+		//cur_set=DEV_USB;
+		num=8;
+		cur_set=DEV_UART;
 	}
 	else
 	{
