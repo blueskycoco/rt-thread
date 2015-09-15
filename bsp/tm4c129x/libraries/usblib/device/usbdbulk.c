@@ -1783,7 +1783,35 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 		//	
 		int i,tmp;
 		char *ptr=pvBuffer;
-		//rt_kprintf("ui32Size %d\n",ui32Size);
+		#if 0
+		rt_kprintf("ui32Size %d\n",ui32Size);
+		if(ui32Size<64)
+		{
+			i32Retcode = MAP_USBEndpointDataPut(psInst->ui32USBBase,psInst->ui8INEndpoint,pvBuffer, ui32Size);
+			if(i32Retcode!=-1)
+			i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
+			rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
+		}
+		else
+		{
+			for(i=0;i<ui32Size/64;i++)
+			{
+				psInst->ui32Flags = USBD_FLAG_DMA_OUT;
+				USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8INDMA);
+				USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8INDMA,ptr+i*64, 64);
+				rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
+			}
+			if((tmp=(ui32Size%64))!=0)
+			{
+				i32Retcode = MAP_USBEndpointDataPut(psInst->ui32USBBase,psInst->ui8INEndpoint,pvBuffer+ui32Size-tmp, tmp);
+				if(i32Retcode!=-1)
+				i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
+				rt_sem_take(&(psInst->tx_sem), 10);
+			}
+		}
+			cnt=cnt+ui32Size;
+			rt_kprintf("cnt %d\r\n",cnt);
+		#else
 		if(ui32Size>64)
 		{
 			for(i=0;i<(ui32Size/64);i=i+1)
@@ -1791,47 +1819,21 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 				i32Retcode = MAP_USBEndpointDataPut(psInst->ui32USBBase,psInst->ui8INEndpoint,ptr+i*64, 64);
 				if(i32Retcode!=-1)
 				i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
-			
-				//if(i32Retcode!=-1)			
-				//{
-					rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
-					//rt_kprintf("%d transfer done\r\n",(i+1)*64);
-				//}
+				rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
 			}
 		}
-		/*if(ui32Size>64)
-		{
-			rt_kprintf("ui32Size %d\n",ui32Size);
-			for(i=0;i<(ui32Size/64);i=i+1)
-			{
-				psInst->ui32Flags = USBD_FLAG_DMA_OUT;
-				USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8INDMA);
-				USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8INDMA,ptr+i*64, 64);			
-				//
-				// Remember that a DMA is in progress.
-				//		
-				rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
-				rt_kprintf("dma %d to next %d\r\n",psInst->ui8INDMA,i);
-			}
-		}*/
+					
 		if((tmp=(ui32Size%64))!=0)
 		{
 			//rt_kprintf("ep %d send last %d bytes\r\n",psInst->ui8INEndpoint,tmp);
 			i32Retcode = MAP_USBEndpointDataPut(psInst->ui32USBBase,psInst->ui8INEndpoint,pvBuffer+ui32Size-tmp, tmp);
 			if(i32Retcode!=-1)
 			i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
-		
-			//if(i32Retcode!=-1)			
-			//{
-				rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
-				//rt_kprintf("this %d all transfer done\r\n",tmp);
-			//}
-			//else
-			//	return -1;
+			rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
 		}
-		cnt=cnt+ui32Size;
-		//rt_kprintf("cnt %d\r\n",cnt);
+		#endif
 	}
+	
 	return 0;
 }
 int32_t USBBulkRx(void *pvBulkDevice,void **pvBuffer)
