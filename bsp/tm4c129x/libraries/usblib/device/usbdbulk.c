@@ -411,12 +411,12 @@ ProcessDataFromHost(tUSBDBulkDevice *psBulkDevice, uint32_t ui32Status)
                                     USB_EVENT_RX_AVAILABLE,
                                     ui32Size, (void *)0);*/
         //memset(psInst->sBuffer[psInst->sBuffer_id].pvData,0,32);
-		while(read_len!=ui32Size){
+		//while(read_len!=ui32Size){
 		i32Retcode = MAP_USBEndpointDataGet(psInst->ui32USBBase,
                                             psInst->ui8OUTEndpoint,
                                             psInst->sBuffer[psInst->sBuffer_id].pvData+read_len, &ui32Count);
 		read_len+=ui32Count;
-		}
+		//}
 		//psInst->sBuffer[psInst->sBuffer_id].pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer[psInst->sBuffer_id].pvData,ui32Count);
 		MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, true);
 		//rt_kprintf("have ep0 data %d %d\n",ui32Size,read_len);
