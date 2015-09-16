@@ -401,6 +401,7 @@ ProcessDataFromHost(tUSBDBulkDevice *psBulkDevice, uint32_t ui32Status)
         ui32Size = MAP_USBEndpointDataAvail(psInst->ui32USBBase,
                                             psInst->ui8OUTEndpoint);
 		//psInst->sBuffer.ui32Size=ui32Size;
+		ui32Count=ui32Size;
 
         //
         // The receive channel is not blocked so let the caller know
@@ -414,13 +415,14 @@ ProcessDataFromHost(tUSBDBulkDevice *psBulkDevice, uint32_t ui32Status)
 		//while(read_len!=ui32Size){
 		i32Retcode = MAP_USBEndpointDataGet(psInst->ui32USBBase,
                                             psInst->ui8OUTEndpoint,
-                                            psInst->sBuffer[psInst->sBuffer_id].pvData+read_len, &ui32Count);
-		read_len+=ui32Count;
+                                            psInst->sBuffer[psInst->sBuffer_id].pvData, &ui32Count);
+		//read_len+=ui32Count;
 		//}
 		//psInst->sBuffer[psInst->sBuffer_id].pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer[psInst->sBuffer_id].pvData,ui32Count);
 		MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, true);
-		//rt_kprintf("have ep0 data %d %d\n",ui32Size,read_len);
-		int i;
+		if(ui32Size!=ui32Count)
+			rt_kprintf("have ep0 data %d %d\n",ui32Size,ui32Count);
+		//int i;
 		//for(i=0;i<ui32Size;i++)
 		//	rt_kprintf("%02x ",((char *)(psInst->sBuffer[psInst->sBuffer_id].pvData))[i]);
 		//rt_kprintf("\r\n");
@@ -1778,7 +1780,7 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 			i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
 		
 		if(i32Retcode!=-1)			
-			rt_sem_take(&(psInst->tx_sem), 100);
+			rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
 		else
 			return -1;
 
