@@ -289,6 +289,15 @@ void _usb_read(int dev)
 			if(USBBulkTx(&g_psBULKDevice[dev],result_mem,8)<0)
 				rt_kprintf("usb sent failed\n");;
 		}
+		else
+		{
+			rt_kprintf("Usb Config len %d\r\n",len);
+			for(i=0;i<len;i++)
+				rt_kprintf("%02x ",buf[i]);
+			rt_kprintf("\r\n");
+			USBBulkTx(&g_psBULKDevice[dev],check_mem,8);
+		}
+		//memset(buf,0,len);
 		//rt_free(buf);
 	}
 }

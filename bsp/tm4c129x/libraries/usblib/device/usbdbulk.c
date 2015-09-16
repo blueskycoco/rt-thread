@@ -362,7 +362,7 @@ ProcessDataFromHost(tUSBDBulkDevice *psBulkDevice, uint32_t ui32Status)
     uint32_t ui32Size;
     tBulkInstance *psInst;
 	uint32_t ui32Count, ui32Pkt;
-	int32_t i32Retcode;
+	int32_t i32Retcode,read_len=0;
 	struct sBuffer **sbuf;
 
     //
@@ -410,12 +410,20 @@ ProcessDataFromHost(tUSBDBulkDevice *psBulkDevice, uint32_t ui32Status)
         /*psBulkDevice->pfnRxCallback(psBulkDevice->pvRxCBData,
                                     USB_EVENT_RX_AVAILABLE,
                                     ui32Size, (void *)0);*/
+        //memset(psInst->sBuffer[psInst->sBuffer_id].pvData,0,32);
+		while(read_len!=ui32Size){
 		i32Retcode = MAP_USBEndpointDataGet(psInst->ui32USBBase,
                                             psInst->ui8OUTEndpoint,
-                                            psInst->sBuffer[psInst->sBuffer_id].pvData, &ui32Count);
+                                            psInst->sBuffer[psInst->sBuffer_id].pvData+read_len, &ui32Count);
+		read_len+=ui32Count;
+		}
 		//psInst->sBuffer[psInst->sBuffer_id].pfnRxCallback(psBulkDevice->pvRxCBData,psInst->sBuffer[psInst->sBuffer_id].pvData,ui32Count);
-		MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);
-		//rt_kprintf("have ep0 data %d\n",ui32Size);
+		MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, true);
+		//rt_kprintf("have ep0 data %d %d\n",ui32Size,read_len);
+		int i;
+		//for(i=0;i<ui32Size;i++)
+		//	rt_kprintf("%02x ",((char *)(psInst->sBuffer[psInst->sBuffer_id].pvData))[i]);
+		//rt_kprintf("\r\n");
 		psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=ui32Size;
 		sbuf=&(psInst->sBuffer[psInst->sBuffer_id]);
 		rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(sbuf));

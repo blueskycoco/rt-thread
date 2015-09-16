@@ -55,16 +55,16 @@ usb_dev_handle *open_dev(int index)
 void TcharToChar (const TCHAR * tchar, char ** _char)  
 {  
     int iLength ;  
-//获取字节长度   
-iLength = WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, NULL, 0, NULL, NULL);  
-//printf("iLength %d\n",iLength);
-*_char=(char *)malloc(iLength);
-memset(*_char,'\0',iLength);
-//将tchar值赋给_char    
-WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, *_char, iLength, NULL, NULL);   
-//printf("%s\n",*_char);
+	//获取字节长度   
+	iLength = WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, NULL, 0, NULL, NULL);  
+	//printf("iLength %d\n",iLength);
+	*_char=(char *)malloc(iLength);
+	memset(*_char,'\0',iLength);
+	//将tchar值赋给_char    
+	WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, *_char, iLength, NULL, NULL);   
+	//printf("%s\n",*_char);
 }  
-#define W_OP 0
+#define W_OP 1
 int check_target_mem(usb_dev_handle *dev)
 {
 	int ret,result=0;
