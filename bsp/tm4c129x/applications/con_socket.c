@@ -459,7 +459,7 @@ void socket_r(void *paramter)
 	int dev=(int)paramter;
 	int status;
 	fd_set myset; 
-	unsigned char rcv_buf[1024];
+	unsigned char rcv_buf[1440];
   	struct timeval tv; 
   	socklen_t lon; 
 	int valopt,ret; 
@@ -591,7 +591,7 @@ void socket_r(void *paramter)
 			
 			if(is_right(g_conf.config[dev],CONFIG_TCP))
 			{
-				status=recv(sock, rcv_buf, BUF_SIZE, 0);					
+				status=recv(sock, rcv_buf, 1440, 0);					
 				unlock(dev);
 				if(status>0)
 				{			
@@ -601,10 +601,17 @@ void socket_r(void *paramter)
 						g_socket[dev].recv_data=rt_malloc(status);
 						if(g_socket[dev].recv_data==NULL)
 						{
-							rt_kprintf("malloc recv_data failed\n");
-							//rt_thread_delay(10);
-							unlock(dev);
-							continue;
+							rt_kprintf("malloc recv_data failed %d\n",status);
+							while(1)
+							{
+								if(g_socket[dev].recv_data==NULL)
+									rt_thread_delay(1);
+								else
+									break;
+								g_socket[dev].recv_data=rt_malloc(status);
+							}
+							//unlock(dev);
+							//continue;
 						}
 						rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
 						//rt_kprintf("push %x ,bytes %d\r\n",g_socket[dev].recv_data,status);

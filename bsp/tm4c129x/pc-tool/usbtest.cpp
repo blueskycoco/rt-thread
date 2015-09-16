@@ -226,7 +226,7 @@ int main(int argc, _TCHAR* argv[])
 		{
 			bytes_r=bytes_r+ret;
 			WriteFile( hFile_out, tmp1, ret, &nBytes, NULL ); 
-			printf("usb %d bulk read %d bytes %d\n",i, bytes_r,ret);/*, bulk read %d bytes*/
+			//printf("usb %d bulk read %d bytes %d\n",i, bytes_r,ret);/*, bulk read %d bytes*/
 		}
 		//printf("usb %d bulk write %d bytes, bulk read %d bytes\n",i, bytes_w,bytes_r);
 #endif	
