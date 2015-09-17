@@ -12,6 +12,7 @@
 // Device configuration and interface id.
 #define MY_CONFIG 1
 #define MY_INTF 4
+#define TEST_ASYNC
 
 // Device endpoint(s)
 #define EP_IN 0x85
@@ -64,7 +65,7 @@ void TcharToChar (const TCHAR * tchar, char ** _char)
 	WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, *_char, iLength, NULL, NULL);   
 	//printf("%s\n",*_char);
 }  
-#define W_OP 1
+#define W_OP 0
 int check_target_mem(usb_dev_handle *dev)
 {
 	int ret,result=0;
@@ -98,6 +99,60 @@ int check_target_mem(usb_dev_handle *dev)
 
 	return result;
 }
+#ifdef TEST_ASYNC
+/*
+* Read/Write using async transfer functions.
+*
+* NOTE: This function waits for the transfer to complete essentially making
+* it a sync transfer function so it only serves as an example of how one might
+* implement async transfers into thier own code.
+*/
+static int transfer_bulk_async(usb_dev_handle *dev,
+                               int ep,
+                               char *bytes,
+                               int size,
+                               int timeout)
+{
+    // Each async transfer requires it's own context. A transfer
+    // context can be re-used.  When no longer needed they must be
+    // freed with usb_free_async().
+    //
+    void* async_context = NULL;
+    int ret;
+
+    // Setup the async transfer.  This only needs to be done once
+    // for multiple submit/reaps. (more below)
+    //
+    ret = usb_bulk_setup_async(dev, &async_context, ep);
+    if (ret < 0)
+    {
+        printf("error usb_bulk_setup_async:\n%s\n", usb_strerror());
+        goto Done;
+    }
+
+    // Submit this transfer.  This function returns immediately and the
+    // transfer is on it's way to the device.
+    //
+    ret = usb_submit_async(async_context, bytes, size);
+    if (ret < 0)
+    {
+        printf("error usb_submit_async:\n%s\n", usb_strerror());
+        usb_free_async(&async_context);
+        goto Done;
+    }
+
+    // Wait for the transfer to complete.  If it doesn't complete in the
+    // specified time it is cancelled.  see also usb_reap_async_nocancel().
+    //
+    ret = usb_reap_async(async_context, timeout);
+
+    // Free the context.
+    usb_free_async(&async_context);
+
+Done:
+    return ret;
+}
+#endif
 int main(int argc, _TCHAR* argv[])
 {
 	usb_dev_handle *dev[5] ={NULL,NULL,NULL,NULL,NULL}; /* the device handle */
@@ -216,7 +271,12 @@ int main(int argc, _TCHAR* argv[])
 		else
 			break;
 #else
+		#ifdef TEST_ASYNC
+		// Running an async read test
+		ret = transfer_bulk_async(dev[i], ep_in[i], tmp1, sizeof(tmp1), 5000);
+		#else
 		ret = usb_bulk_read(dev[i], ep_in[i], tmp1, sizeof(tmp1), 5000);
+		#endif
 		if (ret < 0)
 		{
 			printf("error reading:\nep_in[%d]=%x %d %s", i,ep_in[i],bytes_r,usb_strerror());

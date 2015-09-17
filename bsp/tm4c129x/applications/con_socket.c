@@ -605,7 +605,7 @@ void socket_r(void *paramter)
 							while(1)
 							{
 								if(g_socket[dev].recv_data==NULL)
-									rt_thread_delay(1);
+									rt_thread_delay(80);
 								else
 									break;
 								g_socket[dev].recv_data=rt_malloc(status);
@@ -686,10 +686,17 @@ void socket_r(void *paramter)
 						g_socket[dev].recv_data=rt_malloc(status);
 						if(g_socket[dev].recv_data==NULL)
 						{
-							rt_kprintf("malloc recv_data failed\n");
-							//rt_thread_delay(10);
-							unlock(dev);
-							continue;
+							rt_kprintf("malloc recv_data failed %d\n",status);
+							while(1)
+							{
+								if(g_socket[dev].recv_data==NULL)
+									rt_thread_delay(1);
+								else
+									break;
+								g_socket[dev].recv_data=rt_malloc(status);
+							}
+							//unlock(dev);
+							//continue;
 						}
 						rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
 						rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);

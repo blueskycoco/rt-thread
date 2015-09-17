@@ -545,10 +545,11 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 		 	//
 	    	// Handler for the bulk IN data endpoint.
 	    	//
-			USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8INDMA);
+	    	
+			psInst->ui32Flags=0;
+			//USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8INDMA);
 			//rt_kprintf("dma %d out done\r\n",psInst->ui8INDMA);
 			rt_sem_release(&(psInst->tx_sem));
-			psInst->ui32Flags=0;
 	    }		
 		else if(ui32Status & (1 << USBEPToIndex(psInst->ui8INEndpoint)))
 		{
@@ -1807,22 +1808,37 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 			for(i=0;i<ui32Size/64;i++)
 			{
 				psInst->ui32Flags = USBD_FLAG_DMA_OUT;
-				USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8INDMA);
 				USBLibDMATransfer(psInst->psDMAInstance, psInst->ui8INDMA,ptr+i*64, 64);
+				USBLibDMAChannelEnable(psInst->psDMAInstance,psInst->ui8INDMA);
 				rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
+				rt_kprintf("dma out done %d\r\n",(i+1)*64);
 			}
 			if((tmp=(ui32Size%64))!=0)
 			{
+			//	USBLibDMAChannelDisable(psInst->psDMAInstance,psInst->ui8INDMA);
 				i32Retcode = MAP_USBEndpointDataPut(psInst->ui32USBBase,psInst->ui8INEndpoint,pvBuffer+ui32Size-tmp, tmp);
 				if(i32Retcode!=-1)
-				i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
-				rt_sem_take(&(psInst->tx_sem), 10);
+				{
+					i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
+					if(i32Retcode==-1)
+					rt_kprintf("MAP_USBEndpointDataSend failed %d\r\n",tmp);
+				}
+				else
+					rt_kprintf("MAP_USBEndpointDataPut failed %d\r\n",tmp);
+				while(1){
+					i32Retcode=MAP_USBEndpointStatus(USB0_BASE,psInst->ui8INEndpoint);
+					rt_kprintf("i32Retcode %x\r\n",i32Retcode);
+					if(!(i32Retcode&USB_DEV_TX_FIFO_NE))
+						break;
+					}
+				//rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
+				rt_kprintf("last out done %d\r\n",tmp);
 			}
 		}
 			cnt=cnt+ui32Size;
 			rt_kprintf("cnt %d\r\n",cnt);
 		#else
-		if(ui32Size>64)
+		if(ui32Size>=64)
 		{
 			for(i=0;i<(ui32Size/64);i=i+1)
 			{

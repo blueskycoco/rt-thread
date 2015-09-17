@@ -3148,7 +3148,6 @@ USBDeviceIntHandlerInternal(uint32_t ui32Index, uint32_t ui32Status)
     // Get the controller interrupt status.
     //
     ui32Status = MAP_USBIntStatusEndpoint(USB0_BASE);
-
     //
     // Handle end point 0 interrupts.
     //
