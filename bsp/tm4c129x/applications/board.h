@@ -35,6 +35,10 @@ extern uint32_t SysClock;
 #define RT_USING_UART4
 #define RT_USING_UART6
 
+#define COMMAND_FAIL "Command crc fail"
+#define COMMAND_OK "Command exec OK"
+void usb_config(rt_uint8_t *data,int ipv6_len,int dev);
+
 // </RDTConfigurator>
 
 #ifdef __CC_ARM

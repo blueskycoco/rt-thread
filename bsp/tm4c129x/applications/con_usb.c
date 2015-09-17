@@ -291,14 +291,29 @@ void _usb_read(int dev)
 		}
 		else
 		{
-			rt_kprintf("Usb Config len %d\r\n",len);
-			for(i=0;i<len;i++)
-				rt_kprintf("%02x ",buf[i]);
-			rt_kprintf("\r\n");
-			USBBulkTx(&g_psBULKDevice[dev],check_mem,8);
+			if(buf[0]==0xf5 && buf[1]==0x8a)
+			{		
+				int check_sum=0,longlen=0;
+				rt_kprintf("Usb Config len %d\r\n",len);
+				for(i=0;i<len-2;i++)
+				{
+					rt_kprintf("%02x ",buf[i]);
+					check_sum+=buf[i];
+				}
+				rt_kprintf("\r\n");
+				if(check_sum==(buf[len-2]<<8|buf[len-1]))
+				{
+					if(buf[2]==0x0c || buf[2]==0x0d || buf[2]==0x0e || buf[2]==0x0f || buf[2]==0x20)
+						longlen=buf[3];
+					usb_config(buf+2,longlen,0);
+					USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_OK, strlen(COMMAND_OK));
+				}
+				else
+					USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
+			}
+			else
+				USBBulkTx(&g_psBULKDevice[dev],check_mem,8);
 		}
-		//memset(buf,0,len);
-		//rt_free(buf);
 	}
 }
 

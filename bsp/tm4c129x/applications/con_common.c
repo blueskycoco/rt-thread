@@ -77,8 +77,6 @@ struct rt_mutex mconfigutex;
 int times=0;
 
 
-#define COMMAND_FAIL "Command crc fail"
-#define COMMAND_OK "Command exec OK"
 
 void print_config(config g);
 
@@ -509,6 +507,18 @@ bool need_reconfig(int dev)
 #else
 	return false;
 #endif
+}
+void usb_config(rt_uint8_t *data,int ipv6_len,int dev)
+{
+	set_config(data,ipv6_len,dev);
+	print_config(g_conf);
+	void *ptr1=(void *)&g_confb;
+	void *ptr2=(void *)&g_conf;
+	if(rt_memcmp(ptr1,ptr2,sizeof(config))!=0)
+	{
+		print_config(g_conf);
+	}
+
 }
 #if CONFIG_BIN
 char *send_out(int dev,int cmd,int *lenout)
