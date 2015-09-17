@@ -4,7 +4,7 @@
 #include <rtdevice.h>
 
 #include "board.h"
-
+#include "con_epi.h"
 #include "inc/hw_memmap.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
@@ -1419,7 +1419,7 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 		}
 		else if(dev==DEV_BUS)
 		{
-
+			epi_init();
 		}
 		else
 		{
