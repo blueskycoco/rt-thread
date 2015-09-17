@@ -38,6 +38,7 @@ extern uint32_t SysClock;
 #define COMMAND_FAIL "Command crc fail"
 #define COMMAND_OK "Command exec OK"
 void usb_config(rt_uint8_t *data,int ipv6_len,int dev);
+char *send_out(int dev,int cmd,int *lenout);
 
 // </RDTConfigurator>
 

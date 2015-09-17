@@ -9,6 +9,8 @@
 //#include <sys/timeb.h>
 #define MY_VID 0x1cbe
 #define MY_PID 0x0003
+#define COMMAND_FAIL "Command crc fail"
+#define COMMAND_OK "Command exec OK"
 
 // Device configuration and interface id.
 #define MY_CONFIG 1
@@ -71,7 +73,7 @@ void TcharToChar (const TCHAR * tchar, char ** _char)
 int send_cmd(usb_dev_handle *dev,char *cmd,int len)
 {
 	int ret,result=0;
-	unsigned char tmp1[32]={0};
+	unsigned char tmp1[256]={0};
 	int i;
 	printf("CMD:\r\n");
 	for(i=0;i<len;i++)
@@ -84,7 +86,7 @@ int send_cmd(usb_dev_handle *dev,char *cmd,int len)
 	}
 	else
 	{
-		ret = usb_bulk_read(dev, ep_in, (char *)tmp1, 32, 5000);
+		ret = usb_bulk_read(dev, ep_in, (char *)tmp1, 256, 5000);
 		if (ret < 0)
 		{
 			printf("error 0 reading:\n%s\n", usb_strerror());
@@ -93,15 +95,20 @@ int send_cmd(usb_dev_handle *dev,char *cmd,int len)
 		{
 			int check_sum=0;
 			result=0;
-			printf("\r\nACK:\n");
-			for(i=0;i<ret;i++)
-			printf("%02x ",tmp1[i]);
-			for(i=0;i<ret-2;i++)
-				check_sum+=tmp1[i];
-			if(check_sum==(tmp1[ret-2]<<8|tmp1[ret-1]))
-				printf("\r\nCheck Sum OK!\r\n");
+			if(memcmp(tmp1,COMMAND_FAIL,strlen(COMMAND_FAIL))==0||memcmp(tmp1,COMMAND_OK,strlen(COMMAND_OK))==0)				
+				printf("\r\nACK:\n%s",tmp1);
 			else
-				printf("\r\nCheck Sum Failed!%04x\r\n",tmp1[ret-2]<<8|tmp1[ret-1]);
+			{
+				printf("\r\nACK:\n");
+				for(i=0;i<ret;i++)
+				printf("%02x ",tmp1[i]);
+				for(i=0;i<ret-2;i++)
+					check_sum+=tmp1[i];
+				if(check_sum==(tmp1[ret-2]<<8|tmp1[ret-1]))
+					printf("\r\nCheck Sum OK!\r\n");
+				else
+					printf("\r\nCheck Sum Failed!%04x\r\n",tmp1[ret-2]<<8|tmp1[ret-1]);
+			}
 		}
 	}
 

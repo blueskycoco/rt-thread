@@ -1774,20 +1774,20 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
     // Create a pointer to the audio instance data.
     //
     psInst = &psBulkDevice->sPrivateData;
-	if(*(int *)psBulkDevice->pvRxCBData==0)
-	{
-		i32Retcode = MAP_USBEndpointDataPut(psInst->ui32USBBase,psInst->ui8INEndpoint,pvBuffer, ui32Size);
-		if(i32Retcode!=-1)
-			i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
-		
-		if(i32Retcode!=-1)			
-			rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
-		else
-			return -1;
-
-	}
-	else
-	{
+	//if(*(int *)psBulkDevice->pvRxCBData==0)
+	//{
+	//	i32Retcode = MAP_USBEndpointDataPut(psInst->ui32USBBase,psInst->ui8INEndpoint,pvBuffer, ui32Size);
+	//	if(i32Retcode!=-1)
+	//		i32Retcode = MAP_USBEndpointDataSend(psInst->ui32USBBase,psInst->ui8INEndpoint,USB_TRANS_IN);
+	//	
+	//	if(i32Retcode!=-1)			
+	//		rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
+	//	else
+	//		return -1;
+//
+	//}
+	//else
+	//{
 	
 		//
 		// Configure and DMA for the IN transfer.
@@ -1858,7 +1858,7 @@ USBBulkTx(void *pvBulkDevice,void *pvBuffer,uint32_t ui32Size)
 			rt_sem_take(&(psInst->tx_sem), RT_WAITING_FOREVER);
 		}
 		#endif
-	}
+	//}
 	
 	return 0;
 }

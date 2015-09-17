@@ -304,12 +304,29 @@ void _usb_read(int dev)
 				if(check_sum==(buf[len-2]<<8|buf[len-1]))
 				{
 					if(buf[2]==0x0c || buf[2]==0x0d || buf[2]==0x0e || buf[2]==0x0f || buf[2]==0x20)
-						longlen=buf[3];
+						longlen=buf[3];					
 					usb_config(buf+2,longlen,0);
 					USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_OK, strlen(COMMAND_OK));
 				}
 				else
 					USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
+			}
+			else if(buf[0]==0xf5 && buf[1]==0x8b)
+			{
+				int lenout;
+				char *tmp=send_out(dev,buf[2],&lenout);
+				if(tmp!=NULL)
+				{
+					int ii=0;
+					for(ii=0;ii<lenout;ii++)
+						rt_kprintf("%2x ",tmp[ii]);
+					USBBulkTx(&g_psBULKDevice[dev],(void *)tmp, lenout);
+				}
+				else
+				{
+					rt_kprintf("some error\r\n");
+					USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
+				}
 			}
 			else
 				USBBulkTx(&g_psBULKDevice[dev],check_mem,8);
