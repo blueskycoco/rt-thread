@@ -11,7 +11,6 @@
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
 
-
 //*****************************************************************************
 //
 //! \addtogroup epi_examples_list
@@ -92,11 +91,12 @@
 #define EPI_PORTB_PINS (GPIO_PIN_3)
 #define EPI_PORTC_PINS (GPIO_PIN_7 | GPIO_PIN_6 | GPIO_PIN_5 | GPIO_PIN_4)
 #define EPI_PORTG_PINS (GPIO_PIN_1 | GPIO_PIN_0)
-#define EPI_PORTK_PINS (GPIO_PIN_5 | GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 |   \
+#define EPI_PORTK_PINS (GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 |   \
                         GPIO_PIN_0)
-#define EPI_PORTL_PINS (GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_0)
+#define EPI_PORTL_PINS (GPIO_PIN_4 | GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_0)
 #define EPI_PORTM_PINS (GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_0)
-#define EPI_PORTN_PINS (GPIO_PIN_3 | GPIO_PIN_2)
+#define EPI_PORTN_PINS (GPIO_PIN_2)
+#define EPI_PORTQ_PINS (GPIO_PIN_0)
 
 //*****************************************************************************
 //
@@ -210,6 +210,37 @@ int epi_init(void)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOM);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
+	/*
+	HOST 8 mode
+	EPI0S0	D0
+	EPI0S1	D1
+	EPI0S2	D2
+	EPI0S3	D3
+	EPI0S4	D4
+	EPI0S5	D5
+	EPI0S6	D6
+	EPI0S7	D7
+	EPI0S8	A0
+	EPI0S9	A1
+	EPI0S10 A2
+	EPI0S11 A3
+	EPI0S12 A4
+	EPI0S13 A5
+	EPI0S14 A6
+	EPI0S15 A7
+	EPI0S16 A8
+	EPI0S17 A9
+	EPI0S18 A10
+	EPI0S19 A11
+	EPI0S20 A12
+	EPI0S26 CS0n
+	EPI0S28 OEL
+	EPI0S29 R/WL
+	EPI0S30 SEML
+	EPI0S31 BUSYL
+	EPI0S32 INTL
+	*/
+	
 
     //
     // This step configures the internal pin muxes to set the EPI pins for use
@@ -218,6 +249,7 @@ int epi_init(void)
     // implementation.
     // TODO: Update this section based upon the EPI pin assignment on your
     // target part.
+    //
     //
 
     //
@@ -259,6 +291,20 @@ int epi_init(void)
     ui32Val &= 0xFFFF0000;
     ui32Val |= 0x0000FFFF;
     HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL) = ui32Val;
+    //
+    // EPI0S20 : Q0
+    //
+    ui32Val = HWREG(GPIO_PORTQ_BASE + GPIO_O_PCTL);
+    ui32Val &= 0xFFFFFFF0;
+    ui32Val |= 0x0000000F;
+    HWREG(GPIO_PORTQ_BASE + GPIO_O_PCTL) = ui32Val;
+    //
+    // EPI0S26 : L4
+    //
+    ui32Val = HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL);
+    ui32Val &= 0xFFF0FFFF;
+    ui32Val |= 0x000F0000;
+    HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL) = ui32Val;
 
     //
     // EPI0S28 : B3
@@ -269,19 +315,19 @@ int epi_init(void)
     HWREG(GPIO_PORTB_BASE + GPIO_O_PCTL) = ui32Val;
 
     //
-    // EPI0S29 ~ EPI0S30: N2 ~ 3
+    // EPI0S29: N2
     //
     ui32Val = HWREG(GPIO_PORTN_BASE + GPIO_O_PCTL);
-    ui32Val &= 0xFFFF00FF;
-    ui32Val |= 0x0000FF00;
+    ui32Val &= 0xFFFFF0FF;
+    ui32Val |= 0x00000F00;
     HWREG(GPIO_PORTN_BASE + GPIO_O_PCTL) = ui32Val;
 
     //
-    // EPI0S00 ~ EPI0S03, EPI0S31 : K0 ~ 3, K5
+    // EPI0S00 ~ EPI0S03: K0 ~ 3
     //
     ui32Val = HWREG(GPIO_PORTK_BASE + GPIO_O_PCTL);
-    ui32Val &= 0xFF0F0000;
-    ui32Val |= 0x00F0FFFF;
+    ui32Val &= 0xFFFF0000;
+    ui32Val |= 0x0000FFFF;
     HWREG(GPIO_PORTK_BASE + GPIO_O_PCTL) = ui32Val;
 
     //
@@ -297,6 +343,7 @@ int epi_init(void)
     GPIOPinTypeEPI(GPIO_PORTL_BASE, EPI_PORTL_PINS);
     GPIOPinTypeEPI(GPIO_PORTM_BASE, EPI_PORTM_PINS);
     GPIOPinTypeEPI(GPIO_PORTN_BASE, EPI_PORTN_PINS);
+	GPIOPinTypeEPI(GPIO_PORTQ_BASE, EPI_PORTQ_PINS);
 
     //
     // Is our current system clock faster than we can drive the SDRAM clock?
@@ -321,8 +368,8 @@ int epi_init(void)
     // Sets the usage mode of the EPI module.  For this example we will use
     // the SDRAM mode to talk to the external 64MB SDRAM daughter card.
     //
-    EPIModeSet(EPI0_BASE, EPI_MODE_SDRAM);
-
+    EPIModeSet(EPI0_BASE, EPI_MODE_HB8);
+#if 0
     //
     // Keep the compiler happy by setting a default value for the frequency
     // flag.
@@ -356,7 +403,7 @@ int epi_init(void)
     //
     EPIConfigSDRAMSet(EPI0_BASE, (ui32Freq | EPI_SDRAM_FULL_POWER |
                       EPI_SDRAM_SIZE_512MBIT), 1024);
-
+#endif
     //
     // Set the address map.  The EPI0 is mapped from 0x60000000 to 0x01FFFFFF.
     // For this example, we will start from a base address of 0x60000000 with
