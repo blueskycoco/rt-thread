@@ -91,12 +91,10 @@
 #define EPI_PORTB_PINS (GPIO_PIN_3)
 #define EPI_PORTC_PINS (GPIO_PIN_7 | GPIO_PIN_6 | GPIO_PIN_5 | GPIO_PIN_4)
 #define EPI_PORTG_PINS (GPIO_PIN_1 | GPIO_PIN_0)
-#define EPI_PORTK_PINS (GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 |   \
-                        GPIO_PIN_0)
-#define EPI_PORTL_PINS (GPIO_PIN_4 | /*GPIO_PIN_3 | GPIO_PIN_2 |*/ GPIO_PIN_1 | GPIO_PIN_0)
+#define EPI_PORTK_PINS (GPIO_PIN_4 | GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_0)
+#define EPI_PORTL_PINS (GPIO_PIN_1 | GPIO_PIN_0)
 #define EPI_PORTM_PINS (GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_0)
-#define EPI_PORTN_PINS (GPIO_PIN_2)
-#define EPI_PORTQ_PINS (GPIO_PIN_0)
+#define EPI_PORTN_PINS (GPIO_PIN_2 | GPIO_PIN_3)
 
 //*****************************************************************************
 //
@@ -116,11 +114,11 @@
 
 //*****************************************************************************
 //
-// A pointer to the EPI memory aperture.  Note that g_pui16EPISdram is declared
+// A pointer to the EPI memory aperture.  Note that g_pui8EPISdram is declared
 // as volatile so the compiler should not optimize reads out of the image.
 //
 //*****************************************************************************
-static volatile uint8_t *g_pui16EPISdram;
+static volatile uint8_t *g_pui8EPISdram;
 
 //*****************************************************************************
 //
@@ -285,11 +283,11 @@ int epi_init(void)
     HWREG(GPIO_PORTM_BASE + GPIO_O_PCTL) = ui32Val;
 
     //
-    // EPI0S16 ~ EPI0S19: L0 ~ 3
+    // EPI0S16 ~ EPI0S19: L0 1
     //
     ui32Val = HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL);
-    ui32Val &= 0xFFF0FF00;
-    ui32Val |= 0x000F00FF;
+    ui32Val &= 0xFFFFFF00;
+    ui32Val |= 0x000000FF;
     HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL) = ui32Val;
     //
     // EPI0S20 : Q0
@@ -301,10 +299,10 @@ int epi_init(void)
     //
     // EPI0S26 : L4
     //
-    ui32Val = HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL);
-    ui32Val &= 0xFFF0FFFF;
-    ui32Val |= 0x000F0000;
-    HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL) = ui32Val;
+    //ui32Val = HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL);
+    //ui32Val &= 0xFFF0FFFF;
+    //ui32Val |= 0x000F0000;
+    //HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL) = ui32Val;
 
     //
     // EPI0S28 : B3
@@ -315,19 +313,19 @@ int epi_init(void)
     HWREG(GPIO_PORTB_BASE + GPIO_O_PCTL) = ui32Val;
 
     //
-    // EPI0S29: N2
+    // EPI0S29: N2 3
     //
     ui32Val = HWREG(GPIO_PORTN_BASE + GPIO_O_PCTL);
-    ui32Val &= 0xFFFFF0FF;
-    ui32Val |= 0x00000F00;
+    ui32Val &= 0xFFFF00FF;
+    ui32Val |= 0x0000FF00;
     HWREG(GPIO_PORTN_BASE + GPIO_O_PCTL) = ui32Val;
 
     //
-    // EPI0S00 ~ EPI0S03: K0 ~ 3
+    // EPI0S00 ~ EPI0S03: K0 ~ 4
     //
     ui32Val = HWREG(GPIO_PORTK_BASE + GPIO_O_PCTL);
-    ui32Val &= 0xFFFF0000;
-    ui32Val |= 0x0000FFFF;
+    ui32Val &= 0xFFF00000;
+    ui32Val |= 0x000FFFFF;
     HWREG(GPIO_PORTK_BASE + GPIO_O_PCTL) = ui32Val;
 
     //
@@ -403,9 +401,9 @@ int epi_init(void)
     EPIConfigSDRAMSet(EPI0_BASE, (ui32Freq | EPI_SDRAM_FULL_POWER |
                       EPI_SDRAM_SIZE_512MBIT), 1024);
 #else
-	EPIConfigHB8Set(EPI0_BASE, (EPI_HB8_MODE_SRAM | EPI_HB8_RDWAIT_2 |
-                      EPI_HB8_WRWAIT_2 |EPI_HB8_WRHIGH |EPI_HB8_CSCFG_CS), 100);
-	EPIConfigHB8TimingSet(EPI0_BASE,0,EPI_HB8_RDWAIT_MINUS_ENABLE|EPI_HB8_CAP_WIDTH_2/*|EPI_HB8_WRWAIT_MINUS_ENABLE*/);
+	EPIConfigHB8Set(EPI0_BASE, (EPI_HB8_MODE_SRAM/* |EPI_HB8_RDHIGH|EPI_HB8_CSCFG_CS | EPI_HB8_RDWAIT_3 |
+                      EPI_HB8_WRWAIT_3 |EPI_HB8_IN_READY_EN*/),0);
+	//EPIConfigHB8TimingSet(EPI0_BASE,0,EPI_HB8_RDWAIT_MINUS_ENABLE|EPI_HB8_WRWAIT_MINUS_ENABLE|EPI_HB8_CAP_WIDTH_2);
 
 #endif
     //
@@ -422,30 +420,30 @@ int epi_init(void)
     // is going through the initialization and false when the SDRAM interface
     // it is not in a wake-up period.
     //
-    //while(HWREG(EPI0_BASE + EPI_O_STAT) &  EPI_STAT_INITSEQ)
-   // {
-   // }
+    while(HWREG(EPI0_BASE + EPI_O_STAT) &  EPI_STAT_INITSEQ)
+    {
+    }
 
     //
     // Set the EPI memory pointer to the base of EPI memory space.  Note that
-    // g_pui16EPISdram is declared as volatile so the compiler should not
+    // g_pui8EPISdram is declared as volatile so the compiler should not
     // optimize reads out of the memory.  With this pointer, the memory space
     // is accessed like a simple array.
     //
-    g_pui16EPISdram = (uint8_t *)0x60000000;
+    g_pui8EPISdram = (uint8_t *)0x60000000;
 
     //
     // Read the initial data in SDRAM, and display it on the console.
     //
     rt_kprintf("  SRAM Initial Data:\n");
-    rt_kprintf("     Mem[0x6000.0000] = 0x%4x\n",
-               g_pui16EPISdram[SDRAM_START_ADDRESS]);
-    rt_kprintf("     Mem[0x6000.0001] = 0x%4x\n",
-               g_pui16EPISdram[SDRAM_START_ADDRESS + 1]);
-    rt_kprintf("     Mem[0x6000.03FE] = 0x%4x\n",
-               g_pui16EPISdram[SDRAM_END_ADDRESS - 1]);
-    rt_kprintf("     Mem[0x6000.03FF] = 0x%4x\n\n",
-               g_pui16EPISdram[SDRAM_END_ADDRESS]);
+    rt_kprintf("     Mem[0x6000.0000] = 0x%02x\n",
+               g_pui8EPISdram[SDRAM_START_ADDRESS]);
+    rt_kprintf("     Mem[0x6000.0001] = 0x%02x\n",
+               g_pui8EPISdram[SDRAM_START_ADDRESS + 1]);
+    rt_kprintf("     Mem[0x6000.03FE] = 0x%02x\n",
+               g_pui8EPISdram[SDRAM_END_ADDRESS - 1]);
+    rt_kprintf("     Mem[0x6000.03FF] = 0x%02x\n\n",
+               g_pui8EPISdram[SDRAM_END_ADDRESS]);
 
     //
     // Display what writes we are doing on the console.
@@ -460,31 +458,31 @@ int epi_init(void)
     // Write to the first 2 and last 2 address of the SDRAM card.  Since the
     // SDRAM card is word addressable, we will write words.
     //
-    g_pui16EPISdram[SDRAM_START_ADDRESS] = 0xab;
-    g_pui16EPISdram[SDRAM_START_ADDRESS + 1] = 0x12;
-    g_pui16EPISdram[SDRAM_END_ADDRESS - 1] = 0xdc;
-    g_pui16EPISdram[SDRAM_END_ADDRESS] = 0x2a;
+    g_pui8EPISdram[SDRAM_START_ADDRESS] = 0xab;
+    g_pui8EPISdram[SDRAM_START_ADDRESS + 1] = 0x12;
+    g_pui8EPISdram[SDRAM_END_ADDRESS - 1] = 0xdc;
+    g_pui8EPISdram[SDRAM_END_ADDRESS] = 0x2a;
 
     //
     // Read back the data you wrote, and display it on the console.
     //
     rt_kprintf("  SRAM Read:\n");
-    rt_kprintf("     Mem[0x6000.0000] = 0x%2x\n",
-               g_pui16EPISdram[SDRAM_START_ADDRESS]);
-    rt_kprintf("     Mem[0x6000.0001] = 0x%2x\n",
-               g_pui16EPISdram[SDRAM_START_ADDRESS + 1]);
-    rt_kprintf("     Mem[0x6000.03FE] = 0x%2x\n",
-               g_pui16EPISdram[SDRAM_END_ADDRESS - 1]);
-    rt_kprintf("     Mem[0x6000.03FF] = 0x%2x\n\n",
-               g_pui16EPISdram[SDRAM_END_ADDRESS]);
+    rt_kprintf("     Mem[0x6000.0000] = 0x%02x\n",
+               g_pui8EPISdram[SDRAM_START_ADDRESS]);
+    rt_kprintf("     Mem[0x6000.0001] = 0x%02x\n",
+               g_pui8EPISdram[SDRAM_START_ADDRESS + 1]);
+    rt_kprintf("     Mem[0x6000.03FE] = 0x%02x\n",
+               g_pui8EPISdram[SDRAM_END_ADDRESS - 1]);
+    rt_kprintf("     Mem[0x6000.03FF] = 0x%02x\n\n",
+               g_pui8EPISdram[SDRAM_END_ADDRESS]);
 
     //
     // Check the validity of the data.
     //
-    if((g_pui16EPISdram[SDRAM_START_ADDRESS] == 0xab) &&
-       (g_pui16EPISdram[SDRAM_START_ADDRESS + 1] == 0x12) &&
-       (g_pui16EPISdram[SDRAM_END_ADDRESS - 1] == 0xdc) &&
-       (g_pui16EPISdram[SDRAM_END_ADDRESS] == 0x2a))
+    if((g_pui8EPISdram[SDRAM_START_ADDRESS] == 0xab) &&
+       (g_pui8EPISdram[SDRAM_START_ADDRESS + 1] == 0x12) &&
+       (g_pui8EPISdram[SDRAM_END_ADDRESS - 1] == 0xdc) &&
+       (g_pui8EPISdram[SDRAM_END_ADDRESS] == 0x2a))
     {
         //
         // Read and write operations were successful.  Return with no errors.
