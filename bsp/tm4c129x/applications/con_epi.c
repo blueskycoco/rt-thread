@@ -93,7 +93,7 @@
 #define EPI_PORTG_PINS (GPIO_PIN_1 | GPIO_PIN_0)
 #define EPI_PORTK_PINS (GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 |   \
                         GPIO_PIN_0)
-#define EPI_PORTL_PINS (GPIO_PIN_4 | GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_0)
+#define EPI_PORTL_PINS (GPIO_PIN_4 | /*GPIO_PIN_3 | GPIO_PIN_2 |*/ GPIO_PIN_1 | GPIO_PIN_0)
 #define EPI_PORTM_PINS (GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_0)
 #define EPI_PORTN_PINS (GPIO_PIN_2)
 #define EPI_PORTQ_PINS (GPIO_PIN_0)
@@ -105,7 +105,7 @@
 //
 //*****************************************************************************
 #define SDRAM_START_ADDRESS 0x00000000
-#define SDRAM_END_ADDRESS   0x01FFFFFF
+#define SDRAM_END_ADDRESS   0x000003FF
 
 //*****************************************************************************
 //
@@ -120,7 +120,7 @@
 // as volatile so the compiler should not optimize reads out of the image.
 //
 //*****************************************************************************
-static volatile uint16_t *g_pui16EPISdram;
+static volatile uint8_t *g_pui16EPISdram;
 
 //*****************************************************************************
 //
@@ -183,13 +183,13 @@ int epi_init(void)
     //
     // Display the setup on the console.
     //
-    rt_kprintf("EPI SDRAM Mode ->\n");
-    rt_kprintf("  Type: SDRAM\n");
+    rt_kprintf("EPI DUAL SRAM Mode ->\n");
+    rt_kprintf("  Type: SRAM\n");
     rt_kprintf("  Starting Address: 0x%08x\n", SDRAM_MAPPING_ADDRESS);
     rt_kprintf("  End Address: 0x%08x\n",
                (SDRAM_MAPPING_ADDRESS + SDRAM_END_ADDRESS));
-    rt_kprintf("  Data: 16-bit\n");
-    rt_kprintf("  Size: 64MB (32Meg x 16bits)\n\n");
+    rt_kprintf("  Data: 8-bit\n");
+    rt_kprintf("  Size: 1KB (128 x 8bits)\n\n");
 
     //
     // The EPI0 peripheral must be enabled for use.
@@ -288,16 +288,16 @@ int epi_init(void)
     // EPI0S16 ~ EPI0S19: L0 ~ 3
     //
     ui32Val = HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL);
-    ui32Val &= 0xFFFF0000;
-    ui32Val |= 0x0000FFFF;
+    ui32Val &= 0xFFF0FF00;
+    ui32Val |= 0x000F00FF;
     HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL) = ui32Val;
     //
     // EPI0S20 : Q0
     //
-    ui32Val = HWREG(GPIO_PORTQ_BASE + GPIO_O_PCTL);
-    ui32Val &= 0xFFFFFFF0;
-    ui32Val |= 0x0000000F;
-    HWREG(GPIO_PORTQ_BASE + GPIO_O_PCTL) = ui32Val;
+    //ui32Val = HWREG(GPIO_PORTQ_BASE + GPIO_O_PCTL);
+    //ui32Val &= 0xFFFFFFF0;
+    //ui32Val |= 0x0000000F;
+    //HWREG(GPIO_PORTQ_BASE + GPIO_O_PCTL) = ui32Val;
     //
     // EPI0S26 : L4
     //
@@ -343,7 +343,6 @@ int epi_init(void)
     GPIOPinTypeEPI(GPIO_PORTL_BASE, EPI_PORTL_PINS);
     GPIOPinTypeEPI(GPIO_PORTM_BASE, EPI_PORTM_PINS);
     GPIOPinTypeEPI(GPIO_PORTN_BASE, EPI_PORTN_PINS);
-	GPIOPinTypeEPI(GPIO_PORTQ_BASE, EPI_PORTQ_PINS);
 
     //
     // Is our current system clock faster than we can drive the SDRAM clock?
@@ -403,6 +402,11 @@ int epi_init(void)
     //
     EPIConfigSDRAMSet(EPI0_BASE, (ui32Freq | EPI_SDRAM_FULL_POWER |
                       EPI_SDRAM_SIZE_512MBIT), 1024);
+#else
+	EPIConfigHB8Set(EPI0_BASE, (EPI_HB8_MODE_SRAM | EPI_HB8_RDWAIT_2 |
+                      EPI_HB8_WRWAIT_2 |EPI_HB8_WRHIGH |EPI_HB8_CSCFG_CS), 100);
+	EPIConfigHB8TimingSet(EPI0_BASE,0,EPI_HB8_RDWAIT_MINUS_ENABLE|EPI_HB8_CAP_WIDTH_2/*|EPI_HB8_WRWAIT_MINUS_ENABLE*/);
+
 #endif
     //
     // Set the address map.  The EPI0 is mapped from 0x60000000 to 0x01FFFFFF.
@@ -410,7 +414,7 @@ int epi_init(void)
     // a size of 256MB.  Although our SDRAM is only 64MB, there is no 64MB
     // aperture option so we pick the next larger size.
     //
-    EPIAddressMapSet(EPI0_BASE, EPI_ADDR_RAM_SIZE_256MB | EPI_ADDR_RAM_BASE_6);
+    EPIAddressMapSet(EPI0_BASE, EPI_ADDR_RAM_SIZE_64KB | EPI_ADDR_RAM_BASE_6);
 
     //
     // Wait for the SDRAM wake-up to complete by polling the SDRAM
@@ -418,9 +422,9 @@ int epi_init(void)
     // is going through the initialization and false when the SDRAM interface
     // it is not in a wake-up period.
     //
-    while(HWREG(EPI0_BASE + EPI_O_STAT) &  EPI_STAT_INITSEQ)
-    {
-    }
+    //while(HWREG(EPI0_BASE + EPI_O_STAT) &  EPI_STAT_INITSEQ)
+   // {
+   // }
 
     //
     // Set the EPI memory pointer to the base of EPI memory space.  Note that
@@ -428,64 +432,64 @@ int epi_init(void)
     // optimize reads out of the memory.  With this pointer, the memory space
     // is accessed like a simple array.
     //
-    g_pui16EPISdram = (uint16_t *)0x60000000;
+    g_pui16EPISdram = (uint8_t *)0x60000000;
 
     //
     // Read the initial data in SDRAM, and display it on the console.
     //
-    rt_kprintf("  SDRAM Initial Data:\n");
+    rt_kprintf("  SRAM Initial Data:\n");
     rt_kprintf("     Mem[0x6000.0000] = 0x%4x\n",
                g_pui16EPISdram[SDRAM_START_ADDRESS]);
     rt_kprintf("     Mem[0x6000.0001] = 0x%4x\n",
                g_pui16EPISdram[SDRAM_START_ADDRESS + 1]);
-    rt_kprintf("     Mem[0x603F.FFFE] = 0x%4x\n",
+    rt_kprintf("     Mem[0x6000.03FE] = 0x%4x\n",
                g_pui16EPISdram[SDRAM_END_ADDRESS - 1]);
-    rt_kprintf("     Mem[0x603F.FFFF] = 0x%4x\n\n",
+    rt_kprintf("     Mem[0x6000.03FF] = 0x%4x\n\n",
                g_pui16EPISdram[SDRAM_END_ADDRESS]);
 
     //
     // Display what writes we are doing on the console.
     //
-    rt_kprintf("  SDRAM Write:\n");
-    rt_kprintf("     Mem[0x6000.0000] <- 0xabcd\n");
-    rt_kprintf("     Mem[0x6000.0001] <- 0x1234\n");
-    rt_kprintf("     Mem[0x603F.FFFE] <- 0xdcba\n");
-    rt_kprintf("     Mem[0x603F.FFFF] <- 0x4321\n\n");
+    rt_kprintf("  SRAM Write:\n");
+    rt_kprintf("     Mem[0x6000.0000] <- 0xab\n");
+    rt_kprintf("     Mem[0x6000.0001] <- 0x12\n");
+    rt_kprintf("     Mem[0x6000.03FE] <- 0xdc\n");
+    rt_kprintf("     Mem[0x6000.03FF] <- 0x2a\n\n");
 
     //
     // Write to the first 2 and last 2 address of the SDRAM card.  Since the
     // SDRAM card is word addressable, we will write words.
     //
-    g_pui16EPISdram[SDRAM_START_ADDRESS] = 0xabcd;
-    g_pui16EPISdram[SDRAM_START_ADDRESS + 1] = 0x1234;
-    g_pui16EPISdram[SDRAM_END_ADDRESS - 1] = 0xdcba;
-    g_pui16EPISdram[SDRAM_END_ADDRESS] = 0x4321;
+    g_pui16EPISdram[SDRAM_START_ADDRESS] = 0xab;
+    g_pui16EPISdram[SDRAM_START_ADDRESS + 1] = 0x12;
+    g_pui16EPISdram[SDRAM_END_ADDRESS - 1] = 0xdc;
+    g_pui16EPISdram[SDRAM_END_ADDRESS] = 0x2a;
 
     //
     // Read back the data you wrote, and display it on the console.
     //
-    rt_kprintf("  SDRAM Read:\n");
-    rt_kprintf("     Mem[0x6000.0000] = 0x%4x\n",
+    rt_kprintf("  SRAM Read:\n");
+    rt_kprintf("     Mem[0x6000.0000] = 0x%2x\n",
                g_pui16EPISdram[SDRAM_START_ADDRESS]);
-    rt_kprintf("     Mem[0x6000.0001] = 0x%4x\n",
+    rt_kprintf("     Mem[0x6000.0001] = 0x%2x\n",
                g_pui16EPISdram[SDRAM_START_ADDRESS + 1]);
-    rt_kprintf("     Mem[0x603F.FFFE] = 0x%4x\n",
+    rt_kprintf("     Mem[0x6000.03FE] = 0x%2x\n",
                g_pui16EPISdram[SDRAM_END_ADDRESS - 1]);
-    rt_kprintf("     Mem[0x603F.FFFF] = 0x%4x\n\n",
+    rt_kprintf("     Mem[0x6000.03FF] = 0x%2x\n\n",
                g_pui16EPISdram[SDRAM_END_ADDRESS]);
 
     //
     // Check the validity of the data.
     //
-    if((g_pui16EPISdram[SDRAM_START_ADDRESS] == 0xabcd) &&
-       (g_pui16EPISdram[SDRAM_START_ADDRESS + 1] == 0x1234) &&
-       (g_pui16EPISdram[SDRAM_END_ADDRESS - 1] == 0xdcba) &&
-       (g_pui16EPISdram[SDRAM_END_ADDRESS] == 0x4321))
+    if((g_pui16EPISdram[SDRAM_START_ADDRESS] == 0xab) &&
+       (g_pui16EPISdram[SDRAM_START_ADDRESS + 1] == 0x12) &&
+       (g_pui16EPISdram[SDRAM_END_ADDRESS - 1] == 0xdc) &&
+       (g_pui16EPISdram[SDRAM_END_ADDRESS] == 0x2a))
     {
         //
         // Read and write operations were successful.  Return with no errors.
         //
-        rt_kprintf("Read and write to external SDRAM was successful!\n");
+        rt_kprintf("Read and write to external SRAM was successful!\n");
         return(0);
     }
 
@@ -493,7 +497,7 @@ int epi_init(void)
     // Display on the console that there was an error.
     //
     rt_kprintf("Read and/or write failure!");
-    rt_kprintf(" Check if your SDRAM card is plugged in.");
+    rt_kprintf(" Check if your SRAM card is plugged in.");
 
     //
     // Read and/or write operations were unsuccessful.  Wait in while(1) loop
