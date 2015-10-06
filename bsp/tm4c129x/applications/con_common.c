@@ -1419,6 +1419,7 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 		}
 		else if(dev==DEV_BUS)
 		{
+			if(i==0)
 			epi_init();
 		}
 		else

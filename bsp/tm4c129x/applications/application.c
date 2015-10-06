@@ -217,7 +217,7 @@ void rt_init_thread_entry(void *parameter)
 		else
 			rt_data_queue_init(&g_data_queue[i], 32, 4, RT_NULL);
 	}
-	common_init(cur_set);
+	common_init(/*cur_set*/DEV_BUS);
 	//test_select_connect();
 	//test_select_accept();
 	netio_init();
