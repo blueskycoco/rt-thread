@@ -70,14 +70,16 @@ unsigned char config_tcp1[1+8]					={0xF5,0x8A,0x22,0xff,0x26,0xfa,0x00,0x00};/*
 unsigned char config_tcp2[1+8]					={0xF5,0x8A,0x23,0xff,0x26,0xfa,0x00,0x00};/*protol2*/
 unsigned char config_tcp3[1+8]					={0xF5,0x8A,0x24,0xff,0x26,0xfa,0x00,0x00};/*protol3*/
 struct rt_mutex mconfigutex;
-
-
-
-
+extern void socket_thread_start(int i);
+extern void _usb_read(int dev);
+extern void set_if(char* netif_name, char* ip_addr, char* gw_addr, char* nm_addr);
+extern rt_size_t _usb_init();
+extern int _epi_write(int index, const void *buffer, int size,unsigned char signal);
 int times=0;
-
-
-
+extern int _usb_write(int index, void *buffer, int size);
+int baud(int type);
+extern void _epi_read();
+extern void set_if6(char* netif_name, char* ip6_addr);
 void print_config(config g);
 
 unsigned char get_config[35];//			={0xF5,0x8B,0x0f,0xff,0xff,0xff,0xff,0x27,0xfa,0x00,0x00};/*get config 0xf5,0x8b,********0x27,0xfa,0x00,0x00*/
@@ -1225,6 +1227,16 @@ void common_w_usb(void* parameter)
 	}
 	
 }
+void common_w_epi(void* parameter)
+{
+	int dev=((int)parameter)/2;
+	rt_kprintf("common_w_epi %d\r\n",dev);
+	while(1)
+	{
+		if (rt_sem_take(&(rx_sem[0]), RT_WAITING_FOREVER) != RT_EOK) continue;
+		_epi_read();
+	}	
+}
 
 static void common_r(void* parameter)
 {
@@ -1232,17 +1244,25 @@ static void common_r(void* parameter)
     const void *last_data_ptr=RT_NULL;
 	void *data_ptr;
 	int dev=(int)parameter;
-	rt_err_t r;	
+	rt_err_t r=RT_EFULL;	
     rt_kprintf("common_r %d Enter\r\n",dev);
 	while(1)
 	{
-		r=rt_data_queue_pop(&g_data_queue[dev], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
+		r=RT_ENOMEM;
+		//if(dev==1)
+		//rt_kprintf("[%d]phy_link %d , connected %d\r\n",(dev-1)/2,phy_link,g_socket[(dev-1)/2].connected);	
+		//if(phy_link&&g_socket[(dev-1)/2].connected)
+		//{
+		rt_kprintf("[%d]phy_link %d , connected %d,r %d,data_size %d,last_data_ptr %02x\r\n",(dev-1)/2,phy_link,g_socket[(dev-1)/2].connected,r,data_size,last_data_ptr);
+			r=rt_data_queue_pop(&g_data_queue[dev], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
+			
+		//}
 		//rt_data_queue_pop(&(g_data_queue[dev]), &last_data_ptr, &data_size, 0);
        // if (rt_data_queue_peak(&(g_data_queue[dev]), &data_ptr, &data_size) == RT_EOK)
        // {
      //  rt_kprintf("last_data_ptr %x,r %d,data_size %d\r\n",last_data_ptr,r,data_size);
 			if(r==RT_EOK && data_size!=0 && last_data_ptr)
-			{		
+			{
 				if(g_dev==1)
 				{
 					#if CONFIG_IT
@@ -1250,11 +1270,15 @@ static void common_r(void* parameter)
 					#endif
 					//dillon rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
 					//rt_kprintf("write index %d,%d\n",dev,data_size);
-					_usb_write(dev,last_data_ptr,data_size);
+					_usb_write(dev,(void *)last_data_ptr,data_size);
 					//rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
 					#if CONFIG_IT
 					times++;}
 					#endif
+				}
+				else if(g_dev==2)
+				{
+					_epi_write((dev-1)/2,last_data_ptr,data_size,0x04+(dev-1)/2);
 				}
 				else
 					rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
@@ -1269,7 +1293,7 @@ static void common_r(void* parameter)
 				if(last_data_ptr)
 				{
 					//rt_kprintf("free %x\r\n",last_data_ptr);
-					rt_free(last_data_ptr);
+					rt_free((void *)last_data_ptr);
 					last_data_ptr=RT_NULL;
 				}
 		}
@@ -1420,7 +1444,25 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 		else if(dev==DEV_BUS)
 		{
 			if(i==0)
-			epi_init();
+			{
+				epi_init();
+				rt_sprintf(common,"epi_%d_rx",i);
+				rt_sem_init(&(rx_sem[0]), common, 0, 0);
+				g_dev=2;
+			}
+			rt_kprintf("epi %d\r\n",i);
+			rt_sprintf(common,"common_wx%d",i);
+			if(i==0)
+			{
+				tid_common_w[i] = rt_thread_create(common,common_w_epi, (void *)(i*2),2048, 20, 10);	
+				if(tid_common_w[i]!=RT_NULL)
+					rt_thread_startup(tid_common_w[i]);	
+			}			
+			rt_sprintf(common,"common_rx%d",i);
+			tid_common_r[i] = rt_thread_create(common,common_r, (void *)(i*2+1),4096, 20, 10);
+			if(tid_common_r[i]!=RT_NULL)
+				rt_thread_startup(tid_common_r[i]);
+		
 		}
 		else
 		{
@@ -1454,7 +1496,7 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	for(i=0;i<4;i++)
 	{
 		g_chang[i].cs=g_chang[i].lip6c=g_chang[i].lpc=g_chang[i].mode=g_chang[i].protol=g_chang[i].rip4c=g_chang[i].rip6c=g_chang[i].rpc=0;
-		socket_thread_start(i);
+		//socket_thread_start(i);
 	}
 	//rt_thread_delay(100);
 	//list_mem1();	
