@@ -130,7 +130,7 @@ void IntGpioD()
 	if(MAP_GPIOIntStatus(GPIO_PORTD_BASE, true)&GPIO_PIN_2)
 	{		
 		MAP_GPIOIntClear(GPIO_PORTD_BASE, GPIO_PIN_2);
-		ind[0]=RT_TRUE;//((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
+		ind[0]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
 		ind[1]=RT_TRUE;
 		ind[2]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
 		ind[3]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
@@ -1128,27 +1128,20 @@ int common_w_socket(int dev)
 	{
 		ptr=rt_malloc(256);
 		len=rt_device_read(common_dev[dev], 0, ptr, 256);
-		#if CONFIG_IT	
 		if(phy_link&&(len>0)&&g_socket[dev].connected)
 		{
-			int i;
-			for(i=0;i<10;i++)
-			{
-				char *tmp=rt_malloc(len);
-				rt_memcpy(tmp,ptr,len);
-				rt_data_queue_push(&g_data_queue[dev*2], tmp, len, RT_WAITING_FOREVER);	
-			}
-		}
-		
-		rt_free(ptr);
-		#else
-		if(phy_link&&(len>0)&&g_socket[dev].connected)
-		{
+			#if !TEST_SOCKET
+			t_len+=len;
+			if(t_len<=100)
+			#endif
 			rt_data_queue_push(&g_data_queue[dev*2], ptr, len, RT_WAITING_FOREVER);	
+			#if !TEST_SOCKET
+			else
+				rt_free(ptr);
+			#endif
 		}
 		else
 			rt_free(ptr);
-		#endif
 	}
 	return 0;
 }
@@ -1169,7 +1162,6 @@ void common_w(void* parameter)
 	{
 		/* wait receive */
 		if (rt_sem_take(&(rx_sem[dev]), RT_WAITING_FOREVER) != RT_EOK) continue;
-		#if CONFIG_BIN
 		//DBG("to read in_low %d\r\n",ind_low(dev));
 		if(ind[dev])
 		{	
@@ -1182,21 +1174,13 @@ void common_w(void* parameter)
 				void *ptr2=(void *)&g_conf;
 				if(rt_memcmp(ptr1,ptr2,sizeof(config))!=0)
 				{
-					#if CONFIG_IT					
-					common_w_socket(dev);
-					times=0;
-					#endif
 					print_config(g_conf);
 				}
 			}
 			
-			/*socket data transfer,use dma*/
-			#if !CONFIG_IT
+			/*socket data transfer,use dma*/			
 			common_w_socket(dev);
-			#else
-			char cha;
-			while(rt_device_read(common_dev[dev], &cha, &cha, 1)==1);
-			#endif
+			
 		}
 		else
 		{
@@ -1208,12 +1192,11 @@ void common_w(void* parameter)
 				void *ptr2=(void *)&g_conf;
 				rt_memcpy(ptr1,ptr2,sizeof(config));
 			}
+			#if !TEST_SOCKET
 			common_rw_config(dev);
-			
+			t_len=0;
+			#endif
 		}
-		#else
-		common_w_socket(dev);
-		#endif
 	}
 }
 void common_w_usb(void* parameter)
@@ -1245,7 +1228,7 @@ static void common_r(void* parameter)
 	void *data_ptr;
 	int dev=(int)parameter;
 	rt_err_t r=RT_EFULL;	
-    rt_kprintf("common_r %d Enter\r\n",dev);
+    rt_kprintf("common_r %d Enter\r\n",(dev-1)/2);
 	while(1)
 	{
 		r=RT_ENOMEM;
@@ -1253,7 +1236,7 @@ static void common_r(void* parameter)
 		//rt_kprintf("[%d]phy_link %d , connected %d\r\n",(dev-1)/2,phy_link,g_socket[(dev-1)/2].connected);	
 		//if(phy_link&&g_socket[(dev-1)/2].connected)
 		//{
-		rt_kprintf("[%d]phy_link %d , connected %d,r %d,data_size %d,last_data_ptr %02x\r\n",(dev-1)/2,phy_link,g_socket[(dev-1)/2].connected,r,data_size,last_data_ptr);
+		//rt_kprintf("[%d]phy_link %d , connected %d,r %d,data_size %d,last_data_ptr %02x\r\n",(dev-1)/2,phy_link,g_socket[(dev-1)/2].connected,r,data_size,last_data_ptr);
 			r=rt_data_queue_pop(&g_data_queue[dev], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 			
 		//}
@@ -1496,7 +1479,7 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	for(i=0;i<4;i++)
 	{
 		g_chang[i].cs=g_chang[i].lip6c=g_chang[i].lpc=g_chang[i].mode=g_chang[i].protol=g_chang[i].rip4c=g_chang[i].rip6c=g_chang[i].rpc=0;
-		//socket_thread_start(i);
+		socket_thread_start(i);
 	}
 	//rt_thread_delay(100);
 	//list_mem1();	
