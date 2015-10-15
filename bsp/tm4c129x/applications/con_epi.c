@@ -514,26 +514,25 @@ int epi_init(void)
     g_pui8EPISdram[SRAM_START_ADDRESS + 1] = 0x12;
     g_pui8EPISdram[SRAM_END_ADDRESS - 1] = 0xdc;
     g_pui8EPISdram[SRAM_END_ADDRESS] = 0x2a;
-
     //
     // Read back the data you wrote, and display it on the console.
     //
-    //rt_kprintf("  SRAM Read:\n");
-    //rt_kprintf("     Mem[0x6000.0000] = 0x%02x\n",
-    //          g_pui8EPISdram[SRAM_START_ADDRESS]);
-    //rt_kprintf("     Mem[0x6000.0001] = 0x%02x\n",
-    //           g_pui8EPISdram[SRAM_START_ADDRESS + 1]);
-    //rt_kprintf("     Mem[0x6000.03FE] = 0x%02x\n",
-    //           g_pui8EPISdram[SRAM_END_ADDRESS - 1]);
-    //rt_kprintf("     Mem[0x6000.03FF] = 0x%02x\n\n",
-    //           g_pui8EPISdram[SRAM_END_ADDRESS]);
-    //
+    rt_kprintf("  SRAM Read:\n");
+    rt_kprintf("     Mem[0x6000.0000] = 0x%02x\n",
+              g_pui8EPISdram[SRAM_START_ADDRESS]);
+    rt_kprintf("     Mem[0x6000.0001] = 0x%02x\n",
+               g_pui8EPISdram[SRAM_START_ADDRESS + 1]);
+    rt_kprintf("     Mem[0x6000.03FE] = 0x%02x\n",
+               g_pui8EPISdram[SRAM_END_ADDRESS - 1]);
+    rt_kprintf("     Mem[0x6000.03FF] = 0x%02x\n\n",
+               g_pui8EPISdram[SRAM_END_ADDRESS]);
+    
     // Check the validity of the data.
     //
-    //if((g_pui8EPISdram[SRAM_START_ADDRESS] == 0xab) &&
-    // (g_pui8EPISdram[SRAM_START_ADDRESS + 1] == 0x12) &&
-    //   (g_pui8EPISdram[SRAM_END_ADDRESS - 1] == 0xdc) &&
-    //   (g_pui8EPISdram[SRAM_END_ADDRESS] == 0x2a))
+    if((g_pui8EPISdram[SRAM_START_ADDRESS] == 0xab) &&
+     (g_pui8EPISdram[SRAM_START_ADDRESS + 1] == 0x12) &&
+       (g_pui8EPISdram[SRAM_END_ADDRESS - 1] == 0xdc) &&
+       (g_pui8EPISdram[SRAM_END_ADDRESS] == 0x2a))
     {
         //
         // Read and write operations were successful.  Return with no errors.
@@ -550,7 +549,7 @@ int epi_init(void)
 		for(i=0;i<1024;i++)
 		{
 			if(g_pui8EPISdram[i]!=(i%256))
-				rt_kprintf("<1024> %d failed\r\n",i);
+				rt_kprintf("<%02x> %d failed\n",g_pui8EPISdram[i],i%256);
 			rt_kprintf("0x%02x ",g_pui8EPISdram[i]);			
 			if(((i+1)%16)==0)
 				rt_kprintf("\n");
