@@ -611,7 +611,9 @@ void IntGpioK()
 	if(MAP_GPIOIntStatus(GPIO_PORTK_BASE, true)&GPIO_PIN_5)
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
-		rt_sem_release(&(rx_sem[0]));	
+		//rt_sem_release(&(rx_sem[0]));
+		//rt_kprintf("GOT B_TO_A 0x%02X\n",g_pui8EPISdram[B_TO_A_SIGNAL]);
+		rt_kprintf("GOT A_TO_B 0x%02X\n",g_pui8EPISdram[A_TO_B_SIGNAL]);
 	}		
 	rt_kprintf("B_TO_A INT level %d \r\n",((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE);		
 }
@@ -619,6 +621,11 @@ void Signal_To_B(unsigned char data)
 {
 	rt_kprintf("send 0x%02x to B\r\n",data);
 	g_pui8EPISdram[A_TO_B_SIGNAL]=data;
+}
+void Signal_To_A(unsigned char data)
+{
+	rt_kprintf("send 0x%02x to A\r\n",data);
+	g_pui8EPISdram[B_TO_A_SIGNAL]=data;
 }
 
 int _epi_write(int index, const void *buffer, int size,unsigned char signal)
@@ -728,7 +735,7 @@ void _epi_read()
 		break;
 	}
 	rt_kprintf("to copy %d bytes from 0x%08x\r\n",index_len,index_addr);
-	while(buf==RT_NULL)
+	//while(buf==RT_NULL)
 	{
 		buf=(unsigned char *)malloc(index_len*sizeof(unsigned char));
 		if(buf==RT_NULL)

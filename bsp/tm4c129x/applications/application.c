@@ -50,6 +50,8 @@ static void led_thread_entry(void* parameter)
 		rt_thread_delay(RT_TICK_PER_SECOND/2);
 		rt_hw_led_off();
 		rt_thread_delay(RT_TICK_PER_SECOND/2);
+		//Signal_To_B(0x33);
+		Signal_To_A(0x55);
 		//list_thread1();
 		//list_mem1();
 		//list_tcps1();
