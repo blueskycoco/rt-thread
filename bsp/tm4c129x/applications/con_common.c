@@ -1486,6 +1486,12 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	//list_tcps1();
 	//list_thread();
 	DBG("common_init ok\r\n");
+	//rt_uint8_t *buf=(rt_uint8_t *)sram_malloc(973);
+	//rt_kprintf("addr 0x%08x\n",buf);
+	volatile rt_uint8_t *buf = (uint8_t *)0x60000000;
+	memset(buf,'E',1029);
+	for(i=0;i<1029;i++)
+		rt_kprintf("%c ",buf[i]);
 	//list_mem1();	
 	return 1;
 }

@@ -182,6 +182,35 @@ tm4c129x get network data to inform stm32
 //
 //*****************************************************************************
 static volatile uint8_t *g_pui8EPISdram;
+struct rt_memheap system_heap;
+
+void sram_init(void)
+{
+    /* initialize the built-in SRAM as a memory heap */
+    rt_memheap_init(&system_heap,
+                    "system",
+                    (void *)SRAM_MAPPING_ADDRESS,
+                    1024);
+}
+
+void *sram_malloc(unsigned long size)
+{
+    return rt_memheap_alloc(&system_heap, size);
+}
+RTM_EXPORT(sram_malloc);
+
+void sram_free(void *ptr)
+{
+    rt_memheap_free(ptr);
+}
+RTM_EXPORT(sram_free);
+
+void *sram_realloc(void *ptr, unsigned long size)
+{
+    return rt_memheap_realloc(&system_heap, ptr, size);
+}
+RTM_EXPORT(sram_realloc);
+
 //*****************************************************************************
 //
 // Configure EPI0 in SRAM mode.  The EPI memory space is setup using an a
@@ -558,6 +587,7 @@ int epi_init(void)
 		}
 		rt_kprintf("\n");
 		rt_mutex_init(&mutex, "epimutex", RT_IPC_FLAG_FIFO);
+		//sram_init();
         return(0);
     }
 
