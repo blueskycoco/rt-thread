@@ -49,13 +49,16 @@ static void led_thread_entry(void* parameter)
 	while(1)
 	{
 		rt_hw_led_on();
-		rt_thread_delay(RT_TICK_PER_SECOND/2);
+		rt_thread_delay(RT_TICK_PER_SECOND);
 		rt_hw_led_off();
-		rt_thread_delay(RT_TICK_PER_SECOND/2);				
-		//Write_B_A(cnt);
-		//Signal_To_A(0x55);
+		rt_thread_delay(RT_TICK_PER_SECOND);	
+		#if 1
+		Write_B_A(cnt);
+		Signal_To_A(0x55);
+		#else
 		Write_A_B(cnt);
 		Signal_To_B(0x33);
+		#endif
 		cnt++;
 		if(cnt==255)
 			cnt=0;
