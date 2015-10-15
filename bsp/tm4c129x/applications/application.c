@@ -44,14 +44,21 @@ static void led_thread_entry(void* parameter)
 	//const void *data_ptr;
     //rt_size_t data_size;
     //const void *last_data_ptr;
+    char cnt=0;
+	int i;
 	while(1)
 	{
 		rt_hw_led_on();
 		rt_thread_delay(RT_TICK_PER_SECOND/2);
 		rt_hw_led_off();
-		rt_thread_delay(RT_TICK_PER_SECOND/2);
-		//Signal_To_B(0x33);
-		Signal_To_A(0x55);
+		rt_thread_delay(RT_TICK_PER_SECOND/2);				
+		//Write_B_A(cnt);
+		//Signal_To_A(0x55);
+		Write_A_B(cnt);
+		Signal_To_B(0x33);
+		cnt++;
+		if(cnt==255)
+			cnt=0;
 		//list_thread1();
 		//list_mem1();
 		//list_tcps1();
@@ -248,7 +255,7 @@ int rt_application_init(void)
     /* Create led thread */
     led_thread = rt_thread_create("led",
 			    led_thread_entry, RT_NULL,
-			    256, 20, 20);
+			    2048, 20, 20);
     if(led_thread != RT_NULL)
 		  rt_thread_startup(led_thread);
 	#if 0

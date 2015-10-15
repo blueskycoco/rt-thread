@@ -608,24 +608,40 @@ int epi_init(void)
 }
 void IntGpioK()
 {
+	int i=0;
 	if(MAP_GPIOIntStatus(GPIO_PORTK_BASE, true)&GPIO_PIN_5)
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
 		//rt_sem_release(&(rx_sem[0]));
-		//rt_kprintf("GOT B_TO_A 0x%02X\n",g_pui8EPISdram[B_TO_A_SIGNAL]);
-		rt_kprintf("GOT A_TO_B 0x%02X\n",g_pui8EPISdram[A_TO_B_SIGNAL]);
+		rt_kprintf("GOT B_TO_A 0x%02X\n",g_pui8EPISdram[B_TO_A_SIGNAL]);
+		//rt_kprintf("GOT A_TO_B 0x%02X\n",g_pui8EPISdram[A_TO_B_SIGNAL]);
+		
 	}		
 	rt_kprintf("B_TO_A INT level %d \r\n",((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE);		
 }
 void Signal_To_B(unsigned char data)
 {
-	rt_kprintf("send 0x%02x to B\r\n",data);
+	rt_kprintf("\nsend 0x%02x to B\r\n",data);
 	g_pui8EPISdram[A_TO_B_SIGNAL]=data;
 }
 void Signal_To_A(unsigned char data)
 {
-	rt_kprintf("send 0x%02x to A\r\n",data);
+	rt_kprintf("\nsend 0x%02x to A\r\n",data);
 	g_pui8EPISdram[B_TO_A_SIGNAL]=data;
+}
+void Write_A_B(unsigned char begin)
+{
+	int i;	
+	for(i=511;i<1021;i++)
+		rt_kprintf("%d ",g_pui8EPISdram[i]);
+	memset(g_pui8EPISdram,begin,510);
+}
+void Write_B_A(unsigned char begin)
+{
+	int i=0;
+	for(i=0;i<510;i++)
+		rt_kprintf("%d ",g_pui8EPISdram[i]);
+	memset(g_pui8EPISdram+510,begin,511);
 }
 
 int _epi_write(int index, const void *buffer, int size,unsigned char signal)
