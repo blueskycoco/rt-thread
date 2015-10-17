@@ -140,6 +140,10 @@ int ack_got=0;
 #define A_TO_B_SIGNAL	   		0x000003FF//tm4c129x is A
 #define B_TO_A_SIGNAL	   		0x000003FE//stm32 is B
 #define SOCKET_BUF_LEN			250
+#define SIGNAL_DATA_IN			0x55
+#define SIGNAL_ACK_RCV			0x33
+rt_bool_t can_send=RT_TRUE;
+rt_bool_t op_state=RT_FALSE;//send state
 /*
 work flow:
 stm32 write data or config to tm4c129x
@@ -522,9 +526,9 @@ int epi_init(void)
     rt_kprintf("     Mem[0x6000.0001] = 0x%02x\n",
                g_pui8EPISdram[SRAM_START_ADDRESS + 1]);
     rt_kprintf("     Mem[0x6000.03FE] = 0x%02x\n",
-               g_pui8EPISdram[SRAM_END_ADDRESS - 1]);
+               g_pui8EPISdram[SRAM_END_ADDRESS - 3]);
     rt_kprintf("     Mem[0x6000.03FF] = 0x%02x\n\n",
-               g_pui8EPISdram[SRAM_END_ADDRESS]);
+               g_pui8EPISdram[SRAM_END_ADDRESS-2]);
 
     //
     // Display what writes we are doing on the console.
@@ -541,27 +545,28 @@ int epi_init(void)
     //
     g_pui8EPISdram[SRAM_START_ADDRESS] = 0xab;
     g_pui8EPISdram[SRAM_START_ADDRESS + 1] = 0x12;
-    g_pui8EPISdram[SRAM_END_ADDRESS - 1] = 0xdc;
-    g_pui8EPISdram[SRAM_END_ADDRESS] = 0x2a;
+    g_pui8EPISdram[SRAM_END_ADDRESS - 3] = 0xdc;
+    g_pui8EPISdram[SRAM_END_ADDRESS-2] = 0x2a;
     //
     // Read back the data you wrote, and display it on the console.
     //
+    #if 0
     rt_kprintf("  SRAM Read:\n");
     rt_kprintf("     Mem[0x6000.0000] = 0x%02x\n",
               g_pui8EPISdram[SRAM_START_ADDRESS]);
     rt_kprintf("     Mem[0x6000.0001] = 0x%02x\n",
                g_pui8EPISdram[SRAM_START_ADDRESS + 1]);
+    #endif
     rt_kprintf("     Mem[0x6000.03FE] = 0x%02x\n",
                g_pui8EPISdram[SRAM_END_ADDRESS - 1]);
     rt_kprintf("     Mem[0x6000.03FF] = 0x%02x\n\n",
                g_pui8EPISdram[SRAM_END_ADDRESS]);
-    
     // Check the validity of the data.
     //
-    if((g_pui8EPISdram[SRAM_START_ADDRESS] == 0xab) &&
-     (g_pui8EPISdram[SRAM_START_ADDRESS + 1] == 0x12) &&
-       (g_pui8EPISdram[SRAM_END_ADDRESS - 1] == 0xdc) &&
-       (g_pui8EPISdram[SRAM_END_ADDRESS] == 0x2a))
+    //if((g_pui8EPISdram[SRAM_START_ADDRESS] == 0xab) &&
+    // (g_pui8EPISdram[SRAM_START_ADDRESS + 1] == 0x12) &&
+    //   (g_pui8EPISdram[SRAM_END_ADDRESS - 3] == 0xdc) &&
+    //   (g_pui8EPISdram[SRAM_END_ADDRESS-2] == 0x2a))
     {
         //
         // Read and write operations were successful.  Return with no errors.
@@ -573,9 +578,9 @@ int epi_init(void)
 			g_pui8EPISdram[i]=i-256;
 		for(i=512;i<768;i++)
 			g_pui8EPISdram[i]=i-512;
-		for(i=768;i<1024;i++)
+		for(i=768;i<1021;i++)
 			g_pui8EPISdram[i]=i-768;
-		for(i=0;i<1024;i++)
+		for(i=0;i<1021;i++)
 		{
 			if(g_pui8EPISdram[i]!=(i%256))
 				rt_kprintf("<%02x> %d failed\n",g_pui8EPISdram[i],i%256);
@@ -612,14 +617,14 @@ void IntGpioK()
 	if(MAP_GPIOIntStatus(GPIO_PORTK_BASE, true)&GPIO_PIN_5)
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
-		//rt_sem_release(&(rx_sem[0]));
+		rt_sem_release(&(rx_sem[0]));
 		#if 0
 		rt_kprintf("GOT B_TO_A 0x%02X\n",g_pui8EPISdram[B_TO_A_SIGNAL]);
 		#else
-		rt_kprintf("\nGOT A_TO_B 0x%02X\n",g_pui8EPISdram[A_TO_B_SIGNAL]);		
+		//rt_kprintf("\nGOT A_TO_B 0x%02X\n",g_pui8EPISdram[A_TO_B_SIGNAL]);		
 		#endif
 	}		
-	rt_kprintf("B_TO_A INT level %d \n",((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE);		
+	//rt_kprintf("B_TO_A INT level %d \n",((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE);		
 }
 void Signal_To_B(unsigned char data)
 {
@@ -633,16 +638,10 @@ void Signal_To_A(unsigned char data)
 }
 void Write_A_B(unsigned char begin)
 {
-	int i;	
-	for(i=511;i<1021;i++)
-		rt_kprintf("%d ",g_pui8EPISdram[i]);
 	memset(g_pui8EPISdram,begin,510);
 }
 void Write_B_A(unsigned char begin)
 {
-	int i=0;
-	for(i=0;i<510;i++)
-		rt_kprintf("%d ",g_pui8EPISdram[i]);
 	memset(g_pui8EPISdram+510,begin,511);
 }
 
@@ -706,13 +705,49 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 }
 
 void _epi_read()
-{
-	unsigned char source=g_pui8EPISdram[B_TO_A_SIGNAL];
+{	
+
 	unsigned char *buf=RT_NULL;
 	int index_len=0,i;
 	unsigned char *index_addr;
 	int do_config=0;
+	#if 0
+	unsigned char source=g_pui8EPISdram[A_TO_B_SIGNAL];
+	//rt_kprintf("_epi_read source %02x\r\n",source);
+	if(source==SIGNAL_DATA_IN)
+	{		
+		op_state=RT_TRUE;//rcv state
+		rt_kprintf("\nGOT A_TO_B Data\n");
+		for(i=0;i<510;i++)
+			rt_kprintf("%d ",g_pui8EPISdram[i]);
+		Signal_To_A(SIGNAL_ACK_RCV);
+		op_state=RT_FALSE;//send state
+	}
+	else if(source==SIGNAL_ACK_RCV)
+	{
+		rt_kprintf("\nGOT A_TO_B ACK\n");
+		can_send=RT_TRUE;
+	}
+	#else
+	unsigned char source=g_pui8EPISdram[B_TO_A_SIGNAL];
 	rt_kprintf("_epi_read source %02x\r\n",source);
+	if(source==SIGNAL_DATA_IN)
+	{	
+		op_state=RT_TRUE;//rcv state
+		rt_kprintf("\nGOT B_TO_A Data\n");
+		for(i=511;i<1021;i++)
+			rt_kprintf("%d ",g_pui8EPISdram[i]);
+		Signal_To_B(SIGNAL_ACK_RCV);
+		op_state=RT_FALSE;//send state
+	}
+	else if(source==SIGNAL_ACK_RCV)
+	{
+		rt_kprintf("\nGOT B_TO_A ACK\n");
+		can_send=RT_TRUE;
+	}
+	#endif
+	return ;
+	#if 0
 	switch (source)
 	{
 		case SIGNAL_CONFIG_SOCKET0:
@@ -817,5 +852,6 @@ void _epi_read()
 			rt_free(buf);
 		_epi_write(source&0x0f-0x04,RT_NULL, 0,ACK_SIGNAL|(SIGNAL_DATA_SOCKET0+source&0x0f-0x04));
 	}	
+	#endif
 }
 

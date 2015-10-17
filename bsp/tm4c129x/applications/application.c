@@ -36,7 +36,8 @@
 char buf[]="123456789";
 extern void set_if6(char* netif_name, char* ip6_addr);
 extern void netio_init(void);
-
+extern rt_bool_t can_send;
+extern rt_bool_t op_state;
 /* led thread entry */
 static void led_thread_entry(void* parameter)
 {
@@ -49,19 +50,23 @@ static void led_thread_entry(void* parameter)
 	while(1)
 	{
 		rt_hw_led_on();
-		rt_thread_delay(RT_TICK_PER_SECOND);
+		rt_thread_delay(RT_TICK_PER_SECOND/4);
 		rt_hw_led_off();
-		rt_thread_delay(RT_TICK_PER_SECOND);	
-		#if 1
-		Write_B_A(cnt);
-		Signal_To_A(0x55);
-		#else
-		Write_A_B(cnt);
-		Signal_To_B(0x33);
-		#endif
-		cnt++;
-		if(cnt==255)
-			cnt=0;
+		rt_thread_delay(RT_TICK_PER_SECOND/4);	
+		if(can_send && !op_state)
+		{
+			can_send=RT_FALSE;
+			#if 0
+			Write_B_A(cnt);
+			Signal_To_A(0x55);
+			#else
+			Write_A_B(cnt);
+			Signal_To_B(0x55);
+			#endif
+			cnt++;
+			if(cnt==255)
+				cnt=0;
+		}
 		//list_thread1();
 		//list_mem1();
 		//list_tcps1();
