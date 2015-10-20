@@ -99,7 +99,7 @@
 
 #ifdef __GNUC__
 /* #define RT_USING_MINILIBC */
-#define RT_USING_NEWLIB
+#define RT_USING_LIBC
 #endif
 
 /* SECTION: device filesystem */

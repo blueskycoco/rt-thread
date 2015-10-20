@@ -28,7 +28,7 @@
 
 #include "led.h"
 #include "s1.h"
-
+#include "cJSON.h"
 int one_page_max=0;//one page size
 int one_userzone_max=0;//one user zone size
 int userzone_num=0;//userzone num
@@ -245,6 +245,22 @@ void b(unsigned char fuse)
 	burn(p);
 }
 #endif
+char *add_item(char *old,char *id,char *text)
+{
+	cJSON *root;
+	char *out;
+	if(old!=RT_NULL)
+		root=cJSON_Parse(old);
+	else
+		root=cJSON_CreateObject();	
+	cJSON_AddItemToObject(root, id, cJSON_CreateString(text));
+	out=cJSON_Print(root);	
+	cJSON_Delete(root);
+	if(old)
+		rt_free(old);
+	
+	return out;
+}
 
 static void rt_init_thread_entry(void* parameter)
 {
@@ -252,7 +268,7 @@ static void rt_init_thread_entry(void* parameter)
 	rt_uint8_t buf[256],aic12k[10]={0x04,0x8a,0x04,0x01,0x05,0x30,0x70,0x06,0x02};
 	int i;
 	long count=0;
-	
+	char *tmp;
 	
 	//cmx865a_init();
 	//ST7585_Init();
@@ -272,12 +288,15 @@ static void rt_init_thread_entry(void* parameter)
 	//ST7585_Write_String(0,7,"- RT -    ");
 	//ST7585_Write_String(0,6,"Thread Operating System");
 	//Draw_bat(3);
+	tmp=add_item(NULL,"12","34");
+	
 	while (1)
 	{		
 		/* led1 on */
-		rt_kprintf("led on , count : %d\r\n",count);	
-		
-		//rt_sprintf(buf,"led on , count : %d",count);
+		rt_kprintf("led on , count : %d\r\n",count);			
+		rt_sprintf(buf,"led on , count : %d",count);
+		tmp=add_item(tmp,"12",buf);
+		rt_kprintf("==>%s",tmp);
 		//ST7585_Write_String(0,3,buf);
 
 		//test_cmx865a();
