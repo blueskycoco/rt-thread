@@ -21,8 +21,8 @@
 
 #define rt_hw_led1_on()   GPIO_SetBits(GPIOF, GPIO_Pin_0)
 #define rt_hw_led1_off()  GPIO_ResetBits(GPIOF, GPIO_Pin_0)
-#define rt_hw_led2_on()   GPIO_ResetBits(GPIOA, GPIO_Pin_1)
-#define rt_hw_led2_off()  GPIO_SetBits(GPIOA, GPIO_Pin_1)
+#define rt_hw_led2_on()   GPIO_ResetBits(GPIOA, GPIO_Pin_4)
+#define rt_hw_led2_off()  GPIO_SetBits(GPIOA, GPIO_Pin_4)
 
 int rt_hw_led_init(void);
 

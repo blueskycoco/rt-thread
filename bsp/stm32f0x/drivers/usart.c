@@ -17,10 +17,10 @@
 #include "usart.h"
 #include "led.h"
 /* USART1 */
-#define UART1_GPIO_TX			GPIO_Pin_9
-#define UART1_GPIO_TX_SOURCE	GPIO_PinSource9
-#define UART1_GPIO_RX			GPIO_Pin_10
-#define UART1_GPIO_RX_SOURCE	GPIO_PinSource10
+#define UART1_GPIO_TX			GPIO_Pin_2
+#define UART1_GPIO_TX_SOURCE	GPIO_PinSource2
+#define UART1_GPIO_RX			GPIO_Pin_3
+#define UART1_GPIO_RX_SOURCE	GPIO_PinSource3
 #define UART1_GPIO_AF			GPIO_AF_1
 #define UART1_GPIO				GPIOA
 #define RT_SERIAL_RB_BUFSZ 64

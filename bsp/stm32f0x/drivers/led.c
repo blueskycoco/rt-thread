@@ -41,11 +41,11 @@ int rt_hw_led_init(void)
     //GPIO_ResetBits(GPIOF, GPIO_Pin_0);
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
     GPIO_Init(GPIOA, &GPIO_InitStructure);	
-	GPIO_SetBits(GPIOA, GPIO_Pin_2);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;	
+	GPIO_SetBits(GPIOA, GPIO_Pin_4);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;	
    	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	
+	#if 0
 	GPIO_SetBits(GPIOA, GPIO_Pin_3);
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;	
     GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -57,6 +57,7 @@ int rt_hw_led_init(void)
 	GPIO_ResetBits(GPIOF, GPIO_Pin_0);
 	delay(10);
 	GPIO_SetBits(GPIOF, GPIO_Pin_0);
+	#endif
     return 0;
 }
 
