@@ -136,8 +136,12 @@ int ack_got=0;
 #define SOCKET2_W_LEN_REG		0x000003ED
 #define SOCKET3_R_LEN_REG		0x000003EE
 #define SOCKET3_W_LEN_REG		0x000003EF
-#define CONFIG_A_TO_B_ADDR		0x000003FC
-#define CONFIG_B_TO_A_ADDR		0x000003FD
+#define A_TO_B_SOURCE_REG		0x000003F0
+#define B_TO_A_SOURCE_REG		0x000003F1	//for config or raw,which socket
+#define A_TO_B_PKT_LEN			0x000003F2
+#define B_TO_A_PKT_LEN			0x000003F3	//for config or raw,which socket
+#define CONFIG_A_TO_B_ADDR		0x000003FC	//sw signal to sure read done.
+#define CONFIG_B_TO_A_ADDR		0x000003FD	//sw signal to sure read done.
 #define A_TO_B_SIGNAL	   		0x000003FF//tm4c129x is A
 #define B_TO_A_SIGNAL	   		0x000003FE//stm32 is B
 #define SOCKET_BUF_LEN			250
@@ -626,15 +630,17 @@ void IntGpioK()
 		rt_sem_release(&(rx_sem[0]));
 	}
 }
-void Signal_To_B(unsigned char data)
+void Signal_To_B(unsigned char data,int len)
 {
+	g_pui8EPISdram[A_TO_B_PKT_LEN]=len;
 	g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0x00;
 	g_pui8EPISdram[A_TO_B_SIGNAL]=data;
 	while(g_pui8EPISdram[CONFIG_A_TO_B_ADDR]==0x00)
 		rt_thread_delay(1);
 }
-void Signal_To_A(unsigned char data)
+void Signal_To_A(unsigned char data,int len)
 {
+	g_pui8EPISdram[B_TO_A_PKT_LEN]=len;
 	g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0x00;
 	g_pui8EPISdram[B_TO_A_SIGNAL]=data;
 	while(g_pui8EPISdram[CONFIG_B_TO_A_ADDR]==0x00)
@@ -686,7 +692,7 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 			else if(mask==ACK_SIGNAL)
 			{
 				rt_kprintf("0x%02x ACK to STM32\r\n",signal);
-				Signal_To_B(signal);
+				Signal_To_B(signal,1);
 				rt_mutex_release(&mutex);
 				return 0;
 			}
@@ -695,7 +701,7 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 	}
 	memcpy((void *)(g_pui8EPISdram+offs_addr),buffer,size);
 	g_pui8EPISdram[offs_len]=size;
-	Signal_To_B(signal);
+	Signal_To_B(signal,1);
 	/*if(!do_config)
 	{
 		while(ack_got==0)
@@ -721,7 +727,7 @@ void _epi_read()
 	if(source==SIGNAL_DATA_IN)
 	{
 		rt_kprintf("\nGOT A_TO_B Data\n");
-		for(i=0;i<510;i++)
+		for(i=0;i<g_pui8EPISdram[A_TO_B_PKT_LEN];i++)
 			rt_kprintf("%d ",g_pui8EPISdram[i]);
 		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
 	}
@@ -730,13 +736,13 @@ void _epi_read()
 	rt_kprintf("\n_epi_read source %02x\r\n",source);
 	if(source==SIGNAL_DATA_IN)
 	{	
-		rt_kprintf("\nGOT B_TO_A Data\n");
+		rt_kprintf("\nGOT B_TO_A Data %d\n",g_pui8EPISdram[B_TO_A_PKT_LEN]);
 		//for(i=510;i<1019;i++)
 		//	rt_kprintf("%d ",g_pui8EPISdram[i]);
 		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
 		#if A_PLACE
-		memcpy(g_pui8EPISdram,g_pui8EPISdram+510,509);
-		Signal_To_B(0x55);
+		memcpy(g_pui8EPISdram,g_pui8EPISdram+510,g_pui8EPISdram[B_TO_A_PKT_LEN]);
+		Signal_To_B(0x55,g_pui8EPISdram[B_TO_A_PKT_LEN]);
 		#endif
 	}
 	#endif
