@@ -50,7 +50,7 @@ config g_conf,g_confb;
 #define DEV_BUS 1
 #define DEV_USB 2
 #define A_TO_B	1
-
+#define A_PLACE 1
 void socket_init();
 struct rt_data_queue *g_data_queue;
 typedef struct socket_type

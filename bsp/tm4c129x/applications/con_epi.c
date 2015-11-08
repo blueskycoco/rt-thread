@@ -626,18 +626,18 @@ void IntGpioK()
 		rt_sem_release(&(rx_sem[0]));
 	}
 }
-void Signal_To_B(unsigned char data)
+void Signal_To_B(unsigned char data,int len)
 {
-	g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0x00;
+	g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=len;
 	g_pui8EPISdram[A_TO_B_SIGNAL]=data;
-	while(g_pui8EPISdram[CONFIG_A_TO_B_ADDR]==0x00)
+	while(g_pui8EPISdram[CONFIG_A_TO_B_ADDR]==len)
 		rt_thread_delay(1);
 }
-void Signal_To_A(unsigned char data)
+void Signal_To_A(unsigned char data,int len)
 {
-	g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0x00;
+	g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=len;
 	g_pui8EPISdram[B_TO_A_SIGNAL]=data;
-	while(g_pui8EPISdram[CONFIG_B_TO_A_ADDR]==0x00)
+	while(g_pui8EPISdram[CONFIG_B_TO_A_ADDR]==len)
 		rt_thread_delay(1);
 }
 void Write_A_B(unsigned char begin)
@@ -686,7 +686,7 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 			else if(mask==ACK_SIGNAL)
 			{
 				rt_kprintf("0x%02x ACK to STM32\r\n",signal);
-				Signal_To_B(signal);
+				Signal_To_B(signal,1);
 				rt_mutex_release(&mutex);
 				return 0;
 			}
@@ -695,7 +695,7 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 	}
 	memcpy((void *)(g_pui8EPISdram+offs_addr),buffer,size);
 	g_pui8EPISdram[offs_len]=size;
-	Signal_To_B(signal);
+	Signal_To_B(signal,size);
 	/*if(!do_config)
 	{
 		while(ack_got==0)
@@ -721,9 +721,9 @@ void _epi_read()
 	if(source==SIGNAL_DATA_IN)
 	{
 		rt_kprintf("\nGOT A_TO_B Data\n");
-		for(i=0;i<510;i++)
+		for(i=0;i<g_pui8EPISdram[CONFIG_A_TO_B_ADDR];i++)
 			rt_kprintf("%d ",g_pui8EPISdram[i]);
-		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
+		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0x00;
 	}
 	#else
 	unsigned char source=g_pui8EPISdram[B_TO_A_SIGNAL];
@@ -731,9 +731,13 @@ void _epi_read()
 	if(source==SIGNAL_DATA_IN)
 	{	
 		rt_kprintf("\nGOT B_TO_A Data\n");
-		for(i=511;i<1019;i++)
-			rt_kprintf("%d ",g_pui8EPISdram[i]);
-		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
+		//for(i=510;i<510+g_pui8EPISdram[CONFIG_B_TO_A_ADDR];i++)
+		//	rt_kprintf("%d ",g_pui8EPISdram[i]);
+		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0x00;
+		#if A_PLACE
+		memcpy(g_pui8EPISdram,g_pui8EPISdram+510,509);
+		Signal_To_B(0x55,509);
+		#endif
 	}
 	#endif
 	return ;
