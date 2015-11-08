@@ -650,9 +650,9 @@ void Write_A_B(unsigned char begin)
 {
 	memset(g_pui8EPISdram,begin,510);
 }
-void Write_B_A(unsigned char begin)
+void Write_B_A(unsigned char begin,int len)
 {
-	memset(g_pui8EPISdram+510,begin,509);
+	memset(g_pui8EPISdram+510,begin,len);
 }
 int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 {
@@ -723,10 +723,10 @@ void _epi_read()
 	int do_config=0;
 	#if !A_TO_B
 	unsigned char source=g_pui8EPISdram[A_TO_B_SIGNAL];
-	rt_kprintf("_epi_read source %02x\r\n",source);
+	rt_kprintf("\n_epi_read source %02x\r\n",source);
 	if(source==SIGNAL_DATA_IN)
 	{
-		rt_kprintf("\nGOT A_TO_B Data\n");
+		rt_kprintf("\nGOT A_TO_B Data %d\n",g_pui8EPISdram[A_TO_B_PKT_LEN]);
 		for(i=0;i<g_pui8EPISdram[A_TO_B_PKT_LEN];i++)
 			rt_kprintf("%d ",g_pui8EPISdram[i]);
 		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
