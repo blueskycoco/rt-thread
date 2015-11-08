@@ -50,23 +50,19 @@ static void led_thread_entry(void* parameter)
 	while(1)
 	{
 		rt_hw_led_on();
-		rt_thread_delay(RT_TICK_PER_SECOND/4);
+		//rt_thread_delay(RT_TICK_PER_SECOND/2);
 		rt_hw_led_off();
-		rt_thread_delay(RT_TICK_PER_SECOND/4);	
-		if(can_send && !op_state)
-		{
-			can_send=RT_FALSE;
-			#if 1
-			Write_B_A(cnt);
-			Signal_To_A(0x55);
-			#else
-			Write_A_B(cnt);
-			Signal_To_B(0x55);
-			#endif
-			cnt++;
-			if(cnt==255)
-				cnt=0;
-		}
+		//rt_thread_delay(RT_TICK_PER_SECOND/2);	
+		#if !A_TO_B
+		Write_B_A(cnt);
+		Signal_To_A(0x55);
+		#else
+		Write_A_B(cnt);
+		Signal_To_B(0x55);
+		#endif
+		cnt++;
+		if(cnt==255)
+			cnt=0;
 		//list_thread1();
 		//list_mem1();
 		//list_tcps1();
@@ -248,6 +244,7 @@ void rt_init_thread_entry(void *parameter)
 	//ping_test("192.168.2.32",5,32);
 	//rt_thread_delay(400);
 	//list_if();
+    /* Create led thread */
 }
 
 int rt_application_init(void)
@@ -260,7 +257,6 @@ int rt_application_init(void)
                            rt_init_thread_entry, RT_NULL,
                            2048, RT_THREAD_PRIORITY_MAX / 3, 20);
     if (tid != RT_NULL) rt_thread_startup(tid);
-    /* Create led thread */
     led_thread = rt_thread_create("led",
 			    led_thread_entry, RT_NULL,
 			    2048, 20, 20);

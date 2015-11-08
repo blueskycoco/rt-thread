@@ -136,7 +136,8 @@ int ack_got=0;
 #define SOCKET2_W_LEN_REG		0x000003ED
 #define SOCKET3_R_LEN_REG		0x000003EE
 #define SOCKET3_W_LEN_REG		0x000003EF
-#define CONFIG_ADDR				0x000003F0
+#define CONFIG_A_TO_B_ADDR		0x000003FC
+#define CONFIG_B_TO_A_ADDR		0x000003FD
 #define A_TO_B_SIGNAL	   		0x000003FF//tm4c129x is A
 #define B_TO_A_SIGNAL	   		0x000003FE//stm32 is B
 #define SOCKET_BUF_LEN			250
@@ -561,10 +562,10 @@ int epi_init(void)
                g_pui8EPISdram[SRAM_END_ADDRESS-2]);
     // Check the validity of the data.
     //
-    if((g_pui8EPISdram[SRAM_START_ADDRESS] == 0xab) &&
-     (g_pui8EPISdram[SRAM_START_ADDRESS + 1] == 0x12) &&
-      (g_pui8EPISdram[SRAM_END_ADDRESS - 3] == 0xdc) &&
-       (g_pui8EPISdram[SRAM_END_ADDRESS-2] == 0x2a))
+    //if((g_pui8EPISdram[SRAM_START_ADDRESS] == 0xab) &&
+    // (g_pui8EPISdram[SRAM_START_ADDRESS + 1] == 0x12) &&
+    //  (g_pui8EPISdram[SRAM_END_ADDRESS - 3] == 0xdc) &&
+    //   (g_pui8EPISdram[SRAM_END_ADDRESS-2] == 0x2a))
     {
         //
         // Read and write operations were successful.  Return with no errors.
@@ -576,9 +577,9 @@ int epi_init(void)
 			g_pui8EPISdram[i]=i-256;
 		for(i=512;i<768;i++)
 			g_pui8EPISdram[i]=i-512;
-		for(i=768;i<1021;i++)
+		for(i=768;i<1022;i++)
 			g_pui8EPISdram[i]=i-768;
-		for(i=0;i<1021;i++)
+		for(i=0;i<1022;i++)
 		{
 			if(g_pui8EPISdram[i]!=(i%256))
 				rt_kprintf("<%02x> %d failed\n",g_pui8EPISdram[i],i%256);
@@ -590,6 +591,13 @@ int epi_init(void)
 		}
 		rt_kprintf("\n");
 		rt_mutex_init(&mutex, "epimutex", RT_IPC_FLAG_FIFO);
+		#if A_TO_B
+		if(g_pui8EPISdram[B_TO_A_SIGNAL]==0x55)
+			g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
+		#else
+		if(g_pui8EPISdram[A_TO_B_SIGNAL]==0x55)
+			g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
+		#endif
 		//sram_init();
         return(0);
     }
@@ -616,23 +624,21 @@ void IntGpioK()
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
 		rt_sem_release(&(rx_sem[0]));
-		#if 0
-		rt_kprintf("GOT B_TO_A 0x%02X\n",g_pui8EPISdram[B_TO_A_SIGNAL]);
-		#else
-		//rt_kprintf("\nGOT A_TO_B 0x%02X\n",g_pui8EPISdram[A_TO_B_SIGNAL]);		
-		#endif
-	}		
-	//rt_kprintf("B_TO_A INT level %d \n",((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE);		
+	}
 }
 void Signal_To_B(unsigned char data)
 {
-	rt_kprintf("\nsend 0x%02x to B\n",data);
+	g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0x00;
 	g_pui8EPISdram[A_TO_B_SIGNAL]=data;
+	while(g_pui8EPISdram[CONFIG_A_TO_B_ADDR]==0x00)
+		rt_thread_delay(1);
 }
 void Signal_To_A(unsigned char data)
 {
-	rt_kprintf("\nsend 0x%02x to A\n",data);
+	g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0x00;
 	g_pui8EPISdram[B_TO_A_SIGNAL]=data;
+	while(g_pui8EPISdram[CONFIG_B_TO_A_ADDR]==0x00)
+		rt_thread_delay(1);
 }
 void Write_A_B(unsigned char begin)
 {
@@ -640,9 +646,8 @@ void Write_A_B(unsigned char begin)
 }
 void Write_B_A(unsigned char begin)
 {
-	memset(g_pui8EPISdram+510,begin,511);
+	memset(g_pui8EPISdram+510,begin,509);
 }
-
 int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 {
 	int offs_addr,offs_len,do_config=0;
@@ -664,7 +669,7 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 		case SIGNAL_CONFIG_SOCKET2:
 		case SIGNAL_CONFIG_SOCKET3:
 		{
-			offs_addr=CONFIG_ADDR;
+			offs_addr=CONFIG_B_TO_A_ADDR;
 			offs_len=SOCKET0_R_LEN_REG+index+1;
 			do_config=1;
 		}
@@ -707,41 +712,28 @@ void _epi_read()
 
 	unsigned char *buf=RT_NULL;
 	int index_len=0,i;
+	char cnt=0;
 	unsigned char *index_addr;
 	int do_config=0;
-	#if 1
+	#if !A_TO_B
 	unsigned char source=g_pui8EPISdram[A_TO_B_SIGNAL];
-	//rt_kprintf("_epi_read source %02x\r\n",source);
+	rt_kprintf("_epi_read source %02x\r\n",source);
 	if(source==SIGNAL_DATA_IN)
-	{		
-		op_state=RT_TRUE;//rcv state
+	{
 		rt_kprintf("\nGOT A_TO_B Data\n");
 		for(i=0;i<510;i++)
 			rt_kprintf("%d ",g_pui8EPISdram[i]);
-		Signal_To_A(SIGNAL_ACK_RCV);
-		op_state=RT_FALSE;//send state
-	}
-	else if(source==SIGNAL_ACK_RCV)
-	{
-		rt_kprintf("\nGOT A_TO_B ACK\n");
-		can_send=RT_TRUE;
+		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
 	}
 	#else
 	unsigned char source=g_pui8EPISdram[B_TO_A_SIGNAL];
-	rt_kprintf("_epi_read source %02x\r\n",source);
+	rt_kprintf("\n_epi_read source %02x\r\n",source);
 	if(source==SIGNAL_DATA_IN)
 	{	
-		op_state=RT_TRUE;//rcv state
 		rt_kprintf("\nGOT B_TO_A Data\n");
-		for(i=511;i<1021;i++)
+		for(i=511;i<1019;i++)
 			rt_kprintf("%d ",g_pui8EPISdram[i]);
-		Signal_To_B(SIGNAL_ACK_RCV);
-		op_state=RT_FALSE;//send state
-	}
-	else if(source==SIGNAL_ACK_RCV)
-	{
-		rt_kprintf("\nGOT B_TO_A ACK\n");
-		can_send=RT_TRUE;
+		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
 	}
 	#endif
 	return ;
