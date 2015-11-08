@@ -550,23 +550,21 @@ int epi_init(void)
     //
     // Read back the data you wrote, and display it on the console.
     //
-    #if 0
     rt_kprintf("  SRAM Read:\n");
     rt_kprintf("     Mem[0x6000.0000] = 0x%02x\n",
               g_pui8EPISdram[SRAM_START_ADDRESS]);
     rt_kprintf("     Mem[0x6000.0001] = 0x%02x\n",
                g_pui8EPISdram[SRAM_START_ADDRESS + 1]);
-    #endif
     rt_kprintf("     Mem[0x6000.03FE] = 0x%02x\n",
-               g_pui8EPISdram[SRAM_END_ADDRESS - 1]);
+               g_pui8EPISdram[SRAM_END_ADDRESS - 3]);
     rt_kprintf("     Mem[0x6000.03FF] = 0x%02x\n\n",
-               g_pui8EPISdram[SRAM_END_ADDRESS]);
+               g_pui8EPISdram[SRAM_END_ADDRESS-2]);
     // Check the validity of the data.
     //
-    //if((g_pui8EPISdram[SRAM_START_ADDRESS] == 0xab) &&
-    // (g_pui8EPISdram[SRAM_START_ADDRESS + 1] == 0x12) &&
-    //   (g_pui8EPISdram[SRAM_END_ADDRESS - 3] == 0xdc) &&
-    //   (g_pui8EPISdram[SRAM_END_ADDRESS-2] == 0x2a))
+    if((g_pui8EPISdram[SRAM_START_ADDRESS] == 0xab) &&
+     (g_pui8EPISdram[SRAM_START_ADDRESS + 1] == 0x12) &&
+      (g_pui8EPISdram[SRAM_END_ADDRESS - 3] == 0xdc) &&
+       (g_pui8EPISdram[SRAM_END_ADDRESS-2] == 0x2a))
     {
         //
         // Read and write operations were successful.  Return with no errors.
@@ -711,7 +709,7 @@ void _epi_read()
 	int index_len=0,i;
 	unsigned char *index_addr;
 	int do_config=0;
-	#if 0
+	#if 1
 	unsigned char source=g_pui8EPISdram[A_TO_B_SIGNAL];
 	//rt_kprintf("_epi_read source %02x\r\n",source);
 	if(source==SIGNAL_DATA_IN)

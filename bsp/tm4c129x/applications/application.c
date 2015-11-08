@@ -56,7 +56,7 @@ static void led_thread_entry(void* parameter)
 		if(can_send && !op_state)
 		{
 			can_send=RT_FALSE;
-			#if 0
+			#if 1
 			Write_B_A(cnt);
 			Signal_To_A(0x55);
 			#else
