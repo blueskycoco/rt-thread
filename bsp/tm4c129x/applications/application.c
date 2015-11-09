@@ -50,12 +50,12 @@ static void led_thread_entry(void* parameter)
 	while(1)
 	{
 		rt_hw_led_on();
-		//rt_thread_delay(RT_TICK_PER_SECOND/2);
+		rt_thread_delay(RT_TICK_PER_SECOND/2);
 		rt_hw_led_off();
-		//rt_thread_delay(RT_TICK_PER_SECOND/2);	
+		rt_thread_delay(RT_TICK_PER_SECOND/2);	
 		#if !A_TO_B
-		Write_B_A(cnt,cnt);
-		Signal_To_A(0x55,cnt);
+		//Write_B_A(cnt,cnt);
+		//Signal_To_A(0x55,cnt);
 		#else
 		#if !A_PLACE
 		Write_A_B(cnt);

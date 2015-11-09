@@ -138,8 +138,10 @@ int ack_got=0;
 #define SOCKET3_W_LEN_REG		0x000003EF
 #define A_TO_B_SOURCE_REG		0x000003F0
 #define B_TO_A_SOURCE_REG		0x000003F1	//for config or raw,which socket
-#define A_TO_B_PKT_LEN			0x000003F2
-#define B_TO_A_PKT_LEN			0x000003F3	//for config or raw,which socket
+#define A_TO_B_PKT_LEN0			0x000003F2
+#define A_TO_B_PKT_LEN1			0x000003F3
+#define B_TO_A_PKT_LEN0			0x000003F4	//for config or raw,which socket
+#define B_TO_A_PKT_LEN1			0x000003F5
 #define CONFIG_A_TO_B_ADDR		0x000003FC	//sw signal to sure read done.
 #define CONFIG_B_TO_A_ADDR		0x000003FD	//sw signal to sure read done.
 #define A_TO_B_SIGNAL	   		0x000003FF//tm4c129x is A
@@ -149,6 +151,8 @@ int ack_got=0;
 #define SIGNAL_ACK_RCV			0x33
 rt_bool_t can_send=RT_TRUE;
 rt_bool_t op_state=RT_FALSE;//send state
+rt_uint8_t *to_socket[32]={RT_NULL};
+int index_epi=0;
 /*
 work flow:
 stm32 write data or config to tm4c129x
@@ -602,6 +606,11 @@ int epi_init(void)
 		if(g_pui8EPISdram[A_TO_B_SIGNAL]==0x55)
 			g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
 		#endif
+		#if !A_TO_B
+			to_socket[index_epi]=(unsigned char *)malloc(8192*sizeof(unsigned char));
+			if(to_socket[index_epi]==RT_NULL)
+				rt_kprintf("to_socket is RT_NULL\r\n");
+		#endif
 		//sram_init();
         return(0);
     }
@@ -632,7 +641,8 @@ void IntGpioK()
 }
 void Signal_To_B(unsigned char data,int len)
 {
-	g_pui8EPISdram[A_TO_B_PKT_LEN]=len;
+	g_pui8EPISdram[A_TO_B_PKT_LEN0]=len&0xff;
+	g_pui8EPISdram[A_TO_B_PKT_LEN1]=(len>>8)&0xff;
 	g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0x00;
 	g_pui8EPISdram[A_TO_B_SIGNAL]=data;
 	while(g_pui8EPISdram[CONFIG_A_TO_B_ADDR]==0x00)
@@ -640,7 +650,8 @@ void Signal_To_B(unsigned char data,int len)
 }
 void Signal_To_A(unsigned char data,int len)
 {
-	g_pui8EPISdram[B_TO_A_PKT_LEN]=len;
+	g_pui8EPISdram[B_TO_A_PKT_LEN0]=len&0xff;
+	g_pui8EPISdram[B_TO_A_PKT_LEN1]=(len>>8)&0xff;
 	g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0x00;
 	g_pui8EPISdram[B_TO_A_SIGNAL]=data;
 	while(g_pui8EPISdram[CONFIG_B_TO_A_ADDR]==0x00)
@@ -655,7 +666,35 @@ void Write_B_A(unsigned char begin,int len)
 	memset(g_pui8EPISdram+510,begin,len);
 }
 int _epi_write(int index, const void *buffer, int size,unsigned char signal)
-{
+{	rt_kprintf("Total send B_TO_A %d\n",size);
+	int len=0;
+	if(size<=498)
+	{
+		memcpy(g_pui8EPISdram+510,buffer,size);
+		Signal_To_A(0x55,size);
+	}
+	else
+	{
+		while(len!=size)
+		{
+			if((len+498)<size)
+			{
+				rt_kprintf("send B_TO_A 498\n");
+				memcpy(g_pui8EPISdram+510,buffer+len,498);
+				Signal_To_A(0x55,498);
+				len=len+498;
+			}
+			else
+			{
+				rt_kprintf("send B_TO_A %d\n",size-len);
+				memcpy(g_pui8EPISdram+510,buffer+len,size-len);
+				Signal_To_A(0x55,size-len);
+				len+=size-len;
+			}
+		}
+	}
+	rt_kprintf("send done.\n");
+	#if 0
 	int offs_addr,offs_len,do_config=0;
 	rt_mutex_take(&mutex, RT_WAITING_FOREVER);
 	rt_kprintf("_epi_write index %d,buffer %02x ,size %d,signal %x\r\n",index,buffer,size,signal);
@@ -710,6 +749,7 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 		rt_kprintf("ack got\r\n");
 	}*/
 	rt_mutex_release(&mutex);
+	#endif
 	return 0;	
 }
 
@@ -721,28 +761,55 @@ void _epi_read()
 	char cnt=0;
 	unsigned char *index_addr;
 	int do_config=0;
+	int b_to_a_len=0;
 	#if !A_TO_B
+	static int packet_len=0;
+	int a_to_b_len=0;
+	a_to_b_len=g_pui8EPISdram[A_TO_B_PKT_LEN1]<<8|g_pui8EPISdram[A_TO_B_PKT_LEN0];
 	unsigned char source=g_pui8EPISdram[A_TO_B_SIGNAL];
-	rt_kprintf("\n_epi_read source %02x\r\n",source);
+	rt_kprintf("\nGOT A_TO_B Data %d\n",a_to_b_len);	
 	if(source==SIGNAL_DATA_IN)
 	{
-		rt_kprintf("\nGOT A_TO_B Data %d\n",g_pui8EPISdram[A_TO_B_PKT_LEN]);
-		for(i=0;i<g_pui8EPISdram[A_TO_B_PKT_LEN];i++)
-			rt_kprintf("%d ",g_pui8EPISdram[i]);
-		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
+		a_to_b_len=g_pui8EPISdram[A_TO_B_PKT_LEN1]<<8|g_pui8EPISdram[A_TO_B_PKT_LEN0];
+		//for(i=0;i<g_pui8EPISdram[A_TO_B_PKT_LEN];i++)
+		//	rt_kprintf("%d ",g_pui8EPISdram[i]);
+		if(packet_len+a_to_b_len<1440)
+		{
+			rt_memcpy(to_socket[index_epi]+packet_len,g_pui8EPISdram,a_to_b_len);
+			packet_len+=a_to_b_len;
+			g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
+		}
+		else
+		{
+			if(phy_link&&g_socket[0].connected)
+			{
+				rt_data_queue_push(&g_data_queue[0],to_socket[index_epi], 8192, RT_WAITING_FOREVER);	
+			}
+			else
+				rt_free(to_socket[index_epi]);
+			if(index_epi<31)
+				index_epi++;
+			else
+				index_epi=0;
+			to_socket[index_epi]=(unsigned char *)malloc(8192*sizeof(unsigned char));
+			if(to_socket[index_epi]==RT_NULL)
+				rt_kprintf("to_socket is RT_NULL\r\n");
+			packet_len=0;
+		}
 	}
 	#else
 	unsigned char source=g_pui8EPISdram[B_TO_A_SIGNAL];
-	rt_kprintf("\n_epi_read source %02x\r\n",source);
+	//rt_kprintf("\n_epi_read source %02x\r\n",source);
 	if(source==SIGNAL_DATA_IN)
 	{	
-		rt_kprintf("\nGOT B_TO_A Data %d\n",g_pui8EPISdram[B_TO_A_PKT_LEN]);
+		b_to_a_len=(g_pui8EPISdram[B_TO_A_PKT_LEN1]<<8)|g_pui8EPISdram[B_TO_A_PKT_LEN0];
+		rt_kprintf("\nGOT B_TO_A Data %d\n",b_to_a_len);
 		//for(i=510;i<1019;i++)
 		//	rt_kprintf("%d ",g_pui8EPISdram[i]);
 		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
 		#if A_PLACE
-		memcpy(g_pui8EPISdram,g_pui8EPISdram+510,g_pui8EPISdram[B_TO_A_PKT_LEN]);
-		Signal_To_B(0x55,g_pui8EPISdram[B_TO_A_PKT_LEN]);
+		memcpy(g_pui8EPISdram,g_pui8EPISdram+510,b_to_a_len);
+		Signal_To_B(0x55,b_to_a_len);
 		#endif
 	}
 	#endif
