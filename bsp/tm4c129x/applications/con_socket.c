@@ -445,7 +445,7 @@ void socket_w(void *paramter)
 			
 			rt_free(last_data_ptr);
 			//rt_kprintf("%x free\n",last_data_ptr);
-			last_data_ptr=NULL;
+			last_data_ptr=RT_NULL;
 			//if(data_size!=16384)
 			//	list_mem1();
 			}		
