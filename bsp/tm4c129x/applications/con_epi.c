@@ -12,12 +12,17 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/interrupt.h"
 #include "driverlib/rom_map.h"
+#include "driverlib/udma.h"
 #include "con_socket.h"
 extern struct rt_semaphore rx_sem[4];
+struct rt_semaphore udma_sem;
 struct rt_mutex mutex;
 extern bool phy_link;
 int ack_got=0;
 int cur_len=0;
+void InitSWTransfer(uint32_t dest,uint32_t src,uint32_t len);
+uint8_t pui8ControlTable[1024] __attribute__ ((aligned(1024)));
+
 //*****************************************************************************
 //
 //! \addtogroup epi_examples_list
@@ -150,7 +155,7 @@ int cur_len=0;
 #define SOCKET_BUF_LEN			250
 #define SIGNAL_DATA_IN			0x55
 #define SIGNAL_ACK_RCV			0x33
-rt_bool_t can_send=RT_TRUE;
+rt_bool_t can_send=RT_FALSE;
 rt_bool_t op_state=RT_FALSE;//send state
 rt_uint8_t *to_socket[32]={RT_NULL};
 int index_epi=0;
@@ -613,7 +618,30 @@ int epi_init(void)
 			//if(to_socket[index_epi]==RT_NULL)
 			//	rt_kprintf("to_socket is RT_NULL\r\n");
 		#endif
-		//sram_init();
+		//sram_init();		
+		//
+		// Enable the uDMA controller at the system level.	Enable it to continue
+		// to run while the processor is in sleep.
+		//
+		MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
+		MAP_SysCtlPeripheralSleepEnable(SYSCTL_PERIPH_UDMA);
+		
+		//
+		// Enable the uDMA controller error interrupt.	This interrupt will occur
+		// if there is a bus error during a transfer.
+		//
+		MAP_IntEnable(INT_UDMAERR);
+		
+		//
+		// Enable the uDMA controller.
+		//
+		MAP_uDMAEnable();
+		
+		//
+		// Point at the control table to use for channel control structures.
+		//
+		MAP_uDMAControlBaseSet(pui8ControlTable);
+		rt_sem_init(&udma_sem, "udma_sem", 0, 0);
         return(0);
     }
 
@@ -672,11 +700,14 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 	static int all_len=0;
 	all_len+=size;
 	cur_len=size;
-	rt_kprintf("Total send B_TO_A %d==>%d\n",all_len,size);
+	//rt_kprintf("Total send B_TO_A %d==>%d\n",all_len,size);
 	int len=0;
 	if(size<=498)
 	{
-		memcpy(g_pui8EPISdram+510,buffer,size);
+		//memcpy(g_pui8EPISdram+510,buffer,size);
+		InitSWTransfer(g_pui8EPISdram+510,buffer,size/4);
+		if(size%4!=0)
+			rt_memcpy(g_pui8EPISdram+510+(size/4)*4,buffer+(size/4)*4,size-(size/4)*4);
 		Signal_To_A(0x55,size);
 	}
 	else
@@ -686,14 +717,19 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 			if((len+498)<size)
 			{
 				//rt_kprintf("send B_TO_A 498\n");
-				memcpy(g_pui8EPISdram+510,buffer+len,498);
+				//memcpy(g_pui8EPISdram+510,buffer+len,498);
+				InitSWTransfer(g_pui8EPISdram+510,buffer,496/4);
+				rt_memcpy(g_pui8EPISdram+510+496,buffer+496,2);
 				Signal_To_A(0x55,498);
 				len=len+498;
 			}
 			else
 			{
 				//rt_kprintf("send B_TO_A %d\n",size-len);
-				memcpy(g_pui8EPISdram+510,buffer+len,size-len);
+				//memcpy(g_pui8EPISdram+510,buffer+len,size-len);
+				InitSWTransfer(g_pui8EPISdram+510,buffer+len,(size-len)/4);
+				if((size-len)%4!=0)
+					rt_memcpy(g_pui8EPISdram+510+((size-len)/4)*4,buffer+((size-len)/4)*4,size-len-((size-len)/4)*4);
 				Signal_To_A(0x55,size-len);
 				len+=size-len;
 			}
@@ -770,7 +806,8 @@ void _epi_read()
 	int b_to_a_len=0;
 	static int all_len=0;
 	#if !A_TO_B
-	static int packet_len=0;
+	unsigned char local_buf[1440]={0};
+	static int packet_len=0,send_len=0;
 	int a_to_b_len=0;
 	a_to_b_len=g_pui8EPISdram[A_TO_B_PKT_LEN1]<<8|g_pui8EPISdram[A_TO_B_PKT_LEN0];
 	all_len+=a_to_b_len;
@@ -780,21 +817,33 @@ void _epi_read()
 	{
 		if(to_socket[index_epi]==RT_NULL)
 		{
-			to_socket[index_epi]=(unsigned char *)malloc(cur_len*sizeof(unsigned char));
+			to_socket[index_epi]=(unsigned char *)malloc(1440*6*sizeof(unsigned char));
 			if(to_socket[index_epi]==RT_NULL)
 				rt_kprintf("to_socket is RT_NULL\r\n");
-			else
-				rt_kprintf("cur_len %d==>%d\n",cur_len,index_epi);
+			//else
+			//	rt_kprintf("cur_len %d==>%d\n",cur_len,index_epi);
 		}
-		rt_memcpy(to_socket[index_epi]+packet_len,g_pui8EPISdram,a_to_b_len);
-		packet_len+=a_to_b_len;
-		if(packet_len==cur_len)
+		if(a_to_b_len==444)
+		{
+			if(send_len+a_to_b_len==1440*6)
+			can_send=RT_TRUE; 
+		}
+		else if(a_to_b_len!=498)
+			can_send=RT_TRUE;
+			
+		rt_memcpy(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len);
+		//InitSWTransfer(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len/4);
+		//if(a_to_b_len%4!=0)
+		//	rt_memcpy(to_socket[index_epi]+send_len+(a_to_b_len/4)*4,g_pui8EPISdram+(a_to_b_len/4)*4,a_to_b_len-(a_to_b_len/4)*4);
+		send_len+=a_to_b_len;
+
+		if(can_send)
 		{
 			if(phy_link&&g_socket[0].connected)
 			{
-				rt_data_queue_push(&g_data_queue[0],to_socket[index_epi], packet_len, RT_WAITING_FOREVER);
-				rt_kprintf("\nGOT A_TO_B Data %d==>%d\n",all_len,a_to_b_len);
-				rt_kprintf("push len %d\n",packet_len);
+				rt_data_queue_push(&g_data_queue[0],to_socket[index_epi], send_len, RT_WAITING_FOREVER);
+				//rt_kprintf("\nGOT A_TO_B Data %d==>%d\n",send_len,a_to_b_len);
+				//rt_kprintf("push len %d\n",send_len);
 			}
 			else
 			{
@@ -805,8 +854,13 @@ void _epi_read()
 				index_epi++;
 			else
 				index_epi=0;
-			packet_len=0;
-		}
+			to_socket[index_epi]=(unsigned char *)malloc(1440*6*sizeof(unsigned char));
+			if(to_socket[index_epi]==RT_NULL)
+				rt_kprintf("to_socket is RT_NULL2\r\n");
+			//else
+			//	rt_kprintf("cur_l2en %d==>%d\n",cur_len,index_epi);		
+			send_len=0;
+		}		
 		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
 		#if 0
 		//a_to_b_len=g_pui8EPISdram[A_TO_B_PKT_LEN1]<<8|g_pui8EPISdram[A_TO_B_PKT_LEN0];
@@ -852,7 +906,10 @@ void _epi_read()
 		//	rt_kprintf("%d ",g_pui8EPISdram[i]);
 		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
 		#if A_PLACE
-		memcpy(g_pui8EPISdram,g_pui8EPISdram+510,b_to_a_len);
+		//memcpy(g_pui8EPISdram,g_pui8EPISdram+510,b_to_a_len);
+		InitSWTransfer(g_pui8EPISdram,g_pui8EPISdram+510,b_to_a_len/4);
+		if(b_to_a_len%4!=0)
+			rt_memcpy(g_pui8EPISdram+(b_to_a_len/4)*4,g_pui8EPISdram+510+(b_to_a_len/4)*4,b_to_a_len-(b_to_a_len/4)*4);
 		Signal_To_B(0x55,b_to_a_len);
 		#endif
 	}
@@ -964,5 +1021,115 @@ void _epi_read()
 		_epi_write(source&0x0f-0x04,RT_NULL, 0,ACK_SIGNAL|(SIGNAL_DATA_SOCKET0+source&0x0f-0x04));
 	}	
 	#endif
+}
+void uDMAErrorHandler(void)
+{
+    uint32_t ui32Status;
+
+    //
+    // Check for uDMA error bit
+    //
+    ui32Status = MAP_uDMAErrorStatusGet();
+
+    //
+    // If there is a uDMA error, then clear the error and increment
+    // the error counter.
+    //
+    if(ui32Status)
+    {
+        MAP_uDMAErrorStatusClear();
+        //g_ui32uDMAErrCount++;
+        rt_kprintf("uDMA Error intr.\n");
+    }
+}
+
+void uDMAIntHandler(void)
+{
+    uint32_t ui32Mode;
+
+    //
+    // Check for the primary control structure to indicate complete.
+    //
+    ui32Mode = MAP_uDMAChannelModeGet(UDMA_CHANNEL_SW);
+    if(ui32Mode == UDMA_MODE_STOP)
+    {
+        //
+        // Increment the count of completed transfers.
+        //
+        //g_ui32MemXferCount++;
+
+        //
+        // Configure it for another transfer.
+        //
+        //ROM_uDMAChannelTransferSet(UDMA_CHANNEL_SW, UDMA_MODE_AUTO,
+        //                           g_ui32SrcBuf, g_ui32DstBuf,
+        //                           MEM_BUFFER_SIZE);
+
+        //
+        // Initiate another transfer.
+        //
+        //ROM_uDMAChannelEnable(UDMA_CHANNEL_SW);
+        //ROM_uDMAChannelRequest(UDMA_CHANNEL_SW);
+        //rt_kprintf("uDMA done.\n");
+        rt_sem_release(&udma_sem);
+    }
+
+    //
+    // If the channel is not stopped, then something is wrong.
+    //
+    else
+    {
+        //g_ui32BadISR++;
+        rt_kprintf("uDMA Bad intr.\n");
+    }
+}
+void InitSWTransfer(uint32_t dest,uint32_t src,uint32_t len)
+{
+
+    //
+    // Enable interrupts from the uDMA software channel.
+    //
+    MAP_IntEnable(INT_UDMA);
+
+    //
+    // Put the attributes in a known state for the uDMA software channel.
+    // These should already be disabled by default.
+    //
+    MAP_uDMAChannelAttributeDisable(UDMA_CHANNEL_SW,
+                                    UDMA_ATTR_USEBURST | UDMA_ATTR_ALTSELECT |
+                                    (UDMA_ATTR_HIGH_PRIORITY |
+                                    UDMA_ATTR_REQMASK));
+
+    //
+    // Configure the control parameters for the SW channel.  The SW channel
+    // will be used to transfer between two memory buffers, 32 bits at a time.
+    // Therefore the data size is 32 bits, and the address increment is 32 bits
+    // for both source and destination.  The arbitration size will be set to 8,
+    // which causes the uDMA controller to rearbitrate after 8 items are
+    // transferred.  This keeps this channel from hogging the uDMA controller
+    // once the transfer is started, and allows other channels cycles if they
+    // are higher priority.
+    //
+    MAP_uDMAChannelControlSet(UDMA_CHANNEL_SW | UDMA_PRI_SELECT,
+                              UDMA_SIZE_32 | UDMA_SRC_INC_32 | UDMA_DST_INC_32 |
+                              UDMA_ARB_8);
+
+    //
+    // Set up the transfer parameters for the software channel.  This will
+    // configure the transfer buffers and the transfer size.  Auto mode must be
+    // used for software transfers.
+    //
+    MAP_uDMAChannelTransferSet(UDMA_CHANNEL_SW | UDMA_PRI_SELECT,
+                               UDMA_MODE_AUTO, src, dest,
+                               len);
+
+    //
+    // Now the software channel is primed to start a transfer.  The channel
+    // must be enabled.  For software based transfers, a request must be
+    // issued.  After this, the uDMA memory transfer begins.
+    //
+    MAP_uDMAChannelEnable(UDMA_CHANNEL_SW);
+    MAP_uDMAChannelRequest(UDMA_CHANNEL_SW);
+	rt_sem_take(&udma_sem, RT_WAITING_FOREVER);
 }
 

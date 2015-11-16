@@ -52,7 +52,10 @@ extern void UART2_IRQHandler(void);
 extern void UART3_IRQHandler(void);
 extern void UART4_IRQHandler(void);
 extern void USB0DeviceIntHandler(void);
+extern void uDMAIntHandler(void);
+extern void uDMAErrorHandler(void);
 extern void HardFault_Handler(void);
+
 //*****************************************************************************
 //
 // Reserve space for the system stack.
@@ -130,8 +133,8 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Hibernate
     USB0DeviceIntHandler,                      // USB0
     IntDefaultHandler,                      // PWM Generator 3
-    IntDefaultHandler,                      // uDMA Software Transfer
-    IntDefaultHandler,                      // uDMA Error
+    uDMAIntHandler,                      // uDMA Software Transfer
+    uDMAErrorHandler,                      // uDMA Error
     IntDefaultHandler,                      // ADC1 Sequence 0
     IntDefaultHandler,                      // ADC1 Sequence 1
     IntDefaultHandler,                      // ADC1 Sequence 2
