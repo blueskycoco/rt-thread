@@ -65,7 +65,7 @@ void TcharToChar (const TCHAR * tchar, char ** _char)
 	WideCharToMultiByte(CP_ACP, 0, (const WCHAR *)tchar, -1, *_char, iLength, NULL, NULL);   
 	//printf("%s\n",*_char);
 }  
-#define W_OP 0
+#define W_OP 1
 int check_target_mem(usb_dev_handle *dev)
 {
 	int ret,result=0;

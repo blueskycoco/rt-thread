@@ -7,7 +7,7 @@
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
 
-#define TEST_SOCKET	1 //0 is test config , 1 is test socket
+#define TEST_SOCKET	0 //0 is test config , 1 is test socket
 #if !TEST_SOCKET
 extern int t_len;
 #endif
