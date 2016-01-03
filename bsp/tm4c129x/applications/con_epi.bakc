@@ -366,6 +366,120 @@ int epi_init(void)
 	GPIOPinTypeEPI(GPIO_PORTN_BASE, GPIO_PIN_2);
 	MAP_GPIOPinConfigure(GPIO_PN3_EPI0S30);
 	GPIOPinTypeEPI(GPIO_PORTN_BASE, GPIO_PIN_3);
+	/*
+	MAP_GPIOPinConfigure(GPIO_PL2_EPI0S18);
+	GPIOPinTypeEPI(GPIO_PORTL_BASE, GPIO_PIN_2);
+	MAP_GPIOPinConfigure(GPIO_PL3_EPI0S19);
+	GPIOPinTypeEPI(GPIO_PORTL_BASE, GPIO_PIN_3);
+	MAP_GPIOPinConfigure(GPIO_PL4_EPI0S26);
+	GPIOPinTypeEPI(GPIO_PORTL_BASE, GPIO_PIN_4);
+	MAP_GPIOPinConfigure(GPIO_PQ0_EPI0S20);
+	GPIOPinTypeEPI(GPIO_PORTQ_BASE, GPIO_PIN_0);
+	MAP_GPIOPinConfigure(GPIO_PQ1_EPI0S21);
+	GPIOPinTypeEPI(GPIO_PORTQ_BASE, GPIO_PIN_1);	
+	MAP_GPIOPinConfigure(GPIO_PQ2_EPI0S22);
+	GPIOPinTypeEPI(GPIO_PORTQ_BASE, GPIO_PIN_2);
+	MAP_GPIOPinConfigure(GPIO_PQ3_EPI0S23);
+	GPIOPinTypeEPI(GPIO_PORTQ_BASE, GPIO_PIN_3);	
+	MAP_GPIOPinConfigure(GPIO_PK7_EPI0S24);
+	GPIOPinTypeEPI(GPIO_PORTK_BASE, GPIO_PIN_7);
+	MAP_GPIOPinConfigure(GPIO_PK6_EPI0S25);
+	GPIOPinTypeEPI(GPIO_PORTK_BASE, GPIO_PIN_6);	
+	MAP_GPIOPinConfigure(GPIO_PB2_EPI0S27);
+	GPIOPinTypeEPI(GPIO_PORTB_BASE, GPIO_PIN_2);*/
+	#if 0
+    //
+    // EPI0S4 ~ EPI0S7: C4 ~ 7
+    //
+    ui32Val = HWREG(GPIO_PORTC_BASE + GPIO_O_PCTL);
+    ui32Val &= 0x0000FFFF;
+    ui32Val |= 0xFFFF0000;
+    HWREG(GPIO_PORTC_BASE + GPIO_O_PCTL) = ui32Val;
+
+    //
+    // EPI0S8 ~ EPI0S9: A6 ~ 7
+    //
+    ui32Val = HWREG(GPIO_PORTA_BASE + GPIO_O_PCTL);
+    ui32Val &= 0x00FFFFFF;
+    ui32Val |= 0xFF000000;
+    HWREG(GPIO_PORTA_BASE + GPIO_O_PCTL) = ui32Val;
+
+    //
+    // EPI0S10 ~ EPI0S11: G0 ~ 1
+    //
+    ui32Val = HWREG(GPIO_PORTG_BASE + GPIO_O_PCTL);
+    ui32Val &= 0xFFFFFF00;
+    ui32Val |= 0x000000FF;
+    HWREG(GPIO_PORTG_BASE + GPIO_O_PCTL) = ui32Val;
+
+    //
+    // EPI0S12 ~ EPI0S15: M0 ~ 3
+    //
+    ui32Val = HWREG(GPIO_PORTM_BASE + GPIO_O_PCTL);
+    ui32Val &= 0xFFFF0000;
+    ui32Val |= 0x0000FFFF;
+    HWREG(GPIO_PORTM_BASE + GPIO_O_PCTL) = ui32Val;
+
+    //
+    // EPI0S16 ~ EPI0S19: L0 1
+    //
+    ui32Val = HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL);
+    ui32Val &= 0xFFFFFF00;
+    ui32Val |= 0x000000FF;
+    HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL) = ui32Val;
+    //
+    // EPI0S20 : Q0
+    //
+    //ui32Val = HWREG(GPIO_PORTQ_BASE + GPIO_O_PCTL);
+    //ui32Val &= 0xFFFFFFF0;
+    //ui32Val |= 0x0000000F;
+    //HWREG(GPIO_PORTQ_BASE + GPIO_O_PCTL) = ui32Val;
+    //
+    // EPI0S26 : L4
+    //
+    //ui32Val = HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL);
+    //ui32Val &= 0xFFF0FFFF;
+    //ui32Val |= 0x000F0000;
+    //HWREG(GPIO_PORTL_BASE + GPIO_O_PCTL) = ui32Val;
+
+    //
+    // EPI0S28 : B3
+    //
+    ui32Val = HWREG(GPIO_PORTB_BASE + GPIO_O_PCTL);
+    ui32Val &= 0xFFFF0FFF;
+    ui32Val |= 0x0000F000;
+    HWREG(GPIO_PORTB_BASE + GPIO_O_PCTL) = ui32Val;
+
+    //
+    // EPI0S29: N2 3
+    //
+    ui32Val = HWREG(GPIO_PORTN_BASE + GPIO_O_PCTL);
+    ui32Val &= 0xFFFF00FF;
+    ui32Val |= 0x0000FF00;
+    HWREG(GPIO_PORTN_BASE + GPIO_O_PCTL) = ui32Val;
+
+    //
+    // EPI0S00 ~ EPI0S03: K0 ~ 3
+    //
+    ui32Val = HWREG(GPIO_PORTK_BASE + GPIO_O_PCTL);
+    ui32Val &= 0xFFFF0000;
+    ui32Val |= 0x0000FFFF;
+    HWREG(GPIO_PORTK_BASE + GPIO_O_PCTL) = ui32Val;
+
+    //
+    // Configure the GPIO pins for EPI mode.  All the EPI pins require 8mA
+    // drive strength in push-pull operation.  This step also gives control of
+    // pins to the EPI module.
+    //
+    GPIOPinTypeEPI(GPIO_PORTA_BASE, EPI_PORTA_PINS);
+    GPIOPinTypeEPI(GPIO_PORTB_BASE, EPI_PORTB_PINS);
+    GPIOPinTypeEPI(GPIO_PORTC_BASE, EPI_PORTC_PINS);
+    GPIOPinTypeEPI(GPIO_PORTG_BASE, EPI_PORTG_PINS);
+    GPIOPinTypeEPI(GPIO_PORTK_BASE, EPI_PORTK_PINS);
+    GPIOPinTypeEPI(GPIO_PORTL_BASE, EPI_PORTL_PINS);
+    GPIOPinTypeEPI(GPIO_PORTM_BASE, EPI_PORTM_PINS);
+    GPIOPinTypeEPI(GPIO_PORTN_BASE, EPI_PORTN_PINS);
+	#endif
     //
     // Is our current system clock faster than we can drive the SRAM clock?
     //
@@ -390,7 +504,9 @@ int epi_init(void)
     // the SRAM mode to talk to the external 64MB SRAM daughter card.
     //
     EPIModeSet(EPI0_BASE, EPI_MODE_HB8);
-	EPIConfigHB8Set(EPI0_BASE, (EPI_HB8_MODE_SRAM| EPI_HB8_CSCFG_CS|EPI_HB8_IN_READY_EN),0);
+	EPIConfigHB8Set(EPI0_BASE, (EPI_HB8_MODE_SRAM| EPI_HB8_CSCFG_CS|EPI_HB8_IN_READY_EN/*| EPI_HB8_RDWAIT_3| EPI_HB8_WRWAIT_3*/),0);
+//	EPIConfigHB8TimingSet(EPI0_BASE,0,EPI_HB8_RDWAIT_MINUS_ENABLE|EPI_HB8_WRWAIT_MINUS_ENABLE);
+	//EPIConfigHB8CSSet(EPI0_BASE,1,(EPI_HB8_MODE_ADDEMUX |EPI_HB8_WRWAIT_3|EPI_HB8_RDWAIT_3 ));
 
     //
     // Set the address map.  The EPI0 is mapped from 0x60000000 to 0x01FFFFFF.
@@ -459,61 +575,90 @@ int epi_init(void)
                g_pui8EPISdram[SRAM_END_ADDRESS - 3]);
     rt_kprintf("     Mem[0x6000.03FF] = 0x%02x\n\n",
                g_pui8EPISdram[SRAM_END_ADDRESS-2]);
+    // Check the validity of the data.
     //
-    // Read and write operations were successful.  Return with no errors.
+    //if((g_pui8EPISdram[SRAM_START_ADDRESS] == 0xab) &&
+    // (g_pui8EPISdram[SRAM_START_ADDRESS + 1] == 0x12) &&
+    //  (g_pui8EPISdram[SRAM_END_ADDRESS - 3] == 0xdc) &&
+    //   (g_pui8EPISdram[SRAM_END_ADDRESS-2] == 0x2a))
+    {
+        //
+        // Read and write operations were successful.  Return with no errors.
+        //
+        rt_kprintf("Read and write to external SRAM was successful!\n");
+		for(i=0;i<256;i++)
+			g_pui8EPISdram[i]=i;
+		for(i=256;i<512;i++)
+			g_pui8EPISdram[i]=i-256;
+		for(i=512;i<768;i++)
+			g_pui8EPISdram[i]=i-512;
+		for(i=768;i<1022;i++)
+			g_pui8EPISdram[i]=i-768;
+		for(i=0;i<1022;i++)
+		{
+			if(g_pui8EPISdram[i]!=(i%256))
+				rt_kprintf("<%02x> %d failed\n",g_pui8EPISdram[i],i%256);
+			rt_kprintf("0x%02x ",g_pui8EPISdram[i]);			
+			if(((i+1)%16)==0)
+				rt_kprintf("\n");
+			if(((i+1)%256)==0)
+				rt_kprintf("\n");
+		}
+		rt_kprintf("\n");
+		rt_mutex_init(&mutex, "epimutex", RT_IPC_FLAG_FIFO);
+		#if A_TO_B
+		if(g_pui8EPISdram[B_TO_A_SIGNAL]==0x55)
+			g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
+		#else
+		if(g_pui8EPISdram[A_TO_B_SIGNAL]==0x55)
+			g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
+		#endif
+		#if !A_TO_B
+			//to_socket[index_epi]=(unsigned char *)malloc(8192*sizeof(unsigned char));
+			//if(to_socket[index_epi]==RT_NULL)
+			//	rt_kprintf("to_socket is RT_NULL\r\n");
+		#endif
+		//sram_init();		
+		//
+		// Enable the uDMA controller at the system level.	Enable it to continue
+		// to run while the processor is in sleep.
+		//
+		MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
+		MAP_SysCtlPeripheralSleepEnable(SYSCTL_PERIPH_UDMA);
+		
+		//
+		// Enable the uDMA controller error interrupt.	This interrupt will occur
+		// if there is a bus error during a transfer.
+		//
+		MAP_IntEnable(INT_UDMAERR);
+		
+		//
+		// Enable the uDMA controller.
+		//
+		MAP_uDMAEnable();
+		
+		//
+		// Point at the control table to use for channel control structures.
+		//
+		MAP_uDMAControlBaseSet(pui8ControlTable);
+		rt_sem_init(&udma_sem, "udma_sem", 0, 0);
+        return(0);
+    }
+
+	
     //
-    rt_kprintf("Read and write to external SRAM was successful!\n");
-	for(i=0;i<256;i++)
-		g_pui8EPISdram[i]=i;
-	for(i=256;i<512;i++)
-		g_pui8EPISdram[i]=i-256;
-	for(i=512;i<768;i++)
-		g_pui8EPISdram[i]=i-512;
-	for(i=768;i<1022;i++)
-		g_pui8EPISdram[i]=i-768;
-	for(i=0;i<1022;i++)
-	{
-		if(g_pui8EPISdram[i]!=(i%256))
-			rt_kprintf("<%02x> %d failed\n",g_pui8EPISdram[i],i%256);
-		rt_kprintf("0x%02x ",g_pui8EPISdram[i]);			
-		if(((i+1)%16)==0)
-			rt_kprintf("\n");
-		if(((i+1)%256)==0)
-			rt_kprintf("\n");
-	}
-	rt_kprintf("\n");
-	rt_mutex_init(&mutex, "epimutex", RT_IPC_FLAG_FIFO);
-	#if A_TO_B
-	if(g_pui8EPISdram[B_TO_A_SIGNAL]==0x55)
-		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
-	#else
-	if(g_pui8EPISdram[A_TO_B_SIGNAL]==0x55)
-		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
-	#endif
-	//
-	// Enable the uDMA controller at the system level.	Enable it to continue
-	// to run while the processor is in sleep.
-	//
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
-	MAP_SysCtlPeripheralSleepEnable(SYSCTL_PERIPH_UDMA);
-	
-	//
-	// Enable the uDMA controller error interrupt.	This interrupt will occur
-	// if there is a bus error during a transfer.
-	//
-	MAP_IntEnable(INT_UDMAERR);
-	
-	//
-	// Enable the uDMA controller.
-	//
-	MAP_uDMAEnable();
-	
-	//
-	// Point at the control table to use for channel control structures.
-	//
-	MAP_uDMAControlBaseSet(pui8ControlTable);
-	rt_sem_init(&udma_sem, "udma_sem", 0, 0);
-    return(0);	
+    // Display on the console that there was an error.
+    //
+    rt_kprintf("Read and/or write failure!");
+    rt_kprintf(" Check if your SRAM card is plugged in.");
+
+    //
+    // Read and/or write operations were unsuccessful.  Wait in while(1) loop
+    // for debugging.
+    //
+    while(1)
+    {
+    }
 }
 void IntGpioK()
 {
@@ -553,24 +698,16 @@ void Write_B_A(unsigned char begin,int len)
 int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 {	
 	static int all_len=0;
-	int i;
 	all_len+=size;
 	cur_len=size;
 	//rt_kprintf("Total send B_TO_A %d==>%d\n",all_len,size);
-	//for(i=0;i<size;i++)
-	//	rt_kprintf("%c",((char *)buffer)[i]);
-	//rt_kprintf("==>\n");
 	int len=0;
 	if(size<=498)
 	{
-		memcpy(g_pui8EPISdram+510,buffer,size);
-		#if 0
-		InitSWTransfer(g_pui8EPISdram+510,buffer,(size/4));
+		//memcpy(g_pui8EPISdram+510,buffer,size);
+		InitSWTransfer(g_pui8EPISdram+510,buffer,size/4);
 		if(size%4!=0)
 			rt_memcpy(g_pui8EPISdram+510+(size/4)*4,buffer+(size/4)*4,size-(size/4)*4);
-		#endif
-		//for(i=0;i<size;i++)
-		//rt_kprintf("%c",((char *)g_pui8EPISdram)[510+i]);
 		Signal_To_A(0x55,size);
 	}
 	else
@@ -580,25 +717,81 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 			if((len+498)<size)
 			{
 				//rt_kprintf("send B_TO_A 498\n");
-				memcpy(g_pui8EPISdram+510,buffer+len,498);
-				//InitSWTransfer(g_pui8EPISdram+510,buffer,496/4);
-				//rt_memcpy(g_pui8EPISdram+510+496,buffer+496,2);
+				//memcpy(g_pui8EPISdram+510,buffer+len,498);
+				InitSWTransfer(g_pui8EPISdram+510,buffer,496/4);
+				rt_memcpy(g_pui8EPISdram+510+496,buffer+496,2);
 				Signal_To_A(0x55,498);
 				len=len+498;
 			}
 			else
 			{
 				//rt_kprintf("send B_TO_A %d\n",size-len);
-				memcpy(g_pui8EPISdram+510,buffer+len,size-len);
-				//InitSWTransfer(g_pui8EPISdram+510,buffer+len,(size-len)/4);
-				//if((size-len)%4!=0)
-				//	rt_memcpy(g_pui8EPISdram+510+((size-len)/4)*4+1,buffer+((size-len)/4)*4,size-len-((size-len)/4)*4);
+				//memcpy(g_pui8EPISdram+510,buffer+len,size-len);
+				InitSWTransfer(g_pui8EPISdram+510,buffer+len,(size-len)/4);
+				if((size-len)%4!=0)
+					rt_memcpy(g_pui8EPISdram+510+((size-len)/4)*4,buffer+((size-len)/4)*4,size-len-((size-len)/4)*4);
 				Signal_To_A(0x55,size-len);
 				len+=size-len;
 			}
 		}
 	}
-	//rt_kprintf("send done.\n");	
+	//rt_kprintf("send done.\n");
+	#if 0
+	int offs_addr,offs_len,do_config=0;
+	rt_mutex_take(&mutex, RT_WAITING_FOREVER);
+	rt_kprintf("_epi_write index %d,buffer %02x ,size %d,signal %x\r\n",index,buffer,size,signal);
+	switch (signal&0x0F)
+	{
+		case SIGNAL_DATA_SOCKET0:
+		case SIGNAL_DATA_SOCKET1:
+		case SIGNAL_DATA_SOCKET2:
+		case SIGNAL_DATA_SOCKET3:
+		{
+			offs_addr=index*SOCKET_BUF_LEN+SOCKET_BUF_LEN/2;
+			offs_len=SOCKET0_R_LEN_REG+index*2+1;
+		}
+		break;
+		case SIGNAL_CONFIG_SOCKET0:
+		case SIGNAL_CONFIG_SOCKET1:
+		case SIGNAL_CONFIG_SOCKET2:
+		case SIGNAL_CONFIG_SOCKET3:
+		{
+			offs_addr=CONFIG_B_TO_A_ADDR;
+			offs_len=SOCKET0_R_LEN_REG+index+1;
+			do_config=1;
+		}
+		break;
+		default:
+		{
+			unsigned char mask=signal&0xf0;
+			if(mask==SIGNAL_CONFIG_WITH_IPV6)
+			{
+				offs_addr=index*SOCKET_BUF_LEN+SOCKET_BUF_LEN/2;
+				offs_len=SOCKET0_R_LEN_REG+index*2+1;
+				do_config=1;
+			}
+			else if(mask==ACK_SIGNAL)
+			{
+				rt_kprintf("0x%02x ACK to STM32\r\n",signal);
+				Signal_To_B(signal,1);
+				rt_mutex_release(&mutex);
+				return 0;
+			}
+		}
+		break;
+	}
+	memcpy((void *)(g_pui8EPISdram+offs_addr),buffer,size);
+	g_pui8EPISdram[offs_len]=size;
+	Signal_To_B(signal,1);
+	/*if(!do_config)
+	{
+		while(ack_got==0)
+		rt_thread_delay(1);
+		ack_got=0;
+		rt_kprintf("ack got\r\n");
+	}*/
+	rt_mutex_release(&mutex);
+	#endif
 	return 0;	
 }
 
@@ -637,17 +830,13 @@ void _epi_read()
 		}
 		else if(a_to_b_len!=498)
 			can_send=RT_TRUE;
-		//rt_memcpy(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len);
-		//if(a_to_b_len>=8)
-		//{
-		//	InitSWTransfer(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len/4);
-		//	if(a_to_b_len%4!=0)
-		//		rt_memcpy(to_socket[index_epi]+send_len+(a_to_b_len/4)*4,g_pui8EPISdram+(a_to_b_len/4)*4,a_to_b_len-(a_to_b_len/4)*4);
-		//}
-		//else
-			rt_memcpy(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len);
+			
+		rt_memcpy(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len);
+		//InitSWTransfer(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len/4);
+		//if(a_to_b_len%4!=0)
+		//	rt_memcpy(to_socket[index_epi]+send_len+(a_to_b_len/4)*4,g_pui8EPISdram+(a_to_b_len/4)*4,a_to_b_len-(a_to_b_len/4)*4);
 		send_len+=a_to_b_len;
-		
+
 		if(can_send)
 		{
 			if(phy_link&&g_socket[0].connected)
@@ -655,9 +844,6 @@ void _epi_read()
 				rt_data_queue_push(&g_data_queue[0],to_socket[index_epi], send_len, RT_WAITING_FOREVER);
 				//rt_kprintf("\nGOT A_TO_B Data %d==>%d\n",send_len,a_to_b_len);
 				//rt_kprintf("push len %d\n",send_len);
-				//int i;
-				//for(i=0;i<send_len;i++)
-				//	rt_kprintf("%c",to_socket[index_epi][i]);
 			}
 			else
 			{
@@ -672,12 +858,41 @@ void _epi_read()
 			if(to_socket[index_epi]==RT_NULL)
 				rt_kprintf("to_socket is RT_NULL2\r\n");
 			//else
-			//	rt_kprintf("cur_l2en %d==>%d\n",cur_len,index_epi);
-			
-			send_len=0;			
-			can_send=RT_FALSE;
+			//	rt_kprintf("cur_l2en %d==>%d\n",cur_len,index_epi);		
+			send_len=0;
 		}		
-		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;		
+		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
+		#if 0
+		//a_to_b_len=g_pui8EPISdram[A_TO_B_PKT_LEN1]<<8|g_pui8EPISdram[A_TO_B_PKT_LEN0];
+		//rt_kprintf("\nGOT A_TO_B Data %d\n",a_to_b_len);	
+		//for(i=0;i<g_pui8EPISdram[A_TO_B_PKT_LEN];i++)
+		//	rt_kprintf("%d ",g_pui8EPISdram[i]);
+		if(packet_len+a_to_b_len<EPI_BUF_LEN)
+		{
+			rt_memcpy(to_socket[index_epi]+packet_len,g_pui8EPISdram,a_to_b_len);
+			packet_len+=a_to_b_len;
+			g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
+		}
+		else
+		{
+			g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
+			if(phy_link&&g_socket[0].connected)
+			{
+				rt_data_queue_push(&g_data_queue[0],to_socket[index_epi], packet_len, RT_WAITING_FOREVER);	
+				rt_kprintf("push len %d\n",packet_len);
+			}
+			else
+				rt_free(to_socket[index_epi]);
+			if(index_epi<31)
+				index_epi++;
+			else
+				index_epi=0;
+			to_socket[index_epi]=(unsigned char *)malloc(EPI_BUF_LEN*sizeof(unsigned char));
+			if(to_socket[index_epi]==RT_NULL)
+				rt_kprintf("to_socket is RT_NULL\r\n");
+			packet_len=0;
+		}
+		#endif
 	}
 	#else
 	unsigned char source=g_pui8EPISdram[B_TO_A_SIGNAL];
@@ -691,17 +906,121 @@ void _epi_read()
 		//	rt_kprintf("%d ",g_pui8EPISdram[i]);
 		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
 		#if A_PLACE
-		memcpy(g_pui8EPISdram,g_pui8EPISdram+510,b_to_a_len);
-		#if 0
+		//memcpy(g_pui8EPISdram,g_pui8EPISdram+510,b_to_a_len);
 		InitSWTransfer(g_pui8EPISdram,g_pui8EPISdram+510,b_to_a_len/4);
 		if(b_to_a_len%4!=0)
 			rt_memcpy(g_pui8EPISdram+(b_to_a_len/4)*4,g_pui8EPISdram+510+(b_to_a_len/4)*4,b_to_a_len-(b_to_a_len/4)*4);
-		#endif
 		Signal_To_B(0x55,b_to_a_len);
 		#endif
 	}
 	#endif
-	return ;	
+	return ;
+	#if 0
+	switch (source)
+	{
+		case SIGNAL_CONFIG_SOCKET0:
+		case SIGNAL_CONFIG_SOCKET1:
+		case SIGNAL_CONFIG_SOCKET2:
+		case SIGNAL_CONFIG_SOCKET3:
+		{
+			index_len=g_pui8EPISdram[SOCKET0_R_LEN_REG+source*2];
+			index_addr=(unsigned char *)(g_pui8EPISdram+CONFIG_ADDR);
+			do_config=1;
+		}
+		break;
+		case SIGNAL_DATA_SOCKET0:
+		case SIGNAL_DATA_SOCKET1:
+		case SIGNAL_DATA_SOCKET2:
+		case SIGNAL_DATA_SOCKET3:
+		{
+			index_len=g_pui8EPISdram[SOCKET0_R_LEN_REG+(source-0x04)*2];
+			index_addr=(unsigned char *)(g_pui8EPISdram+SOCKET0_R_ADDR+(source-0x04)*SOCKET_BUF_LEN);
+		}
+		break;
+		default:
+		{
+			unsigned char mask=source&0xf0;
+			if(mask==SIGNAL_CONFIG_WITH_IPV6)
+			{
+				index_len=g_pui8EPISdram[SOCKET0_R_LEN_REG+(source&0x0f)*2];
+				index_addr=(unsigned char *)(g_pui8EPISdram+SOCKET0_R_ADDR+(source&0x0f)*SOCKET_BUF_LEN);
+				do_config=1;
+			}
+			else if(mask==ACK_SIGNAL)
+			{
+				rt_kprintf("0x%02x ACK Got\r\n",source);
+				ack_got=1;
+				return ;
+			}
+		}
+		break;
+	}
+	rt_kprintf("to copy %d bytes from 0x%08x\r\n",index_len,index_addr);
+	//while(buf==RT_NULL)
+	{
+		buf=(unsigned char *)malloc(index_len*sizeof(unsigned char));
+		if(buf==RT_NULL)
+			rt_kprintf("source 0x%02x is RT_NULL\r\n",source);
+	}
+	rt_memcpy(buf,index_addr,index_len);
+	if(do_config)
+	{
+		if(buf[0]==0xf5 && buf[1]==0x8a)
+		{		
+			int check_sum=0,longlen=0;
+			rt_kprintf("epi Config len %d\r\n",index_len);
+			for(i=0;i<index_len-2;i++)
+			{
+				rt_kprintf("%02x ",buf[i]);
+				check_sum+=buf[i];
+			}
+			rt_kprintf("\r\n");
+			if(check_sum==(buf[index_len-2]<<8|buf[index_len-1]))
+			{
+				if(buf[2]==0x0c || buf[2]==0x0d || buf[2]==0x0e || buf[2]==0x0f || buf[2]==0x20)
+					longlen=buf[3];					
+				usb_config(buf+2,longlen,0);
+				_epi_write(source&0x0f,(void *)COMMAND_OK, strlen(COMMAND_OK),ACK_SIGNAL|(SIGNAL_CONFIG_SOCKET0+source&0x0f));
+			}
+			else
+				_epi_write(source&0x0f,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL),ACK_SIGNAL|(SIGNAL_CONFIG_SOCKET0+source&0x0f));
+		}
+		else if(buf[0]==0xf5 && buf[1]==0x8b)
+		{
+			int lenout;
+			char *tmp=send_out(source&0x0F,buf[2],&lenout);
+			if(tmp!=NULL)
+			{
+				int ii=0;
+				for(ii=0;ii<lenout;ii++)
+					rt_kprintf("%2x ",tmp[ii]);
+				if(buf[2]==0x0c || buf[2]==0x0d || buf[2]==0x0e || buf[2]==0x0f || buf[2]==0x20)
+					_epi_write(source&0x0f,(void *)tmp, lenout,SIGNAL_CONFIG_WITH_IPV6|(SIGNAL_CONFIG_SOCKET0+source&0x0f));
+				else
+					_epi_write(source&0x0f,(void *)tmp, lenout,ACK_SIGNAL|(SIGNAL_CONFIG_SOCKET0+source&0x0f));
+			}
+			else
+			{
+				rt_kprintf("some error\r\n");
+				_epi_write(source&0x0f,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL),ACK_SIGNAL|(SIGNAL_CONFIG_SOCKET0+source&0x0f));
+			}
+		}
+		else
+			_epi_write(source&0x0f,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL),ACK_SIGNAL|(SIGNAL_CONFIG_SOCKET0+source&0x0f));
+		if(buf)
+			rt_free(buf);
+	}
+	else
+	{
+		if(phy_link&&g_socket[source&0x0f-0x04].connected)
+		{
+			rt_data_queue_push(&g_data_queue[(source&0x0f -0x04)*2],buf, index_len, RT_WAITING_FOREVER);	
+		}
+		else
+			rt_free(buf);
+		_epi_write(source&0x0f-0x04,RT_NULL, 0,ACK_SIGNAL|(SIGNAL_DATA_SOCKET0+source&0x0f-0x04));
+	}	
+	#endif
 }
 void uDMAErrorHandler(void)
 {

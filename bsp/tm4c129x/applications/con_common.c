@@ -170,13 +170,13 @@ void default_config()
 	//}
 	
 	memset(g_conf.remote_ip[0],'\0',16);
-	strcpy(g_conf.remote_ip[0],"192.168.1.4");
+	strcpy(g_conf.remote_ip[0],"192.168.1.107");
 	memset(g_conf.remote_ip[1],'\0',16);
-	strcpy(g_conf.remote_ip[1],"192.168.1.4");
+	strcpy(g_conf.remote_ip[1],"192.168.1.107");
 	memset(g_conf.remote_ip[2],'\0',16);
-	strcpy(g_conf.remote_ip[2],"192.168.1.4");
+	strcpy(g_conf.remote_ip[2],"192.168.1.107");
 	memset(g_conf.remote_ip[3],'\0',16);
-	strcpy(g_conf.remote_ip[3],"192.168.1.4");
+	strcpy(g_conf.remote_ip[3],"192.168.1.107");
 	memset(g_conf.local_ip,'\0',16);
 	strcpy(g_conf.local_ip,"192.168.1.3");	
 	memset(g_conf.remote_ip6[0],'\0',64);//fe80::2f0:cfff:fe84:5452%7
