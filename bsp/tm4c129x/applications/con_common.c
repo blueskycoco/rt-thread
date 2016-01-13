@@ -163,22 +163,22 @@ void default_config()
 	//}
 	//else
 	//{//client mode
-		g_conf.config[0]=CONFIG_TCP;//|CONFIG_SERVER;
+		g_conf.config[0]=CONFIG_TCP|CONFIG_SERVER;
 		g_conf.config[1]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[2]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 	//}
 	
 	memset(g_conf.remote_ip[0],'\0',16);
-	strcpy(g_conf.remote_ip[0],"192.168.1.107");
+	strcpy(g_conf.remote_ip[0],"192.168.1.100");
 	memset(g_conf.remote_ip[1],'\0',16);
-	strcpy(g_conf.remote_ip[1],"192.168.1.107");
+	strcpy(g_conf.remote_ip[1],"192.168.1.100");
 	memset(g_conf.remote_ip[2],'\0',16);
-	strcpy(g_conf.remote_ip[2],"192.168.1.107");
+	strcpy(g_conf.remote_ip[2],"192.168.1.100");
 	memset(g_conf.remote_ip[3],'\0',16);
-	strcpy(g_conf.remote_ip[3],"192.168.1.107");
+	strcpy(g_conf.remote_ip[3],"192.168.1.100");
 	memset(g_conf.local_ip,'\0',16);
-	strcpy(g_conf.local_ip,"192.168.1.3");	
+	strcpy(g_conf.local_ip,"192.168.1.103");	
 	memset(g_conf.remote_ip6[0],'\0',64);//fe80::2f0:cfff:fe84:5452%7
 	//strcpy(g_conf.remote_ip6[0],"fe80::5867:8730:e9e6:d5c5%11");
 	//strcpy(g_conf.remote_ip6[0],"fe80::9132:fea4:7252:16e%13");
