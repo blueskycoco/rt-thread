@@ -27,14 +27,14 @@ class MiniClient:
         print "Curr time ", timeb
         while True:
             #time.sleep(1)
-            out = fout.read(4096)
+            out = fout.read(1430)
             if not out:
 				fout.close()
 				fin.close()
                 #print "Received length = ", self.c, ",Sent length = ", self.d, " "
 				break
             tcpT4Client.send(out)
-            buf = tcpT4Client.recv(4096)
+            buf = tcpT4Client.recv(1430)
             #print "Receive  ", buf
             self.c = self.c + len(buf)
             self.d = self.d + len(out)
