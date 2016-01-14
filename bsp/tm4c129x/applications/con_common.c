@@ -70,6 +70,7 @@ unsigned char config_tcp1[1+8]					={0xF5,0x8A,0x22,0xff,0x26,0xfa,0x00,0x00};/*
 unsigned char config_tcp2[1+8]					={0xF5,0x8A,0x23,0xff,0x26,0xfa,0x00,0x00};/*protol2*/
 unsigned char config_tcp3[1+8]					={0xF5,0x8A,0x24,0xff,0x26,0xfa,0x00,0x00};/*protol3*/
 struct rt_mutex mconfigutex;
+volatile rt_uint8_t *epi_bus = (uint8_t *)0x60000000;
 extern void socket_thread_start(int i);
 extern void _usb_read(int dev);
 extern void set_if(char* netif_name, char* ip_addr, char* gw_addr, char* nm_addr);
@@ -1261,7 +1262,24 @@ static void common_r(void* parameter)
 				}
 				else if(g_dev==2)
 				{
-					_epi_write((dev-1)/2,last_data_ptr,data_size,0x04+(dev-1)/2);
+					#if 0
+					_epi_write((dev-1)/2,last_data_ptr,data_size,0x04+(dev-1)/2);															
+					#else
+					rt_uint8_t *buf=(rt_uint8_t *)rt_malloc(data_size);						
+					if(data_size>1000)
+					{
+						memcpy(epi_bus,last_data_ptr,1000);						
+						rt_memcpy(buf,epi_bus,1000);
+						rt_memcpy(buf+1000,last_data_ptr+1000,data_size-1000);
+					}
+					else
+					{
+						memcpy(epi_bus,last_data_ptr,data_size);
+						memcpy(buf,epi_bus,data_size);
+					}
+					rt_data_queue_push(&g_data_queue[0],buf, data_size, RT_WAITING_FOREVER);
+					#endif
+					
 				}
 				else
 					rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
