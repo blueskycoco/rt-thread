@@ -40,7 +40,7 @@ class MiniClient:
             self.d = self.d + len(out)
             fin.write(buf)
         print "Received length = ", self.c, ",Sent length = ", self.d, "time ", time.time()
-        print "Speed ", self.d/((time.time()-timeb)*1024*1024), "MBytes/s"
+        print time.time()-timeb, "Second, Speed ", self.d/((time.time()-timeb)*1024*1024), "MBytes/s"
 
     def udpC4(self):
         udpT4Client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
