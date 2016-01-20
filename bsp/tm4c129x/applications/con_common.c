@@ -164,7 +164,7 @@ void default_config()
 	//}
 	//else
 	//{//client mode
-		g_conf.config[0]=CONFIG_TCP|CONFIG_SERVER;
+		g_conf.config[0]=CONFIG_TCP|/*CONFIG_IPV6|*/CONFIG_SERVER;
 		g_conf.config[1]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[2]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
@@ -1265,7 +1265,8 @@ static void common_r(void* parameter)
 					#if 0
 					_epi_write((dev-1)/2,last_data_ptr,data_size,0x04+(dev-1)/2);															
 					#else
-					rt_uint8_t *buf=(rt_uint8_t *)rt_malloc(data_size);						
+					rt_uint8_t *buf=(rt_uint8_t *)rt_malloc(data_size);
+					#if 1
 					if(data_size>1000)
 					{
 						memcpy(g_puiEpi,last_data_ptr,1000);						
@@ -1277,7 +1278,9 @@ static void common_r(void* parameter)
 						memcpy(g_puiEpi,last_data_ptr,data_size);
 						memcpy(buf,g_puiEpi,data_size);
 					}
-					//memcpy(buf,last_data_ptr,data_size);
+					#else
+					memcpy(buf,last_data_ptr,data_size);
+					#endif
 					rt_data_queue_push(&g_data_queue[0],buf, data_size, RT_WAITING_FOREVER);
 					#endif
 					
