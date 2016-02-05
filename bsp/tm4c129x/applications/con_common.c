@@ -169,7 +169,18 @@ void default_config()
 		g_conf.config[2]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 	//}
-	
+	#if A_TO_B
+	memset(g_conf.remote_ip[0],'\0',16);
+	strcpy(g_conf.remote_ip[0],"192.168.1.103");
+	memset(g_conf.remote_ip[1],'\0',16);
+	strcpy(g_conf.remote_ip[1],"192.168.1.103");
+	memset(g_conf.remote_ip[2],'\0',16);
+	strcpy(g_conf.remote_ip[2],"192.168.1.103");
+	memset(g_conf.remote_ip[3],'\0',16);
+	strcpy(g_conf.remote_ip[3],"192.168.1.103");
+	memset(g_conf.local_ip,'\0',16);
+	strcpy(g_conf.local_ip,"192.168.1.100");
+	#else
 	memset(g_conf.remote_ip[0],'\0',16);
 	strcpy(g_conf.remote_ip[0],"192.168.1.100");
 	memset(g_conf.remote_ip[1],'\0',16);
@@ -179,7 +190,8 @@ void default_config()
 	memset(g_conf.remote_ip[3],'\0',16);
 	strcpy(g_conf.remote_ip[3],"192.168.1.100");
 	memset(g_conf.local_ip,'\0',16);
-	strcpy(g_conf.local_ip,"192.168.1.103");	
+	strcpy(g_conf.local_ip,"192.168.1.101");	
+	#endif
 	memset(g_conf.remote_ip6[0],'\0',64);//fe80::2f0:cfff:fe84:5452%7
 	//strcpy(g_conf.remote_ip6[0],"fe80::5867:8730:e9e6:d5c5%11");
 	//strcpy(g_conf.remote_ip6[0],"fe80::9132:fea4:7252:16e%13");
@@ -1262,7 +1274,8 @@ static void common_r(void* parameter)
 				}
 				else if(g_dev==2)
 				{
-					#if 0
+					
+					#if A_TO_B
 					_epi_write((dev-1)/2,last_data_ptr,data_size,0x04+(dev-1)/2);															
 					#else
 					rt_uint8_t *buf=(rt_uint8_t *)rt_malloc(data_size);

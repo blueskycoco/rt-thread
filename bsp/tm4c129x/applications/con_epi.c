@@ -16,6 +16,7 @@
 #include "con_socket.h"
 extern struct rt_semaphore rx_sem[4];
 struct rt_semaphore udma_sem;
+struct rt_semaphore int_sem;
 struct rt_mutex mutex;
 extern bool phy_link;
 int ack_got=0;
@@ -521,17 +522,24 @@ void IntGpioK()
 	if(MAP_GPIOIntStatus(GPIO_PORTK_BASE, true)&GPIO_PIN_5)
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
+		#if A_TO_B
+		if(g_pui8EPISdram[B_TO_A_SIGNAL]==0 && g_pui8EPISdram[A_TO_B_SIGNAL]==0)
+		{
+			//rt_kprintf("B has read data done.\n");
+			rt_sem_release(&(int_sem));
+		}
+		#else
 		rt_sem_release(&(rx_sem[0]));
+		#endif
 	}
 }
-void Signal_To_B(unsigned char data,int len)
+void Signal_To_B(int len)
 {
-	g_pui8EPISdram[A_TO_B_PKT_LEN0]=len&0xff;
-	g_pui8EPISdram[A_TO_B_PKT_LEN1]=(len>>8)&0xff;
-	g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0x00;
-	g_pui8EPISdram[A_TO_B_SIGNAL]=data;
-	while(g_pui8EPISdram[CONFIG_A_TO_B_ADDR]==0x00)
-		rt_thread_delay(1);
+	//write packet len to 0x3fe high , 0x3ff low
+	g_pui8EPISdram[B_TO_A_SIGNAL]=(len>>8)&0xff;
+	g_pui8EPISdram[A_TO_B_SIGNAL]=len&0xff;
+	//rt_kprintf("Signale to B ,len %d\n",len);
+	rt_sem_take(&int_sem, RT_WAITING_FOREVER);
 }
 void Signal_To_A(unsigned char data,int len)
 {
@@ -552,6 +560,41 @@ void Write_B_A(unsigned char begin,int len)
 }
 int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 {	
+#if 1
+	int len=0;
+	//rt_kprintf("epi_write len %d\n",size);
+	if(size<=1022)
+	{
+		memcpy(g_pui8EPISdram,buffer,size);
+		//InitSWTransfer(g_pui8EPISdram,buffer,(size/4));
+		//if(size%4!=0)
+		//	rt_memcpy(g_pui8EPISdram+(size/4)*4,buffer+(size/4)*4,size-(size/4)*4);
+		Signal_To_B(size);
+	}
+	else
+	{
+		while(len!=size)
+		{
+			if((len+1022)<size)
+			{
+				memcpy(g_pui8EPISdram,buffer+len,1022);
+				//InitSWTransfer(g_pui8EPISdram,buffer,(1020/4));
+				//rt_memcpy(g_pui8EPISdram+1020,buffer+1020,2);
+				Signal_To_B(1022);
+				len=len+1022;
+			}
+			else
+			{
+				memcpy(g_pui8EPISdram,buffer+len,size-len);
+				//InitSWTransfer(g_pui8EPISdram,buffer+len,((size-len)/4));
+				//if((size-len)%4!=0)
+				//	rt_memcpy(g_pui8EPISdram+((size-len)/4)*4,buffer+len+((size-len)/4)*4,size-len-((size-len)/4)*4);
+				Signal_To_B(size-len);
+				len+=size-len;
+			}
+		}
+	}
+#else
 	static int all_len=0;
 	int i;
 	all_len+=size;
@@ -599,6 +642,7 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 		}
 	}
 	//rt_kprintf("send done.\n");	
+	#endif
 	return 0;	
 }
 
@@ -613,6 +657,57 @@ void _epi_read()
 	int b_to_a_len=0;
 	static int all_len=0;
 	#if !A_TO_B
+	#if 1
+	rt_uint8_t *buf1;
+	int a_to_b_len=0;
+	a_to_b_len=g_pui8EPISdram[B_TO_A_SIGNAL]<<8|g_pui8EPISdram[A_TO_B_SIGNAL];
+	//rt_kprintf("a_to_b_len %d\n",a_to_b_len);
+	unsigned char source=g_pui8EPISdram[A_TO_B_SIGNAL];
+	//if(source==SIGNAL_DATA_IN)
+	{		
+		if(phy_link&&g_socket[0].connected)
+		{
+			#if 1
+			buf1 =(rt_uint8_t *)malloc(a_to_b_len*sizeof(rt_uint8_t));
+			if(buf1==RT_NULL)
+				rt_kprintf("buf is RT_NULL\r\n");
+			else
+			{
+				rt_memcpy(buf1,g_pui8EPISdram,a_to_b_len);
+				rt_data_queue_push(&g_data_queue[0],buf1, a_to_b_len, RT_WAITING_FOREVER);
+			}
+			#else
+			if(to_socket[index_epi]==RT_NULL)
+			{
+				to_socket[index_epi]=(unsigned char *)malloc(1000*6*sizeof(unsigned char));
+				if(to_socket[index_epi]==RT_NULL)
+					rt_kprintf("to_socket is RT_NULL\r\n");
+			}
+			if(all_len+a_to_b_len<6000)
+			{
+				rt_memcpy(to_socket[index_epi]+all_len,g_pui8EPISdram,a_to_b_len);
+				all_len+=a_to_b_len;
+			}
+			else
+			{
+				rt_data_queue_push(&g_data_queue[0],to_socket[index_epi], all_len, RT_WAITING_FOREVER);
+				if(index_epi<31)
+					index_epi++;
+				else
+					index_epi=0;
+				to_socket[index_epi]=(unsigned char *)malloc(1000*6*sizeof(unsigned char));
+				if(to_socket[index_epi]==RT_NULL)
+					rt_kprintf("to_socket is RT_NULL2\r\n");
+				else
+					rt_memcpy(to_socket[index_epi],g_pui8EPISdram,a_to_b_len);				
+				all_len=a_to_b_len;
+			}
+			#endif
+		}
+		g_pui8EPISdram[A_TO_B_SIGNAL]=0x00;
+		g_pui8EPISdram[B_TO_A_SIGNAL]=0x00;
+	}
+	#else
 	unsigned char local_buf[1440]={0};
 	static int packet_len=0,send_len=0;
 	int a_to_b_len=0;
@@ -679,6 +774,7 @@ void _epi_read()
 		}		
 		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;		
 	}
+	#endif
 	#else
 	unsigned char source=g_pui8EPISdram[B_TO_A_SIGNAL];
 	//rt_kprintf("\n_epi_read source %02x\r\n",source);
@@ -697,7 +793,7 @@ void _epi_read()
 		if(b_to_a_len%4!=0)
 			rt_memcpy(g_pui8EPISdram+(b_to_a_len/4)*4,g_pui8EPISdram+510+(b_to_a_len/4)*4,b_to_a_len-(b_to_a_len/4)*4);
 		#endif
-		Signal_To_B(0x55,b_to_a_len);
+		Signal_To_B(b_to_a_len);
 		#endif
 	}
 	#endif

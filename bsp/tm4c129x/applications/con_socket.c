@@ -459,7 +459,7 @@ void socket_r(void *paramter)
 	int dev=(int)paramter;
 	int status;
 	fd_set myset; 
-	unsigned char rcv_buf[1440];
+	//unsigned char rcv_buf[1440];
   	struct timeval tv; 
   	socklen_t lon; 
 	int valopt,ret; 
@@ -586,43 +586,44 @@ void socket_r(void *paramter)
 			sock=g_socket[dev].sockfd;
 		FD_SET(sock, &myset);
         if(select(sock+1, &myset, NULL, NULL, &tv) > 0) 
-		{ 
-			lock(dev);			
+		{ 		
 			
+			g_socket[dev].recv_data=rt_malloc(1440);
+			if(g_socket[dev].recv_data!=NULL)
+			{
+			lock(dev);	
 			if(is_right(g_conf.config[dev],CONFIG_TCP))
 			{
-				status=recv(sock, rcv_buf, 1440, 0);					
-				unlock(dev);
-				if(status>0)
-				{			
-					//rt_kprintf("get %d %d\n",status,ind[dev]);
-					if(ind[dev])
-					{
-						g_socket[dev].recv_data=rt_malloc(status);
-						if(g_socket[dev].recv_data==NULL)
+					status=recv(sock, g_socket[dev].recv_data, 1440, 0);	
+					unlock(dev);
+					if(status>0)
+					{			
+						//rt_kprintf("get %d %d\n",status,ind[dev]);
+						if(ind[dev])
 						{
-							rt_kprintf("malloc recv_data failed %d\n",status);
-							while(1)
-							{
-								if(g_socket[dev].recv_data==NULL)
-									rt_thread_delay(80);
-								else
-									break;
-								g_socket[dev].recv_data=rt_malloc(status);
-							}
-							//unlock(dev);
-							//continue;
+							//g_socket[dev].recv_data=rt_malloc(status);
+							//if(g_socket[dev].recv_data==NULL)
+							//{
+							//	rt_kprintf("malloc recv_data failed %d\n",status);
+								//while(1)
+								//{
+								//	if(g_socket[dev].recv_data==NULL)
+								//		rt_thread_delay(80);
+								//	else
+								//		break;
+								//	g_socket[dev].recv_data=rt_malloc(status);
+								//}
+								//unlock(dev);
+								//continue;
+							//}
+							//rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
+							//rt_kprintf("push %x ,bytes %d\r\n",g_socket[dev].recv_data,status);
+							rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
 						}
-						rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
-						//rt_kprintf("push %x ,bytes %d\r\n",g_socket[dev].recv_data,status);
-						rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
-					}
-					//else
-					//	rt_free(g_socket[dev].recv_data);
-				}
+					}					
 				else
 				{
-					//rt_free(g_socket[dev].recv_data);
+					rt_free(g_socket[dev].recv_data);
 					rt_kprintf("Thread ip4_r_%d recv error,connection lost %d %d\n",dev,status,errno);
 					if(is_right(g_conf.config[dev],CONFIG_SERVER))
 					{
@@ -650,10 +651,8 @@ void socket_r(void *paramter)
 						ioctlsocket(g_socket[dev].sockfd, FIONBIO, &imode);
 						g_socket[dev].connected=false;
 						cnn_out(dev,0);
-					}
-					
+					}			
 				}
-
 			}
 			else
 			{
@@ -661,16 +660,16 @@ void socket_r(void *paramter)
 				if(is_right(g_conf.config[dev],CONFIG_SERVER))
 				{
 					if(is_right(g_conf.config[dev],CONFIG_IPV6))
-						status=recvfrom(g_socket[dev].sockfd, rcv_buf, BUF_SIZE, 0, (struct sockaddr *)&g_socket[dev].server_addr6, &clientlen);
+						status=recvfrom(g_socket[dev].sockfd, g_socket[dev].recv_data, BUF_SIZE, 0, (struct sockaddr *)&g_socket[dev].server_addr6, &clientlen);
 					else
-						status=recvfrom(g_socket[dev].sockfd, rcv_buf, BUF_SIZE, 0, (struct sockaddr *)&g_socket[dev].server_addr, &clientlen);
+						status=recvfrom(g_socket[dev].sockfd, g_socket[dev].recv_data, BUF_SIZE, 0, (struct sockaddr *)&g_socket[dev].server_addr, &clientlen);
 				}
 				else
 				{
 					if(is_right(g_conf.config[dev],CONFIG_IPV6))
-						status=recvfrom(g_socket[dev].sockfd, rcv_buf, BUF_SIZE, 0, (struct sockaddr *)&g_socket[dev].client_addr6, &clientlen);
+						status=recvfrom(g_socket[dev].sockfd, g_socket[dev].recv_data, BUF_SIZE, 0, (struct sockaddr *)&g_socket[dev].client_addr6, &clientlen);
 					else
-						status=recvfrom(g_socket[dev].sockfd, rcv_buf, BUF_SIZE, 0, (struct sockaddr *)&g_socket[dev].client_addr, &clientlen);
+						status=recvfrom(g_socket[dev].sockfd, g_socket[dev].recv_data, BUF_SIZE, 0, (struct sockaddr *)&g_socket[dev].client_addr, &clientlen);
 				}
 				unlock(dev);
 				#else
@@ -698,7 +697,7 @@ void socket_r(void *paramter)
 							//unlock(dev);
 							//continue;
 						}
-						rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
+						//rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
 						rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
 					}
 					//else
@@ -709,6 +708,13 @@ void socket_r(void *paramter)
 					rt_kprintf("Thread socket_r_%d Recvfrom error,connection lost\n",dev);
 				}
 			}
+			
+			}
+			//else
+			//{
+				//ddelay(1000);
+				//unlock(dev);
+			//}
 		}
 		
 	}
@@ -1065,7 +1071,7 @@ void socket_thread_start(int i)
 			rt_sprintf(thread_string,"%d%d%c%c_w",i,is_right(g_conf.config[i],CONFIG_IPV6)?6:4,is_right(g_conf.config[i],CONFIG_TCP)?'T':'U',is_right(g_conf.config[i],CONFIG_SERVER)?'S':'C');
 			tid_w[i] = rt_thread_create(thread_string,socket_w, (void *)i,2048, 20, 10);
 			rt_sprintf(thread_string,"%d%d%c%c_r",i,is_right(g_conf.config[i],CONFIG_IPV6)?6:4,is_right(g_conf.config[i],CONFIG_TCP)?'T':'U',is_right(g_conf.config[i],CONFIG_SERVER)?'S':'C');
-			tid_r[i] = rt_thread_create(thread_string,socket_r, (void *)i,2048, 20, 10);
+			tid_r[i] = rt_thread_create(thread_string,socket_r, (void *)i,2048, 30, 10);
 		}		
 		if (tid_w[i] != RT_NULL)
 			rt_thread_startup(tid_w[i]);

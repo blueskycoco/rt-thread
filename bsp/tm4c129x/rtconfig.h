@@ -91,7 +91,7 @@
 // <integer name="RT_MMCSD_THREAD_PREORITY" description="The prority of mmcsd thread" default="15" />
 #define RT_MMCSD_THREAD_PREORITY    15
 // <section name="RT_USING_CONSOLE" description="Using console" default="true" >
-//#define RT_USING_CONSOLE
+#define RT_USING_CONSOLE
 // <integer name="RT_CONSOLEBUF_SIZE" description="The buffer size for console output" default="128" />
 #define RT_CONSOLEBUF_SIZE  128
 // <string name="RT_CONSOLE_DEVICE_NAME" description="The device name for console" default="uart" />
@@ -190,7 +190,7 @@
 // <bool name="RT_LWIP_SNMP" description="Enable SNMP protocol" default="false" />
 // #define RT_LWIP_SNMP
 // <bool name="RT_LWIP_DHCP" description="Enable DHCP client to get IP address" default="false" />
-//#define RT_LWIP_DHCP
+#define RT_LWIP_DHCP
 // <integer name="RT_LWIP_TCP_SEG_NUM" description="the number of simultaneously queued TCP" default="4" />
 #define RT_LWIP_TCP_SEG_NUM 144
 // <integer name="RT_LWIP_TCPTHREAD_PRIORITY" description="the thread priority of TCP thread" default="128" />
