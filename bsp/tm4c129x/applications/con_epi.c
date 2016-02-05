@@ -484,13 +484,13 @@ int epi_init(void)
 	}
 	rt_kprintf("\n");
 	rt_mutex_init(&mutex, "epimutex", RT_IPC_FLAG_FIFO);
-	#if A_TO_B
-	if(g_pui8EPISdram[B_TO_A_SIGNAL]==0x55)
-		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
-	#else
-	if(g_pui8EPISdram[A_TO_B_SIGNAL]==0x55)
-		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
-	#endif
+	//#if A_TO_B
+	//if(g_pui8EPISdram[B_TO_A_SIGNAL]==0x55)
+	//	g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
+	//#else
+	//if(g_pui8EPISdram[A_TO_B_SIGNAL]==0x55)
+	//	g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
+	//#endif
 	//
 	// Enable the uDMA controller at the system level.	Enable it to continue
 	// to run while the processor is in sleep.
@@ -514,6 +514,7 @@ int epi_init(void)
 	//
 	MAP_uDMAControlBaseSet(pui8ControlTable);
 	rt_sem_init(&udma_sem, "udma_sem", 0, 0);
+	rt_sem_init(&int_sem, "int_sem", 0, 0);
     return(0);	
 }
 void IntGpioK()
