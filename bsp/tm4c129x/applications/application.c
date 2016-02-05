@@ -32,7 +32,8 @@
 #include "driverlib/pin_map.h"
 #include "driverlib/interrupt.h"
 #include "driverlib/rom_map.h"
-
+extern char bus_speed_mode;
+extern char start_bus_speed;
 char buf[]="123456789";
 extern void set_if6(char* netif_name, char* ip6_addr);
 extern void netio_init(void);
@@ -49,8 +50,10 @@ static void led_thread_entry(void* parameter)
 	int i;
 	while(1)
 	{
+		if(bus_speed_mode==0)
 		rt_hw_led_on();
 		rt_thread_delay(RT_TICK_PER_SECOND/2);
+		if(bus_speed_mode==0)
 		rt_hw_led_off();
 		rt_thread_delay(RT_TICK_PER_SECOND/2);	
 		#if !A_TO_B
@@ -219,6 +222,14 @@ void rt_init_thread_entry(void *parameter)
 		num=8;
 		cur_set=DEV_UART;
 	}
+	#if A_TO_B
+	else if((MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0)!=GPIO_PIN_0)&&(MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1)==GPIO_PIN_1))
+	{
+		bus_speed_mode=1;
+		num=8;
+		cur_set=DEV_BUS;
+	}
+	#endif
 	else
 	{
 		num=8;
@@ -226,6 +237,7 @@ void rt_init_thread_entry(void *parameter)
 	}
 	//for dev_bus test
 	num=8;
+	bus_speed_mode=1;
 	cur_set=DEV_BUS;
 	g_data_queue=(struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*num);
 	for(i=0;i<num;i++)//0,1 for socket0,2,3 for socket1,4,5 for socket2,6,7 for socket3

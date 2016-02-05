@@ -44,6 +44,7 @@ static void IntDefaultHandler(void);
 extern int main(void);
 extern void IntGpioD();
 extern void IntGpioK();
+extern void IntGpioJ();
 extern void SysTick_Handler(void);
 extern void PendSV_Handler(void);
 extern void UART0_IRQHandler(void);
@@ -140,7 +141,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // ADC1 Sequence 2
     IntDefaultHandler,                      // ADC1 Sequence 3
     IntDefaultHandler,                      // External Bus Interface 0
-    IntDefaultHandler,                      // GPIO Port J
+    IntGpioJ,                      // GPIO Port J
     IntGpioK,		                        // GPIO Port K
     IntDefaultHandler,                      // GPIO Port L
     IntDefaultHandler,                      // SSI2 Rx and Tx

@@ -16,6 +16,9 @@
 #define CONFIG_IT 0 //test  config 1
 int g_dev=0;
 
+char bus_speed_mode=0;
+char start_bus_speed=1;
+
 #if 0
 void IntGpioD()
 {
@@ -137,6 +140,15 @@ void IntGpioD()
 		ind[3]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
 		rt_kprintf("gpiod 2 int %d\r\n",ind[0]);
 		
+	}	
+}
+void IntGpioJ()
+{
+	if(MAP_GPIOIntStatus(GPIO_PORTJ_BASE, true)&GPIO_PIN_0)
+	{		
+		MAP_GPIOIntClear(GPIO_PORTJ_BASE, GPIO_PIN_0);
+		rt_kprintf("gpioj 0 int \r\n");
+		start_bus_speed=1;
 	}	
 }
 
@@ -1322,7 +1334,23 @@ static void common_r(void* parameter)
 		}
 	}
 }
-
+#if A_TO_B
+void bus_speed_test(void *param)
+{
+	char buf[1022];
+	long times=102601;
+	long i=0;
+	memset(buf,0x38,1022);
+	while(start_bus_speed==0)
+		rt_thread_delay(1);
+	rt_kprintf("start bus speed test\n");
+	rt_hw_led_on();
+	for(i=0;i<times;i++)
+		_epi_write(0,buf,1022,0);
+	rt_hw_led_off();
+	rt_kprintf("end test\n");
+}
+#endif
 /*init common1,2,3,4 for 4 socket*/
 int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 {
@@ -1353,6 +1381,16 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	MAP_GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_4,GPIO_PIN_4);	
 	MAP_GPIOPinWrite(GPIO_PORTE_BASE,GPIO_PIN_5,0);	
 	MAP_GPIOPinWrite(GPIO_PORTK_BASE,GPIO_PIN_2,0);	
+
+	//init GPJ0 int
+	MAP_GPIOIntDisable(GPIO_PORTJ_BASE, GPIO_PIN_0);
+	MAP_GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_0);
+	MAP_GPIOIntTypeSet(GPIO_PORTJ_BASE, GPIO_PIN_0, GPIO_FALLING_EDGE);
+	MAP_IntEnable(INT_GPIOJ);
+	MAP_GPIOIntEnable(GPIO_PORTJ_BASE, GPIO_PIN_0);
+	ui32Status = MAP_GPIOIntStatus(GPIO_PORTJ_BASE, true);
+	MAP_GPIOIntClear(GPIO_PORTJ_BASE, ui32Status);
+
 	default_config();
 	memset(config_local_ip,0,11);config_local_ip[11]='\0';
 	memset(config_sub_msk,0,11);config_local_ip[11]='\0';
@@ -1465,27 +1503,34 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 			}
 		}
 		else if(dev==DEV_BUS)
-		{
-			if(i==0)
+		{			
+			if(bus_speed_mode==0)
 			{
-				epi_init();
-				rt_sprintf(common,"epi_%d_rx",i);
-				rt_sem_init(&(rx_sem[0]), common, 0, 0);
-				g_dev=2;
+				if(i==0)
+				{
+					epi_init();
+					rt_sprintf(common,"epi_%d_rx",i);
+					rt_sem_init(&(rx_sem[0]), common, 0, 0);
+					g_dev=2;
+				}
+				rt_kprintf("epi %d\r\n",i);
+				rt_sprintf(common,"common_wx%d",i);
+				if(i==0)
+				{
+					tid_common_w[i] = rt_thread_create(common,common_w_epi, (void *)(i*2),2048, 20, 10);	
+					if(tid_common_w[i]!=RT_NULL)
+						rt_thread_startup(tid_common_w[i]);	
+				}			
+				rt_sprintf(common,"common_rx%d",i);
+				tid_common_r[i] = rt_thread_create(common,common_r, (void *)(i*2+1),4096, 20, 10);
+				if(tid_common_r[i]!=RT_NULL)
+					rt_thread_startup(tid_common_r[i]);
 			}
-			rt_kprintf("epi %d\r\n",i);
-			rt_sprintf(common,"common_wx%d",i);
-			if(i==0)
-			{
-				tid_common_w[i] = rt_thread_create(common,common_w_epi, (void *)(i*2),2048, 20, 10);	
-				if(tid_common_w[i]!=RT_NULL)
-					rt_thread_startup(tid_common_w[i]);	
-			}			
-			rt_sprintf(common,"common_rx%d",i);
-			tid_common_r[i] = rt_thread_create(common,common_r, (void *)(i*2+1),4096, 20, 10);
-			if(tid_common_r[i]!=RT_NULL)
-				rt_thread_startup(tid_common_r[i]);
-		
+			else
+			{	
+				if(i==0)				
+				epi_init();
+			}
 		}
 		else
 		{
@@ -1509,6 +1554,8 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	}
 	print_config(g_conf);
 	//rt_thread_delay(700);
+	if(bus_speed_mode==0)
+	{
 	if(dev==DEV_USB)
 	{
 		g_chang[0].cs=g_chang[0].lip6c=g_chang[0].lpc=g_chang[0].mode=g_chang[0].protol=g_chang[0].rip4c=g_chang[0].rip6c=g_chang[0].rpc=0;
@@ -1520,6 +1567,7 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	{
 		g_chang[i].cs=g_chang[i].lip6c=g_chang[i].lpc=g_chang[i].mode=g_chang[i].protol=g_chang[i].rip4c=g_chang[i].rip6c=g_chang[i].rpc=0;
 		socket_thread_start(i);
+	}
 	}
 	//rt_thread_delay(100);
 	//list_mem1();	
@@ -1534,6 +1582,10 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	//for(i=0;i<1029;i++)
 	//	rt_kprintf("%c ",buf[i]);
 	//list_mem1();	
+	#if A_TO_B
+	if(bus_speed_mode)
+	rt_thread_startup(rt_thread_create("bus_speed",bus_speed_test, 0,4096, 20, 10));
+	#endif
 	return 1;
 }
 #endif

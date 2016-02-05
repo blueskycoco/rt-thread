@@ -672,11 +672,13 @@ void _epi_read()
 			buf1 =(rt_uint8_t *)malloc(a_to_b_len*sizeof(rt_uint8_t));
 			if(buf1==RT_NULL)
 				rt_kprintf("buf is RT_NULL\r\n");
-			else
-			{
-				rt_memcpy(buf1,g_pui8EPISdram,a_to_b_len);
-				rt_data_queue_push(&g_data_queue[0],buf1, a_to_b_len, RT_WAITING_FOREVER);
-			}
+			while(buf1==RT_NULL)
+				buf1 =(rt_uint8_t *)malloc(a_to_b_len*sizeof(rt_uint8_t));	
+			//else
+			//{
+			rt_memcpy(buf1,g_pui8EPISdram,a_to_b_len);
+			rt_data_queue_push(&g_data_queue[0],buf1, a_to_b_len, RT_WAITING_FOREVER);
+			//}
 			#else
 			if(to_socket[index_epi]==RT_NULL)
 			{
