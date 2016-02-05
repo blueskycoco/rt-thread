@@ -223,7 +223,7 @@ void rt_init_thread_entry(void *parameter)
 		cur_set=DEV_UART;
 	}
 	#if A_TO_B
-	else if((MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0)!=GPIO_PIN_0)&&(MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1)==GPIO_PIN_1))
+	else if((MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0)!=GPIO_PIN_0)&&(MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1)!=GPIO_PIN_1))
 	{
 		bus_speed_mode=1;
 		num=8;
@@ -237,8 +237,8 @@ void rt_init_thread_entry(void *parameter)
 	}
 	//for dev_bus test
 	num=8;
-	bus_speed_mode=0;
-	cur_set=DEV_BUS;
+	//bus_speed_mode=0;
+	//cur_set=DEV_BUS;
 	g_data_queue=(struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*num);
 	for(i=0;i<num;i++)//0,1 for socket0,2,3 for socket1,4,5 for socket2,6,7 for socket3
 	{

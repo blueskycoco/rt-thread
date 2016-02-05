@@ -668,12 +668,12 @@ void _epi_read()
 	{		
 		if(phy_link&&g_socket[0].connected)
 		{
-			#if 1
+#if 1
 			buf1 =(rt_uint8_t *)malloc(a_to_b_len*sizeof(rt_uint8_t));
 			if(buf1==RT_NULL)
 				rt_kprintf("buf is RT_NULL\r\n");
-			while(buf1==RT_NULL)
-				buf1 =(rt_uint8_t *)malloc(a_to_b_len*sizeof(rt_uint8_t));	
+			//while(buf1==RT_NULL)
+			//	buf1 =(rt_uint8_t *)malloc(a_to_b_len*sizeof(rt_uint8_t));	
 			//else
 			//{
 			rt_memcpy(buf1,g_pui8EPISdram,a_to_b_len);

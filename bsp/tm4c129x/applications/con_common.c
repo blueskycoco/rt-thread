@@ -147,7 +147,7 @@ void IntGpioJ()
 	if(MAP_GPIOIntStatus(GPIO_PORTJ_BASE, true)&GPIO_PIN_0)
 	{		
 		MAP_GPIOIntClear(GPIO_PORTJ_BASE, GPIO_PIN_0);
-		rt_kprintf("gpioj 0 int \r\n");
+		//rt_kprintf("gpioj 0 int \r\n");
 		start_bus_speed=1;
 	}	
 }
