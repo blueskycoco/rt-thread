@@ -17,7 +17,7 @@
 int g_dev=0;
 
 char bus_speed_mode=0;
-char start_bus_speed=1;
+char start_bus_speed=0;
 
 #if 0
 void IntGpioD()
