@@ -236,7 +236,7 @@ void rt_init_thread_entry(void *parameter)
 		cur_set=DEV_BUS;
 	}
 	//for dev_bus test
-	num=8;
+	//num=8;
 	//bus_speed_mode=0;
 	//cur_set=DEV_BUS;
 	g_data_queue=(struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*num);

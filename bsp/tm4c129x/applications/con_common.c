@@ -191,7 +191,7 @@ void default_config()
 	memset(g_conf.remote_ip[3],'\0',16);
 	strcpy(g_conf.remote_ip[3],"192.168.1.103");
 	memset(g_conf.local_ip,'\0',16);
-	strcpy(g_conf.local_ip,"192.168.1.100");
+	strcpy(g_conf.local_ip,"192.168.1.111");
 	
 	memset(g_conf.local_ip6,'\0',64);
 	strcpy(g_conf.local_ip6,"fe80::1");
@@ -206,7 +206,7 @@ void default_config()
 	memset(g_conf.remote_ip[3],'\0',16);
 	strcpy(g_conf.remote_ip[3],"192.168.1.100");
 	memset(g_conf.local_ip,'\0',16);
-	strcpy(g_conf.local_ip,"192.168.1.101");	
+	strcpy(g_conf.local_ip,"192.168.1.112");	
 	
 	memset(g_conf.local_ip6,'\0',64);
 	strcpy(g_conf.local_ip6,"fe80::2");
