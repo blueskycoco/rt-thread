@@ -1337,10 +1337,15 @@ static void common_r(void* parameter)
 #if A_TO_B
 void bus_speed_test(void *param)
 {
-	char buf[1022];
+	char buf[1022]={0};
 	long times=102601;
 	long i=0;
 	memset(buf,0x38,1022);
+	for(i=33;i<127;i++)
+		buf[i-33]=i;
+	for(i=1;i<11;i++)
+	memcpy(buf+93*i+1,buf,93);
+	memcpy(buf+931,buf,91);
 	while(start_bus_speed==0)
 		rt_thread_delay(1);
 	rt_kprintf("start bus speed test\n");
