@@ -6,13 +6,6 @@
 #include <rtdevice.h>
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
-
-#define TEST_SOCKET	1 //0 is test config , 1 is test socket
-#if !TEST_SOCKET
-extern int t_len;
-#endif
-
-
 typedef struct {
 	rt_uint8_t local_ip[16];
 	rt_uint8_t local_ip6[64];

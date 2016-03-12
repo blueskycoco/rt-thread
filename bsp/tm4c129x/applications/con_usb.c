@@ -24,9 +24,6 @@
 
 #include "usb_comp_bulk_structs.h"
 
-#if !TEST_SOCKET
-int t_len=0;
-#endif
 
 extern bool phy_link;
 int usb_1=0;
@@ -264,15 +261,7 @@ void _usb_read(int dev)
 	{
 		if(phy_link&&g_socket[dev-1].connected)
 		{
-			#if !TEST_SOCKET
-			t_len=t_len+len;
-				if(t_len<=16384)
-			#endif
-			rt_data_queue_push(&g_data_queue[(dev-1)*2],buf, len, RT_WAITING_FOREVER);		
-			#if !TEST_SOCKET
-			else
-				rt_free(buf);
-			#endif
+			rt_data_queue_push(&g_data_queue[(dev-1)*2],buf, len, RT_WAITING_FOREVER);
 		}
 		else
 			rt_free(buf);
@@ -304,8 +293,6 @@ void _usb_read(int dev)
 		}
 		else
 		{
-			#if !TEST_SOCKET
-			t_len=0;
 			if(buf[0]==0xf5 && buf[1]==0x8a)
 			{		
 				int check_sum=0,longlen=0;
@@ -345,22 +332,13 @@ void _usb_read(int dev)
 			}
 			else
 				USBBulkTx(&g_psBULKDevice[dev],check_mem,8);
-			#endif
 		}
 	}
 }
 
 int _usb_write(int index, void *buffer, int size)
 {
-	#if !TEST_SOCKET
-	t_len=t_len+size;
-	if(t_len<=16384)
-	#endif
 	USBBulkTx(&(g_psBULKDevice[1]),buffer,size);
-	#if !TEST_SOCKET
-	else
-		rt_free(buffer);
-	#endif
 	return 0;	
 }
 

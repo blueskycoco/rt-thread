@@ -15,6 +15,9 @@
 #define CONFIG_BIN 1 //test socket 1
 #define CONFIG_IT 0 //test  config 1
 int g_dev=0;
+extern int _epi_send_config(rt_uint8_t *cmd,int len);
+void rt_hw_led_on();
+void rt_hw_led_off();
 
 char bus_speed_mode=0;
 char start_bus_speed=0;
@@ -181,7 +184,6 @@ void default_config()
 		g_conf.config[2]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 		g_conf.config[3]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 	//}
-	#if A_TO_B
 	memset(g_conf.remote_ip[0],'\0',16);
 	strcpy(g_conf.remote_ip[0],"192.168.1.103");
 	memset(g_conf.remote_ip[1],'\0',16);
@@ -196,22 +198,6 @@ void default_config()
 	memset(g_conf.local_ip6,'\0',64);
 	strcpy(g_conf.local_ip6,"fe80::1");
 	set_if6("e0","fe80::1");
-	#else
-	memset(g_conf.remote_ip[0],'\0',16);
-	strcpy(g_conf.remote_ip[0],"192.168.1.100");
-	memset(g_conf.remote_ip[1],'\0',16);
-	strcpy(g_conf.remote_ip[1],"192.168.1.100");
-	memset(g_conf.remote_ip[2],'\0',16);
-	strcpy(g_conf.remote_ip[2],"192.168.1.100");
-	memset(g_conf.remote_ip[3],'\0',16);
-	strcpy(g_conf.remote_ip[3],"192.168.1.100");
-	memset(g_conf.local_ip,'\0',16);
-	strcpy(g_conf.local_ip,"192.168.1.112");	
-	
-	memset(g_conf.local_ip6,'\0',64);
-	strcpy(g_conf.local_ip6,"fe80::2");
-	set_if6("e0","fe80::2");
-	#endif
 	memset(g_conf.remote_ip6[0],'\0',64);//fe80::2f0:cfff:fe84:5452%7
 	//strcpy(g_conf.remote_ip6[0],"fe80::5867:8730:e9e6:d5c5%11");
 	//strcpy(g_conf.remote_ip6[0],"fe80::9132:fea4:7252:16e%13");
@@ -243,7 +229,6 @@ void default_config()
 	set_if("e0",g_conf.local_ip,g_conf.gw,g_conf.sub_msk);
 	
 }
-#if CONFIG_BIN
 void set_config(rt_uint8_t *data,int ipv6_len,int dev)//0 no change ,1 local socket need reconfig ,2 all socket need reconfig
 {
 	
@@ -506,10 +491,8 @@ void set_config(rt_uint8_t *data,int ipv6_len,int dev)//0 no change ,1 local soc
 	if(ipv6_changed)
 		set_if6("e0",g_conf.local_ip6);
 }
-#endif
 bool need_reconfig(int dev)
 {
-#if CONFIG_BIN
 	if(g_chang[dev].cs||g_chang[dev].lip6c||g_chang[dev].lpc||g_chang[dev].mode||
 	   g_chang[dev].protol||g_chang[dev].rip4c||g_chang[dev].rip6c||g_chang[dev].rpc)
 	{
@@ -536,9 +519,6 @@ bool need_reconfig(int dev)
 	}
 	else
 		return false;
-#else
-	return false;
-#endif
 }
 void usb_config(rt_uint8_t *data,int ipv6_len,int dev)
 {
@@ -552,7 +532,6 @@ void usb_config(rt_uint8_t *data,int ipv6_len,int dev)
 	}
 
 }
-#if CONFIG_BIN
 char *send_out(int dev,int cmd,int *lenout)
 {
 	#if 0
@@ -1026,7 +1005,6 @@ void common_rw_config(int dev)
 	configunlock();
 	return ;
 }
-#endif
 
 static bool flag_cnn[4]={false,false,false,false};
 void all_cut()
@@ -1160,15 +1138,7 @@ int common_w_socket(int dev)
 		len=rt_device_read(common_dev[dev], 0, ptr, 256);
 		if(phy_link&&(len>0)&&g_socket[dev].connected)
 		{
-			#if !TEST_SOCKET
-			t_len+=len;
-			if(t_len<=100)
-			#endif
 			rt_data_queue_push(&g_data_queue[dev*2], ptr, len, RT_WAITING_FOREVER);	
-			#if !TEST_SOCKET
-			else
-				rt_free(ptr);
-			#endif
 		}
 		else
 			rt_free(ptr);
@@ -1222,10 +1192,7 @@ void common_w(void* parameter)
 				void *ptr2=(void *)&g_conf;
 				rt_memcpy(ptr1,ptr2,sizeof(config));
 			}
-			#if !TEST_SOCKET
 			common_rw_config(dev);
-			t_len=0;
-			#endif
 		}
 	}
 }
@@ -1261,82 +1228,30 @@ static void common_r(void* parameter)
     rt_kprintf("common_r %d Enter\r\n",(dev-1)/2);
 	while(1)
 	{
-		r=RT_ENOMEM;
-		//if(dev==1)
-		//rt_kprintf("[%d]phy_link %d , connected %d\r\n",(dev-1)/2,phy_link,g_socket[(dev-1)/2].connected);	
-		//if(phy_link&&g_socket[(dev-1)/2].connected)
-		//{
-		//rt_kprintf("[%d]phy_link %d , connected %d,r %d,data_size %d,last_data_ptr %02x\r\n",(dev-1)/2,phy_link,g_socket[(dev-1)/2].connected,r,data_size,last_data_ptr);
-			r=rt_data_queue_pop(&g_data_queue[dev], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
-			
-		//}
-		//rt_data_queue_pop(&(g_data_queue[dev]), &last_data_ptr, &data_size, 0);
-       // if (rt_data_queue_peak(&(g_data_queue[dev]), &data_ptr, &data_size) == RT_EOK)
-       // {
-     //  rt_kprintf("last_data_ptr %x,r %d,data_size %d\r\n",last_data_ptr,r,data_size);
-			if(r==RT_EOK && data_size!=0 && last_data_ptr)
+		r=rt_data_queue_pop(&g_data_queue[dev], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
+		if(r==RT_EOK && data_size!=0 && last_data_ptr)
+		{
+			if(g_dev==1)
 			{
-				if(g_dev==1)
-				{
-					#if CONFIG_IT
-					if(times<=10){
-					#endif
-					//dillon rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
-					//rt_kprintf("write index %d,%d\n",dev,data_size);
-					_usb_write(dev,(void *)last_data_ptr,data_size);
-					//rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
-					#if CONFIG_IT
-					times++;}
-					#endif
-				}
-				else if(g_dev==2)
-				{
-					
-					#if A_TO_B
-					_epi_write((dev-1)/2,last_data_ptr,data_size,0x04+(dev-1)/2);															
-					#else
-					rt_uint8_t *buf=(rt_uint8_t *)rt_malloc(data_size);
-					#if 1
-					if(data_size>1000)
-					{
-						memcpy(g_puiEpi,last_data_ptr,1000);						
-						rt_memcpy(buf,g_puiEpi,1000);
-						rt_memcpy(buf+1000,last_data_ptr+1000,data_size-1000);
-					}
-					else
-					{
-						memcpy(g_puiEpi,last_data_ptr,data_size);
-						memcpy(buf,g_puiEpi,data_size);
-					}
-					#else
-					memcpy(buf,last_data_ptr,data_size);
-					#endif
-					rt_data_queue_push(&g_data_queue[0],buf, data_size, RT_WAITING_FOREVER);
-					#endif
-					
-				}
-				else
-					rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
-				//else
-					//rt_data_queue_push(&g_data_queue[dev-1], last_data_ptr, data_size, RT_WAITING_FOREVER);
-				//if(dev==1)
-				//rt_free(last_data_ptr);
-			
-        //}
-		//else
-			//rt_thread_delay(1);
-				if(last_data_ptr)
-				{
-					//rt_kprintf("free %x\r\n",last_data_ptr);
-					rt_free((void *)last_data_ptr);
-					last_data_ptr=RT_NULL;
-				}
+				_usb_write(dev,(void *)last_data_ptr,data_size);
+			}
+			else if(g_dev==2)
+			{
+				_epi_write((dev-1)/2,last_data_ptr,data_size,0x04+(dev-1)/2);
+			}
+			else
+				rt_device_write(common_dev[(dev-1)/2], 0, last_data_ptr, data_size);
+			if(last_data_ptr)
+			{
+				rt_free((void *)last_data_ptr);
+				last_data_ptr=RT_NULL;
+			}
 		}
 	}
 }
-#if A_TO_B
 void bus_speed_test(void *param)
 {
+	rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xc0,0xa8,0x01,0x67,0x26,0xfa,0x00,0x00};
 	char buf[1022]={0};
 	long times=102601;
 	long i=0;
@@ -1354,8 +1269,9 @@ void bus_speed_test(void *param)
 		_epi_write(0,buf,1022,0);
 	rt_hw_led_off();
 	rt_kprintf("end test\n");
+	config_ip[6]=config_ip[6]+1;
+	_epi_send_config(config_ip,sizeof(config_ip));
 }
-#endif
 /*init common1,2,3,4 for 4 socket*/
 int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 {
@@ -1587,10 +1503,8 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	//for(i=0;i<1029;i++)
 	//	rt_kprintf("%c ",buf[i]);
 	//list_mem1();	
-	#if A_TO_B
 	if(bus_speed_mode)
 	rt_thread_startup(rt_thread_create("bus_speed",bus_speed_test, 0,4096, 20, 10));
-	#endif
 	return 1;
 }
 #endif

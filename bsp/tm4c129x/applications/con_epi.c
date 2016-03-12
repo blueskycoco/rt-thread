@@ -16,7 +16,7 @@
 #include "con_socket.h"
 extern struct rt_semaphore rx_sem[4];
 struct rt_semaphore udma_sem;
-struct rt_semaphore int_sem;
+struct rt_semaphore tx_done;
 struct rt_mutex mutex;
 extern bool phy_link;
 int ack_got=0;
@@ -151,8 +151,10 @@ uint8_t pui8ControlTable[1024] __attribute__ ((aligned(1024)));
 #define B_TO_A_PKT_LEN1			0x000003F5
 #define CONFIG_A_TO_B_ADDR		0x000003FC	//sw signal to sure read done.
 #define CONFIG_B_TO_A_ADDR		0x000003FD	//sw signal to sure read done.
+#define CONFIG_ADDR				0x000003FD
 #define A_TO_B_SIGNAL	   		0x000003FF//tm4c129x is A
 #define B_TO_A_SIGNAL	   		0x000003FE//stm32 is B
+#define USEFUL_LEN				1021
 #define SOCKET_BUF_LEN			250
 #define SIGNAL_DATA_IN			0x55
 #define SIGNAL_ACK_RCV			0x33
@@ -470,9 +472,9 @@ int epi_init(void)
 		g_pui8EPISdram[i]=i-256;
 	for(i=512;i<768;i++)
 		g_pui8EPISdram[i]=i-512;
-	for(i=768;i<1022;i++)
+	for(i=768;i<USEFUL_LEN;i++)
 		g_pui8EPISdram[i]=i-768;
-	for(i=0;i<1022;i++)
+	for(i=0;i<USEFUL_LEN;i++)
 	{
 		if(g_pui8EPISdram[i]!=(i%256))
 			rt_kprintf("<%02x> %d failed\n",g_pui8EPISdram[i],i%256);
@@ -484,14 +486,6 @@ int epi_init(void)
 	}
 	rt_kprintf("\n");
 	rt_mutex_init(&mutex, "epimutex", RT_IPC_FLAG_FIFO);
-	//#if A_TO_B
-	//if(g_pui8EPISdram[B_TO_A_SIGNAL]==0x55)
-	//	g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
-	//#else
-	//if(g_pui8EPISdram[A_TO_B_SIGNAL]==0x55)
-	//	g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;
-	//#endif
-	//
 	// Enable the uDMA controller at the system level.	Enable it to continue
 	// to run while the processor is in sleep.
 	//
@@ -514,7 +508,7 @@ int epi_init(void)
 	//
 	MAP_uDMAControlBaseSet(pui8ControlTable);
 	rt_sem_init(&udma_sem, "udma_sem", 0, 0);
-	rt_sem_init(&int_sem, "int_sem", 0, 0);
+	rt_sem_init(&tx_done, "tx_done", 0, 0);
     return(0);	
 }
 void IntGpioK()
@@ -523,283 +517,144 @@ void IntGpioK()
 	if(MAP_GPIOIntStatus(GPIO_PORTK_BASE, true)&GPIO_PIN_5)
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
-		#if A_TO_B
 		if(g_pui8EPISdram[B_TO_A_SIGNAL]==0 && g_pui8EPISdram[A_TO_B_SIGNAL]==0)
 		{
 			//rt_kprintf("B has read data done.\n");
-			rt_sem_release(&(int_sem));
+			rt_sem_release(&(tx_done));
 		}
-		#else
-		rt_sem_release(&(rx_sem[0]));
-		#endif
+		else
+			rt_sem_release(&(rx_sem[0]));
 	}
 }
-void Signal_To_B(int len)
+void Signal_To_B(int len,char config)
 {
 	//write packet len to 0x3fe high , 0x3ff low
+	g_pui8EPISdram[CONFIG_ADDR]=config;
 	g_pui8EPISdram[B_TO_A_SIGNAL]=(len>>8)&0xff;
-	g_pui8EPISdram[A_TO_B_SIGNAL]=len&0xff;
-	//rt_kprintf("Signale to B ,len %d\n",len);
-	rt_sem_take(&int_sem, RT_WAITING_FOREVER);
-}
-void Signal_To_A(unsigned char data,int len)
-{
-	g_pui8EPISdram[B_TO_A_PKT_LEN0]=len&0xff;
-	g_pui8EPISdram[B_TO_A_PKT_LEN1]=(len>>8)&0xff;
-	g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0x00;
-	g_pui8EPISdram[B_TO_A_SIGNAL]=data;
-	while(g_pui8EPISdram[CONFIG_B_TO_A_ADDR]==0x00)
-		rt_thread_delay(1);
-}
-void Write_A_B(unsigned char begin)
-{
-	memset(g_pui8EPISdram,begin,510);
-}
-void Write_B_A(unsigned char begin,int len)
-{
-	memset(g_pui8EPISdram+510,begin,len);
+	g_pui8EPISdram[A_TO_B_SIGNAL]=len&0xff;	
+	rt_sem_take(&tx_done, RT_WAITING_FOREVER);
 }
 int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 {	
-#if 1
 	int len=0;
-	//rt_kprintf("epi_write len %d\n",size);
-	if(size<=1022)
+	if(size<=USEFUL_LEN)
 	{
 		memcpy(g_pui8EPISdram,buffer,size);
-		//InitSWTransfer(g_pui8EPISdram,buffer,(size/4));
-		//if(size%4!=0)
-		//	rt_memcpy(g_pui8EPISdram+(size/4)*4,buffer+(size/4)*4,size-(size/4)*4);
-		Signal_To_B(size);
+		Signal_To_B(size,0);
 	}
 	else
 	{
 		while(len!=size)
 		{
-			if((len+1022)<size)
+			if((len+USEFUL_LEN)<size)
 			{
-				memcpy(g_pui8EPISdram,buffer+len,1022);
-				//InitSWTransfer(g_pui8EPISdram,buffer,(1020/4));
-				//rt_memcpy(g_pui8EPISdram+1020,buffer+1020,2);
-				Signal_To_B(1022);
-				len=len+1022;
+				memcpy(g_pui8EPISdram,buffer+len,USEFUL_LEN);
+				Signal_To_B(USEFUL_LEN,0);
+				len=len+USEFUL_LEN;
 			}
 			else
 			{
 				memcpy(g_pui8EPISdram,buffer+len,size-len);
-				//InitSWTransfer(g_pui8EPISdram,buffer+len,((size-len)/4));
-				//if((size-len)%4!=0)
-				//	rt_memcpy(g_pui8EPISdram+((size-len)/4)*4,buffer+len+((size-len)/4)*4,size-len-((size-len)/4)*4);
-				Signal_To_B(size-len);
+				Signal_To_B(size-len,0);
 				len+=size-len;
 			}
 		}
 	}
-#else
-	static int all_len=0;
-	int i;
-	all_len+=size;
-	cur_len=size;
-	//rt_kprintf("Total send B_TO_A %d==>%d\n",all_len,size);
-	//for(i=0;i<size;i++)
-	//	rt_kprintf("%c",((char *)buffer)[i]);
-	//rt_kprintf("==>\n");
-	int len=0;
-	if(size<=498)
+
+	return 0;	
+}
+int _epi_send_config(rt_uint8_t *cmd,int len)
+{
+	int i=0;
+	int crc=0;
+	int result=0;
+	//rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};
+	len=sizeof(cmd);
+	for(i=0;i<len-2;i++)
+		crc=crc+cmd;
+	cmd[len-2]=(crc>>8) & 0xff;
+	cmd[len-1]=crc&0xff;
+	memcpy(g_pui8EPISdram,cmd,sizeof(cmd));
+	Signal_To_B(len,1);
+	rt_thread_delay(10);
+	if(memcmp(g_pui8EPISdram,(void *)COMMAND_OK, strlen(COMMAND_OK)))
 	{
-		memcpy(g_pui8EPISdram+510,buffer,size);
-		#if 0
-		InitSWTransfer(g_pui8EPISdram+510,buffer,(size/4));
-		if(size%4!=0)
-			rt_memcpy(g_pui8EPISdram+510+(size/4)*4,buffer+(size/4)*4,size-(size/4)*4);
-		#endif
-		//for(i=0;i<size;i++)
-		//rt_kprintf("%c",((char *)g_pui8EPISdram)[510+i]);
-		Signal_To_A(0x55,size);
+		rt_kprintf("Send Command ok\n");
+		result=1;
+	}
+	else
+		rt_kprintf("Send Command Failed\n");
+	return result;
+}
+void _epi_read()
+{
+	rt_uint8_t *buf1,i;
+	int len=0;
+	len=g_pui8EPISdram[B_TO_A_SIGNAL]<<8|g_pui8EPISdram[A_TO_B_SIGNAL];
+	unsigned char source=g_pui8EPISdram[CONFIG_ADDR];
+	if(source==0)
+	{
+		if(phy_link&&g_socket[0].connected)
+		{
+			buf1 =(rt_uint8_t *)malloc(len*sizeof(rt_uint8_t));
+			if(buf1==RT_NULL)
+				rt_kprintf("buf is RT_NULL\r\n");
+			rt_memcpy(buf1,g_pui8EPISdram,len);
+			rt_data_queue_push(&g_data_queue[0],buf1, len, RT_WAITING_FOREVER);
+		}
 	}
 	else
 	{
-		while(len!=size)
-		{
-			if((len+498)<size)
+		rt_uint8_t *p=(rt_uint8_t *)malloc(len*sizeof(rt_uint8_t));
+		rt_memcpy(p,g_pui8EPISdram,len);;
+		if(p[0]==0xf5 && p[1]==0x8a)
+		{		
+			int check_sum=0,longlen=0;
+			rt_kprintf("EPI Config len %d\r\n",len);
+			for(i=0;i<len-2;i++)
 			{
-				//rt_kprintf("send B_TO_A 498\n");
-				memcpy(g_pui8EPISdram+510,buffer+len,498);
-				//InitSWTransfer(g_pui8EPISdram+510,buffer,496/4);
-				//rt_memcpy(g_pui8EPISdram+510+496,buffer+496,2);
-				Signal_To_A(0x55,498);
-				len=len+498;
+				rt_kprintf("%02x ",p[i]);
+				check_sum+=p[i];
+			}
+			rt_kprintf("\r\n");
+			if(check_sum==(p[len-2]<<8|p[len-1]))
+			{
+				if(p[2]==0x0c || p[2]==0x0d || p[2]==0x0e || p[2]==0x0f || p[2]==0x20)
+					longlen=p[3]; 				
+				usb_config(p+2,longlen,0);
+				memcpy(g_pui8EPISdram,(void *)COMMAND_OK, strlen(COMMAND_OK));
+				len=strlen(COMMAND_OK);
 			}
 			else
 			{
-				//rt_kprintf("send B_TO_A %d\n",size-len);
-				memcpy(g_pui8EPISdram+510,buffer+len,size-len);
-				//InitSWTransfer(g_pui8EPISdram+510,buffer+len,(size-len)/4);
-				//if((size-len)%4!=0)
-				//	rt_memcpy(g_pui8EPISdram+510+((size-len)/4)*4+1,buffer+((size-len)/4)*4,size-len-((size-len)/4)*4);
-				Signal_To_A(0x55,size-len);
-				len+=size-len;
+				memcpy(g_pui8EPISdram,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
+				len=strlen(COMMAND_FAIL);
 			}
 		}
-	}
-	//rt_kprintf("send done.\n");	
-	#endif
-	return 0;	
-}
-
-void _epi_read()
-{	
-
-	unsigned char *buf=RT_NULL;
-	int index_len=0,i;
-	char cnt=0;
-	unsigned char *index_addr;
-	int do_config=0;
-	int b_to_a_len=0;
-	static int all_len=0;
-	#if !A_TO_B
-	#if 1
-	rt_uint8_t *buf1;
-	int a_to_b_len=0;
-	a_to_b_len=g_pui8EPISdram[B_TO_A_SIGNAL]<<8|g_pui8EPISdram[A_TO_B_SIGNAL];
-	//rt_kprintf("a_to_b_len %d\n",a_to_b_len);
-	unsigned char source=g_pui8EPISdram[A_TO_B_SIGNAL];
-	//if(source==SIGNAL_DATA_IN)
-	{		
-		if(phy_link&&g_socket[0].connected)
+		else if(p[0]==0xf5 && p[1]==0x8b)
 		{
-#if 1
-			buf1 =(rt_uint8_t *)malloc(a_to_b_len*sizeof(rt_uint8_t));
-			if(buf1==RT_NULL)
-				rt_kprintf("buf is RT_NULL\r\n");
-			//while(buf1==RT_NULL)
-			//	buf1 =(rt_uint8_t *)malloc(a_to_b_len*sizeof(rt_uint8_t));	
-			//else
-			//{
-			rt_memcpy(buf1,g_pui8EPISdram,a_to_b_len);
-			rt_data_queue_push(&g_data_queue[0],buf1, a_to_b_len, RT_WAITING_FOREVER);
-			//}
-			#else
-			if(to_socket[index_epi]==RT_NULL)
+			int lenout;
+			char *tmp=send_out(0,p[2],&lenout);
+			if(tmp!=NULL)
 			{
-				to_socket[index_epi]=(unsigned char *)malloc(1000*6*sizeof(unsigned char));
-				if(to_socket[index_epi]==RT_NULL)
-					rt_kprintf("to_socket is RT_NULL\r\n");
-			}
-			if(all_len+a_to_b_len<6000)
-			{
-				rt_memcpy(to_socket[index_epi]+all_len,g_pui8EPISdram,a_to_b_len);
-				all_len+=a_to_b_len;
+				int ii=0;
+				for(ii=0;ii<lenout;ii++)
+					rt_kprintf("%2x ",tmp[ii]);
+				memcpy(g_pui8EPISdram,(void *)tmp, lenout);
+				len=lenout;
 			}
 			else
 			{
-				rt_data_queue_push(&g_data_queue[0],to_socket[index_epi], all_len, RT_WAITING_FOREVER);
-				if(index_epi<31)
-					index_epi++;
-				else
-					index_epi=0;
-				to_socket[index_epi]=(unsigned char *)malloc(1000*6*sizeof(unsigned char));
-				if(to_socket[index_epi]==RT_NULL)
-					rt_kprintf("to_socket is RT_NULL2\r\n");
-				else
-					rt_memcpy(to_socket[index_epi],g_pui8EPISdram,a_to_b_len);				
-				all_len=a_to_b_len;
+				rt_kprintf("some error\r\n");
+				memcpy(g_pui8EPISdram,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
+				len=strlen(COMMAND_FAIL);
 			}
-			#endif
 		}
-		g_pui8EPISdram[A_TO_B_SIGNAL]=0x00;
-		g_pui8EPISdram[B_TO_A_SIGNAL]=0x00;
 	}
-	#else
-	unsigned char local_buf[1440]={0};
-	static int packet_len=0,send_len=0;
-	int a_to_b_len=0;
-	a_to_b_len=g_pui8EPISdram[A_TO_B_PKT_LEN1]<<8|g_pui8EPISdram[A_TO_B_PKT_LEN0];
-	all_len+=a_to_b_len;
-	unsigned char source=g_pui8EPISdram[A_TO_B_SIGNAL];
-	//rt_kprintf("\nGOT A_TO_B Data %d==>%d\n",all_len,a_to_b_len);
-	if(source==SIGNAL_DATA_IN)
-	{
-		if(to_socket[index_epi]==RT_NULL)
-		{
-			to_socket[index_epi]=(unsigned char *)malloc(1440*6*sizeof(unsigned char));
-			if(to_socket[index_epi]==RT_NULL)
-				rt_kprintf("to_socket is RT_NULL\r\n");
-			//else
-			//	rt_kprintf("cur_len %d==>%d\n",cur_len,index_epi);
-		}
-		if(a_to_b_len==444)
-		{
-			if(send_len+a_to_b_len==1440*6)
-			can_send=RT_TRUE; 
-		}
-		else if(a_to_b_len!=498)
-			can_send=RT_TRUE;
-		//rt_memcpy(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len);
-		//if(a_to_b_len>=8)
-		//{
-		//	InitSWTransfer(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len/4);
-		//	if(a_to_b_len%4!=0)
-		//		rt_memcpy(to_socket[index_epi]+send_len+(a_to_b_len/4)*4,g_pui8EPISdram+(a_to_b_len/4)*4,a_to_b_len-(a_to_b_len/4)*4);
-		//}
-		//else
-			rt_memcpy(to_socket[index_epi]+send_len,g_pui8EPISdram,a_to_b_len);
-		send_len+=a_to_b_len;
-		
-		if(can_send)
-		{
-			if(phy_link&&g_socket[0].connected)
-			{
-				rt_data_queue_push(&g_data_queue[0],to_socket[index_epi], send_len, RT_WAITING_FOREVER);
-				//rt_kprintf("\nGOT A_TO_B Data %d==>%d\n",send_len,a_to_b_len);
-				//rt_kprintf("push len %d\n",send_len);
-				//int i;
-				//for(i=0;i<send_len;i++)
-				//	rt_kprintf("%c",to_socket[index_epi][i]);
-			}
-			else
-			{
-				rt_free(to_socket[index_epi]);
-				to_socket[index_epi]=RT_NULL;
-			}
-			if(index_epi<31)
-				index_epi++;
-			else
-				index_epi=0;
-			to_socket[index_epi]=(unsigned char *)malloc(1440*6*sizeof(unsigned char));
-			if(to_socket[index_epi]==RT_NULL)
-				rt_kprintf("to_socket is RT_NULL2\r\n");
-			//else
-			//	rt_kprintf("cur_l2en %d==>%d\n",cur_len,index_epi);
-			
-			send_len=0;			
-			can_send=RT_FALSE;
-		}		
-		g_pui8EPISdram[CONFIG_A_TO_B_ADDR]=0xff;		
-	}
-	#endif
-	#else
-	unsigned char source=g_pui8EPISdram[B_TO_A_SIGNAL];
-	//rt_kprintf("\n_epi_read source %02x\r\n",source);
-	if(source==SIGNAL_DATA_IN)
-	{	
-		b_to_a_len=(g_pui8EPISdram[B_TO_A_PKT_LEN1]<<8)|g_pui8EPISdram[B_TO_A_PKT_LEN0];
-		all_len+=b_to_a_len;
-		//rt_kprintf("\nGOT B_TO_A Data %d\n",all_len);
-		//for(i=510;i<1019;i++)
-		//	rt_kprintf("%d ",g_pui8EPISdram[i]);
-		g_pui8EPISdram[CONFIG_B_TO_A_ADDR]=0xff;
-		#if A_PLACE
-		memcpy(g_pui8EPISdram,g_pui8EPISdram+510,b_to_a_len);
-		#if 0
-		InitSWTransfer(g_pui8EPISdram,g_pui8EPISdram+510,b_to_a_len/4);
-		if(b_to_a_len%4!=0)
-			rt_memcpy(g_pui8EPISdram+(b_to_a_len/4)*4,g_pui8EPISdram+510+(b_to_a_len/4)*4,b_to_a_len-(b_to_a_len/4)*4);
-		#endif
-		Signal_To_B(b_to_a_len);
-		#endif
-	}
-	#endif
+	g_pui8EPISdram[A_TO_B_SIGNAL]=0x00;
+	g_pui8EPISdram[B_TO_A_SIGNAL]=0x00;
+	if(source)
+		Signal_To_B(len,1);
 	return ;	
 }
 void uDMAErrorHandler(void)

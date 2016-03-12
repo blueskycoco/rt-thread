@@ -51,26 +51,14 @@ static void led_thread_entry(void* parameter)
 	while(1)
 	{
 		if(bus_speed_mode==0)
-		rt_hw_led_on();
+			rt_hw_led_on();
 		rt_thread_delay(RT_TICK_PER_SECOND/2);
 		if(bus_speed_mode==0)
-		rt_hw_led_off();
+			rt_hw_led_off();
 		rt_thread_delay(RT_TICK_PER_SECOND/2);	
-		#if !A_TO_B
-		//Write_B_A(cnt,cnt);
-		//Signal_To_A(0x55,cnt);
-		#else
-		#if !A_PLACE
-		Write_A_B(cnt);
-		Signal_To_B(0x55,499);
-		#endif
-		#endif
 		cnt++;
 		if(cnt==255)
 			cnt=0;
-		//list_thread1();
-		//list_mem1();
-		//list_tcps1();
 	}
 }
 #if 0
@@ -222,14 +210,12 @@ void rt_init_thread_entry(void *parameter)
 		num=8;
 		cur_set=DEV_UART;
 	}
-	#if A_TO_B
 	else if((MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0)!=GPIO_PIN_0)&&(MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1)!=GPIO_PIN_1))
 	{
 		bus_speed_mode=1;
 		num=8;
 		cur_set=DEV_BUS;
 	}
-	#endif
 	else
 	{
 		num=8;
