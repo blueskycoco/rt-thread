@@ -682,6 +682,8 @@ void socket_r(void *paramter)
 				{		
 					if(ind[dev])
 					{	
+						//rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
+						rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
 						g_socket[dev].recv_data=rt_malloc(status);
 						if(g_socket[dev].recv_data==NULL)
 						{
@@ -697,8 +699,6 @@ void socket_r(void *paramter)
 							//unlock(dev);
 							//continue;
 						}
-						//rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
-						rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
 					}
 					//else
 					//	rt_free(g_socket[dev].recv_data);
