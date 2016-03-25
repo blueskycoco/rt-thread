@@ -32,8 +32,7 @@
 #include "driverlib/pin_map.h"
 #include "driverlib/interrupt.h"
 #include "driverlib/rom_map.h"
-extern char bus_speed_mode;
-extern char start_bus_speed;
+extern rt_int8_t bus_speed_mode;
 char buf[]="123456789";
 extern void set_if6(char* netif_name, char* ip6_addr);
 extern void netio_init(void);

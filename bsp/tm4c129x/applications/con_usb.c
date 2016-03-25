@@ -158,7 +158,7 @@ USBCommonEventCallback(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue
 				rt_free(tmpbuf);
 			}
 			#endif
-			rt_sem_release(&(rx_sem[index]));
+			//rt_sem_release(&(rx_sem[index]));
 			//rt_kprintf("release %d\n",index);
             return 0;
         }

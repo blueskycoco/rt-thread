@@ -13,52 +13,49 @@
 #include "driverlib/interrupt.h"
 #include "driverlib/rom_map.h"
 rt_int32_t g_dev=0;
-rt_int8_t bus_speed_mode=0;
-rt_int8_t start_bus_speed=0;
+rt_int8_t 	bus_speed_mode=0;
 rt_int32_t times=0;
-rt_uint8_t config_local_ip[4+8]				={0xF5,0x8A,0x00,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*local ip*/
-rt_uint8_t config_socket0_local_port[2+8]	={0xF5,0x8A,0x01,0xff,0xff,0x26,0xfa,0x00,0x00};/*local port0*/
-rt_uint8_t config_socket1_local_port[2+8]	={0xF5,0x8A,0x02,0xff,0xff,0x26,0xfa,0x00,0x00};/*local port1*/
-rt_uint8_t config_socket2_local_port[2+8]	={0xF5,0x8A,0x03,0xff,0xff,0x26,0xfa,0x00,0x00};/*local port2*/
-rt_uint8_t config_socket3_local_port[2+8]	={0xF5,0x8A,0x04,0xff,0xff,0x26,0xfa,0x00,0x00};/*local port3*/
-rt_uint8_t config_sub_msk[4+8]				={0xF5,0x8A,0x05,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*sub msk*/
-rt_uint8_t config_gw[4+8]					={0xF5,0x8A,0x06,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*gw*/
+rt_uint8_t config_local_ip[4+8]				={0xF5,0x8A,0x00,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*local ip*/
+rt_uint8_t config_socket0_local_port[2+8]	={0xF5,0x8A,0x01,0xff,0xff,0x26,0xfa,0x00,0x00};					/*local port0*/
+rt_uint8_t config_socket1_local_port[2+8]	={0xF5,0x8A,0x02,0xff,0xff,0x26,0xfa,0x00,0x00};					/*local port1*/
+rt_uint8_t config_socket2_local_port[2+8]	={0xF5,0x8A,0x03,0xff,0xff,0x26,0xfa,0x00,0x00};					/*local port2*/
+rt_uint8_t config_socket3_local_port[2+8]	={0xF5,0x8A,0x04,0xff,0xff,0x26,0xfa,0x00,0x00};					/*local port3*/
+rt_uint8_t config_sub_msk[4+8]				={0xF5,0x8A,0x05,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*sub msk*/
+rt_uint8_t config_gw[4+8]					={0xF5,0x8A,0x06,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*gw*/
 rt_uint8_t config_mac[6+8]					={0xF5,0x8A,0x07,0xff,0xff,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*mac*/
-rt_uint8_t config_socket0_ip[4+8]			={0xF5,0x8A,0x08,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 0 ip*/
-rt_uint8_t config_socket1_ip[4+8]			={0xF5,0x8A,0x09,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 1 ip*/
-rt_uint8_t config_socket2_ip[4+8]			={0xF5,0x8A,0x0a,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 2 ip*/
-rt_uint8_t config_socket3_ip[4+8]			={0xF5,0x8A,0x0b,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 3 ip*/
-rt_uint8_t config_socket0_ip6[64+8]			={0xF5,0x8A,0x0c,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 0 ip6*/
-rt_uint8_t config_socket1_ip6[64+8]			={0xF5,0x8A,0x0d,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 1 ip6*/
-rt_uint8_t config_socket2_ip6[64+8]			={0xF5,0x8A,0x0e,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 2 ip6*/
-rt_uint8_t config_socket3_ip6[64+8]			={0xF5,0x8A,0x0f,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 3 ip6*/
-rt_uint8_t config_socket0_remote_port[2+8]	={0xF5,0x8A,0x10,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 0 port*/
-rt_uint8_t config_socket1_remote_port[2+8]	={0xF5,0x8A,0x11,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 1 port*/
-rt_uint8_t config_socket2_remote_port[2+8]	={0xF5,0x8A,0x12,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 2 port*/
-rt_uint8_t config_socket3_remote_port[2+8]	={0xF5,0x8A,0x13,0xff,0xff,0x26,0xfa,0x00,0x00};/*socket 3 port*/
-rt_uint8_t config_net_protol0[1+8]			={0xF5,0x8A,0x14,0xff,0x26,0xfa,0x00,0x00};/*protol0*/
-rt_uint8_t config_net_protol1[1+8]			={0xF5,0x8A,0x15,0xff,0x26,0xfa,0x00,0x00};/*protol1*/
-rt_uint8_t config_net_protol2[1+8]			={0xF5,0x8A,0x16,0xff,0x26,0xfa,0x00,0x00};/*protol2*/
-rt_uint8_t config_net_protol3[1+8]			={0xF5,0x8A,0x17,0xff,0x26,0xfa,0x00,0x00};/*protol3*/
-rt_uint8_t config_socket_mode0[1+8]			={0xF5,0x8A,0x18,0xff,0x26,0xfa,0x00,0x00};/*server mode0*/
-rt_uint8_t config_socket_mode1[1+8]			={0xF5,0x8A,0x19,0xff,0x26,0xfa,0x00,0x00};/*server mode1*/
-rt_uint8_t config_socket_mode2[1+8]			={0xF5,0x8A,0x1a,0xff,0x26,0xfa,0x00,0x00};/*server mode2*/
-rt_uint8_t config_socket_mode3[1+8]			={0xF5,0x8A,0x1b,0xff,0x26,0xfa,0x00,0x00};/*server mode3*/
-rt_uint8_t config_uart_baud0[1+8]			={0xF5,0x8A,0x1c,0xff,0x26,0xfa,0x00,0x00};/*uart baud*/
-rt_uint8_t config_uart_baud1[1+8]			={0xF5,0x8A,0x1d,0xff,0x26,0xfa,0x00,0x00};/*uart baud*/
-rt_uint8_t config_uart_baud2[1+8]			={0xF5,0x8A,0x1e,0xff,0x26,0xfa,0x00,0x00};/*uart baud*/
-rt_uint8_t config_uart_baud3[1+8]			={0xF5,0x8A,0x1f,0xff,0x26,0xfa,0x00,0x00};/*uart baud*/
-rt_uint8_t config_local_ip6[64+8]			={0xF5,0x8A,0x20,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};/*local ip6*/
-rt_uint8_t config_tcp0[1+8]					={0xF5,0x8A,0x21,0xff,0x26,0xfa,0x00,0x00};/*protol0*/
-rt_uint8_t config_tcp1[1+8]					={0xF5,0x8A,0x22,0xff,0x26,0xfa,0x00,0x00};/*protol1*/
-rt_uint8_t config_tcp2[1+8]					={0xF5,0x8A,0x23,0xff,0x26,0xfa,0x00,0x00};/*protol2*/
-rt_uint8_t config_tcp3[1+8]					={0xF5,0x8A,0x24,0xff,0x26,0xfa,0x00,0x00};/*protol3*/
-struct rt_mutex config_mutex;
+rt_uint8_t config_socket0_ip[4+8]			={0xF5,0x8A,0x08,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*socket 0 ip*/
+rt_uint8_t config_socket1_ip[4+8]			={0xF5,0x8A,0x09,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*socket 1 ip*/
+rt_uint8_t config_socket2_ip[4+8]			={0xF5,0x8A,0x0a,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*socket 2 ip*/
+rt_uint8_t config_socket3_ip[4+8]			={0xF5,0x8A,0x0b,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*socket 3 ip*/
+rt_uint8_t config_socket0_ip6[64+8]			={0xF5,0x8A,0x0c,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*socket 0 ip6*/
+rt_uint8_t config_socket1_ip6[64+8]			={0xF5,0x8A,0x0d,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*socket 1 ip6*/
+rt_uint8_t config_socket2_ip6[64+8]			={0xF5,0x8A,0x0e,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*socket 2 ip6*/
+rt_uint8_t config_socket3_ip6[64+8]			={0xF5,0x8A,0x0f,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*socket 3 ip6*/
+rt_uint8_t config_socket0_remote_port[2+8]	={0xF5,0x8A,0x10,0xff,0xff,0x26,0xfa,0x00,0x00};					/*socket 0 port*/
+rt_uint8_t config_socket1_remote_port[2+8]	={0xF5,0x8A,0x11,0xff,0xff,0x26,0xfa,0x00,0x00};					/*socket 1 port*/
+rt_uint8_t config_socket2_remote_port[2+8]	={0xF5,0x8A,0x12,0xff,0xff,0x26,0xfa,0x00,0x00};					/*socket 2 port*/
+rt_uint8_t config_socket3_remote_port[2+8]	={0xF5,0x8A,0x13,0xff,0xff,0x26,0xfa,0x00,0x00};					/*socket 3 port*/
+rt_uint8_t config_net_protol0[1+8]			={0xF5,0x8A,0x14,0xff,0x26,0xfa,0x00,0x00};							/*protol0*/
+rt_uint8_t config_net_protol1[1+8]			={0xF5,0x8A,0x15,0xff,0x26,0xfa,0x00,0x00};							/*protol1*/
+rt_uint8_t config_net_protol2[1+8]			={0xF5,0x8A,0x16,0xff,0x26,0xfa,0x00,0x00};							/*protol2*/
+rt_uint8_t config_net_protol3[1+8]			={0xF5,0x8A,0x17,0xff,0x26,0xfa,0x00,0x00};							/*protol3*/
+rt_uint8_t config_socket_mode0[1+8]			={0xF5,0x8A,0x18,0xff,0x26,0xfa,0x00,0x00};							/*server mode0*/
+rt_uint8_t config_socket_mode1[1+8]			={0xF5,0x8A,0x19,0xff,0x26,0xfa,0x00,0x00};							/*server mode1*/
+rt_uint8_t config_socket_mode2[1+8]			={0xF5,0x8A,0x1a,0xff,0x26,0xfa,0x00,0x00};							/*server mode2*/
+rt_uint8_t config_socket_mode3[1+8]			={0xF5,0x8A,0x1b,0xff,0x26,0xfa,0x00,0x00};							/*server mode3*/
+rt_uint8_t config_uart_baud0[1+8]			={0xF5,0x8A,0x1c,0xff,0x26,0xfa,0x00,0x00};							/*uart baud*/
+rt_uint8_t config_uart_baud1[1+8]			={0xF5,0x8A,0x1d,0xff,0x26,0xfa,0x00,0x00};							/*uart baud*/
+rt_uint8_t config_uart_baud2[1+8]			={0xF5,0x8A,0x1e,0xff,0x26,0xfa,0x00,0x00};							/*uart baud*/
+rt_uint8_t config_uart_baud3[1+8]			={0xF5,0x8A,0x1f,0xff,0x26,0xfa,0x00,0x00};							/*uart baud*/
+rt_uint8_t config_local_ip6[64+8]			={0xF5,0x8A,0x20,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};			/*local ip6*/
+rt_uint8_t config_tcp0[1+8]					={0xF5,0x8A,0x21,0xff,0x26,0xfa,0x00,0x00};							/*protol0*/
+rt_uint8_t config_tcp1[1+8]					={0xF5,0x8A,0x22,0xff,0x26,0xfa,0x00,0x00};							/*protol1*/
+rt_uint8_t config_tcp2[1+8]					={0xF5,0x8A,0x23,0xff,0x26,0xfa,0x00,0x00};							/*protol2*/
+rt_uint8_t config_tcp3[1+8]					={0xF5,0x8A,0x24,0xff,0x26,0xfa,0x00,0x00};							/*protol3*/
 static rt_bool_t flag_cnn[4]={RT_FALSE,RT_FALSE,RT_FALSE,RT_FALSE};
 rt_thread_t tid_w_thread[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL};
 rt_thread_t tid_r_thread[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL};
 rt_device_t uart_dev[4] = {RT_NULL,RT_NULL,RT_NULL,RT_NULL};
-rt_bool_t ind[4]={RT_TRUE,RT_TRUE,RT_TRUE,RT_TRUE};
 rt_bool_t phy_link=RT_FALSE;
 enum STATE_OP{
 	GET_F5,
@@ -70,9 +67,7 @@ enum STATE_OP{
 	GET_CHECSUM
 };
 struct rt_semaphore rx_sem[4];
-struct rt_semaphore usbrx_sem[2];
 
-extern rt_int32_t _epi_send_config(rt_uint8_t *cmd,rt_int32_t len);
 extern void rt_hw_led_on();
 extern void rt_hw_led_off();
 extern void socket_thread_start(rt_int32_t i);
@@ -81,59 +76,9 @@ extern void set_if6(rt_int8_t* netif_name, rt_int8_t* ip6_addr);
 extern rt_size_t _usb_init();
 extern rt_int32_t _usb_write(rt_int32_t index, void *buffer, rt_int32_t size);
 extern void _usb_read(rt_int32_t dev);
-extern rt_int32_t _epi_write(rt_int32_t index, const void *buffer, rt_int32_t size,rt_uint8_t signal);
-extern void _epi_read();
 rt_int32_t baud(rt_int32_t type);
 void print_config(config g);
 
-void configlock()
-{
-    rt_err_t result;
-
-    result = rt_mutex_take(&config_mutex, RT_WAITING_FOREVER);
-    if (result != RT_EOK)
-    {
-        RT_ASSERT(0);
-    }
-}
-void configunlock()
-{
-    rt_mutex_release(&config_mutex);
-}
-
-rt_int32_t which_uart_dev(rt_device_t *dev,rt_device_t dev2)
-{
-	rt_int32_t i=0;
-	for(i=0;i<4;i++)
-		if(dev[i]==dev2)
-			break;
-	return i;
-}
-void IntGpioD()
-{
-	if(MAP_GPIOIntStatus(GPIO_PORTD_BASE, RT_TRUE)&GPIO_PIN_2)
-	{		
-		MAP_GPIOIntClear(GPIO_PORTD_BASE, GPIO_PIN_2);
-		ind[0]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))
-				==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
-		ind[1]=RT_TRUE;
-		ind[2]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))
-				==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
-		ind[3]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))
-				==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
-		rt_kprintf("gpiod 2 int %d\r\n",ind[0]);
-		
-	}	
-}
-void IntGpioJ()
-{
-	if(MAP_GPIOIntStatus(GPIO_PORTJ_BASE, RT_TRUE)&GPIO_PIN_0)
-	{		
-		MAP_GPIOIntClear(GPIO_PORTJ_BASE, GPIO_PIN_0);
-		//rt_kprintf("gpioj 0 int \r\n");
-		start_bus_speed=1;
-	}	
-}
 
 /*get config data to global config zone, or get socket data to buffer*/
 void default_config()
@@ -798,134 +743,6 @@ rt_int8_t *send_out(rt_int32_t dev,rt_int32_t cmd,rt_int32_t *lenout)
 	}
 	return ptr;
 }
-void uart_rw_config(rt_int32_t dev)
-{
-
-	rt_uint8_t buf[65];
-	rt_uint8_t i=0,delay=0;	
-	rt_int32_t data_len,crc_len,longlen=0;
-	rt_uint8_t crc[2];
-	rt_int8_t ch;	
-	rt_int32_t lenout;
-	rt_uint8_t len=0,param;
-	enum STATE_OP state=GET_F5;
-	DBG("enter uart_rw_config\r\n");
-	rt_uint8_t *ptr=(rt_uint8_t *)buf;
-	configlock();
-	while(1)
-	{
-		if(rt_device_read(uart_dev[dev], 0, &ch, 1)==1)
-		{
-		if(ch==0xf5 && state==GET_F5)
-		{
-			DBG("GET_F5\r\n");
-			state=GET_8A_8B;
-		}
-		else if(ch==0x8a && state==GET_8A_8B)
-		{
-			DBG("GET_8A\r\n");
-			data_len=0;
-			longlen=0;
-			state=GET_DATA;
-		}
-		else if(ch==0x8b && state==GET_8A_8B)
-		{
-			DBG("GET_8B\r\n");
-			rt_device_read(uart_dev[dev], 0, &ch, 1);
-			DBG("GET %d\r\n",ch);
-			rt_int8_t *tmp=send_out(dev,ch,&lenout);
-			if(tmp!=NULL)
-			{
-				rt_int32_t ii=0;
-				for(ii=0;ii<lenout;ii++)
-					DBG("%2x ",tmp[ii]);
-				rt_device_write(uart_dev[dev], 0, (void *)tmp, lenout);
-			}
-			else
-				DBG("some error\r\n");
-			break;
-		}
-		else if(state==GET_DATA)
-		{	
-			DBG("GET_DATA %2x\r\n",ch);
-			*(ptr+data_len)=ch;
-			if(data_len==0)
-			{
-				if(ch==0x0c || ch==0x0d || ch==0x0e || ch==0x0f || ch==0x20)
-					state=GET_LEN;
- 			}
-			else
-			{
-				if(ch==0x26&&(data_len>longlen))
-					state=GET_FA;
- 			}
-			
-			data_len++;
-		}
-		else if(state==GET_LEN)
-		{
-			DBG("GET_LEN %2x\r\n",ch);
-			longlen=ch;
-			state=GET_DATA;
-		}
-		else if(ch==0xfa && state==GET_FA)
-		{
-			DBG("GET_FA\r\n");
-			data_len--;
-			crc_len=0;
-			state=GET_CHECSUM;
-		}
-		else if(state==GET_CHECSUM)
-		{
-			if(crc_len!=1)
-			{
-				crc[crc_len++]=ch;
-				DBG("GET_SUM %2x\r\n",ch);
-			}
-			else
-			{
-				crc[crc_len++]=ch;
-				DBG("GET_SUM %2x\r\n",ch);
-				//verify checksum
-				rt_int32_t verify=0xf5+0x8a+0xfa+0x26+longlen;
-				rt_kprintf("command is \r\n");
-				for(i=0;i<data_len;i++)
-				{
-					rt_kprintf("%2x ",ptr[i]);	
-					verify+=ptr[i];
-				}
-				rt_kprintf("crc is %2x %2x,verify is %x\r\n",crc[0],crc[1],verify);
-				if(verify!=(crc[0]<<8|crc[1]))
-				{
-					rt_device_write(uart_dev[dev], 0, (void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
-				}
-				else
-				{
-					rt_device_write(uart_dev[dev], 0, (void *)COMMAND_OK, strlen(COMMAND_OK));
-					set_config(ptr,longlen,dev);					
-				}
-				state=GET_F5;
-				break;
-			}
-		}
-		else
-		{
-			while(rt_device_read(uart_dev[dev], 0, &ch, 1)==1);
-			state=GET_F5;			
-			break;
-		}
-	}
-		else
-			{
-				rt_thread_delay(1);
-				delay++;
-				if(delay>10)
-					break;
-			}
-	}
-	configunlock();
-	return ;
-}
 void all_cut()
 {
 	MAP_GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_4,GPIO_PIN_4);	
@@ -989,32 +806,6 @@ void cnn_out(rt_int32_t index,rt_int32_t level)
 		//MAP_GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_4,0);	
 	}
 }
-rt_int32_t baud(rt_int32_t type)
-{
-	rt_kprintf("input baud %d\r\n",type);
-	switch(type)
-	{
-		case 0:
-			return 115200;
-		case 1:
-			return 128000;
-		case 2:
-			return 256000;
-		case 3:
-			return 460800;
-		case 4:
-			return 921600;
-		case 5:
-			return 1000000;
-		case 6:
-			return 2000000;
-		case 7:
-			return 4000000;
-		case 8:
-			return 6000000;
-		}
-	return 0;
-}
 void print_config(config g)
 {
 	rt_kprintf("\n============================================================================>\r\n");
@@ -1052,89 +843,13 @@ void print_config(config g)
 		baud((g.config[2]&0xf8)>>3),baud((g.config[3]&0xf8)>>3));
 	rt_kprintf("\n============================================================================>\r\n");
 }
-rt_int32_t uart_w_socket(rt_int32_t dev)
-{	
-	rt_int32_t len;
-	rt_uint8_t *ptr;
-	if(phy_link&&g_socket[dev].connected)
-	{
-		ptr=rt_malloc(256);
-		len=rt_device_read(uart_dev[dev], 0, ptr, 256);
-		if(phy_link&&(len>0)&&g_socket[dev].connected)
-		{
-			rt_data_queue_push(&g_data_queue[dev*2], ptr, len, RT_WAITING_FOREVER);	
-		}
-		else
-			rt_free(ptr);
-	}
-	return 0;
-}
-static rt_err_t uart_rx_ind(rt_device_t dev, rt_size_t size)
-{
-    /* release semaphore to let finsh thread rx data */
-    rt_sem_release(&(rx_sem[which_uart_dev(uart_dev,dev)]));
-    return RT_EOK;
-}
 
-void uart_w_thread(void* parameter)
+void usb_w_thread(void* parameter)
 {
 	rt_int32_t dev=((rt_int32_t)parameter)/2;
-	static rt_int32_t flag[4]={0,0,0,0};
-	DBG("uart_w_thread %d Enter\r\n",dev);
-	while (1)
-	{
-		/* wait receive */
-		if (rt_sem_take(&(rx_sem[dev]), RT_WAITING_FOREVER) != RT_EOK) 
-			continue;
-		if(ind[dev])
-		{	
-			if(flag[dev]==1)
-			{
-				print_config(g_conf);
-				flag[dev]=0;	
-				void *ptr1=(void *)&g_confb;
-				void *ptr2=(void *)&g_conf;
-				if(rt_memcmp(ptr1,ptr2,sizeof(config))!=0)
-				{
-					print_config(g_conf);
-				}
-			}
-			
-			/*socket data transfer,use dma*/			
-			uart_w_socket(dev);
-			
-		}
-		else
-		{
-			DBG("dev %d in config data flag %d\r\n",dev,flag[dev]);
-			if(flag[dev]==0)
-			{
-				flag[dev]=1;
-				void *ptr1=(void *)&g_confb;
-				void *ptr2=(void *)&g_conf;
-				rt_memcpy(ptr1,ptr2,sizeof(config));
-			}
-			uart_rw_config(dev);
-		}
-	}
-}
-void common_w_usb(void* parameter)
-{
-	rt_int32_t dev=((rt_int32_t)parameter)/2;
-	rt_kprintf("common_w_usb %d\r\n",dev);
+	rt_kprintf("usb_w_thread %d\r\n",dev);
 	while(1)
 		_usb_read(dev);
-}
-void common_w_epi(void* parameter)
-{
-	rt_int32_t dev=((rt_int32_t)parameter)/2;
-	rt_kprintf("common_w_epi %d\r\n",dev);
-	while(1)
-	{
-		if (rt_sem_take(&(rx_sem[0]), RT_WAITING_FOREVER) != RT_EOK) 
-			continue;
-		_epi_read();
-	}	
 }
 
 static void common_r(void* parameter)
@@ -1167,29 +882,6 @@ static void common_r(void* parameter)
 			}
 		}
 	}
-}
-void bus_speed_test(void *param)
-{
-	rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xc0,0xa8,0x01,0x67,0x26,0xfa,0x00,0x00};
-	rt_int8_t buf[1022]={0};
-	long times=102601;
-	long i=0;
-	memset(buf,0x38,1022);
-	for(i=33;i<127;i++)
-		buf[i-33]=i;
-	for(i=1;i<11;i++)
-	memcpy(buf+93*i+1,buf,93);
-	memcpy(buf+931,buf,91);
-	while(start_bus_speed==0)
-		rt_thread_delay(1);
-	rt_kprintf("start bus speed test\n");
-	rt_hw_led_on();
-	for(i=0;i<times;i++)
-		_epi_write(0,buf,1022,0);
-	rt_hw_led_off();
-	rt_kprintf("end test\n");
-	config_ip[6]=config_ip[6]+1;
-	_epi_send_config(config_ip,sizeof(config_ip));
 }
 /*init common1,2,3,4 for 4 socket*/
 rt_int32_t common_init(rt_int32_t dev)//0 uart , 1 parallel bus, 2 usb
@@ -1274,16 +966,16 @@ rt_int32_t common_init(rt_int32_t dev)//0 uart , 1 parallel bus, 2 usb
 		max_devices=2;
 		g_dev=1;
 	}
+	if(dev==DEV_BUS)
+	{
+		max_devices=1;
+		g_dev=2;
+	}
 	for(i=0;i<max_devices;i++)
 	{
 		//config sem		
-		if(dev==DEV_USB)
-		{
-			rt_sprintf(common,"usb_%d_rx",i);
-			rt_sem_init(&(usbrx_sem[i]), common, 0, 0);
-		}
-		else
-		{
+		if(dev!=DEV_USB)
+		{			
 			rt_sprintf(common,"common_%d_rx",i);
 			rt_sem_init(&(rx_sem[i]), common, 0, 0);
 		}
@@ -1292,8 +984,7 @@ rt_int32_t common_init(rt_int32_t dev)//0 uart , 1 parallel bus, 2 usb
 			if(i==1)
 				rt_sprintf(common,"uart%d",4);
 			else
-				rt_sprintf(common,"uart%d",i);
-		
+				rt_sprintf(common,"uart%d",i);		
 			DBG("To open ==>%s\r\n",common);
 			//open uart ,parallel ,usb
 			uart_dev[i] = rt_device_find(common);
@@ -1312,9 +1003,7 @@ rt_int32_t common_init(rt_int32_t dev)//0 uart , 1 parallel bus, 2 usb
 				rt_sprintf(common,"common_rx%d",i);
 				tid_r_thread[i] = rt_thread_create(common,common_r, (void *)(i*2+1),2048, 20, 10);
 				rt_device_write(uart_dev[i], 0, buf, strlen(buf));
-
 				rt_device_set_rx_indicate(uart_dev[i], uart_rx_ind);
-
 				if(tid_w_thread[i]!=RT_NULL)
 					rt_thread_startup(tid_w_thread[i]);			
 				if(tid_r_thread[i]!=RT_NULL)
@@ -1325,31 +1014,21 @@ rt_int32_t common_init(rt_int32_t dev)//0 uart , 1 parallel bus, 2 usb
 		{			
 			if(bus_speed_mode==0)
 			{
-				if(i==0)
-				{
-					epi_init();
-					rt_sprintf(common,"epi_%d_rx",i);
-					rt_sem_init(&(rx_sem[0]), common, 0, 0);
-					g_dev=2;
-				}
+				epi_init();
+				rt_sprintf(common,"epi_%d_rx",i);
+				rt_sem_init(&(rx_sem[i]), common, 0, 0);			
 				rt_kprintf("epi %d\r\n",i);
 				rt_sprintf(common,"common_wx%d",i);
-				if(i==0)
-				{
-					tid_w_thread[i] = rt_thread_create(common,common_w_epi, (void *)(i*2),2048, 20, 10);	
-					if(tid_w_thread[i]!=RT_NULL)
-						rt_thread_startup(tid_w_thread[i]);	
-				}			
+				tid_w_thread[i] = rt_thread_create(common,epi_w_thread, (void *)(i*2),2048, 20, 10);	
+				if(tid_w_thread[i]!=RT_NULL)
+					rt_thread_startup(tid_w_thread[i]);								
 				rt_sprintf(common,"common_rx%d",i);
 				tid_r_thread[i] = rt_thread_create(common,common_r, (void *)(i*2+1),4096, 20, 10);
 				if(tid_r_thread[i]!=RT_NULL)
 					rt_thread_startup(tid_r_thread[i]);
 			}
 			else
-			{	
-				if(i==0)				
 				epi_init();
-			}
 		}
 		else
 		{
@@ -1359,7 +1038,7 @@ rt_int32_t common_init(rt_int32_t dev)//0 uart , 1 parallel bus, 2 usb
 				_usb_init();
 			rt_kprintf("uub %d\r\n",i);
 			rt_sprintf(common,"common_wx%d",i);
-			tid_w_thread[i] = rt_thread_create(common,common_w_usb, (void *)(i*2),4096, 20, 10);	
+			tid_w_thread[i] = rt_thread_create(common,usb_w_thread, (void *)(i*2),4096, 20, 10);	
 			if(tid_w_thread[i]!=RT_NULL)
 				rt_thread_startup(tid_w_thread[i]);	
 			if(i==0)

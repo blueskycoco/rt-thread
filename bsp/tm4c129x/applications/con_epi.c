@@ -14,13 +14,12 @@
 #include "driverlib/rom_map.h"
 #include "driverlib/udma.h"
 #include "con_socket.h"
+rt_int8_t 	start_bus_speed=0;
 extern struct rt_semaphore rx_sem[4];
+rt_int8_t 	start_bus_speed;
 struct rt_semaphore udma_sem;
 struct rt_semaphore tx_done;
-struct rt_mutex mutex;
 extern bool phy_link;
-int ack_got=0;
-int cur_len=0;
 void InitSWTransfer(uint32_t dest,uint32_t src,uint32_t len);
 uint8_t pui8ControlTable[1024] __attribute__ ((aligned(1024)));
 
@@ -158,10 +157,6 @@ uint8_t pui8ControlTable[1024] __attribute__ ((aligned(1024)));
 #define SOCKET_BUF_LEN			250
 #define SIGNAL_DATA_IN			0x55
 #define SIGNAL_ACK_RCV			0x33
-rt_bool_t can_send=RT_FALSE;
-rt_bool_t op_state=RT_FALSE;//send state
-rt_uint8_t *to_socket[32]={RT_NULL};
-int index_epi=0;
 #define EPI_BUF_LEN 1040
 /*
 work flow:
@@ -485,7 +480,6 @@ int epi_init(void)
 			rt_kprintf("\n");
 	}
 	rt_kprintf("\n");
-	rt_mutex_init(&mutex, "epimutex", RT_IPC_FLAG_FIFO);
 	// Enable the uDMA controller at the system level.	Enable it to continue
 	// to run while the processor is in sleep.
 	//
@@ -766,5 +760,48 @@ void InitSWTransfer(uint32_t dest,uint32_t src,uint32_t len)
     MAP_uDMAChannelEnable(UDMA_CHANNEL_SW);
     MAP_uDMAChannelRequest(UDMA_CHANNEL_SW);
 	rt_sem_take(&udma_sem, RT_WAITING_FOREVER);
+}
+void epi_w_thread(void* parameter)
+{
+	rt_int32_t dev=((rt_int32_t)parameter)/2;
+	rt_kprintf("epi_w_thread %d\r\n",dev);
+	while(1)
+	{
+		if (rt_sem_take(&(rx_sem[0]), RT_WAITING_FOREVER) != RT_EOK) 
+			continue;
+		_epi_read();
+	}	
+}
+void bus_speed_test(void *param)
+{
+	rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xc0,0xa8,0x01,0x67,0x26,0xfa,0x00,0x00};
+	rt_int8_t buf[1022]={0};
+	long times=102601;
+	long i=0;
+	memset(buf,0x38,1022);
+	for(i=33;i<127;i++)
+		buf[i-33]=i;
+	for(i=1;i<11;i++)
+	memcpy(buf+93*i+1,buf,93);
+	memcpy(buf+931,buf,91);
+	while(start_bus_speed==0)
+		rt_thread_delay(1);
+	rt_kprintf("start bus speed test\n");
+	rt_hw_led_on();
+	for(i=0;i<times;i++)
+		_epi_write(0,buf,1022,0);
+	rt_hw_led_off();
+	rt_kprintf("end test\n");
+	config_ip[6]=config_ip[6]+1;
+	_epi_send_config(config_ip,sizeof(config_ip));
+}
+void IntGpioJ()
+{
+	if(MAP_GPIOIntStatus(GPIO_PORTJ_BASE, RT_TRUE)&GPIO_PIN_0)
+	{		
+		MAP_GPIOIntClear(GPIO_PORTJ_BASE, GPIO_PIN_0);
+		//rt_kprintf("gpioj 0 int \r\n");
+		start_bus_speed=1;
+	}	
 }
 
