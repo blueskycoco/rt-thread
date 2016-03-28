@@ -5,6 +5,8 @@
 
 #include "board.h"
 #include "con_epi.h"
+#include "con_usb.h"
+#include "con_uart.h"
 #include "inc/hw_memmap.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
@@ -57,25 +59,11 @@ rt_thread_t tid_w_thread[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL};
 rt_thread_t tid_r_thread[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL};
 rt_device_t uart_dev[4] = {RT_NULL,RT_NULL,RT_NULL,RT_NULL};
 rt_bool_t phy_link=RT_FALSE;
-enum STATE_OP{
-	GET_F5,
-	GET_8A_8B,
-	GET_LEN,
-	GET_DATA,
-	GET_26,
-	GET_FA,
-	GET_CHECSUM
-};
 struct rt_semaphore rx_sem[4];
+struct rt_mutex config_mutex;
 
-extern void rt_hw_led_on();
-extern void rt_hw_led_off();
-extern void socket_thread_start(rt_int32_t i);
 extern void set_if(rt_int8_t* netif_name, rt_int8_t* ip_addr, rt_int8_t* gw_addr, rt_int8_t* nm_addr);
 extern void set_if6(rt_int8_t* netif_name, rt_int8_t* ip6_addr);
-extern rt_size_t _usb_init();
-extern rt_int32_t _usb_write(rt_int32_t index, void *buffer, rt_int32_t size);
-extern void _usb_read(rt_int32_t dev);
 rt_int32_t baud(rt_int32_t type);
 void print_config(config g);
 
@@ -424,18 +412,6 @@ rt_bool_t need_reconfig(rt_int32_t dev)
 	}
 	else
 		return RT_FALSE;
-}
-void usb_config(rt_uint8_t *data,rt_int32_t ipv6_len,rt_int32_t dev)
-{
-	set_config(data,ipv6_len,dev);
-	print_config(g_conf);
-	void *ptr1=(void *)&g_confb;
-	void *ptr2=(void *)&g_conf;
-	if(rt_memcmp(ptr1,ptr2,sizeof(config))!=0)
-	{
-		print_config(g_conf);
-	}
-
 }
 rt_int8_t *send_out(rt_int32_t dev,rt_int32_t cmd,rt_int32_t *lenout)
 {
@@ -842,14 +818,6 @@ void print_config(config g)
 	rt_kprintf("baud :\t%d.%d.%d.%d\r\n",baud((g.config[0]&0xf8)>>3),baud((g.config[1]&0xf8)>>3),
 		baud((g.config[2]&0xf8)>>3),baud((g.config[3]&0xf8)>>3));
 	rt_kprintf("\n============================================================================>\r\n");
-}
-
-void usb_w_thread(void* parameter)
-{
-	rt_int32_t dev=((rt_int32_t)parameter)/2;
-	rt_kprintf("usb_w_thread %d\r\n",dev);
-	while(1)
-		_usb_read(dev);
 }
 
 static void common_r(void* parameter)

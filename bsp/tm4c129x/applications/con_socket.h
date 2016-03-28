@@ -59,8 +59,9 @@ typedef struct socket_type
 }socket_t,*psocket_t;
 
 socket_t g_socket[4];
-void cnn_out(int index,int level);
+void cnn_out(rt_int32_t index,rt_int32_t level);
 void socket_ctl(bool open,int i);
+void socket_thread_start(int i);
 
 //void socket_send(int index,rt_uint8_t *data,int len);
 #define debug 1

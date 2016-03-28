@@ -2,7 +2,7 @@
 #include <rthw.h>
 #include <rtthread.h>
 #include <rtdevice.h>
-
+#include "con_common.h"
 #include "board.h"
 #include "con_uart.h"
 #include "inc/hw_memmap.h"
@@ -13,7 +13,20 @@
 #include "driverlib/interrupt.h"
 #include "driverlib/rom_map.h"
 rt_bool_t ind[4]={RT_TRUE,RT_TRUE,RT_TRUE,RT_TRUE};
-struct rt_mutex config_mutex;
+extern struct rt_semaphore rx_sem[4];
+extern rt_device_t uart_dev[4];
+extern struct rt_mutex config_mutex;
+extern rt_bool_t phy_link;
+enum STATE_OP{
+	GET_F5,
+	GET_8A_8B,
+	GET_LEN,
+	GET_DATA,
+	GET_26,
+	GET_FA,
+	GET_CHECSUM
+};
+
 void configlock()
 {
     rt_err_t result;
@@ -224,7 +237,7 @@ rt_int32_t uart_w_socket(rt_int32_t dev)
 	}
 	return 0;
 }
-static rt_err_t uart_rx_ind(rt_device_t dev, rt_size_t size)
+rt_err_t uart_rx_ind(rt_device_t dev, rt_size_t size)
 {
     /* release semaphore to let finsh thread rx data */
     rt_sem_release(&(rx_sem[which_uart_dev(uart_dev,dev)]));

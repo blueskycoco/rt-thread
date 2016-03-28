@@ -427,7 +427,7 @@ ProcessDataFromHost(tUSBDBulkDevice *psBulkDevice, uint32_t ui32Status)
 		//	rt_kprintf("%02x ",((char *)(psInst->sBuffer[psInst->sBuffer_id].pvData))[i]);
 		//rt_kprintf("\r\n");
 		psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=ui32Size;
-		sbuf=&(psInst->sBuffer[psInst->sBuffer_id]);
+		sbuf=(struct sBuffer **)&(psInst->sBuffer[psInst->sBuffer_id]);
 		rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(sbuf));
 
     }
@@ -485,7 +485,7 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 
 					one_packet_len=0;
 					psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=0;
-					sbuf=&(psInst->sBuffer[psInst->sBuffer_id]);
+					sbuf=(struct sBuffer **)&(psInst->sBuffer[psInst->sBuffer_id]);
 	                rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(sbuf));
 					if(psInst->sBuffer_id==(USB_SBUF_CNT-1))
 					{
@@ -517,11 +517,11 @@ HandleEndpoints(void *pvBulkDevice, uint32_t ui32Status)
 					int result;
 					result=MAP_USBEndpointDataGet(psInst->ui32USBBase,
                                             psInst->ui8OUTEndpoint,
-                                            (uint8_t *)((int32_t)(psInst->sBuffer[psInst->sBuffer_id].pvData)+one_packet_len), &ui32Count);
+                                            (uint8_t *)((int32_t)(psInst->sBuffer[psInst->sBuffer_id].pvData)+one_packet_len), (uint32_t *)&ui32Count);
 					MAP_USBDevEndpointDataAck(USB0_BASE, psInst->ui8OUTEndpoint, 0);
 					//rt_kprintf("last size %d len %d,real get %d,result %d \n",ui32Size,one_packet_len,ui32Count,result);
 					psInst->sBuffer[psInst->sBuffer_id].ui32LastSize=one_packet_len+ui32Size;
-					sbuf=&(psInst->sBuffer[psInst->sBuffer_id]);
+					sbuf=(struct sBuffer **)&(psInst->sBuffer[psInst->sBuffer_id]);
 					rt_mb_send(psInst->rx_pbuf_mb, (rt_uint32_t)(sbuf));
 					if(psInst->sBuffer_id==(USB_SBUF_CNT-1))
 						psInst->sBuffer_id=0;

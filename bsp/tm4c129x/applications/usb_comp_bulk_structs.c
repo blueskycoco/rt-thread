@@ -144,7 +144,7 @@ const uint8_t * const g_pui8StringDescriptors[] =
 // function and the callback data set to our CDC instance structure.
 //
 //*****************************************************************************
-int index[5]={0,1,2,3,4,5};
+int index[2]={0,1};
 tUSBDBulkDevice g_psBULKDevice[NUM_BULK_DEVICES] =
 {
     {
@@ -170,42 +170,6 @@ tUSBDBulkDevice g_psBULKDevice[NUM_BULK_DEVICES] =
 	    &index[1],
 	    g_pui8StringDescriptors,
 	    NUM_STRING_DESCRIPTORS
-	},	
-	{
-		USB_VID_TI_1CBE,
-		USB_PID_BULK,
-		500,
-		USB_CONF_ATTR_SELF_PWR,
-	    USBCommonEventCallback,
-	    &index[2],
-	    USBTxEventCallback,
-	    &index[2],
-		g_pui8StringDescriptors,
-		NUM_STRING_DESCRIPTORS
-	},
-	{
-		USB_VID_TI_1CBE,
-		USB_PID_BULK,
-		500,
-		USB_CONF_ATTR_SELF_PWR,
-	    USBCommonEventCallback,
-	    &index[3],
-	    USBTxEventCallback,
-	    &index[3],
-		g_pui8StringDescriptors,
-		NUM_STRING_DESCRIPTORS
-	},
-	{
-		USB_VID_TI_1CBE,
-		USB_PID_BULK,
-		500,
-		USB_CONF_ATTR_SELF_PWR,
-	    USBCommonEventCallback,
-	    &index[4],
-	    USBTxEventCallback,
-	    &index[4],
-		g_pui8StringDescriptors,
-		NUM_STRING_DESCRIPTORS
 	}
 };
 

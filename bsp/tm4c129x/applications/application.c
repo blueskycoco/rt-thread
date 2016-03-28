@@ -22,7 +22,7 @@
 #endif
 #include "led.h"
 #include "con_socket.h"
-
+#include "con_common.h"
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
 #include "inc/hw_memmap.h"

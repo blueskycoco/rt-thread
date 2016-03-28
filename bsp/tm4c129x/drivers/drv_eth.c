@@ -73,6 +73,7 @@
 #include "netif/ppp/pppoe.h"
 #endif
 
+extern void all_cut();
 /**
  * Sanity Check:  This interface driver will NOT work if the following defines
  * are incorrect.

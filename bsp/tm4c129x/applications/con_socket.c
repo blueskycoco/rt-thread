@@ -2,14 +2,14 @@
 #include <rtdevice.h>
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
-
+#include "con_common.h"
 /*client use socket,server use netconn*/
 #define BUF_SIZE 1024
 rt_thread_t tid_w[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL},tid_r[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL};
 extern struct rt_semaphore fifo_sem;
 struct rt_mutex mutex[4];
 extern bool ind[4];
-
+extern void list_mem1(void);
 bool socket_config(int dev);
 
 bool is_right(char config,char flag)
@@ -443,7 +443,7 @@ void socket_w(void *paramter)
 				} 
 			
 			
-			rt_free(last_data_ptr);
+			rt_free((void *)last_data_ptr);
 			//rt_kprintf("%x free\n",last_data_ptr);
 			last_data_ptr=RT_NULL;
 			//if(data_size!=16384)

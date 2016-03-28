@@ -14,14 +14,16 @@
 #include "driverlib/rom_map.h"
 #include "driverlib/udma.h"
 #include "con_socket.h"
-rt_int8_t 	start_bus_speed=0;
+#include "con_common.h"
+rt_int8_t start_bus_speed=0;
 extern struct rt_semaphore rx_sem[4];
-rt_int8_t 	start_bus_speed;
 struct rt_semaphore udma_sem;
 struct rt_semaphore tx_done;
 extern bool phy_link;
 void InitSWTransfer(uint32_t dest,uint32_t src,uint32_t len);
 uint8_t pui8ControlTable[1024] __attribute__ ((aligned(1024)));
+extern void rt_hw_led_on();
+extern void rt_hw_led_off();
 
 //*****************************************************************************
 //
@@ -533,7 +535,7 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 	int len=0;
 	if(size<=USEFUL_LEN)
 	{
-		memcpy(g_pui8EPISdram,buffer,size);
+		memcpy((void *)g_pui8EPISdram,buffer,size);
 		Signal_To_B(size,0);
 	}
 	else
@@ -542,13 +544,13 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 		{
 			if((len+USEFUL_LEN)<size)
 			{
-				memcpy(g_pui8EPISdram,buffer+len,USEFUL_LEN);
+				memcpy((void *)g_pui8EPISdram,buffer+len,USEFUL_LEN);
 				Signal_To_B(USEFUL_LEN,0);
 				len=len+USEFUL_LEN;
 			}
 			else
 			{
-				memcpy(g_pui8EPISdram,buffer+len,size-len);
+				memcpy((void *)g_pui8EPISdram,buffer+len,size-len);
 				Signal_To_B(size-len,0);
 				len+=size-len;
 			}
@@ -565,13 +567,13 @@ int _epi_send_config(rt_uint8_t *cmd,int len)
 	//rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};
 	len=sizeof(cmd);
 	for(i=0;i<len-2;i++)
-		crc=crc+cmd;
+		crc=crc+cmd[i];
 	cmd[len-2]=(crc>>8) & 0xff;
 	cmd[len-1]=crc&0xff;
-	memcpy(g_pui8EPISdram,cmd,sizeof(cmd));
+	memcpy((void *)g_pui8EPISdram,cmd,sizeof(cmd));
 	Signal_To_B(len,1);
 	rt_thread_delay(10);
-	if(memcmp(g_pui8EPISdram,(void *)COMMAND_OK, strlen(COMMAND_OK)))
+	if(memcmp((void *)g_pui8EPISdram,(void *)COMMAND_OK, strlen(COMMAND_OK)))
 	{
 		rt_kprintf("Send Command ok\n");
 		result=1;
@@ -593,14 +595,14 @@ void _epi_read()
 			buf1 =(rt_uint8_t *)malloc(len*sizeof(rt_uint8_t));
 			if(buf1==RT_NULL)
 				rt_kprintf("buf is RT_NULL\r\n");
-			rt_memcpy(buf1,g_pui8EPISdram,len);
+			rt_memcpy(buf1,(void *)g_pui8EPISdram,len);
 			rt_data_queue_push(&g_data_queue[0],buf1, len, RT_WAITING_FOREVER);
 		}
 	}
 	else
 	{
 		rt_uint8_t *p=(rt_uint8_t *)malloc(len*sizeof(rt_uint8_t));
-		rt_memcpy(p,g_pui8EPISdram,len);;
+		rt_memcpy(p,(const void *)g_pui8EPISdram,len);;
 		if(p[0]==0xf5 && p[1]==0x8a)
 		{		
 			int check_sum=0,longlen=0;
@@ -615,32 +617,33 @@ void _epi_read()
 			{
 				if(p[2]==0x0c || p[2]==0x0d || p[2]==0x0e || p[2]==0x0f || p[2]==0x20)
 					longlen=p[3]; 				
-				usb_config(p+2,longlen,0);
-				memcpy(g_pui8EPISdram,(void *)COMMAND_OK, strlen(COMMAND_OK));
+				//usb_config(p+2,longlen,0);
+				set_config(p+2,longlen,0);
+				memcpy((void *)g_pui8EPISdram,(void *)COMMAND_OK, strlen(COMMAND_OK));
 				len=strlen(COMMAND_OK);
 			}
 			else
 			{
-				memcpy(g_pui8EPISdram,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
+				memcpy((void *)g_pui8EPISdram,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
 				len=strlen(COMMAND_FAIL);
 			}
 		}
 		else if(p[0]==0xf5 && p[1]==0x8b)
 		{
-			int lenout;
+			rt_int32_t lenout;
 			char *tmp=send_out(0,p[2],&lenout);
 			if(tmp!=NULL)
 			{
 				int ii=0;
 				for(ii=0;ii<lenout;ii++)
 					rt_kprintf("%2x ",tmp[ii]);
-				memcpy(g_pui8EPISdram,(void *)tmp, lenout);
+				memcpy((void *)g_pui8EPISdram,(void *)tmp, lenout);
 				len=lenout;
 			}
 			else
 			{
 				rt_kprintf("some error\r\n");
-				memcpy(g_pui8EPISdram,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
+				memcpy((void *)g_pui8EPISdram,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
 				len=strlen(COMMAND_FAIL);
 			}
 		}
@@ -749,7 +752,7 @@ void InitSWTransfer(uint32_t dest,uint32_t src,uint32_t len)
     // used for software transfers.
     //
     MAP_uDMAChannelTransferSet(UDMA_CHANNEL_SW | UDMA_PRI_SELECT,
-                               UDMA_MODE_AUTO, src, dest,
+                               UDMA_MODE_AUTO, (void *)src, (void *)dest,
                                len);
 
     //
