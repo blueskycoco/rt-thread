@@ -141,7 +141,7 @@ void IntGpioD()
 		ind[1]=RT_TRUE;
 		ind[2]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
 		ind[3]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
-		rt_kprintf("gpiod 2 int %d\r\n",ind[0]);
+		//rt_kprintf("gpiod 2 int %d\r\n",ind[0]);
 		
 	}	
 }
@@ -1422,6 +1422,7 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 				if(tid_common_r[i]!=RT_NULL)
 					rt_thread_startup(tid_common_r[i]);
 			}
+			ind[0]=((MAP_GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_2)&(GPIO_PIN_2))==GPIO_PIN_2)?RT_TRUE:RT_FALSE;
 		}
 		else if(dev==DEV_BUS)
 		{			

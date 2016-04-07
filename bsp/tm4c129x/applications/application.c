@@ -213,12 +213,12 @@ void rt_init_thread_entry(void *parameter)
 	else if((MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0)!=GPIO_PIN_0)&&(MAP_GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1)!=GPIO_PIN_1))
 	{
 		bus_speed_mode=1;
-		num=8;
+		num=2;
 		cur_set=DEV_BUS;
 	}
 	else
 	{
-		num=8;
+		num=2;
 		cur_set=DEV_BUS;
 	}
 	//for dev_bus test
