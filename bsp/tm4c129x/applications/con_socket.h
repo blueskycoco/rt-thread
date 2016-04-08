@@ -44,6 +44,16 @@ config g_conf,g_confb;
 #define DEV_USB 2
 #define A_TO_B	0
 #define A_PLACE 1
+//used to ack host current network state or config cmd excute result.
+#define CONFIG_EXCUTE_OK			0x00
+#define CONFIG_CRC_ERROR			0x01
+#define NETWORK_CNN_OK				0x02
+#define NETWORK_ADDR_CONFLICT		0x03
+#define NETWORK_INVALID_ADDR		0x04
+#define NETWORK_CNN_TIMEOUT			0x05
+#define NETWORK_WIRE_DISCONNECT		0x06
+#define NETWORK_REMOTE_DISCONNECT	0x07
+#define NETWORK_LOCAL_DISCONNECT	0x08
 void socket_init();
 struct rt_data_queue *g_data_queue;
 typedef struct socket_type

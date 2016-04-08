@@ -18,7 +18,6 @@ int g_dev=0;
 extern int _epi_send_config(rt_uint8_t *cmd,int len);
 void rt_hw_led_on();
 void rt_hw_led_off();
-
 char bus_speed_mode=0;
 char start_bus_speed=0;
 
@@ -120,7 +119,23 @@ void configunlock()
 {
     rt_mutex_release(&mconfigutex);
 }
-
+void ack_result(int dev,char result)
+{
+	char ack[4]={0xf5,0x8c,0x00,0};
+	ack[2] = result;
+	if(g_dev == 1)//usb
+	{
+		_usb_write(0,(void *)ack,3);
+	}
+	else if(g_dev == 2)//epi
+	{
+		
+	}
+	else//uart
+	{
+		rt_device_write(common_dev[dev], 0, (void *)ack, 3);
+	}
+}
 int which_common_dev(rt_device_t *dev,rt_device_t dev2)
 {
 	int i=0;
@@ -1233,7 +1248,7 @@ static void common_r(void* parameter)
 		{
 			if(g_dev==1)
 			{
-				_usb_write(dev,(void *)last_data_ptr,data_size);
+				_usb_write(1,(void *)last_data_ptr,data_size);
 			}
 			else if(g_dev==2)
 			{

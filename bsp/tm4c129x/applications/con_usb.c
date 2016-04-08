@@ -338,7 +338,7 @@ void _usb_read(int dev)
 
 int _usb_write(int index, void *buffer, int size)
 {
-	USBBulkTx(&(g_psBULKDevice[1]),buffer,size);
+	USBBulkTx(&(g_psBULKDevice[index]),buffer,size);
 	return 0;	
 }
 
