@@ -268,7 +268,7 @@ void _usb_read(int dev)
 	}
 	else
 	{
-		//for(i=0;i<8;i++)
+		//for(i=0;i<len;i++)
 		//	rt_kprintf("%x ",buf[i]);
 		//rt_kprintf("\nlen %d\n",len);
 		if(rt_memcmp(buf,check_mem,8)==0)
@@ -306,7 +306,11 @@ void _usb_read(int dev)
 				if(check_sum==(buf[len-2]<<8|buf[len-1]))
 				{
 					if(buf[2]==0x0c || buf[2]==0x0d || buf[2]==0x0e || buf[2]==0x0f || buf[2]==0x20)
-						longlen=buf[3];					
+					{
+						longlen=buf[3];
+						for(i=3;i<len;i++)
+							buf[i]=buf[i+1];
+					}
 					usb_config(buf+2,longlen,0);
 					//USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_OK, strlen(COMMAND_OK));
 					ack_result(dev,CONFIG_EXCUTE_OK);

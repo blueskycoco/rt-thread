@@ -243,7 +243,7 @@ void default_config()
 	g_conf.remote_port[2]=1236;
 	g_conf.remote_port[3]=1237;
 	set_if("e0",g_conf.local_ip,g_conf.gw,g_conf.sub_msk);
-	
+	rt_memcpy((void *)&g_confb,(const void *)&g_conf,sizeof(config));
 }
 void set_config(rt_uint8_t *data,int ipv6_len,int dev)//0 no change ,1 local socket need reconfig ,2 all socket need reconfig
 {
@@ -548,14 +548,14 @@ bool need_reconfig(int dev)
 void usb_config(rt_uint8_t *data,int ipv6_len,int dev)
 {
 	set_config(data,ipv6_len,dev);
-	print_config(g_conf);
+	print_config(g_confb);
 	void *ptr1=(void *)&g_confb;
 	void *ptr2=(void *)&g_conf;
 	if(rt_memcmp(ptr1,ptr2,sizeof(config))!=0)
 	{
 		print_config(g_conf);
+		rt_memcpy(ptr1,ptr2,sizeof(config));
 	}
-
 }
 char *send_out(int dev,int cmd,int *lenout)
 {
@@ -1101,7 +1101,7 @@ void cnn_out(int index,int level)
 }
 int baud(int type)
 {
-	rt_kprintf("input baud %d\r\n",type);
+	//rt_kprintf("input baud %d\r\n",type);
 	switch(type)
 	{
 		case 0:
@@ -1135,8 +1135,8 @@ void print_config(config g)
 	rt_kprintf("local_port2 :\t%d\r\n",g.local_port[2]);
 	rt_kprintf("local_port3 :\t%d\r\n",g.local_port[3]);
 	rt_kprintf("sub_msk :\t%s\r\n",g.sub_msk);
-	rt_kprintf("gw :\t%s\r\n",g.gw);
-	rt_kprintf("mac :\t%s\r\n",g.mac);
+	rt_kprintf("gw :\t\t%s\r\n",g.gw);
+	rt_kprintf("mac :\t\t%s\r\n",g.mac);
 	rt_kprintf("remote_ip0 :\t%s\r\n",g.remote_ip[0]);
 	rt_kprintf("remote_ip1 :\t%s\r\n",g.remote_ip[1]);
 	rt_kprintf("remote_ip2 :\t%s\r\n",g.remote_ip[2]);
@@ -1152,7 +1152,7 @@ void print_config(config g)
 	rt_kprintf("IP==>\tv4_v6\r\nsocket0 :\t%s\r\nsocket1 :\t%s\r\nsocket2 :\t%s\r\nsocket3 :\t%s\r\n",((g.config[0]&0x01)==0)?"IPV4":"IPV6",((g.config[1]&0x01)==0)?"IPV4":"IPV6",((g.config[2]&0x01)==0)?"IPV4":"IPV6",((g.config[3]&0x01)==0)?"IPV4":"IPV6");
 	rt_kprintf("protol==>\tudp_tcp\r\nsocket0 :\t%s\r\nsocket1 :\t%s\r\nsocket2 :\t%s\r\nsocket3 :\t%s\r\n",((g.config[0]&0x02)==0x02)?"TCP":"UDP",((g.config[1]&0x02)==0x02)?"TCP":"UDP",((g.config[2]&0x02)==0x02)?"TCP":"UDP",((g.config[3]&0x02)==0x02)?"TCP":"UDP");
 	rt_kprintf("mode==>\tclient_server\r\nsocket0 :\t%s\r\nsocket1 :\t%s\r\nsocket2 :\t%s\r\nsocket3 :\t%s\r\n",((g.config[0]&0x04)==0x04)?"SERVER":"CLIENT",((g.config[1]&0x04)==0x04)?"SERVER":"CLIENT",((g.config[2]&0x04)==0x04)?"SERVER":"CLIENT",((g.config[3]&0x04)==0x04)?"SERVER":"CLIENT");
-	rt_kprintf("baud :\t%d.%d.%d.%d\r\n",baud((g.config[0]&0xf8)>>3),baud((g.config[1]&0xf8)>>3),baud((g.config[2]&0xf8)>>3),baud((g.config[3]&0xf8)>>3));
+	rt_kprintf("baud :\t\t%d.%d.%d.%d\r\n",baud((g.config[0]&0xf8)>>3),baud((g.config[1]&0xf8)>>3),baud((g.config[2]&0xf8)>>3),baud((g.config[3]&0xf8)>>3));
 	rt_kprintf("\n============================================================================>\r\n");
 }
 int common_w_socket(int dev)
