@@ -1210,7 +1210,10 @@ static int tiva_eth_mac_addr_init(void)
     MAP_EMACAddrSet(EMAC0_BASE, 0, mac_addr);
 	return retVal;
 }
-
+void tiva_eth_mac_addr_reconfig(uint8_t *mac_addr)
+{
+	MAP_EMACAddrSet(EMAC0_BASE, 0, mac_addr);
+}
  void tiva_eth_lowlevel_init(void)
 {
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);

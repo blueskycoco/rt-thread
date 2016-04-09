@@ -308,10 +308,12 @@ void _usb_read(int dev)
 					if(buf[2]==0x0c || buf[2]==0x0d || buf[2]==0x0e || buf[2]==0x0f || buf[2]==0x20)
 						longlen=buf[3];					
 					usb_config(buf+2,longlen,0);
-					USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_OK, strlen(COMMAND_OK));
+					//USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_OK, strlen(COMMAND_OK));
+					ack_result(dev,CONFIG_EXCUTE_OK);
 				}
 				else
-					USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
+					ack_result(dev,CONFIG_CRC_ERROR);
+					//USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
 			}
 			else if(buf[0]==0xf5 && buf[1]==0x8b)
 			{
@@ -327,7 +329,8 @@ void _usb_read(int dev)
 				else
 				{
 					rt_kprintf("some error\r\n");
-					USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
+					ack_result(dev,CONFIG_CRC_ERROR);
+					//USBBulkTx(&g_psBULKDevice[dev],(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
 				}
 			}
 			else
