@@ -1077,10 +1077,11 @@ void cnn_out(int index,int level)
 	
 	if(phy_link)
 	{
+		if(level)			
+			network_state[index]=NETWORK_CNN_OK;
 		if(level&&(flag_cnn[index]==false))
 		{
 			flag_cnn[index]=true;
-			network_state[index]=NETWORK_CNN_OK;
 		}
 		else if(!level&&(flag_cnn[index]==true))
 			flag_cnn[index]=false;

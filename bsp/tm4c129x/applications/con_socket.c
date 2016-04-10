@@ -434,7 +434,7 @@ void socket_w(void *paramter)
 								status=sendto(g_socket[dev].sockfd, last_data_ptr+i*loop, 1472, 0, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(g_socket[dev].server_addr6));
 							else
 								status=sendto(g_socket[dev].sockfd, last_data_ptr+i*loop, 1472, 0, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(g_socket[dev].server_addr));
-							//rt_kprintf("UDP Client Send %s:%d len %d\n",g_conf.remote_ip[dev],g_conf.remote_port[dev],data_size);	
+							//rt_kprintf("UDP Client Send %s:%d len 1472\n",g_conf.remote_ip[dev],g_conf.remote_port[dev],data_size);	
 						}
 					}					
 					if((data_size%1472)!=0)
@@ -453,8 +453,9 @@ void socket_w(void *paramter)
 								status=sendto(g_socket[dev].sockfd, last_data_ptr+offset, data_size%1472, 0, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(g_socket[dev].server_addr6));
 							else
 								status=sendto(g_socket[dev].sockfd, last_data_ptr+offset, data_size%1472, 0, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(g_socket[dev].server_addr));
-							//rt_kprintf("UDP Client Send %s:%d len %d\n",g_conf.remote_ip[dev],g_conf.remote_port[dev],data_size);	
-						}					}
+							//rt_kprintf("UDP Client Send %s:%d len %d\n",g_conf.remote_ip[dev],g_conf.remote_port[dev],data_size%1472);	
+						}	
+					}
 				}
 				unlock(dev);
 				if( status< 0)
@@ -536,13 +537,13 @@ void socket_r(void *paramter)
 				else
 					sin_size=sizeof(struct sockaddr_in);
 				FD_ZERO(&myset);
-		        FD_SET(g_socket[dev].serverfd, &myset);
-		        if(select(g_socket[dev].serverfd+1, &myset, 0, 0, &tv) > 0 )
+		        FD_SET(g_socket[dev].sockfd, &myset);
+		        if(select(g_socket[dev].sockfd+1, &myset, 0, 0, &tv) > 0 )
 		        {
 		        	if(is_right(g_conf.config[dev],CONFIG_IPV6))
-						g_socket[dev].clientfd = accept(g_socket[dev].serverfd, (struct sockaddr *)&client_addr6, &sin_size);
+						g_socket[dev].clientfd = accept(g_socket[dev].sockfd, (struct sockaddr *)&client_addr6, &sin_size);
 					else
-						g_socket[dev].clientfd = accept(g_socket[dev].serverfd, (struct sockaddr *)&client_addr, &sin_size);
+						g_socket[dev].clientfd = accept(g_socket[dev].sockfd, (struct sockaddr *)&client_addr, &sin_size);
 					if(g_socket[dev].clientfd!=-1)
 					{
 						if(is_right(g_conf.config[dev],CONFIG_IPV6))
@@ -929,65 +930,55 @@ void test_select_accept()
 	//list_tcps1();
 	//list_thread();
 }
-
+void fix_bind(int sock,int port)
+{
+	struct sockaddr_in server_addr;
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+	server_addr.sin_port = htons(0xeeff);
+	rt_memset(&(server_addr.sin_zero),0, sizeof(server_addr.sin_zero));
+	if(bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1)
+	{
+		rt_kprintf("BIND to 0xeeff failed\n");
+	}
+	else
+	{
+		rt_kprintf("BIND to 0xeeff done\n");
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_addr.s_addr = INADDR_ANY;
+		server_addr.sin_port = htons(port);
+		rt_memset(&(server_addr.sin_zero),0, sizeof(server_addr.sin_zero));	
+		if(bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1)
+		{
+			rt_kprintf("BIND to %d failed\n",port);	
+		}
+		else
+			rt_kprintf("BING to %d done\n",port);
+	}
+}
 bool socket_config(int dev)
 {	
 	/*create socket*/
-	if(is_right(g_conf.config[dev],CONFIG_TCP)&&is_right(g_conf.config[dev],CONFIG_SERVER)&&g_socket[dev].serverfd!=-1)
-		return true;
 	if(is_right(g_conf.config[dev],CONFIG_TCP))
 	{
 		if(is_right(g_conf.config[dev],CONFIG_IPV6))
-		{
-			if(is_right(g_conf.config[dev],CONFIG_SERVER))
-				g_socket[dev].serverfd= socket(PF_INET6, SOCK_STREAM, 0);
-			else
-				g_socket[dev].sockfd= socket(PF_INET6, SOCK_STREAM, 0);
-		}
+			g_socket[dev].sockfd= socket(PF_INET6, SOCK_STREAM, 0);
 		else
-		{
-			if(is_right(g_conf.config[dev],CONFIG_SERVER))
-				g_socket[dev].serverfd= socket(PF_INET, SOCK_STREAM, 0);
-			else
-				g_socket[dev].sockfd= socket(PF_INET, SOCK_STREAM, 0);
-		}
+			g_socket[dev].sockfd= socket(PF_INET, SOCK_STREAM, 0);
 	}
 	else
 	{
 		if(is_right(g_conf.config[dev],CONFIG_IPV6))
 			g_socket[dev].sockfd= socket(PF_INET6, SOCK_DGRAM, 0);
-		else
+        else
 			g_socket[dev].sockfd= socket(PF_INET, SOCK_DGRAM, 0);
 	}
 	g_socket[dev].clientfd=-1; 
 	rt_kprintf("dev %d sockfd %d\r\n",dev,g_socket[dev].sockfd);
-	if(is_right(g_conf.config[dev],CONFIG_TCP))
+	if(g_socket[dev].sockfd == -1)
 	{
-		if(is_right(g_conf.config[dev],CONFIG_SERVER))
-		{
-			if(g_socket[dev].serverfd == -1)
-			{
-				rt_kprintf("Socket server error\n");
-				return false;
-			}
-		}
-		else
-		{
-			if(g_socket[dev].sockfd == -1)
-			{
-				rt_kprintf("Socket error\n");
-				return false;
-			}
-		}
-	}
-	else
-	{
-		if(g_socket[dev].sockfd == -1)
-		{
-			rt_kprintf("Socket error\n");
-			return false;
-		}
-
+		rt_kprintf("Socket error\n");
+		return false;
 	}
 	int imode = 1;
     setsockopt(g_socket[dev].sockfd,SOL_SOCKET,SO_KEEPALIVE,&imode,sizeof(imode));	  
@@ -1000,22 +991,22 @@ bool socket_config(int dev)
 			g_socket[dev].server_addr6.sin6_family = AF_INET6;
 			memcpy(g_socket[dev].server_addr6.sin6_addr.s6_addr, IP6_ADDR_ANY, 16);
 			g_socket[dev].server_addr6.sin6_port = htons(g_conf.local_port[dev]);
-			if(bind(g_socket[dev].serverfd, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(struct sockaddr)) == -1)
+			if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(struct sockaddr)) == -1)
 			{
 				rt_kprintf("Server Bind error\n");
 				lock(dev);
-				closesocket(g_socket[dev].serverfd);
+				closesocket(g_socket[dev].sockfd);
 				unlock(dev);
 				return false;
 			}
 			if(is_right(g_conf.config[dev],CONFIG_TCP))
 			{
-				rt_kprintf("socket %d to listen %d\n",dev,g_socket[dev].serverfd);
-				if(listen(g_socket[dev].serverfd, 1) == -1)
+				rt_kprintf("socket %d to listen %d\n",dev,g_socket[dev].sockfd);
+				if(listen(g_socket[dev].sockfd, 1) == -1)
 				{
 					rt_kprintf("Listen error\n");
 					lock(dev);
-					closesocket(g_socket[dev].serverfd);
+					closesocket(g_socket[dev].sockfd);
 					unlock(dev);
 					return false;
 				}
@@ -1029,7 +1020,7 @@ bool socket_config(int dev)
 				{
 					rt_kprintf("inet_pton() error\n");
 					lock(dev);
-					closesocket(g_socket[dev].serverfd);
+					closesocket(g_socket[dev].sockfd);
 					unlock(dev);
 					return false;
 				}
@@ -1042,22 +1033,23 @@ bool socket_config(int dev)
 			g_socket[dev].server_addr.sin_addr.s_addr = INADDR_ANY;
 			g_socket[dev].server_addr.sin_port = htons(g_conf.local_port[dev]);
 			rt_memset(&(g_socket[dev].server_addr.sin_zero),0, sizeof(g_socket[dev].server_addr.sin_zero));
-			if(bind(g_socket[dev].serverfd, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(struct sockaddr)) == -1)
+			if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(struct sockaddr)) == -1)
 			{
 				rt_kprintf("Server Bind %d error\n",g_conf.local_port[dev]);
-				lock(dev);
-				closesocket(g_socket[dev].serverfd);
-				unlock(dev);
-				return false;
+				fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev]);
+				//lock(dev);
+				//closesocket(g_socket[dev].sockfd);
+				//unlock(dev);
+				//return false;
 			}
 			if(is_right(g_conf.config[dev],CONFIG_TCP))
 			{
-				rt_kprintf("to listen %d\n",g_socket[dev].serverfd);
-				if(listen(g_socket[dev].serverfd, 1) == -1)
+				rt_kprintf("to listen %d\n",g_socket[dev].sockfd);
+				if(listen(g_socket[dev].sockfd, 1) == -1)
 				{
 					rt_kprintf("Listen error\n");
 					lock(dev);
-					closesocket(g_socket[dev].serverfd);
+					closesocket(g_socket[dev].sockfd);
 					unlock(dev);
 					return false;
 				}
@@ -1096,10 +1088,11 @@ bool socket_config(int dev)
 				if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].client_addr6, sizeof(struct sockaddr)) == -1)
 				{
 					rt_kprintf("Client Bind %d error\n",g_conf.local_port[dev]);
-					lock(dev);
-					closesocket(g_socket[dev].sockfd);
-					unlock(dev);
-					return false;
+					//fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev]);
+					//lock(dev);
+					//closesocket(g_socket[dev].sockfd);
+					//unlock(dev);
+					//return false;
 				}
 			}
 			else
@@ -1122,10 +1115,11 @@ bool socket_config(int dev)
 				if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].client_addr, sizeof(struct sockaddr)) == -1)
 				{
 					rt_kprintf("Client Bind %d error\n",g_conf.local_port[dev]);
-					lock(dev);
-					closesocket(g_socket[dev].sockfd);
-					unlock(dev);
-					return false;
+					fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev]);
+					//lock(dev);
+					//closesocket(g_socket[dev].sockfd);
+					//unlock(dev);
+					//return false;
 				}
 			}
 			else
@@ -1167,7 +1161,6 @@ void socket_thread_start(int i)
 		rt_sprintf(thread_string,"socket_%d_mu",i);
 		rt_mutex_init(&mutex[i], thread_string, RT_IPC_FLAG_FIFO);
 		g_socket[i].connected=false;
-		g_socket[i].serverfd=-1;
 		if(socket_config(i))
 		{			
 			rt_sprintf(thread_string,"%d%d%c%c_w",i,is_right(g_conf.config[i],CONFIG_IPV6)?6:4,is_right(g_conf.config[i],CONFIG_TCP)?'T':'U',is_right(g_conf.config[i],CONFIG_SERVER)?'S':'C');

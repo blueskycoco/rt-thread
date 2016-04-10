@@ -64,7 +64,6 @@ typedef struct socket_type
 	struct sockaddr_in6 client_addr6;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
-	int serverfd;
 	int sockfd;
 	int clientfd;
 	char *recv_data;
