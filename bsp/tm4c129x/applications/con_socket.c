@@ -416,20 +416,45 @@ void socket_w(void *paramter)
 				}
 				else
 				{
-					if(is_right(g_conf.config[dev],CONFIG_SERVER))
+					
+					int loop=data_size/1472;
+					int i=0;
+					for(i=0;i<loop;i++)
 					{
-						if(is_right(g_conf.config[dev],CONFIG_IPV6))
-							status=sendto(g_socket[dev].sockfd, last_data_ptr, data_size, 0, (struct sockaddr *)&g_socket[dev].client_addr6, sizeof(g_socket[dev].client_addr6));
+						if(is_right(g_conf.config[dev],CONFIG_SERVER))
+						{
+							if(is_right(g_conf.config[dev],CONFIG_IPV6))
+								status=sendto(g_socket[dev].sockfd, last_data_ptr+i*loop, 1472, 0, (struct sockaddr *)&g_socket[dev].client_addr6, sizeof(g_socket[dev].client_addr6));
+							else
+								status=sendto(g_socket[dev].sockfd, last_data_ptr+i*loop, 1472, 0, (struct sockaddr *)&g_socket[dev].client_addr, sizeof(g_socket[dev].client_addr));
+						}
 						else
-							status=sendto(g_socket[dev].sockfd, last_data_ptr, data_size, 0, (struct sockaddr *)&g_socket[dev].client_addr, sizeof(g_socket[dev].client_addr));
-					}
-					else
+						{
+							if(is_right(g_conf.config[dev],CONFIG_IPV6))
+								status=sendto(g_socket[dev].sockfd, last_data_ptr+i*loop, 1472, 0, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(g_socket[dev].server_addr6));
+							else
+								status=sendto(g_socket[dev].sockfd, last_data_ptr+i*loop, 1472, 0, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(g_socket[dev].server_addr));
+							//rt_kprintf("UDP Client Send %s:%d len %d\n",g_conf.remote_ip[dev],g_conf.remote_port[dev],data_size);	
+						}
+					}					
+					if((data_size%1472)!=0)
 					{
-						if(is_right(g_conf.config[dev],CONFIG_IPV6))
-							status=sendto(g_socket[dev].sockfd, last_data_ptr, data_size, 0, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(g_socket[dev].server_addr6));
+						int offset=(data_size/1472)*1472;
+						if(is_right(g_conf.config[dev],CONFIG_SERVER))
+						{
+							if(is_right(g_conf.config[dev],CONFIG_IPV6))
+								status=sendto(g_socket[dev].sockfd, last_data_ptr+offset, data_size%1472, 0, (struct sockaddr *)&g_socket[dev].client_addr6, sizeof(g_socket[dev].client_addr6));
+							else
+								status=sendto(g_socket[dev].sockfd, last_data_ptr+offset, data_size%1472, 0, (struct sockaddr *)&g_socket[dev].client_addr, sizeof(g_socket[dev].client_addr));
+						}
 						else
-							status=sendto(g_socket[dev].sockfd, last_data_ptr, data_size, 0, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(g_socket[dev].server_addr));
-					}
+						{
+							if(is_right(g_conf.config[dev],CONFIG_IPV6))
+								status=sendto(g_socket[dev].sockfd, last_data_ptr+offset, data_size%1472, 0, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(g_socket[dev].server_addr6));
+							else
+								status=sendto(g_socket[dev].sockfd, last_data_ptr+offset, data_size%1472, 0, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(g_socket[dev].server_addr));
+							//rt_kprintf("UDP Client Send %s:%d len %d\n",g_conf.remote_ip[dev],g_conf.remote_port[dev],data_size);	
+						}					}
 				}
 				unlock(dev);
 				if( status< 0)
@@ -908,7 +933,7 @@ void test_select_accept()
 bool socket_config(int dev)
 {	
 	/*create socket*/
-	if(is_right(g_conf.config[dev],CONFIG_SERVER)&&g_socket[dev].serverfd!=-1)
+	if(is_right(g_conf.config[dev],CONFIG_TCP)&&is_right(g_conf.config[dev],CONFIG_SERVER)&&g_socket[dev].serverfd!=-1)
 		return true;
 	if(is_right(g_conf.config[dev],CONFIG_TCP))
 	{
@@ -936,12 +961,23 @@ bool socket_config(int dev)
 	}
 	g_socket[dev].clientfd=-1; 
 	rt_kprintf("dev %d sockfd %d\r\n",dev,g_socket[dev].sockfd);
-	if(is_right(g_conf.config[dev],CONFIG_SERVER))
+	if(is_right(g_conf.config[dev],CONFIG_TCP))
 	{
-		if(g_socket[dev].serverfd == -1)
+		if(is_right(g_conf.config[dev],CONFIG_SERVER))
 		{
-			rt_kprintf("Socket server error\n");
-			return false;
+			if(g_socket[dev].serverfd == -1)
+			{
+				rt_kprintf("Socket server error\n");
+				return false;
+			}
+		}
+		else
+		{
+			if(g_socket[dev].sockfd == -1)
+			{
+				rt_kprintf("Socket error\n");
+				return false;
+			}
 		}
 	}
 	else
@@ -951,6 +987,7 @@ bool socket_config(int dev)
 			rt_kprintf("Socket error\n");
 			return false;
 		}
+
 	}
 	int imode = 1;
     setsockopt(g_socket[dev].sockfd,SOL_SOCKET,SO_KEEPALIVE,&imode,sizeof(imode));	  

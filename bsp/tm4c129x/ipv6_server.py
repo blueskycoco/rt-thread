@@ -33,7 +33,7 @@ class MiniServer:
         udpT4Server.bind((self.h, self.p))
         print "UDP Server Start"
         while True:
-            udpT4Server.sendto('Congratulations........',('192.168.1.32', self.p))
+            udpT4Server.sendto('Congratulations........',('192.168.1.109', self.p))
             udpT4Data, udpT4ServerInfo = udpT4Server.recvfrom(1024)
             print "Receive from ", udpT4ServerInfo, " and The Data send from The Client is :", udpT4Data
             self.c = self.c + len(udpT4Data)
