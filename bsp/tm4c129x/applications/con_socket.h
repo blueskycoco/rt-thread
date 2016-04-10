@@ -54,6 +54,8 @@ config g_conf,g_confb;
 #define NETWORK_WIRE_DISCONNECT		0x06
 #define NETWORK_REMOTE_DISCONNECT	0x07
 #define NETWORK_LOCAL_DISCONNECT	0x08
+extern char network_state[4];//={NETWORK_LOCAL_DISCONNECT,NETWORK_LOCAL_DISCONNECT,
+  					//NETWORK_LOCAL_DISCONNECT,NETWORK_LOCAL_DISCONNECT};
 void socket_init();
 struct rt_data_queue *g_data_queue;
 typedef struct socket_type
@@ -62,6 +64,7 @@ typedef struct socket_type
 	struct sockaddr_in6 client_addr6;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
+	int serverfd;
 	int sockfd;
 	int clientfd;
 	char *recv_data;

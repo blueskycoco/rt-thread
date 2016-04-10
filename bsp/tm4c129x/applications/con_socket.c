@@ -437,6 +437,8 @@ void socket_w(void *paramter)
 					if(is_right(g_conf.config[dev],CONFIG_TCP))
 					{
 						rt_kprintf("Thread socket_w%d send error %d\n",dev,errno);	
+						if(errno==ECONNRESET||errno==ENOTCONN)
+							network_state[dev]=NETWORK_REMOTE_DISCONNECT;
 						//cnn_out(dev,0);
 						//g_socket[dev].connected=false;
 					}//EINPROGRESS
@@ -449,7 +451,16 @@ void socket_w(void *paramter)
 			//if(data_size!=16384)
 			//	list_mem1();
 			}		
-		}		
+		}	
+		else
+		{
+			if(errno==ETIMEDOUT)
+					network_state[dev]=NETWORK_CNN_TIMEOUT;
+				else if(errno==ECONNRESET||errno==ENOTCONN)
+					network_state[dev]=NETWORK_REMOTE_DISCONNECT;
+				else if(errno==EADDRINUSE)
+					network_state[dev]=NETWORK_ADDR_CONFLICT;				
+		}
 	}
 	}
 	rt_kprintf("socket_ip_w %d close\n",dev);
@@ -472,11 +483,16 @@ void socket_r(void *paramter)
 	{
 		if(need_reconfig(dev))
 		{
+			if(network_state[dev]==NETWORK_CNN_OK)
+			network_state[dev]=NETWORK_LOCAL_DISCONNECT;
 			g_socket[dev].connected=false;			
 			lock(dev);
 			rt_kprintf("to close sockfd %d,clientfd %d\r\n",g_socket[dev].sockfd,g_socket[dev].clientfd);
-			closesocket(g_socket[dev].sockfd);
-			g_socket[dev].sockfd=-1;
+			if(g_socket[dev].sockfd!=-1)
+			{
+				closesocket(g_socket[dev].sockfd);
+				g_socket[dev].sockfd=-1;
+			}
 			if(g_socket[dev].clientfd!=-1)
 			{
 				closesocket(g_socket[dev].clientfd);
@@ -495,13 +511,13 @@ void socket_r(void *paramter)
 				else
 					sin_size=sizeof(struct sockaddr_in);
 				FD_ZERO(&myset);
-		        FD_SET(g_socket[dev].sockfd, &myset);
-		        if(select(g_socket[dev].sockfd+1, &myset, 0, 0, &tv) > 0 )
+		        FD_SET(g_socket[dev].serverfd, &myset);
+		        if(select(g_socket[dev].serverfd+1, &myset, 0, 0, &tv) > 0 )
 		        {
 		        	if(is_right(g_conf.config[dev],CONFIG_IPV6))
-						g_socket[dev].clientfd = accept(g_socket[dev].sockfd, (struct sockaddr *)&client_addr6, &sin_size);
+						g_socket[dev].clientfd = accept(g_socket[dev].serverfd, (struct sockaddr *)&client_addr6, &sin_size);
 					else
-						g_socket[dev].clientfd = accept(g_socket[dev].sockfd, (struct sockaddr *)&client_addr, &sin_size);
+						g_socket[dev].clientfd = accept(g_socket[dev].serverfd, (struct sockaddr *)&client_addr, &sin_size);
 					if(g_socket[dev].clientfd!=-1)
 					{
 						if(is_right(g_conf.config[dev],CONFIG_IPV6))
@@ -513,7 +529,13 @@ void socket_r(void *paramter)
 						char a=1;
 						setsockopt(g_socket[dev].clientfd, SOL_SOCKET, SO_KEEPALIVE, &a, sizeof(char));
 					}
-				}				
+				}
+				else if(errno==ETIMEDOUT)
+					network_state[dev]=NETWORK_CNN_TIMEOUT;
+				else if(errno==ECONNRESET||errno==ENOTCONN)
+					network_state[dev]=NETWORK_REMOTE_DISCONNECT;
+				else if(errno==EADDRINUSE)
+					network_state[dev]=NETWORK_ADDR_CONFLICT;
 			}
 			else
 			{
@@ -530,8 +552,7 @@ void socket_r(void *paramter)
 					continue;
 				}
 				else if(errno==EINPROGRESS)
-				{
-					
+				{					
 			        FD_ZERO(&myset); 
 			        FD_SET(g_socket[dev].sockfd, &myset);
 			        if(select(g_socket[dev].sockfd+1, NULL, &myset, NULL, &tv) > 0) 
@@ -552,7 +573,16 @@ void socket_r(void *paramter)
 				           }
 					   	}
 			        }
+					else
+						network_state[dev]=NETWORK_CNN_TIMEOUT;	
 				}
+				else if(errno==ETIMEDOUT)
+					network_state[dev]=NETWORK_CNN_TIMEOUT;
+				else if(errno==ECONNRESET||errno==ENOTCONN)
+					network_state[dev]=NETWORK_REMOTE_DISCONNECT;
+				else if(errno==EADDRINUSE)
+					network_state[dev]=NETWORK_ADDR_CONFLICT;
+				
 				lock(dev);
 				closesocket(g_socket[dev].sockfd);
 				g_socket[dev].sockfd=-1;
@@ -625,6 +655,8 @@ void socket_r(void *paramter)
 				{
 					rt_free(g_socket[dev].recv_data);
 					rt_kprintf("Thread ip4_r_%d recv error,connection lost %d %d\n",dev,status,errno);
+					if(errno==ECONNRESET||errno==ENOTCONN)
+						network_state[dev]=NETWORK_REMOTE_DISCONNECT;
 					if(is_right(g_conf.config[dev],CONFIG_SERVER))
 					{
 						rt_kprintf("Thread ip4_r%d recv error %d\n",dev,errno);	
@@ -705,6 +737,8 @@ void socket_r(void *paramter)
 				}
 				else
 				{
+					if(errno==ECONNRESET||errno==ENOTCONN)
+						network_state[dev]=NETWORK_REMOTE_DISCONNECT;
 					rt_kprintf("Thread socket_r_%d Recvfrom error,connection lost\n",dev);
 				}
 			}
@@ -716,7 +750,15 @@ void socket_r(void *paramter)
 				//unlock(dev);
 			//}
 		}
-		
+		else
+		{
+			if(errno==ETIMEDOUT)
+				network_state[dev]=NETWORK_CNN_TIMEOUT;
+			else if(errno==ECONNRESET||errno==ENOTCONN)
+				network_state[dev]=NETWORK_REMOTE_DISCONNECT;
+			else if(errno==EADDRINUSE)
+				network_state[dev]=NETWORK_ADDR_CONFLICT;
+		}
 	}
 }
 void test_select_connect()
@@ -866,12 +908,24 @@ void test_select_accept()
 bool socket_config(int dev)
 {	
 	/*create socket*/
+	if(is_right(g_conf.config[dev],CONFIG_SERVER)&&g_socket[dev].serverfd!=-1)
+		return true;
 	if(is_right(g_conf.config[dev],CONFIG_TCP))
 	{
 		if(is_right(g_conf.config[dev],CONFIG_IPV6))
-			g_socket[dev].sockfd= socket(PF_INET6, SOCK_STREAM, 0);
+		{
+			if(is_right(g_conf.config[dev],CONFIG_SERVER))
+				g_socket[dev].serverfd= socket(PF_INET6, SOCK_STREAM, 0);
+			else
+				g_socket[dev].sockfd= socket(PF_INET6, SOCK_STREAM, 0);
+		}
 		else
-			g_socket[dev].sockfd= socket(PF_INET, SOCK_STREAM, 0);
+		{
+			if(is_right(g_conf.config[dev],CONFIG_SERVER))
+				g_socket[dev].serverfd= socket(PF_INET, SOCK_STREAM, 0);
+			else
+				g_socket[dev].sockfd= socket(PF_INET, SOCK_STREAM, 0);
+		}
 	}
 	else
 	{
@@ -882,11 +936,21 @@ bool socket_config(int dev)
 	}
 	g_socket[dev].clientfd=-1; 
 	rt_kprintf("dev %d sockfd %d\r\n",dev,g_socket[dev].sockfd);
-
-	if(g_socket[dev].sockfd == -1)
+	if(is_right(g_conf.config[dev],CONFIG_SERVER))
 	{
-		rt_kprintf("Socket error\n");
-		return false;
+		if(g_socket[dev].serverfd == -1)
+		{
+			rt_kprintf("Socket server error\n");
+			return false;
+		}
+	}
+	else
+	{
+		if(g_socket[dev].sockfd == -1)
+		{
+			rt_kprintf("Socket error\n");
+			return false;
+		}
 	}
 	int imode = 1;
     setsockopt(g_socket[dev].sockfd,SOL_SOCKET,SO_KEEPALIVE,&imode,sizeof(imode));	  
@@ -899,22 +963,22 @@ bool socket_config(int dev)
 			g_socket[dev].server_addr6.sin6_family = AF_INET6;
 			memcpy(g_socket[dev].server_addr6.sin6_addr.s6_addr, IP6_ADDR_ANY, 16);
 			g_socket[dev].server_addr6.sin6_port = htons(g_conf.local_port[dev]);
-			if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(struct sockaddr)) == -1)
+			if(bind(g_socket[dev].serverfd, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(struct sockaddr)) == -1)
 			{
 				rt_kprintf("Server Bind error\n");
 				lock(dev);
-				closesocket(g_socket[dev].sockfd);
+				closesocket(g_socket[dev].serverfd);
 				unlock(dev);
 				return false;
 			}
 			if(is_right(g_conf.config[dev],CONFIG_TCP))
 			{
-				rt_kprintf("socket %d to listen %d\n",dev,g_socket[dev].sockfd);
-				if(listen(g_socket[dev].sockfd, 1) == -1)
+				rt_kprintf("socket %d to listen %d\n",dev,g_socket[dev].serverfd);
+				if(listen(g_socket[dev].serverfd, 1) == -1)
 				{
 					rt_kprintf("Listen error\n");
 					lock(dev);
-					closesocket(g_socket[dev].sockfd);
+					closesocket(g_socket[dev].serverfd);
 					unlock(dev);
 					return false;
 				}
@@ -928,7 +992,7 @@ bool socket_config(int dev)
 				{
 					rt_kprintf("inet_pton() error\n");
 					lock(dev);
-					closesocket(g_socket[dev].sockfd);
+					closesocket(g_socket[dev].serverfd);
 					unlock(dev);
 					return false;
 				}
@@ -941,22 +1005,22 @@ bool socket_config(int dev)
 			g_socket[dev].server_addr.sin_addr.s_addr = INADDR_ANY;
 			g_socket[dev].server_addr.sin_port = htons(g_conf.local_port[dev]);
 			rt_memset(&(g_socket[dev].server_addr.sin_zero),0, sizeof(g_socket[dev].server_addr.sin_zero));
-			if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(struct sockaddr)) == -1)
+			if(bind(g_socket[dev].serverfd, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(struct sockaddr)) == -1)
 			{
 				rt_kprintf("Server Bind %d error\n",g_conf.local_port[dev]);
 				lock(dev);
-				closesocket(g_socket[dev].sockfd);
+				closesocket(g_socket[dev].serverfd);
 				unlock(dev);
 				return false;
 			}
 			if(is_right(g_conf.config[dev],CONFIG_TCP))
 			{
-				rt_kprintf("to listen %d\n",g_socket[dev].sockfd);
-				if(listen(g_socket[dev].sockfd, 1) == -1)
+				rt_kprintf("to listen %d\n",g_socket[dev].serverfd);
+				if(listen(g_socket[dev].serverfd, 1) == -1)
 				{
 					rt_kprintf("Listen error\n");
 					lock(dev);
-					closesocket(g_socket[dev].sockfd);
+					closesocket(g_socket[dev].serverfd);
 					unlock(dev);
 					return false;
 				}
@@ -1066,6 +1130,7 @@ void socket_thread_start(int i)
 		rt_sprintf(thread_string,"socket_%d_mu",i);
 		rt_mutex_init(&mutex[i], thread_string, RT_IPC_FLAG_FIFO);
 		g_socket[i].connected=false;
+		g_socket[i].serverfd=-1;
 		if(socket_config(i))
 		{			
 			rt_sprintf(thread_string,"%d%d%c%c_w",i,is_right(g_conf.config[i],CONFIG_IPV6)?6:4,is_right(g_conf.config[i],CONFIG_TCP)?'T':'U',is_right(g_conf.config[i],CONFIG_SERVER)?'S':'C');
