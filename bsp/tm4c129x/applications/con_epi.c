@@ -117,6 +117,7 @@ uint8_t pui8ControlTable[1024] __attribute__ ((aligned(1024)));
 //*****************************************************************************
 #define SRAM_START_ADDRESS 0x00000000
 #define SRAM_END_ADDRESS   0x000003FF
+#if 0
 #define SIGNAL_CONFIG_SOCKET0 	0x00
 #define SIGNAL_CONFIG_SOCKET1 	0x01
 #define SIGNAL_CONFIG_SOCKET2 	0x02
@@ -158,6 +159,17 @@ uint8_t pui8ControlTable[1024] __attribute__ ((aligned(1024)));
 #define SOCKET_BUF_LEN			250
 #define SIGNAL_DATA_IN			0x55
 #define SIGNAL_ACK_RCV			0x33
+#else
+#define USEFUL_LEN				1020
+#define CMD_RAW_DATA			0x33
+#define CMD_CONFIG_DATA			0x55
+#define ACK_RAW_DATA			0x77
+#define ACK_CONFIG_DATA			0x99
+#define REGISTER_LEN_ADDR0		0x3FC
+#define REGISTER_LEN_ADDR1		0x3FD
+#define INT_DEVICE		   		0x000003FF
+#define INT_HOST		   		0x000003FE
+#endif
 rt_bool_t can_send=RT_FALSE;
 rt_bool_t op_state=RT_FALSE;//send state
 rt_uint8_t *to_socket[32]={RT_NULL};
@@ -517,30 +529,40 @@ void IntGpioK()
 	if(MAP_GPIOIntStatus(GPIO_PORTK_BASE, true)&GPIO_PIN_5)
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
-		if(g_pui8EPISdram[B_TO_A_SIGNAL]==0 && g_pui8EPISdram[A_TO_B_SIGNAL]==0)
-		{
-			//rt_kprintf("B has read data done.\n");
+			rt_kprintf("Device has read data done.\n");
 			rt_sem_release(&(tx_done));
-		}
-		else
-			rt_sem_release(&(rx_sem[0]));
 	}
 }
-void Signal_To_B(int len,char config)
+char check_raw_ack()
 {
-	//write packet len to 0x3fe high , 0x3ff low
-	g_pui8EPISdram[CONFIG_ADDR]=config;
-	g_pui8EPISdram[B_TO_A_SIGNAL]=(len>>8)&0xff;
-	g_pui8EPISdram[A_TO_B_SIGNAL]=len&0xff;	
+	rt_kprintf("%02X Got in check_raw_ack\n",g_pui8EPISdram[INT_HOST]);
+	if(g_pui8EPISdram[INT_HOST]==ACK_RAW_DATA)
+		return 1;
+	return 0;
+}
+void Signal_To_Device(int len,char cmd)
+{
+	g_pui8EPISdram[REGISTER_LEN_ADDR1]=(len>>8)&0xff;
+	g_pui8EPISdram[REGISTER_LEN_ADDR0]=len&0xff;	
+	g_pui8EPISdram[INT_DEVICE]=cmd;
 	rt_sem_take(&tx_done, RT_WAITING_FOREVER);
 }
+void Signal_To_Host(int len,char cmd)
+{
+	g_pui8EPISdram[REGISTER_LEN_ADDR1]=(len>>8)&0xff;
+	g_pui8EPISdram[REGISTER_LEN_ADDR0]=len&0xff;	
+	g_pui8EPISdram[INT_HOST]=cmd;
+	rt_sem_take(&tx_done, RT_WAITING_FOREVER);
+}
+
 int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 {	
 	int len=0;
 	if(size<=USEFUL_LEN)
 	{
-		memcpy(g_pui8EPISdram,buffer,size);
-		Signal_To_B(size,0);
+		memcpy((void *)g_pui8EPISdram,buffer,size);
+		Signal_To_Device(size,CMD_RAW_DATA);
+		check_raw_ack();
 	}
 	else
 	{
@@ -548,65 +570,100 @@ int _epi_write(int index, const void *buffer, int size,unsigned char signal)
 		{
 			if((len+USEFUL_LEN)<size)
 			{
-				memcpy(g_pui8EPISdram,buffer+len,USEFUL_LEN);
-				Signal_To_B(USEFUL_LEN,0);
+				memcpy((void *)g_pui8EPISdram,buffer+len,USEFUL_LEN);
+				Signal_To_Device(USEFUL_LEN,CMD_RAW_DATA);
+				check_raw_ack();
 				len=len+USEFUL_LEN;
 			}
 			else
 			{
-				memcpy(g_pui8EPISdram,buffer+len,size-len);
-				Signal_To_B(size-len,0);
+				memcpy((void *)g_pui8EPISdram,buffer+len,size-len);
+				Signal_To_Device(size-len,CMD_RAW_DATA);
+				check_raw_ack();
 				len+=size-len;
 			}
 		}
 	}
-
 	return 0;	
+}
+void _epi_ack(char* ack,int len)
+{
+	memcpy((void *)g_pui8EPISdram,ack,len);
+	g_pui8EPISdram[REGISTER_LEN_ADDR1]=(len>>8)&0xff;
+	g_pui8EPISdram[REGISTER_LEN_ADDR0]=len&0xff;	
+	g_pui8EPISdram[INT_HOST]=ACK_CONFIG_DATA;
+}
+void config_send(rt_uint8_t *cmd,int len)
+{	
+	int i=0;
+	int crc=0;
+
+	len=sizeof(cmd);
+	for(i=0;i<len-2;i++)
+		crc=crc+cmd[i];
+	cmd[len-2]=(crc>>8) & 0xff;
+	cmd[len-1]=crc&0xff;
+	memcpy((void *)g_pui8EPISdram,cmd,sizeof(cmd));
+	Signal_To_Device(len,CMD_CONFIG_DATA);
 }
 int _epi_send_config(rt_uint8_t *cmd,int len)
 {
-	int i=0;
-	int crc=0;
 	int result=0;
-	//rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xff,0xff,0xff,0xff,0x26,0xfa,0x00,0x00};
-	len=sizeof(cmd);
-	for(i=0;i<len-2;i++)
-		crc=crc+cmd;
-	cmd[len-2]=(crc>>8) & 0xff;
-	cmd[len-1]=crc&0xff;
-	memcpy(g_pui8EPISdram,cmd,sizeof(cmd));
-	Signal_To_B(len,1);
-	rt_thread_delay(10);
-	if(memcmp(g_pui8EPISdram,(void *)COMMAND_OK, strlen(COMMAND_OK)))
+	char config_result[]={0xf5,0x8c,0x01};
+	config_send(cmd,len);
+	if(g_pui8EPISdram[INT_HOST]==ACK_CONFIG_DATA)
 	{
-		rt_kprintf("Send Command ok\n");
-		result=1;
+		int len = (g_pui8EPISdram[REGISTER_LEN_ADDR1]<<8)|g_pui8EPISdram[REGISTER_LEN_ADDR0];
+		if(memcmp((void *)g_pui8EPISdram,(void *)config_result,len)==0 && len==3)
+		{
+			rt_kprintf("Send Command ok\n");
+			result =1;
+		}
+		else
+		{
+			rt_kprintf("Send Command Failed %02X %2X %02X\n",g_pui8EPISdram[0],
+				g_pui8EPISdram[1],g_pui8EPISdram[2]);
+		}
 	}
 	else
-		rt_kprintf("Send Command Failed\n");
+		rt_kprintf("INT_HOST is %02X\n",g_pui8EPISdram[INT_HOST]);
 	return result;
+}
+void _epi_read_config(rt_uint8_t *cmd,int len)
+{
+	int i=0;
+	config_send(cmd,len);
+	if(g_pui8EPISdram[INT_HOST]==ACK_CONFIG_DATA)
+	{
+		int len = (g_pui8EPISdram[REGISTER_LEN_ADDR1]<<8)|g_pui8EPISdram[REGISTER_LEN_ADDR0];
+		for(i=0;i<len;i++)
+			rt_kprintf("==>%02x\n",g_pui8EPISdram[i]);
+	}
+	else
+		rt_kprintf("INT_HOST is %02X\n",g_pui8EPISdram[INT_HOST]);
 }
 void _epi_read()
 {
 	rt_uint8_t *buf1,i;
 	int len=0;
-	len=g_pui8EPISdram[B_TO_A_SIGNAL]<<8|g_pui8EPISdram[A_TO_B_SIGNAL];
-	unsigned char source=g_pui8EPISdram[CONFIG_ADDR];
-	if(source==0)
+	len=g_pui8EPISdram[REGISTER_LEN_ADDR1]<<8|g_pui8EPISdram[REGISTER_LEN_ADDR0];
+	unsigned char source=g_pui8EPISdram[INT_DEVICE];
+	if(source==CMD_RAW_DATA)
 	{
 		if(phy_link&&g_socket[0].connected)
 		{
 			buf1 =(rt_uint8_t *)malloc(len*sizeof(rt_uint8_t));
 			if(buf1==RT_NULL)
 				rt_kprintf("buf is RT_NULL\r\n");
-			rt_memcpy(buf1,g_pui8EPISdram,len);
-			rt_data_queue_push(&g_data_queue[0],buf1, len, RT_WAITING_FOREVER);
+			rt_memcpy(buf1,(void *)g_pui8EPISdram,len);
+			rt_data_queue_push(&g_data_queue[0],buf1, len, RT_WAITING_FOREVER);			
 		}
+		g_pui8EPISdram[INT_HOST]=ACK_RAW_DATA;
 	}
 	else
 	{
 		rt_uint8_t *p=(rt_uint8_t *)malloc(len*sizeof(rt_uint8_t));
-		rt_memcpy(p,g_pui8EPISdram,len);;
+		rt_memcpy(p,(void *)g_pui8EPISdram,len);;
 		if(p[0]==0xf5 && p[1]==0x8a)
 		{		
 			int check_sum=0,longlen=0;
@@ -622,13 +679,11 @@ void _epi_read()
 				if(p[2]==0x0c || p[2]==0x0d || p[2]==0x0e || p[2]==0x0f || p[2]==0x20)
 					longlen=p[3]; 				
 				usb_config(p+2,longlen,0);
-				memcpy(g_pui8EPISdram,(void *)COMMAND_OK, strlen(COMMAND_OK));
-				len=strlen(COMMAND_OK);
+				ack_result(0,CONFIG_EXCUTE_OK);
 			}
 			else
 			{
-				memcpy(g_pui8EPISdram,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
-				len=strlen(COMMAND_FAIL);
+				ack_result(0,CONFIG_CRC_ERROR);
 			}
 		}
 		else if(p[0]==0xf5 && p[1]==0x8b)
@@ -640,21 +695,21 @@ void _epi_read()
 				int ii=0;
 				for(ii=0;ii<lenout;ii++)
 					rt_kprintf("%2x ",tmp[ii]);
-				memcpy(g_pui8EPISdram,(void *)tmp, lenout);
-				len=lenout;
+				memcpy((void *)g_pui8EPISdram,(void *)tmp, lenout);
+				len=lenout;				
+				g_pui8EPISdram[REGISTER_LEN_ADDR1]=(len>>8)&0xff;
+				g_pui8EPISdram[REGISTER_LEN_ADDR0]=len&0xff;	
+				g_pui8EPISdram[INT_HOST]=ACK_CONFIG_DATA;
 			}
 			else
 			{
 				rt_kprintf("some error\r\n");
-				memcpy(g_pui8EPISdram,(void *)COMMAND_FAIL, strlen(COMMAND_FAIL));
-				len=strlen(COMMAND_FAIL);
+				memcpy((void *)g_pui8EPISdram,(void *)COMMAND_FAIL, sizeof(COMMAND_FAIL));
+				len=sizeof(COMMAND_FAIL);
+				ack_result(0,CONFIG_CRC_ERROR);
 			}
 		}
 	}
-	g_pui8EPISdram[A_TO_B_SIGNAL]=0x00;
-	g_pui8EPISdram[B_TO_A_SIGNAL]=0x00;
-	if(source)
-		Signal_To_B(len,1);
 	return ;	
 }
 void uDMAErrorHandler(void)

@@ -136,7 +136,7 @@ void ack_result(int dev,char result)
 	}
 	else if(g_dev == 2)//epi
 	{
-		
+		_epi_ack((void *)ack,3);
 	}
 	else//uart
 	{
@@ -1310,25 +1310,26 @@ static void common_r(void* parameter)
 void bus_speed_test(void *param)
 {
 	rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xc0,0xa8,0x01,0x67,0x26,0xfa,0x00,0x00};
+	rt_uint8_t config_tcp[]={0xF5,0x8A,0x21,0x01,0x26,0xfa,0x02,0xc1};
 	char buf[1022]={0};
 	long times=102601;
 	long i=0;
-	memset(buf,0x38,1022);
+	memset(buf,0x38,1020);
 	for(i=33;i<127;i++)
 		buf[i-33]=i;
 	for(i=1;i<11;i++)
 	memcpy(buf+93*i+1,buf,93);
 	memcpy(buf+931,buf,91);
-	while(start_bus_speed==0)
-		rt_thread_delay(1);
+	//while(start_bus_speed==0)
+	//	rt_thread_delay(1);
 	rt_kprintf("start bus speed test\n");
 	rt_hw_led_on();
 	for(i=0;i<times;i++)
-		_epi_write(0,buf,1022,0);
+		_epi_write(0,buf,1020,0);
 	rt_hw_led_off();
 	rt_kprintf("end test\n");
 	config_ip[6]=config_ip[6]+1;
-	_epi_send_config(config_ip,sizeof(config_ip));
+	_epi_send_config(config_tcp,sizeof(config_tcp));
 }
 /*init common1,2,3,4 for 4 socket*/
 int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
@@ -1538,18 +1539,17 @@ int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
 	//rt_thread_delay(700);
 	if(bus_speed_mode==0)
 	{
-	if(dev==DEV_USB)
-	{
-		g_chang[0].cs=g_chang[0].lip6c=g_chang[0].lpc=g_chang[0].mode=g_chang[0].protol=g_chang[0].rip4c=g_chang[0].rip6c=g_chang[0].rpc=0;
-		socket_thread_start(0);
-	}
-	
-	else
-	for(i=0;i<4;i++)
-	{
-		g_chang[i].cs=g_chang[i].lip6c=g_chang[i].lpc=g_chang[i].mode=g_chang[i].protol=g_chang[i].rip4c=g_chang[i].rip6c=g_chang[i].rpc=0;
-		socket_thread_start(i);
-	}
+		if(dev==DEV_USB||dev==DEV_BUS)
+		{
+			g_chang[0].cs=g_chang[0].lip6c=g_chang[0].lpc=g_chang[0].mode=g_chang[0].protol=g_chang[0].rip4c=g_chang[0].rip6c=g_chang[0].rpc=0;
+			socket_thread_start(0);
+		}	
+		else
+			for(i=0;i<4;i++)
+			{
+				g_chang[i].cs=g_chang[i].lip6c=g_chang[i].lpc=g_chang[i].mode=g_chang[i].protol=g_chang[i].rip4c=g_chang[i].rip6c=g_chang[i].rpc=0;
+				socket_thread_start(i);
+			}
 	}
 	//rt_thread_delay(100);
 	//list_mem1();	
