@@ -1325,17 +1325,19 @@ void bus_speed_test(void *param)
 	//	rt_thread_delay(1);
 	rt_kprintf("start bus speed test\n");
 	rt_hw_led_on();
-	//for(i=0;i<times;i++)
-	//	_epi_write(0,buf,1020,0);
+	for(i=0;i<times;i++)
+		_epi_write(0,buf,1020,0);
 	rt_hw_led_off();
 	rt_kprintf("end test\n");
 	config_ip[6]=config_ip[6]+1;
 	_epi_send_config(config_tcp,sizeof(config_tcp));
-	while(1)
-	{
-		_epi_read_config(network_state0,sizeof(network_state0));
-		rt_thread_delay(100);
-	}
+	rt_thread_delay(100);
+	_epi_read_config(network_state0,sizeof(network_state0));
+	rt_thread_delay(100);
+	rt_hw_led_on();
+	for(i=0;i<times;i++)
+		_epi_write(0,buf,1020,0);
+	rt_hw_led_off();
 }
 /*init common1,2,3,4 for 4 socket*/
 int common_init(int dev)//0 uart , 1 parallel bus, 2 usb

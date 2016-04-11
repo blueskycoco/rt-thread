@@ -638,15 +638,19 @@ int _epi_send_config(rt_uint8_t *cmd,int len)
 void _epi_read_config(rt_uint8_t *cmd,int len)
 {
 	int i=0;
+	while(1){
 	config_send(cmd,len);
 	if(g_pui8EPISdram[INT_HOST]==ACK_CONFIG_DATA)
 	{
 		int len = (g_pui8EPISdram[REGISTER_LEN_ADDR1]<<8)|g_pui8EPISdram[REGISTER_LEN_ADDR0];
 		for(i=0;i<len;i++)
 			rt_kprintf("==>%02x\n",g_pui8EPISdram[i]);
+		if(g_pui8EPISdram[3]==0x02)
+			break;
 	}
 	else
 		rt_kprintf("INT_HOST is %02X\n",g_pui8EPISdram[INT_HOST]);
+		}
 }
 void _epi_read()
 {
