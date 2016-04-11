@@ -207,7 +207,7 @@ void default_config()
 		g_conf.config[3]=CONFIG_TCP|CONFIG_IPV6;//|CONFIG_SERVER;
 	//}
 	memset(g_conf.remote_ip[0],'\0',16);
-	strcpy(g_conf.remote_ip[0],"192.168.1.107");
+	strcpy(g_conf.remote_ip[0],"192.168.1.100");
 	memset(g_conf.remote_ip[1],'\0',16);
 	strcpy(g_conf.remote_ip[1],"192.168.1.103");
 	memset(g_conf.remote_ip[2],'\0',16);
@@ -215,7 +215,7 @@ void default_config()
 	memset(g_conf.remote_ip[3],'\0',16);
 	strcpy(g_conf.remote_ip[3],"192.168.1.103");
 	memset(g_conf.local_ip,'\0',16);
-	strcpy(g_conf.local_ip,"192.168.1.109");
+	strcpy(g_conf.local_ip,"192.168.1.103");
 	
 	memset(g_conf.local_ip6,'\0',64);
 	strcpy(g_conf.local_ip6,"fe80::1");
@@ -1311,6 +1311,7 @@ void bus_speed_test(void *param)
 {
 	rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xc0,0xa8,0x01,0x67,0x26,0xfa,0x00,0x00};
 	rt_uint8_t config_tcp[]={0xF5,0x8A,0x21,0x01,0x26,0xfa,0x02,0xc1};
+	unsigned char network_state0[]={0xF5,0x8B,0x26};
 	char buf[1022]={0};
 	long times=102601;
 	long i=0;
@@ -1324,12 +1325,17 @@ void bus_speed_test(void *param)
 	//	rt_thread_delay(1);
 	rt_kprintf("start bus speed test\n");
 	rt_hw_led_on();
-	for(i=0;i<times;i++)
-		_epi_write(0,buf,1020,0);
+	//for(i=0;i<times;i++)
+	//	_epi_write(0,buf,1020,0);
 	rt_hw_led_off();
 	rt_kprintf("end test\n");
 	config_ip[6]=config_ip[6]+1;
 	_epi_send_config(config_tcp,sizeof(config_tcp));
+	while(1)
+	{
+		_epi_read_config(network_state0,sizeof(network_state0));
+		rt_thread_delay(100);
+	}
 }
 /*init common1,2,3,4 for 4 socket*/
 int common_init(int dev)//0 uart , 1 parallel bus, 2 usb

@@ -521,6 +521,8 @@ int epi_init(void)
 	MAP_uDMAControlBaseSet(pui8ControlTable);
 	rt_sem_init(&udma_sem, "udma_sem", 0, 0);
 	rt_sem_init(&tx_done, "tx_done", 0, 0);
+	rt_kprintf("%02X Got in HOST\n",g_pui8EPISdram[INT_HOST]);
+	rt_kprintf("%02X Got in DEVICE\n",g_pui8EPISdram[INT_DEVICE]);
     return(0);	
 }
 void IntGpioK()
@@ -529,13 +531,14 @@ void IntGpioK()
 	if(MAP_GPIOIntStatus(GPIO_PORTK_BASE, true)&GPIO_PIN_5)
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
-			rt_kprintf("Device has read data done.\n");
-			rt_sem_release(&(tx_done));
+		//rt_kprintf("Device has read data done.\n");
+		rt_sem_release(&(tx_done));//host
+		//rt_sem_release(&(rx_sem[0]));//device
 	}
 }
 char check_raw_ack()
 {
-	rt_kprintf("%02X Got in check_raw_ack\n",g_pui8EPISdram[INT_HOST]);
+	//rt_kprintf("%02X Got in check_raw_ack\n",g_pui8EPISdram[INT_HOST]);
 	if(g_pui8EPISdram[INT_HOST]==ACK_RAW_DATA)
 		return 1;
 	return 0;
@@ -598,18 +601,21 @@ void config_send(rt_uint8_t *cmd,int len)
 	int i=0;
 	int crc=0;
 
-	len=sizeof(cmd);
-	for(i=0;i<len-2;i++)
-		crc=crc+cmd[i];
-	cmd[len-2]=(crc>>8) & 0xff;
-	cmd[len-1]=crc&0xff;
-	memcpy((void *)g_pui8EPISdram,cmd,sizeof(cmd));
+	//len=sizeof(cmd);
+	if(len!=3)
+	{
+		for(i=0;i<len-2;i++)
+			crc=crc+cmd[i];
+		cmd[len-2]=(crc>>8) & 0xff;
+		cmd[len-1]=crc&0xff;
+	}
+	memcpy((void *)g_pui8EPISdram,cmd,len);
 	Signal_To_Device(len,CMD_CONFIG_DATA);
 }
 int _epi_send_config(rt_uint8_t *cmd,int len)
 {
 	int result=0;
-	char config_result[]={0xf5,0x8c,0x01};
+	char config_result[]={0xf5,0x8c,0x00};
 	config_send(cmd,len);
 	if(g_pui8EPISdram[INT_HOST]==ACK_CONFIG_DATA)
 	{
