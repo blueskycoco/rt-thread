@@ -678,6 +678,7 @@ void _epi_read_config(rt_uint8_t *cmd,int len)
 	}
 	else
 		rt_kprintf("INT_HOST is %02X\n",g_pui8EPISdram[INT_HOST]);
+		}
 }
 extern unsigned char check_mem[9];
 extern unsigned char result_mem[9];
