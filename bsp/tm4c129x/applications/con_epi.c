@@ -532,8 +532,8 @@ void IntGpioK()
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
 		//rt_kprintf("Device has read data done.\n");
-		//rt_sem_release(&(tx_done));//host
-		rt_sem_release(&(rx_sem[0]));//device
+		rt_sem_release(&(tx_done));//host
+		//rt_sem_release(&(rx_sem[0]));//device
 	}
 }
 char check_raw_ack()

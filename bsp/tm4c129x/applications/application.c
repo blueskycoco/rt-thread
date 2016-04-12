@@ -223,7 +223,7 @@ void rt_init_thread_entry(void *parameter)
 	}
 	//for dev_bus test
 	num=2;
-	//bus_speed_mode=1;
+	bus_speed_mode=1;
 	cur_set=DEV_BUS;
 	g_data_queue=(struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*num);
 	for(i=0;i<num;i++)//0,1 for socket0,2,3 for socket1,4,5 for socket2,6,7 for socket3

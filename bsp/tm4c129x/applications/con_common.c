@@ -1314,6 +1314,66 @@ static void common_r(void* parameter)
 		}
 	}
 }
+static rt_device_t _console_device_tt = RT_NULL;
+rt_device_t rtt_console_set_device(const char *name)
+{
+    rt_device_t new, old;
+
+    /* save old device */
+    old = _console_device_tt;
+
+    /* find new console device */
+    new = rt_device_find(name);
+    if (new != RT_NULL)
+    {
+        if (_console_device_tt != RT_NULL)
+        {
+            /* close old console device */
+            rt_device_close(_console_device_tt);
+        }
+
+        /* set new console device */
+        _console_device_tt = new;
+        rt_device_open(_console_device_tt, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_STREAM);
+    }
+
+    return old;
+}
+
+void rtt_kprintf(const char *fmt, ...)
+{
+    va_list args;
+    rt_size_t length;
+    static char rt_log_buf[RT_CONSOLEBUF_SIZE];
+
+    va_start(args, fmt);
+    /* the return value of vsnprintf is the number of bytes that would be
+     * written to buffer had if the size of the buffer been sufficiently
+     * large excluding the terminating null byte. If the output string
+     * would be larger than the rt_log_buf, we have to adjust the output
+     * length. */
+    length = rt_vsnprintf(rt_log_buf, sizeof(rt_log_buf) - 1, fmt, args);
+    if (length > RT_CONSOLEBUF_SIZE - 1)
+        length = RT_CONSOLEBUF_SIZE - 1;
+#ifdef RT_USING_DEVICE
+    if (_console_device_tt == RT_NULL)
+    {
+        rtt_console_set_device(rt_log_buf);
+    }
+    else
+    {
+        rt_uint16_t old_flag = _console_device_tt->open_flag;
+
+        _console_device_tt->open_flag |= RT_DEVICE_FLAG_STREAM;
+        rt_device_write(_console_device_tt, 0, rt_log_buf, length);
+        _console_device_tt->open_flag = old_flag;
+    }
+#else
+    rtt_console_set_device(rt_log_buf);
+#endif
+    va_end(args);
+}
+
 void bus_speed_test(void *param)
 {
 	rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xc0,0xa8,0x01,0x67,0x26,0xfa,0x00,0x00};
@@ -1330,6 +1390,7 @@ void bus_speed_test(void *param)
 	char buf[1022]={0};
 	long times=102601;
 	long i=0;
+	rtt_console_set_device(RT_CONSOLE_DEVICE_NAME);
 	memset(buf,0x38,1020);
 	for(i=33;i<127;i++)
 		buf[i-33]=i;
@@ -1339,55 +1400,63 @@ void bus_speed_test(void *param)
 	//while(start_bus_speed==0)
 	//	rt_thread_delay(1);
 	
-	rt_kprintf("start bus speed test 1\n");
+	rtt_kprintf("start bus speed test 1\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 UDP Client IPV4>\n");
 	rt_hw_led_on();
 	for(i=0;i<times;i++){		
 		check_meminfo();
 		_epi_write(0,buf,1020,0);}
 	rt_hw_led_off();
-	rt_kprintf("end test 1\n");
+	rtt_kprintf("end test 1\n");
 	config_ip[6]=config_ip[6]+1;
+	rtt_kprintf("\n\nswitch Device from UDP to TCP\n\n");
 	rt_thread_delay(300);
 	_epi_send_config(config_tcp,sizeof(config_tcp));
 	rt_thread_delay(100);
 	_epi_read_config(network_state0,sizeof(network_state0));
+	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();
-	rt_kprintf("start bus speed test 2\n");
+	rtt_kprintf("start bus speed test 2\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Client IPV4>\n");
 	for(i=0;i<times;i++)
 	{		
 		check_meminfo();
 		_epi_write(0,buf,1020,0);
 	}
 	rt_hw_led_off();
-	rt_kprintf("end test 2\n");
+	rtt_kprintf("end test 2\n");
+	rtt_kprintf("\n\nswitch PC port from 1234 to 2244\n\n");
 	rt_thread_delay(300);
 	_epi_send_config(config_rport,sizeof(config_rport));
 	rt_thread_delay(100);
 	_epi_read_config(network_state0,sizeof(network_state0));
+	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();	
-	rt_kprintf("start bus speed test 3\n");
+	rtt_kprintf("start bus speed test 3\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:2244 TCP Client IPV4>\n");
 	for(i=0;i<times;i++){		
 		check_meminfo();
 		_epi_write(0,buf,1020,0);}
 	rt_hw_led_off();
-	rt_kprintf("end test 3\n");
+	rtt_kprintf("end test 3\n");
+	rtt_kprintf("\n\nswitch Device form client to server\n\n");
 	rt_thread_delay(300);
 	_epi_send_config(config_socket_mode0,sizeof(config_socket_mode0));
 	rt_thread_delay(100);
 	_epi_read_config(network_state0,sizeof(network_state0));
+	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();
-	rt_kprintf("start bus speed test 4\n");
+	rtt_kprintf("start bus speed test 4\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Server IPV4>\n");
 	for(i=0;i<times;i++){		
 		check_meminfo();
 		_epi_write(0,buf,1020,0);}
 	rt_hw_led_off();
-	rt_kprintf("end test 4\n");	
+	rtt_kprintf("end test 4\n");
+	rtt_kprintf("\n\nswitch PC port from IPV4 to IPV6\n\n");
 	rt_thread_delay(300);
 	_epi_send_config(config_net_protol0,sizeof(config_net_protol0));
 	rt_thread_delay(100);
 	_epi_read_config(network_state0,sizeof(network_state0));
+	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();
-	rt_kprintf("start bus speed test 5\n");
+	rtt_kprintf("start bus speed test 5\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Server IPV6 FE80::1:1234>\n");
 	for(i=0;i<times;i++){		
 		check_meminfo();
 		_epi_write(0,buf,1020,0);}
@@ -1400,7 +1469,7 @@ void bus_speed_test(void *param)
 	//rt_thread_delay(100);	
 	_epi_send_config(config_rport2,sizeof(config_rport2));//rport 1234
 	//rt_thread_delay(100);	
-	rt_kprintf("end test 5\n");
+	rtt_kprintf("end test 5\n");
 }
 /*init common1,2,3,4 for 4 socket*/
 int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
