@@ -550,8 +550,8 @@ void rt_free(void *rmem)
     //rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
 
     /* ... which has to be in a used state ... */
-    RT_ASSERT(mem->used);
-    RT_ASSERT(mem->magic == HEAP_MAGIC);
+//    RT_ASSERT(mem->used);
+//    RT_ASSERT(mem->magic == HEAP_MAGIC);
     /* ... and is now unused. */
     mem->used  = 0;
     mem->magic = 0;

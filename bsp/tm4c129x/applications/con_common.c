@@ -554,6 +554,12 @@ bool need_reconfig(int dev)
 void usb_config(rt_uint8_t *data,int ipv6_len,int dev)
 {
 	set_config(data,ipv6_len,dev);
+	if(g_chang[dev].cs||g_chang[dev].lip6c||g_chang[dev].lpc||g_chang[dev].mode||
+	   g_chang[dev].protol||g_chang[dev].rip4c||g_chang[dev].rip6c||g_chang[dev].rpc)
+	{
+		network_state[dev]=NETWORK_LOCAL_DISCONNECT;
+		rt_kprintf("CURRENT Network cut off %d %d\n",dev,network_state[dev]);
+	}
 	print_config(g_confb);
 	void *ptr1=(void *)&g_confb;
 	void *ptr2=(void *)&g_conf;
@@ -900,13 +906,14 @@ char *send_out(int dev,int cmd,int *lenout)
 				ptr=network_state1;
 		case 40:
 			if(dev==(cmd-40))
-				ptr=network_state0;
+				ptr=network_state2;
 		case 41:
 			{
 				if(dev==(cmd-41))
-					ptr=network_state0;			
+					ptr=network_state3;			
 				if(ptr!=NULL)
 					ptr[3]=network_state[cmd-38];
+				rt_kprintf("netstate %d ==> %d\n",cmd-38,ptr[3]);
 				len=1;
 			}
 			break;
@@ -1311,6 +1318,14 @@ void bus_speed_test(void *param)
 {
 	rt_uint8_t config_ip[]={0xF5,0x8A,0x00,0xc0,0xa8,0x01,0x67,0x26,0xfa,0x00,0x00};
 	rt_uint8_t config_tcp[]={0xF5,0x8A,0x21,0x01,0x26,0xfa,0x02,0xc1};
+	rt_uint8_t config_tcp1[]={0xF5,0x8A,0x21,0x00,0x26,0xfa,0x02,0xc1};
+	rt_uint8_t config_rport[]={0xF5,0x8A,0x10,0x08,0xc4,0x26,0xfa,0x00,0x00};	
+	rt_uint8_t config_rport2[]={0xF5,0x8A,0x10,0x04,0xd2,0x26,0xfa,0x00,0x00};
+	rt_uint8_t config_socket_mode0[]	={0xF5,0x8A,0x18,0x01,0x26,0xfa,0x00,0x00};
+	rt_uint8_t config_socket_mode1[]	={0xF5,0x8A,0x18,0x00,0x26,0xfa,0x00,0x00};
+	rt_uint8_t config_rport1[]={0xF5,0x8A,0x10,0x08,0xba,0x26,0xfa,0x00,0x00};	
+	rt_uint8_t config_net_protol0[]	={0xF5,0x8A,0x14,0x01,0x26,0xfa,0x00,0x00};/*ipv4 or ipv6 0*/
+	rt_uint8_t config_net_protol1[]	={0xF5,0x8A,0x14,0x00,0x26,0xfa,0x00,0x00};/*ipv4 or ipv6 0*/
 	unsigned char network_state0[]={0xF5,0x8B,0x26};
 	char buf[1022]={0};
 	long times=102601;
@@ -1323,19 +1338,69 @@ void bus_speed_test(void *param)
 	memcpy(buf+931,buf,91);
 	//while(start_bus_speed==0)
 	//	rt_thread_delay(1);
-	rt_kprintf("start bus speed test\n");
+	
+	rt_kprintf("start bus speed test 1\n");
 	rt_hw_led_on();
-	//for(i=0;i<times;i++)
-	//	_epi_write(0,buf,1020,0);
+	for(i=0;i<times;i++){		
+		check_meminfo();
+		_epi_write(0,buf,1020,0);}
 	rt_hw_led_off();
-	rt_kprintf("end test\n");
+	rt_kprintf("end test 1\n");
 	config_ip[6]=config_ip[6]+1;
+	rt_thread_delay(300);
 	_epi_send_config(config_tcp,sizeof(config_tcp));
-	while(1)
-	{
-		_epi_read_config(network_state0,sizeof(network_state0));
-		rt_thread_delay(100);
+	rt_thread_delay(100);
+	_epi_read_config(network_state0,sizeof(network_state0));
+	rt_hw_led_on();
+	rt_kprintf("start bus speed test 2\n");
+	for(i=0;i<times;i++)
+	{		
+		check_meminfo();
+		_epi_write(0,buf,1020,0);
 	}
+	rt_hw_led_off();
+	rt_kprintf("end test 2\n");
+	rt_thread_delay(300);
+	_epi_send_config(config_rport,sizeof(config_rport));
+	rt_thread_delay(100);
+	_epi_read_config(network_state0,sizeof(network_state0));
+	rt_hw_led_on();	
+	rt_kprintf("start bus speed test 3\n");
+	for(i=0;i<times;i++){		
+		check_meminfo();
+		_epi_write(0,buf,1020,0);}
+	rt_hw_led_off();
+	rt_kprintf("end test 3\n");
+	rt_thread_delay(300);
+	_epi_send_config(config_socket_mode0,sizeof(config_socket_mode0));
+	rt_thread_delay(100);
+	_epi_read_config(network_state0,sizeof(network_state0));
+	rt_hw_led_on();
+	rt_kprintf("start bus speed test 4\n");
+	for(i=0;i<times;i++){		
+		check_meminfo();
+		_epi_write(0,buf,1020,0);}
+	rt_hw_led_off();
+	rt_kprintf("end test 4\n");	
+	rt_thread_delay(300);
+	_epi_send_config(config_net_protol0,sizeof(config_net_protol0));
+	rt_thread_delay(100);
+	_epi_read_config(network_state0,sizeof(network_state0));
+	rt_hw_led_on();
+	rt_kprintf("start bus speed test 5\n");
+	for(i=0;i<times;i++){		
+		check_meminfo();
+		_epi_write(0,buf,1020,0);}
+	rt_hw_led_off();
+	_epi_send_config(config_net_protol1,sizeof(config_net_protol1));//ipv4
+	//rt_thread_delay(100);
+	_epi_send_config(config_socket_mode1,sizeof(config_socket_mode1));//client
+	//rt_thread_delay(100);	
+	_epi_send_config(config_tcp1,sizeof(config_tcp1));//udp
+	//rt_thread_delay(100);	
+	_epi_send_config(config_rport2,sizeof(config_rport2));//rport 1234
+	//rt_thread_delay(100);	
+	rt_kprintf("end test 5\n");
 }
 /*init common1,2,3,4 for 4 socket*/
 int common_init(int dev)//0 uart , 1 parallel bus, 2 usb

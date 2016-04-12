@@ -532,8 +532,8 @@ void IntGpioK()
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
 		//rt_kprintf("Device has read data done.\n");
-		rt_sem_release(&(tx_done));//host
-		//rt_sem_release(&(rx_sem[0]));//device
+		//rt_sem_release(&(tx_done));//host
+		rt_sem_release(&(rx_sem[0]));//device
 	}
 }
 char check_raw_ack()
@@ -612,6 +612,29 @@ void config_send(rt_uint8_t *cmd,int len)
 	memcpy((void *)g_pui8EPISdram,cmd,len);
 	Signal_To_Device(len,CMD_CONFIG_DATA);
 }
+void check_meminfo()
+{
+	int i=0;	
+	unsigned char check[1+8]					={0xF5,0x8A,0x25,0xff,0x26,0xfa,0x03,0xc3};
+	while(1)
+	{
+		config_send(check,8);
+		if(g_pui8EPISdram[INT_HOST]==ACK_CONFIG_DATA)
+		{
+			int len = (g_pui8EPISdram[REGISTER_LEN_ADDR1]<<8)|g_pui8EPISdram[REGISTER_LEN_ADDR0];
+			if(g_pui8EPISdram[3]==0x01)
+			{
+				//rt_kprintf("==>Device is cnn\n");
+				break;
+			}
+			else
+				rt_thread_delay(100);
+		}
+		else
+			rt_kprintf("INT_HOST is %02X\n",g_pui8EPISdram[INT_HOST]);
+	}
+}
+
 int _epi_send_config(rt_uint8_t *cmd,int len)
 {
 	int result=0;
@@ -638,16 +661,27 @@ int _epi_send_config(rt_uint8_t *cmd,int len)
 void _epi_read_config(rt_uint8_t *cmd,int len)
 {
 	int i=0;
+	while(1){
 	config_send(cmd,len);
 	if(g_pui8EPISdram[INT_HOST]==ACK_CONFIG_DATA)
 	{
 		int len = (g_pui8EPISdram[REGISTER_LEN_ADDR1]<<8)|g_pui8EPISdram[REGISTER_LEN_ADDR0];
-		for(i=0;i<len;i++)
-			rt_kprintf("==>%02x\n",g_pui8EPISdram[i]);
+		//for(i=0;i<len;i++)
+		//	rt_kprintf("==>%02x\n",g_pui8EPISdram[i]);
+		if(g_pui8EPISdram[3]==0x02)
+		{
+			rt_kprintf("==>Device is cnn\n");
+			break;
+		}
+		else
+			rt_thread_delay(100);
 	}
 	else
 		rt_kprintf("INT_HOST is %02X\n",g_pui8EPISdram[INT_HOST]);
 }
+extern unsigned char check_mem[9];
+extern unsigned char result_mem[9];
+
 void _epi_read()
 {
 	rt_uint8_t *buf1,i;
@@ -658,9 +692,20 @@ void _epi_read()
 	{
 		if(phy_link&&g_socket[0].connected)
 		{
+			buf1=NULL;
+			//while(1)
+			//{
 			buf1 =(rt_uint8_t *)malloc(len*sizeof(rt_uint8_t));
 			if(buf1==RT_NULL)
-				rt_kprintf("buf is RT_NULL\r\n");
+			{
+				rt_kprintf("buf is RT_NULL %d\r\n",len);				
+				g_pui8EPISdram[INT_HOST]=ACK_RAW_DATA;
+				return ;
+			//	rt_thread_delay(100);
+			}
+			//else
+			//	break;
+			//}
 			rt_memcpy(buf1,(void *)g_pui8EPISdram,len);
 			rt_data_queue_push(&g_data_queue[0],buf1, len, RT_WAITING_FOREVER);			
 		}
@@ -669,8 +714,29 @@ void _epi_read()
 	else
 	{
 		rt_uint8_t *p=(rt_uint8_t *)malloc(len*sizeof(rt_uint8_t));
-		rt_memcpy(p,(void *)g_pui8EPISdram,len);;
-		if(p[0]==0xf5 && p[1]==0x8a)
+		rt_memcpy(p,(void *)g_pui8EPISdram,len);
+		if(rt_memcmp(p,check_mem,8)==0)
+		{
+			int crc=0;
+			char *tmp=(char *)rt_malloc(1020);
+			if(tmp!=NULL)
+			{
+				result_mem[3]=0x01;
+				rt_free(tmp);
+				//rt_kprintf("have rom\n");
+			}
+			else
+				result_mem[3]=0x0;
+			for(i=0;i<6;i++)
+			crc=crc+result_mem[i];
+			result_mem[6]=(crc>>8)&0xff;
+			result_mem[7]=(crc)&0xff;
+			memcpy((void *)g_pui8EPISdram,result_mem,8);
+			g_pui8EPISdram[REGISTER_LEN_ADDR1]=(sizeof(result_mem)>>8)&0xff;
+			g_pui8EPISdram[REGISTER_LEN_ADDR0]=sizeof(result_mem)&0xff;	
+			g_pui8EPISdram[INT_HOST]=ACK_CONFIG_DATA;
+		}
+		else if(p[0]==0xf5 && p[1]==0x8a)
 		{		
 			int check_sum=0,longlen=0;
 			rt_kprintf("EPI Config len %d\r\n",len);
@@ -701,6 +767,7 @@ void _epi_read()
 				int ii=0;
 				for(ii=0;ii<lenout;ii++)
 					rt_kprintf("%2x ",tmp[ii]);
+				rt_kprintf("\n");
 				memcpy((void *)g_pui8EPISdram,(void *)tmp, lenout);
 				len=lenout;				
 				g_pui8EPISdram[REGISTER_LEN_ADDR1]=(len>>8)&0xff;
@@ -715,6 +782,7 @@ void _epi_read()
 				ack_result(0,CONFIG_CRC_ERROR);
 			}
 		}
+		free(p);
 	}
 	return ;	
 }
