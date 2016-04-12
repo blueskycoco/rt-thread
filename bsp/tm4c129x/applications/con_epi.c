@@ -15,6 +15,7 @@
 #include "driverlib/udma.h"
 #include "con_socket.h"
 extern struct rt_semaphore rx_sem[4];
+extern char bus_speed_mode;
 struct rt_semaphore udma_sem;
 struct rt_semaphore tx_done;
 struct rt_mutex mutex;
@@ -532,8 +533,10 @@ void IntGpioK()
 	{
 		MAP_GPIOIntClear(GPIO_PORTK_BASE, GPIO_PIN_5);
 		//rt_kprintf("Device has read data done.\n");
-		rt_sem_release(&(tx_done));//host
-		//rt_sem_release(&(rx_sem[0]));//device
+		if(bus_speed_mode)
+			rt_sem_release(&(tx_done));//host
+		else
+			rt_sem_release(&(rx_sem[0]));//device
 	}
 }
 char check_raw_ack()
