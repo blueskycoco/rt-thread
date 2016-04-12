@@ -1400,7 +1400,7 @@ void bus_speed_test(void *param)
 	//while(start_bus_speed==0)
 	//	rt_thread_delay(1);
 	
-	rtt_kprintf("start bus speed test 1\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 UDP Client IPV4>\n");
+	rtt_kprintf("start bus test 1\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 UDP Client IPV4>\n");
 	rt_hw_led_on();
 	for(i=0;i<times;i++){		
 		check_meminfo();
@@ -1415,7 +1415,7 @@ void bus_speed_test(void *param)
 	_epi_read_config(network_state0,sizeof(network_state0));
 	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();
-	rtt_kprintf("start bus speed test 2\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Client IPV4>\n");
+	rtt_kprintf("start bus test 2\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Client IPV4>\n");
 	for(i=0;i<times;i++)
 	{		
 		check_meminfo();
@@ -1430,7 +1430,7 @@ void bus_speed_test(void *param)
 	_epi_read_config(network_state0,sizeof(network_state0));
 	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();	
-	rtt_kprintf("start bus speed test 3\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:2244 TCP Client IPV4>\n");
+	rtt_kprintf("start bus test 3\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:2244 TCP Client IPV4>\n");
 	for(i=0;i<times;i++){		
 		check_meminfo();
 		_epi_write(0,buf,1020,0);}
@@ -1443,7 +1443,7 @@ void bus_speed_test(void *param)
 	_epi_read_config(network_state0,sizeof(network_state0));
 	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();
-	rtt_kprintf("start bus speed test 4\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Server IPV4>\n");
+	rtt_kprintf("start bus test 4\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Server IPV4>\n");
 	for(i=0;i<times;i++){		
 		check_meminfo();
 		_epi_write(0,buf,1020,0);}
