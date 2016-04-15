@@ -3,3 +3,14 @@ gcc bulk.c -o bulk-cyg -lusb -I./ -L./
 
 compile for windows
 i686-pc-mingw32-gcc bulk.c -o bulk-win -lusb -I./ -L./
+
+ipv6.py user guide
+
+pc as tcp client to connect board:
+python ipv6.py fe80::1 1234 c6 1.zip
+
+pc as tcp server waiting board connect:
+python ipv6.py pc_ipv6_address 1234 s6 1.zip
+
+pc as udp to connect board:
+python ipv6.py pc_ipv6_address 1234 u6 1.zip
