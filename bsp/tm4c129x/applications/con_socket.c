@@ -9,7 +9,7 @@ rt_thread_t tid_w[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL},tid_r[4]={RT_NULL,RT_NULL
 extern struct rt_semaphore fifo_sem;
 struct rt_mutex mutex[4];
 extern bool ind[4];
-
+int last_bind = 0;//no need to release , 1 need release ipv4, 2 need release ipv6
 bool socket_config(int dev);
 
 bool is_right(char config,char flag)
@@ -517,6 +517,7 @@ void socket_r(void *paramter)
 			if(g_socket[dev].sockfd!=-1)
 			{
 				closesocket(g_socket[dev].sockfd);
+				release_port(g_socket[dev].sockfd);
 				g_socket[dev].sockfd=-1;
 			}
 			if(g_socket[dev].clientfd!=-1)
@@ -930,30 +931,87 @@ void test_select_accept()
 	//list_tcps1();
 	//list_thread();
 }
-void fix_bind(int sock,int port)
-{
+void release_port(int sock,int ipv6)
+{	
+	struct sockaddr_in6 server_addr6;
 	struct sockaddr_in server_addr;
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = INADDR_ANY;
-	server_addr.sin_port = htons(0xeeff);
-	rt_memset(&(server_addr.sin_zero),0, sizeof(server_addr.sin_zero));
-	if(bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1)
+	if(last_bind==2)
 	{
-		rt_kprintf("BIND to 0xeeff failed\n");
+		server_addr6.sin6_family = AF_INET6;
+		memcpy(server_addr6.sin6_addr.s6_addr, IP6_ADDR_ANY, 16);
+		server_addr6.sin6_port = htons(0xeeff);
+		if(bind(sock, (struct sockaddr *)&server_addr6, sizeof(struct sockaddr)) == -1)
+		{
+			rt_kprintf("IPV6 Release BIND to 0xeeff failed\n");
+		}		
+		else
+			rt_kprintf("IPV6 Release BIND to 0xeeff done\n");
+	}
+	if(last_bind==1)
+	{
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_addr.s_addr = INADDR_ANY;
+		server_addr.sin_port = htons(0xeeff);
+		rt_memset(&(server_addr.sin_zero),0, sizeof(server_addr.sin_zero));
+		if(bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1)
+		{
+			rt_kprintf("IPV4 Release BIND to 0xeeff failed\n");
+		}
+		else
+			rt_kprintf("IPV4 Release BIND to 0xeeff done\n");
+	}
+}
+void fix_bind(int sock,int port,int ipv6)
+{
+	if(ipv6)
+	{
+		struct sockaddr_in6 server_addr6;
+		server_addr6.sin6_family = AF_INET6;
+		memcpy(server_addr6.sin6_addr.s6_addr, IP6_ADDR_ANY, 16);
+		server_addr6.sin6_port = htons(0xeeff);
+		if(bind(sock, (struct sockaddr *)&server_addr6, sizeof(struct sockaddr)) == -1)
+		{
+			rt_kprintf("IPV6 BIND to 0xeeff failed\n");
+		}
+		else
+		{
+			rt_kprintf("IPV6 BIND to 0xeeff done\n");
+			server_addr6.sin6_family = AF_INET6;
+			memcpy(server_addr6.sin6_addr.s6_addr, IP6_ADDR_ANY, 16);
+			server_addr6.sin6_port = htons(port);
+			if(bind(sock, (struct sockaddr *)&server_addr6, sizeof(struct sockaddr)) == -1)
+			{
+				rt_kprintf("IPV6 BIND to %d failed\n",port);	
+			}
+			else
+				rt_kprintf("IPV6 BIND to %d done\n",port);
+		}
 	}
 	else
 	{
-		rt_kprintf("BIND to 0xeeff done\n");
+		struct sockaddr_in server_addr;
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_addr.s_addr = INADDR_ANY;
-		server_addr.sin_port = htons(port);
-		rt_memset(&(server_addr.sin_zero),0, sizeof(server_addr.sin_zero));	
+		server_addr.sin_port = htons(0xeeff);
+		rt_memset(&(server_addr.sin_zero),0, sizeof(server_addr.sin_zero));
 		if(bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1)
 		{
-			rt_kprintf("BIND to %d failed\n",port);	
+			rt_kprintf("IPV4 BIND to 0xeeff failed\n");
 		}
 		else
-			rt_kprintf("BING to %d done\n",port);
+		{
+			rt_kprintf("IPV4 BIND to 0xeeff done\n");
+			server_addr.sin_family = AF_INET;
+			server_addr.sin_addr.s_addr = INADDR_ANY;
+			server_addr.sin_port = htons(port);
+			rt_memset(&(server_addr.sin_zero),0, sizeof(server_addr.sin_zero));	
+			if(bind(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) == -1)
+			{
+				rt_kprintf("IPV4 BIND to %d failed\n",port);	
+			}
+			else
+				rt_kprintf("IPV4 BIND to %d done\n",port);
+		}
 	}
 }
 bool socket_config(int dev)
@@ -980,6 +1038,7 @@ bool socket_config(int dev)
 		rt_kprintf("Socket error\n");
 		return false;
 	}
+	last_bind=0;
 	int imode = 1;
     setsockopt(g_socket[dev].sockfd,SOL_SOCKET,SO_KEEPALIVE,&imode,sizeof(imode));	  
 	setsockopt(g_socket[dev].sockfd, SOL_SOCKET, SO_REUSEADDR, &imode, sizeof(imode) );
@@ -988,16 +1047,18 @@ bool socket_config(int dev)
 	{//server mode
 		if(is_right(g_conf.config[dev],CONFIG_IPV6))
 		{
+			last_bind=2;
 			g_socket[dev].server_addr6.sin6_family = AF_INET6;
 			memcpy(g_socket[dev].server_addr6.sin6_addr.s6_addr, IP6_ADDR_ANY, 16);
 			g_socket[dev].server_addr6.sin6_port = htons(g_conf.local_port[dev]);
 			if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].server_addr6, sizeof(struct sockaddr)) == -1)
 			{
-				rt_kprintf("Server Bind error\n");
-				lock(dev);
-				closesocket(g_socket[dev].sockfd);
-				unlock(dev);
-				return false;
+				rt_kprintf("Server IPV6 Bind error\n");
+				fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev],1);
+				//lock(dev);
+				//closesocket(g_socket[dev].sockfd);
+				//unlock(dev);
+				//return false;
 			}
 			if(is_right(g_conf.config[dev],CONFIG_TCP))
 			{
@@ -1029,14 +1090,15 @@ bool socket_config(int dev)
 		}
 		else
 		{
+			last_bind=1;
 			g_socket[dev].server_addr.sin_family = AF_INET;
 			g_socket[dev].server_addr.sin_addr.s_addr = INADDR_ANY;
 			g_socket[dev].server_addr.sin_port = htons(g_conf.local_port[dev]);
 			rt_memset(&(g_socket[dev].server_addr.sin_zero),0, sizeof(g_socket[dev].server_addr.sin_zero));
 			if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].server_addr, sizeof(struct sockaddr)) == -1)
 			{
-				rt_kprintf("Server Bind %d error\n",g_conf.local_port[dev]);
-				fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev]);
+				rt_kprintf("Server IPV4 Bind %d error\n",g_conf.local_port[dev]);
+				fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev],0);
 				//lock(dev);
 				//closesocket(g_socket[dev].sockfd);
 				//unlock(dev);
@@ -1082,13 +1144,14 @@ bool socket_config(int dev)
 			}
 			if(!is_right(g_conf.config[dev],CONFIG_TCP))
 			{
+				last_bind=2;
 				g_socket[dev].client_addr6.sin6_family = AF_INET6;
 				memcpy(g_socket[dev].client_addr6.sin6_addr.s6_addr, IP6_ADDR_ANY, 16);
 				g_socket[dev].client_addr6.sin6_port = htons(g_conf.local_port[dev]);
 				if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].client_addr6, sizeof(struct sockaddr)) == -1)
 				{
-					rt_kprintf("Client Bind %d error\n",g_conf.local_port[dev]);
-					//fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev]);
+					rt_kprintf("Client IPV6 Bind %d error\n",g_conf.local_port[dev]);
+					fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev],1);
 					//lock(dev);
 					//closesocket(g_socket[dev].sockfd);
 					//unlock(dev);
@@ -1108,14 +1171,15 @@ bool socket_config(int dev)
 			rt_kprintf("to connect %s,port %d\r\n",g_conf.remote_ip[dev],g_conf.remote_port[dev]);
 			if(!is_right(g_conf.config[dev],CONFIG_TCP))
 			{
+				last_bind=1;
 				g_socket[dev].client_addr.sin_family = AF_INET;
 				g_socket[dev].client_addr.sin_addr.s_addr = INADDR_ANY;
 				g_socket[dev].client_addr.sin_port = htons(g_conf.local_port[dev]);
 				rt_memset(&(g_socket[dev].client_addr.sin_zero),0, sizeof(g_socket[dev].client_addr.sin_zero));
 				if(bind(g_socket[dev].sockfd, (struct sockaddr *)&g_socket[dev].client_addr, sizeof(struct sockaddr)) == -1)
 				{
-					rt_kprintf("Client Bind %d error\n",g_conf.local_port[dev]);
-					fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev]);
+					rt_kprintf("Client IPV4 Bind %d error\n",g_conf.local_port[dev]);
+					fix_bind(g_socket[dev].sockfd,g_conf.local_port[dev],0);
 					//lock(dev);
 					//closesocket(g_socket[dev].sockfd);
 					//unlock(dev);

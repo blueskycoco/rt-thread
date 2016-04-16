@@ -753,7 +753,11 @@ void _epi_read()
 			if(check_sum==(p[len-2]<<8|p[len-1]))
 			{
 				if(p[2]==0x0c || p[2]==0x0d || p[2]==0x0e || p[2]==0x0f || p[2]==0x20)
-					longlen=p[3]; 				
+				{
+					longlen=p[3]; 		
+					for(i=3;i<len;i++)
+						p[i]=p[i+1];		
+				}
 				usb_config(p+2,longlen,0);
 				ack_result(0,CONFIG_EXCUTE_OK);
 			}
