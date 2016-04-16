@@ -51,11 +51,15 @@ class MiniClient:
         
     def udpC6(self):
         udpU6Client = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        fout = open(self.file_out,'wb')
+        print "Open file ",self.file_out, "done........"
         udpU6Client.bind((self.h, self.p))
         print "UDP IPv6 Mode connected,waiting from data ..."
         while True:
             udpT4Data, udpT6ServerInfo = udpU6Client.recvfrom(1430)
             self.c = self.c + len(udpT4Data)
+            fout.write(udpT4Data)
+            fout.flush()
             print "Received length = ", self.c
             
 if __name__ == "__main__":
