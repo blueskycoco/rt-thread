@@ -2,7 +2,7 @@
 #include <rtdevice.h>
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
-
+char etharpError=NO_CONFLICT;
 /*client use socket,server use netconn*/
 #define BUF_SIZE 1024
 rt_thread_t tid_w[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL},tid_r[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL};
@@ -507,6 +507,13 @@ void socket_r(void *paramter)
 	rt_kprintf("socket_ip4_r==> %d , %s mode, %s , %s . Thread Enter\r\n",dev,is_right(g_conf.config[dev],CONFIG_SERVER)?"Server":"Client",is_right(g_conf.config[dev],CONFIG_IPV6)?"IPV6":"IPV4",is_right(g_conf.config[dev],CONFIG_TCP)?"TCP":"UDP");
 	while(1)
 	{
+		if(etharpError!=NO_CONFLICT)
+		{
+			rt_thread_delay(100);
+			network_state[dev]=NETWORK_ADDR_CONFLICT;
+			rt_kprintf("detect ip conflict\n");
+			continue;
+		}
 		if(need_reconfig(dev))
 		{
 			if(network_state[dev]==NETWORK_CNN_OK)

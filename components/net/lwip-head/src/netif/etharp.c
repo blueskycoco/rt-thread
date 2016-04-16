@@ -42,9 +42,9 @@
  * This file is part of the lwIP TCP/IP stack.
  *
  */
- 
+#include "con_socket.h" 
 #include "lwip/opt.h"
-
+extern config g_conf;
 #if LWIP_ARP || LWIP_ETHERNET
 
 #include "lwip/ip_addr.h"
@@ -701,13 +701,15 @@ etharp_ip_input(struct netif *netif, struct pbuf *p)
  *
  * @see pbuf_free()
  */
+ extern char etharpError;
 static void
 etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
 {
   struct etharp_hdr *hdr;
   struct eth_hdr *ethhdr;
   /* these are aligned properly, whereas the ARP header fields might not be */
-  ip_addr_t sipaddr, dipaddr;
+  ip_addr_t sipaddr, dipaddr;  
+  ip_addr_t tmp;
   u8_t for_us;
 #if LWIP_AUTOIP
   const u8_t * ethdst_hwaddr;
@@ -785,7 +787,31 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
     /* ARP request. If it asked for our address, we send out a
      * reply. In any case, we time-stamp any existing ARP entry,
      * and possiby send out an IP packet that was queued on it. */
-
+     ipaddr_aton(g_conf.local_ip, &tmp);
+     rt_kprintf("ARP_REQUEST localip %d.remote ip %d\n",tmp,sipaddr);
+	if(ip_addr_cmp(&tmp, &(sipaddr)))
+	{
+		etharpError |= 0x01;
+		rt_kprintf("ARP_REQUEST ip conflict\n");
+	}
+	else
+	{
+		if((hdr->shwaddr.addr[0] == netif->hwaddr[0])&&
+		(hdr->shwaddr.addr[1] == netif->hwaddr[1])&&
+		(hdr->shwaddr.addr[2] == netif->hwaddr[2])&&
+		(hdr->shwaddr.addr[3] == netif->hwaddr[3])&&
+		(hdr->shwaddr.addr[4] == netif->hwaddr[4])&&
+		(hdr->shwaddr.addr[5] == netif->hwaddr[5]))
+		{
+			etharpError |= 0x02;
+			rt_kprintf("ARP_REQUEST mac conflict\n");
+		}
+		else
+		{
+			etharpError = 0x00;
+			rt_kprintf("ARP_REQUEST clear conflict\n");
+		}
+	}
     LWIP_DEBUGF (ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: incoming ARP request\n"));
     /* ARP request for our address? */
     if (for_us) {
@@ -833,6 +859,32 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
     }
     break;
   case PP_HTONS(ARP_REPLY):
+     ipaddr_aton(g_conf.local_ip, &tmp);
+  	 rt_kprintf("ARP_REPLY localip %d.remote ip %d\n",tmp,sipaddr);
+	if(ip_addr_cmp(&tmp, &(sipaddr)))
+	{
+		etharpError |= 0x01;
+		rt_kprintf("ARP_REPLY ip conflict\n");
+	}
+	else
+	{
+		if((hdr->shwaddr.addr[0] == netif->hwaddr[0])&&
+		(hdr->shwaddr.addr[1] == netif->hwaddr[1])&&
+		(hdr->shwaddr.addr[2] == netif->hwaddr[2])&&
+		(hdr->shwaddr.addr[3] == netif->hwaddr[3])&&
+		(hdr->shwaddr.addr[4] == netif->hwaddr[4])&&
+		(hdr->shwaddr.addr[5] == netif->hwaddr[5]))
+		{
+			etharpError |= 0x02;
+			rt_kprintf("ARP_REPLY mac conflict\n");
+		}
+		else
+		{
+			etharpError = 0x00;
+			rt_kprintf("ARP_REPLY clear conflict\n");
+		}
+	}
+
     /* ARP reply. We already updated the ARP cache earlier. */
     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: incoming ARP reply\n"));
 #if (LWIP_DHCP && DHCP_DOES_ARP_CHECK)

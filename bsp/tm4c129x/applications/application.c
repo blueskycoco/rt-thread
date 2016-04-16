@@ -61,6 +61,7 @@ static void led_thread_entry(void* parameter)
 			cnt=0;
 	}
 }
+
 #if 0
 struct rt_semaphore rx_sem;
 

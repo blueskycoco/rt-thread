@@ -251,6 +251,14 @@ void default_config()
 	set_if("e0",g_conf.local_ip,g_conf.gw,g_conf.sub_msk);
 	rt_memcpy((void *)&g_confb,(const void *)&g_conf,sizeof(config));
 }
+static void ping_thread_entry(void* parameter)
+{
+	if((int)parameter)
+		ping_test6(g_conf.remote_ip6[0],5,32);
+	else
+		ping_test(g_conf.remote_ip[0],5,32);
+}
+
 void set_config(rt_uint8_t *data,int ipv6_len,int dev)//0 no change ,1 local socket need reconfig ,2 all socket need reconfig
 {
 	
@@ -518,9 +526,19 @@ void set_config(rt_uint8_t *data,int ipv6_len,int dev)//0 no change ,1 local soc
 			rt_kprintf("wrong cmd\r\n");
 	}
 	if(ipv4_changed)
+	{
 		set_if("e0",g_conf.local_ip,g_conf.gw,g_conf.sub_msk);
+		rt_thread_startup(rt_thread_create("ping",
+			    ping_thread_entry, (void *)0,
+			    1024, 20, 20));
+	}
 	if(ipv6_changed)
+	{
 		set_if6("e0",g_conf.local_ip6);
+		rt_thread_startup(rt_thread_create("ping",
+			    ping_thread_entry, (void *)1,
+			    1024, 20, 20));
+	}
 }
 bool need_reconfig(int dev)
 {
