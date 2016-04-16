@@ -1386,6 +1386,10 @@ void bus_speed_test(void *param)
 	rt_uint8_t config_rport1[]={0xF5,0x8A,0x10,0x08,0xba,0x26,0xfa,0x00,0x00};	
 	rt_uint8_t config_net_protol0[]	={0xF5,0x8A,0x14,0x01,0x26,0xfa,0x00,0x00};/*ipv4 or ipv6 0*/
 	rt_uint8_t config_net_protol1[]	={0xF5,0x8A,0x14,0x00,0x26,0xfa,0x00,0x00};/*ipv4 or ipv6 0*/
+	rt_uint8_t config_ripv6[]={0xf5,0x8a,0x0c,0x1c,0x66,0x65,0x38,0x30,0x3a,0x3a,0x61
+		,0x31,0x64,0x31,0x3a,0x63,0x62,0x31,0x65,0x3a,0x62,0x61,0x61,0x63,0x3a,0x36,0x33,0x33,0x66,0x25,0x31,0x31,0xff
+		,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff
+		,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x26,0xfa,0x2d,0x8b};
 	unsigned char network_state0[]={0xF5,0x8B,0x26};
 	char buf[1022]={0};
 	long times=102601;
@@ -1399,8 +1403,12 @@ void bus_speed_test(void *param)
 	memcpy(buf+931,buf,91);
 	//while(start_bus_speed==0)
 	//	rt_thread_delay(1);
+	rtt_kprintf("===============================================\n");
+	rtt_kprintf("Board IPv4:192.168.1.103 Port 1234\n\tUDP IPv6:FE80::1\n");
+	rtt_kprintf("PC IPv4:192.168.1.100 Port 1234\n\tUDP IPv6:fe80::216:17ff:fe89:870b%%4\n");
+	rtt_kprintf("===============================================\n");
+	rtt_kprintf("start bus test 1\nBoard UDP IPV4<==> PC UDP IPV4\n");
 	
-	rtt_kprintf("start bus test 1\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 UDP Client IPV4>\n");
 	rt_hw_led_on();
 	for(i=0;i<times;i++){		
 		check_meminfo();
@@ -1415,7 +1423,7 @@ void bus_speed_test(void *param)
 	_epi_read_config(network_state0,sizeof(network_state0));
 	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();
-	rtt_kprintf("start bus test 2\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Client IPV4>\n");
+	rtt_kprintf("start bus test 2\nBoard TCP Client IPV4<==> PC TCP Server IPV4\n");
 	for(i=0;i<times;i++)
 	{		
 		check_meminfo();
@@ -1423,6 +1431,7 @@ void bus_speed_test(void *param)
 	}
 	rt_hw_led_off();
 	rtt_kprintf("end test 2\n");
+	#if 0
 	rtt_kprintf("\n\nswitch PC port from 1234 to 2244\n\n");
 	rt_thread_delay(300);
 	_epi_send_config(config_rport,sizeof(config_rport));
@@ -1436,6 +1445,7 @@ void bus_speed_test(void *param)
 		_epi_write(0,buf,1020,0);}
 	rt_hw_led_off();
 	rtt_kprintf("end test 3\n");
+	#endif
 	rtt_kprintf("\n\nswitch Device form client to server\n\n");
 	rt_thread_delay(300);
 	_epi_send_config(config_socket_mode0,sizeof(config_socket_mode0));
@@ -1443,12 +1453,13 @@ void bus_speed_test(void *param)
 	_epi_read_config(network_state0,sizeof(network_state0));
 	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();
-	rtt_kprintf("start bus test 4\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Server IPV4>\n");
+	rtt_kprintf("start bus test 3\nBoard TCP Server IPV4<==> PC TCP Client IPV4\n");
 	for(i=0;i<times;i++){		
 		check_meminfo();
 		_epi_write(0,buf,1020,0);}
-	rt_hw_led_off();
-	rtt_kprintf("end test 4\n");
+	rt_hw_led_off();	
+	rtt_kprintf("end test 3\n");
+	
 	rtt_kprintf("\n\nswitch PC port from IPV4 to IPV6\n\n");
 	rt_thread_delay(300);
 	_epi_send_config(config_net_protol0,sizeof(config_net_protol0));
@@ -1456,7 +1467,37 @@ void bus_speed_test(void *param)
 	_epi_read_config(network_state0,sizeof(network_state0));
 	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
 	rt_hw_led_on();
-	rtt_kprintf("start bus speed test 5\n<Device IP:192.168.1.103:1234 Server IP:192.168.1.100:1234 TCP Server IPV6 FE80::1:1234>\n");
+	rtt_kprintf("start bus speed test 4\nBoard TCP Server IPV6<==> PC TCP Client IPV6\n");
+	for(i=0;i<times;i++){		
+		check_meminfo();
+		_epi_write(0,buf,1020,0);}
+	rt_hw_led_off();
+	rtt_kprintf("end test 4\n");
+	rtt_kprintf("\n\nset PC ipv6 to fe80::a1d1:cb1e:baac:633f%%11\n\n");
+	rt_thread_delay(300);
+	_epi_send_config(config_ripv6,sizeof(config_ripv6));
+	rt_thread_delay(100);
+	rtt_kprintf("\n\nswitch Device form server to client\n\n");
+	//rt_thread_delay(300);
+	_epi_send_config(config_socket_mode1,sizeof(config_socket_mode1));
+	rt_thread_delay(100);
+	_epi_read_config(network_state0,sizeof(network_state0));
+	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
+	rt_hw_led_on();
+	rtt_kprintf("start bus speed test 5\nBoard TCP Client IPV6<==> PC TCP Server IPV6\n");
+	for(i=0;i<times;i++){		
+		check_meminfo();
+		_epi_write(0,buf,1020,0);}
+	rt_hw_led_off();
+	rtt_kprintf("end test 5\n");
+	
+	rtt_kprintf("\n\nswitch Device from TCP to UDP\n\n");
+	_epi_send_config(config_tcp1,sizeof(config_tcp1));
+	rt_thread_delay(100);
+	_epi_read_config(network_state0,sizeof(network_state0));
+	rtt_kprintf("\n\nDEVICE CONNECTED!!!\n\n");
+	rt_hw_led_on();
+	rtt_kprintf("start bus speed test 6\nBoard UDP IPV6<==> PC UDP IPV6\n");
 	for(i=0;i<times;i++){		
 		check_meminfo();
 		_epi_write(0,buf,1020,0);}
@@ -1469,7 +1510,7 @@ void bus_speed_test(void *param)
 	//rt_thread_delay(100);	
 	_epi_send_config(config_rport2,sizeof(config_rport2));//rport 1234
 	//rt_thread_delay(100);	
-	rtt_kprintf("end test 5\n");
+	rtt_kprintf("end test 6\n");
 }
 /*init common1,2,3,4 for 4 socket*/
 int common_init(int dev)//0 uart , 1 parallel bus, 2 usb
