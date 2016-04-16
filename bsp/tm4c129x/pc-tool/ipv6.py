@@ -27,8 +27,8 @@ class MiniClient:
             clientSock, clientaddr = tcpT6Server.accept()
             print "Connected from: ", clientSock.getpeername() 
             while True:
-				buf = clientSock.recv(1430)
-				self.c = self.c + len(buf)
+		buf = clientSock.recv(1430)
+		self.c = self.c + len(buf)
             	print "Received length = ", self.c
             	fout.write(buf)
             	fout.flush()
