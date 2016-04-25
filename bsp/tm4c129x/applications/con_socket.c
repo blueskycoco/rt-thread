@@ -392,8 +392,8 @@ void socket_w(void *paramter)
 			//rt_free(last_data_ptr);
 			continue;
 		}
-		cnn_out(dev,1);	
-		
+		cnn_out(dev,1);		
+		r=rt_data_queue_pop(&g_data_queue[dev*2], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 		FD_ZERO(&myset);
 		int sock;
 		if(is_right(g_conf.config[dev],CONFIG_SERVER)&&is_right(g_conf.config[dev],CONFIG_TCP))
@@ -405,7 +405,6 @@ void socket_w(void *paramter)
 		FD_SET(sock, &myset);
 		if(select(sock+1,NULL, &myset,  NULL, &tv) > 0) 
 		{ 	
-			r=rt_data_queue_pop(&g_data_queue[dev*2], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 			if(r==RT_EOK && last_data_ptr && data_size>0)
 			{
 				lock(dev);
