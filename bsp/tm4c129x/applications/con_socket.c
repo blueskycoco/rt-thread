@@ -9,6 +9,9 @@ rt_thread_t tid_w[4]={RT_NULL,RT_NULL,RT_NULL,RT_NULL},tid_r[4]={RT_NULL,RT_NULL
 extern struct rt_semaphore fifo_sem;
 struct rt_mutex mutex[4];
 extern bool ind[4];
+long send_len=0;
+long recv_len=0;
+#define SEND_LEN	1024*1024*1024
 int last_bind = 0;//no need to release , 1 need release ipv4, 2 need release ipv6
 bool socket_config(int dev);
 
@@ -405,13 +408,25 @@ void socket_w(void *paramter)
 		FD_SET(sock, &myset);
 		if(select(sock+1,NULL, &myset,  NULL, &tv) > 0) 
 		{ 	
+			
 			if(r==RT_EOK && last_data_ptr && data_size>0)
 			{
+				if(send_len<SEND_LEN)
+				{
+					send_len=send_len+data_size;
+				}
+				else
+				{
+					rt_free(last_data_ptr);
+					last_data_ptr=RT_NULL;
+					continue;
+				}
 				lock(dev);
 				if(is_right(g_conf.config[dev],CONFIG_TCP))
 				{
-					status=send(sock, last_data_ptr, data_size, 0);
-					//rt_kprintf("socet %d send %x bytes %d\n",dev,last_data_ptr,data_size);
+					
+						status=send(sock, last_data_ptr, data_size, 0);						
+						//rt_kprintf("socet %d send %x bytes %d\n",dev,last_data_ptr,data_size);
 				}
 				else
 				{
@@ -649,8 +664,7 @@ void socket_r(void *paramter)
 			sock=g_socket[dev].sockfd;
 		FD_SET(sock, &myset);
         if(select(sock+1, &myset, NULL, NULL, &tv) > 0) 
-		{ 		
-			
+		{ 				
 			g_socket[dev].recv_data=rt_malloc(1440);
 			if(g_socket[dev].recv_data!=NULL)
 			{
@@ -681,7 +695,16 @@ void socket_r(void *paramter)
 							//}
 							//rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
 							//rt_kprintf("push %x ,bytes %d\r\n",g_socket[dev].recv_data,status);
-							rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
+							if(recv_len<SEND_LEN)
+							{
+								rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
+								recv_len=recv_len+status;
+							}
+							else
+							{
+								rt_free(g_socket[dev].recv_data);
+								g_socket[dev].recv_data=RT_NULL;
+							}
 						}
 					}					
 				else
@@ -748,8 +771,17 @@ void socket_r(void *paramter)
 					if(ind[dev])
 					{	
 						//rt_memcpy(g_socket[dev].recv_data,rcv_buf,status);
-						rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
-						g_socket[dev].recv_data=rt_malloc(status);
+						if(recv_len<SEND_LEN)
+						{
+							rt_data_queue_push(&g_data_queue[dev*2+1], g_socket[dev].recv_data, status, RT_WAITING_FOREVER);
+							recv_len=recv_len+status;
+						}
+						else
+						{
+							rt_free(g_socket[dev].recv_data);
+							g_socket[dev].recv_data=RT_NULL;
+						}
+						/*g_socket[dev].recv_data=rt_malloc(status);
 						if(g_socket[dev].recv_data==NULL)
 						{
 							rt_kprintf("malloc recv_data failed %d\n",status);
@@ -763,7 +795,7 @@ void socket_r(void *paramter)
 							}
 							//unlock(dev);
 							//continue;
-						}
+						}*/
 					}
 					//else
 					//	rt_free(g_socket[dev].recv_data);
