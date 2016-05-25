@@ -1,4 +1,4 @@
 #! /bin/bash -e
 
 git commit -am "$1"
-git push origin tm4c129x-all
+git push origin dual-xfer-epi
