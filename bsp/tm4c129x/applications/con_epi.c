@@ -541,7 +541,7 @@ void IntGpioK()
 }
 char check_raw_ack()
 {
-	//rt_kprintf("%02X Got in check_raw_ack\n",g_pui8EPISdram[INT_HOST]);
+	rt_kprintf("%02X Got in check_raw_ack\n",g_pui8EPISdram[INT_HOST]);
 	if(g_pui8EPISdram[INT_HOST]==ACK_RAW_DATA)
 		return 1;
 	return 0;
@@ -710,6 +710,7 @@ void _epi_read()
 			//else
 			//	break;
 			//}
+			rt_kprintf("_epi_read %d\n",len);
 			rt_memcpy(buf1,(void *)g_pui8EPISdram,len);
 			rt_data_queue_push(&g_data_queue[0],buf1, len, RT_WAITING_FOREVER);			
 		}

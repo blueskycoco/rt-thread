@@ -788,11 +788,11 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
      * reply. In any case, we time-stamp any existing ARP entry,
      * and possiby send out an IP packet that was queued on it. */
      ipaddr_aton(g_conf.local_ip, &tmp);
-     rt_kprintf("ARP_REQUEST localip %d.remote ip %d\n",tmp,sipaddr);
+     //rt_kprintf("ARP_REQUEST localip %d.remote ip %d\n",tmp,sipaddr);
 	if(ip_addr_cmp(&tmp, &(sipaddr)))
 	{
 		etharpError |= 0x01;
-		rt_kprintf("ARP_REQUEST ip conflict\n");
+		//rt_kprintf("ARP_REQUEST ip conflict\n");
 	}
 	else
 	{
@@ -804,12 +804,12 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
 		(hdr->shwaddr.addr[5] == netif->hwaddr[5]))
 		{
 			etharpError |= 0x02;
-			rt_kprintf("ARP_REQUEST mac conflict\n");
+			//rt_kprintf("ARP_REQUEST mac conflict\n");
 		}
 		else
 		{
 			etharpError = 0x00;
-			rt_kprintf("ARP_REQUEST clear conflict\n");
+			//rt_kprintf("ARP_REQUEST clear conflict\n");
 		}
 	}
     LWIP_DEBUGF (ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: incoming ARP request\n"));
@@ -860,11 +860,11 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
     break;
   case PP_HTONS(ARP_REPLY):
      ipaddr_aton(g_conf.local_ip, &tmp);
-  	 rt_kprintf("ARP_REPLY localip %d.remote ip %d\n",tmp,sipaddr);
+  	 //rt_kprintf("ARP_REPLY localip %d.remote ip %d\n",tmp,sipaddr);
 	if(ip_addr_cmp(&tmp, &(sipaddr)))
 	{
 		etharpError |= 0x01;
-		rt_kprintf("ARP_REPLY ip conflict\n");
+		//rt_kprintf("ARP_REPLY ip conflict\n");
 	}
 	else
 	{
@@ -876,12 +876,12 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
 		(hdr->shwaddr.addr[5] == netif->hwaddr[5]))
 		{
 			etharpError |= 0x02;
-			rt_kprintf("ARP_REPLY mac conflict\n");
+			//rt_kprintf("ARP_REPLY mac conflict\n");
 		}
 		else
 		{
 			etharpError = 0x00;
-			rt_kprintf("ARP_REPLY clear conflict\n");
+			//rt_kprintf("ARP_REPLY clear conflict\n");
 		}
 	}
 
