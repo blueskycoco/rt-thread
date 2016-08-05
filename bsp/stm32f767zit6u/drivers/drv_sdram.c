@@ -367,4 +367,4 @@ static int rt_sdram_hw_init(void)
 {
     return (int)sdram_hw_init();
 }
-INIT_BOARD_EXPORT(rt_sdram_hw_init);
+//INIT_BOARD_EXPORT(rt_sdram_hw_init);
