@@ -14,7 +14,7 @@ if os.getenv('RTT_ROOT'):
 # EXEC_PATH is the compiler execute path, for example, CodeSourcery, Keil MDK, IAR
 if  CROSS_TOOL == 'gcc':
     PLATFORM 	= 'gcc'
-    EXEC_PATH 	= r'C:/Program Files/CodeSourcery/Sourcery G++ Lite/bin'
+    EXEC_PATH 	= r'E:/Program Files (x86)/GNU Tools ARM Embedded/5.4 2016q2/bin'
 elif CROSS_TOOL == 'keil':
     PLATFORM 	= 'armcc'
     EXEC_PATH 	= r'C:/Keil_v5'
@@ -26,7 +26,7 @@ if os.getenv('RTT_EXEC_PATH'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH')
 
 BUILD = 'debug'
-STM32_TYPE = 'STM32F756xx'
+PART_TYPE = 'stm32f767xx'
 
 if PLATFORM == 'gcc':
     # toolchains
@@ -43,7 +43,7 @@ if PLATFORM == 'gcc':
     STRIP = PREFIX + 'strip'
 
     DEVICE = '  -mcpu=cortex-m7 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp -ffunction-sections -fdata-sections'
-    CFLAGS = DEVICE + ' -g -Wall -DSTM32F756xx -DUSE_HAL_DRIVER -D__ASSEMBLY__ -D__FPU_USED -eentry'
+    CFLAGS = DEVICE + ' -g -Wall -DSTM32F756xx -DUSE_HAL_DRIVER -D__ASSEMBLY__  -eentry'
     AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -Wa,-mimplicit-it=thumb '
     LFLAGS = DEVICE + ' -lm -lgcc -lc' + ' -nostartfiles -Wl,--gc-sections,-Map=rtthread_stm32f7xx.map,-cref,-u,Reset_Handler -T rtthread-stm32f7xx.ld'
 
