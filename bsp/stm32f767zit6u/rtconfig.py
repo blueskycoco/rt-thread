@@ -43,7 +43,7 @@ if PLATFORM == 'gcc':
     STRIP = PREFIX + 'strip'
 
     DEVICE = '  -mcpu=cortex-m7 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp -ffunction-sections -fdata-sections'
-    CFLAGS = DEVICE + ' -g -Wall -DSTM32F767xx -DUSE_HAL_DRIVER -D__ASSEMBLY__  -eentry'
+    CFLAGS = DEVICE + ' -g -Wall -DSTM32F767xx -DUSE_HAL_DRIVER -D__ASSEMBLY__ -eentry'
     AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -Wa,-mimplicit-it=thumb '
     LFLAGS = DEVICE + ' -lm -lgcc -lc' + ' -nostartfiles -Wl,--gc-sections,-Map=rtthread_stm32f7xx.map,-cref,-u,Reset_Handler -T rtthread-stm32f7xx.ld'
 

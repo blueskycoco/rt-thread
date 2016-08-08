@@ -1,3 +1,3 @@
 #! /bin/bash
 scons.bat
-openocd -f openocd.cfg -c "flash_image"
+openocd.exe -s c:/cygwin/usr/local/share/openocd/scripts -f openocd.cfg -c "flash_image"

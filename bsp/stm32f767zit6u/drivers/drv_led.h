@@ -16,8 +16,8 @@
 
 #include "board.h"
 
-#define led_on()  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_7|GPIO_PIN_14, GPIO_PIN_SET)
-#define led_off()  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_7|GPIO_PIN_14, GPIO_PIN_RESET)
+#define led_on()  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7|GPIO_PIN_0|GPIO_PIN_14, GPIO_PIN_SET)
+#define led_off()  HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7|GPIO_PIN_0|GPIO_PIN_14, GPIO_PIN_RESET)
 
 int led_hw_init(void);
 

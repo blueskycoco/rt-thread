@@ -60,7 +60,7 @@ static void SystemClock_Config(void)
 
     /* Enable HSE Oscillator and activate PLL with HSE as source */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
 	RCC_OscInitStruct.HSIState = RCC_HSI_OFF;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
@@ -168,7 +168,6 @@ void rt_hw_board_init()
 {
     /* Configure the MPU attributes as Write Through */
     //mpu_init();
-
     /* Enable the CPU Cache */
     CPU_CACHE_Enable();
 
