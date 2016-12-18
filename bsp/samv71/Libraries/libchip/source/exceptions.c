@@ -165,7 +165,7 @@ static void HardFault_reason(void)
  * \brief Default HardFault interrupt handler.
  */
 
-void HardFault_Handler(void)
+void HardFault_Handler1(void)
 {
 	printf("\n\rHardFault at address 0X%x\n\r", (int)StackUnwind());
 	__ISB();

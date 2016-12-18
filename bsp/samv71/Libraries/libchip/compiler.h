@@ -57,9 +57,10 @@
 #elif defined (__ICCARM__)
 	#define WEAK __weak
 #elif defined (__GNUC__)
+#ifndef WEAK
 	#define WEAK __attribute__ ((weak))
 #endif
-
+#endif
 /* Define Compiler name of tool chains */
 #if defined   (__CC_ARM)
 	#define COMPILER_NAME               "KEIL"

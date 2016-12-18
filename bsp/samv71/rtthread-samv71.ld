@@ -1,13 +1,13 @@
 /*
- * linker script for STM32F7xx with GNU ld
- * xiaonong 2015-08-07
+ * linker script for samv71q21 with GNU ld
+ * bbstr@foxmail.com 2016-12-18
  */
 
 /* Program Entry, set to mark it as "used" and avoid gc */
 MEMORY
 {
-    CODE (rx) : ORIGIN = 0x00200000, LENGTH = 1024k /* 1024KB flash */
-    DATA (rw) : ORIGIN = 0x20010000, LENGTH =  256k /* 256K sram */
+    CODE (rx) : ORIGIN = 0x00400000, LENGTH = 0x00200000 /* 2048KB flash */
+    DATA (rw) : ORIGIN = 0x20400000, LENGTH = 0x00060000 /* 384K sram */
 }
 ENTRY(Reset_Handler)
 _system_stack_size = 0x200;

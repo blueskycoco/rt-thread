@@ -95,6 +95,7 @@ uint32_t GetTicks(void);
 void Wait(volatile uint32_t dwMs);
 
 void Sleep(volatile uint32_t dwMs);
+void SysTick_Handler_bsp(void);
 
 extern void SetTimeEvent(TimeEvent *pEvent);
 

@@ -19,112 +19,71 @@
  *
  * Change Logs:
  * Date           Author       Notes
- * 2015-08-01     xiaonong     the first version for stm32f7xx
+ * 2015-08-01     xiaonong     the first version for samv71f7xx
  */
 
-#include "stm32f7xx.h"
 #include "drv_usart.h"
-#include "board.h"
+#include "rt_board.h"
 
 #include <rtdevice.h>
+#include "board.h"
+/** USART1 pin RX */
+#define PIN_USART1_RXD_DBG \
+	{PIO_PA21A_RXD1, PIOA, ID_PIOA, PIO_PERIPH_A, PIO_DEFAULT}
+/** USART1 pin TX */
+#define PIN_USART1_TXD_DBG \
+	{PIO_PB4D_TXD1, PIOB, ID_PIOB, PIO_PERIPH_D, PIO_DEFAULT}
+//#define PINS_USART1        PIN_USART1_TXD_DBG, PIN_USART1_RXD_DBG
 
-/* Definition for USART1 clock resources */
-#define USART1_CLK_ENABLE()              __USART1_CLK_ENABLE()
-#define USART1_RX_GPIO_CLK_ENABLE()      __GPIOB_CLK_ENABLE()
-#define USART1_TX_GPIO_CLK_ENABLE()      __GPIOA_CLK_ENABLE()
-
-#define USART1_FORCE_RESET()             __USART1_FORCE_RESET()
-#define USART1_RELEASE_RESET()           __USART1_RELEASE_RESET()
-
-/* Definition for USARTx Pins */
-#define USART1_TX_PIN                    GPIO_PIN_9
-#define USART1_TX_GPIO_PORT              GPIOA
-#define USART1_TX_AF                     GPIO_AF7_USART1
-#define USART1_RX_PIN                    GPIO_PIN_7
-#define USART1_RX_GPIO_PORT              GPIOB
-#define USART1_RX_AF                     GPIO_AF7_USART1
+#define CONSOLE_PINS      {PIN_USART1_TXD_DBG, PIN_USART1_RXD_DBG}
 
 /* STM32 uart driver */
-struct stm32_uart
+struct samv71_uart
 {
-    UART_HandleTypeDef UartHandle;
+    Usart *UartHandle;
     IRQn_Type irq;
 };
 
-static rt_err_t stm32_configure(struct rt_serial_device *serial, struct serial_configure *cfg)
+static rt_err_t samv71_configure(struct rt_serial_device *serial, struct serial_configure *cfg)
 {
-    struct stm32_uart *uart;
+    struct samv71_uart *uart;
+	const Pin pPins[] = CONSOLE_PINS;
 
     RT_ASSERT(serial != RT_NULL);
     RT_ASSERT(cfg != RT_NULL);
 
-    uart = (struct stm32_uart *)serial->parent.user_data;
+    uart = (struct samv71_uart *)serial->parent.user_data;
+	// Disable the MATRIX registers write protection
+	MATRIX->MATRIX_WPMR  = MATRIX_WPMR_WPKEY_PASSWD;
+	MATRIX->CCFG_SYSIO |= CCFG_SYSIO_SYSIO4;
 
-    uart->UartHandle.Init.BaudRate   = cfg->baud_rate;
-    uart->UartHandle.Init.HwFlowCtl  = UART_HWCONTROL_NONE;
-    uart->UartHandle.Init.Mode       = UART_MODE_TX_RX;
-    uart->UartHandle.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	PIO_Configure(pPins, PIO_LISTSIZE(pPins));
 
-    switch (cfg->data_bits)
-    {
-    case DATA_BITS_7:
-        uart->UartHandle.Init.WordLength = UART_WORDLENGTH_7B;
-        break;
-    case DATA_BITS_8:
-        uart->UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
-        break;
-    case DATA_BITS_9:
-        uart->UartHandle.Init.WordLength = UART_WORDLENGTH_9B;
-        break;
-    default:
-        uart->UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
-        break;
-    }
-    switch (cfg->stop_bits)
-    {
-    case STOP_BITS_1:
-        uart->UartHandle.Init.StopBits   = UART_STOPBITS_1;
-        break;
-    case STOP_BITS_2:
-        uart->UartHandle.Init.StopBits   = UART_STOPBITS_2;
-        break;
-    default:
-        uart->UartHandle.Init.StopBits   = UART_STOPBITS_1;
-        break;
-    }
-    switch (cfg->parity)
-    {
-    case PARITY_NONE:
-        uart->UartHandle.Init.Parity     = UART_PARITY_NONE;
-        break;
-    case PARITY_ODD:
-        uart->UartHandle.Init.Parity     = UART_PARITY_ODD;
-        break;
-    case PARITY_EVEN:
-        uart->UartHandle.Init.Parity     = UART_PARITY_EVEN;
-        break;
-    default:
-        uart->UartHandle.Init.Parity     = UART_PARITY_NONE;
-        break;
-    }
-    if (HAL_UART_DeInit(&uart->UartHandle) != HAL_OK)
-    {
-        return RT_ERROR;
-    }
-    if (HAL_UART_Init(&uart->UartHandle) != HAL_OK)
-    {
-        return RT_ERROR;
-    }
+	// Reset & disable receiver and transmitter, disable interrupts
+	uart->UartHandle->US_CR = US_CR_RSTRX | US_CR_RSTTX | US_CR_RSTSTA;
+	uart->UartHandle->US_IDR = 0xFFFFFFFF;
+	PMC_EnablePeripheral(ID_USART1);
+	uart->UartHandle->US_BRGR = (BOARD_MCK / cfg->baud_rate) / 16;
 
+	// Configure mode register
+	uart->UartHandle->US_MR
+		= (US_MR_USART_MODE_NORMAL | US_MR_PAR_NO | US_MR_USCLKS_MCK
+		   | US_MR_CHRL_8_BIT);
+
+	// Enable receiver and transmitter
+	uart->UartHandle->US_CR = US_CR_RXEN | US_CR_TXEN;
+	NVIC_ClearPendingIRQ(uart->irq);
+	NVIC_SetPriority(uart->irq , 1);
+	USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
     return RT_EOK;
 }
 
-static rt_err_t stm32_control(struct rt_serial_device *serial, int cmd, void *arg)
+static rt_err_t samv71_control(struct rt_serial_device *serial, int cmd, void *arg)
 {
-    struct stm32_uart *uart;
+    struct samv71_uart *uart;
 
     RT_ASSERT(serial != RT_NULL);
-    uart = (struct stm32_uart *)serial->parent.user_data;
+    uart = (struct samv71_uart *)serial->parent.user_data;
 
     switch (cmd)
     {
@@ -132,160 +91,93 @@ static rt_err_t stm32_control(struct rt_serial_device *serial, int cmd, void *ar
         /* disable rx irq */
         UART_DISABLE_IRQ(uart->irq);
         /* disable interrupt */
-        __HAL_UART_DISABLE_IT(&uart->UartHandle, UART_IT_RXNE);
+		USART_DisableIt(uart->UartHandle, US_IER_RXRDY);
         break;
     case RT_DEVICE_CTRL_SET_INT:
         /* enable rx irq */
         UART_ENABLE_IRQ(uart->irq);
         /* enable interrupt */
-        __HAL_UART_ENABLE_IT(&uart->UartHandle, UART_IT_RXNE);
+        USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
         break;
     }
 
     return RT_EOK;
 }
 
-static int stm32_putc(struct rt_serial_device *serial, char c)
+static int samv71_putc(struct rt_serial_device *serial, char c)
 {
-    struct stm32_uart *uart;
+    struct samv71_uart *uart;
 
     RT_ASSERT(serial != RT_NULL);
-    uart = (struct stm32_uart *)serial->parent.user_data;
+    uart = (struct samv71_uart *)serial->parent.user_data;
 
-    while (!(uart->UartHandle.Instance->ISR & UART_FLAG_TXE));
-    uart->UartHandle.Instance->TDR = c;
+	while ((uart->UartHandle->US_CSR & US_CSR_TXEMPTY) == 0);
+	uart->UartHandle->US_THR = c;
 
     return 1;
 }
 
-static int stm32_getc(struct rt_serial_device *serial)
+static int samv71_getc(struct rt_serial_device *serial)
 {
     int ch;
-    struct stm32_uart *uart;
+    struct samv71_uart *uart;
 
     RT_ASSERT(serial != RT_NULL);
-    uart = (struct stm32_uart *)serial->parent.user_data;
+    uart = (struct samv71_uart *)serial->parent.user_data;
 
     ch = -1;
-    if (uart->UartHandle.Instance->ISR & UART_FLAG_RXNE)
+    if (uart->UartHandle->US_CSR & US_CSR_RXRDY)
     {
-        ch = uart->UartHandle.Instance->RDR & 0xff;
+        ch = uart->UartHandle->US_RHR & 0xff;
     }
-
+	
     return ch;
 }
 
-static const struct rt_uart_ops stm32_uart_ops =
+static const struct rt_uart_ops samv71_uart_ops =
 {
-    stm32_configure,
-    stm32_control,
-    stm32_putc,
-    stm32_getc,
+    samv71_configure,
+    samv71_control,
+    samv71_putc,
+    samv71_getc,
 };
 
 #if defined(RT_USING_UART1)
 /* UART1 device driver structure */
 
-static struct stm32_uart uart1;
+static struct samv71_uart uart1;
 struct rt_serial_device serial1;
 
-void USART1_IRQHandler(void)
+void USART1_Handler(void)
 {
-    struct stm32_uart *uart;
+    struct samv71_uart *uart;
 
     uart = &uart1;
 
     /* enter interrupt */
     rt_interrupt_enter();
-
-    /* UART in mode Receiver ---------------------------------------------------*/
-    if ((__HAL_UART_GET_IT(&uart->UartHandle, UART_IT_RXNE) != RESET) && (__HAL_UART_GET_IT_SOURCE(&uart->UartHandle, UART_IT_RXNE) != RESET))
+	    
+    if (uart->UartHandle->US_CSR & US_CSR_RXRDY)
     {
         rt_hw_serial_isr(&serial1, RT_SERIAL_EVENT_RX_IND);
         /* Clear RXNE interrupt flag */
-        __HAL_UART_SEND_REQ(&uart->UartHandle, UART_RXDATA_FLUSH_REQUEST);
+        //__HAL_UART_SEND_REQ(&uart->UartHandle, UART_RXDATA_FLUSH_REQUEST);
     }
     /* leave interrupt */
     rt_interrupt_leave();
 }
 #endif /* RT_USING_UART1 */
 
-/**
-  * @brief UART MSP Initialization
-  *        This function configures the hardware resources used in this example:
-  *           - Peripheral's clock enable
-  *           - Peripheral's GPIO Configuration
-  *           - NVIC configuration for UART interrupt request enable
-  * @param huart: UART handle pointer
-  * @retval None
-  */
-void HAL_UART_MspInit(UART_HandleTypeDef *huart)
+int samv71_hw_usart_init(void)
 {
-    GPIO_InitTypeDef  GPIO_InitStruct;
-    if (huart->Instance == USART1)
-    {
-        /* Enable GPIO TX/RX clock */
-        USART1_TX_GPIO_CLK_ENABLE();
-        USART1_RX_GPIO_CLK_ENABLE();
-        /* Enable USARTx clock */
-        USART1_CLK_ENABLE();
-
-        /* UART TX GPIO pin configuration  */
-        GPIO_InitStruct.Pin       = USART1_TX_PIN;
-        GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-        GPIO_InitStruct.Pull      = GPIO_PULLUP;
-        GPIO_InitStruct.Speed     = GPIO_SPEED_HIGH;
-        GPIO_InitStruct.Alternate = USART1_TX_AF;
-        HAL_GPIO_Init(USART1_TX_GPIO_PORT, &GPIO_InitStruct);
-
-        /* UART RX GPIO pin configuration  */
-        GPIO_InitStruct.Pin = USART1_RX_PIN;
-        GPIO_InitStruct.Alternate = USART1_RX_AF;
-        HAL_GPIO_Init(USART1_RX_GPIO_PORT, &GPIO_InitStruct);
-
-        /* NVIC for USART */
-        HAL_NVIC_SetPriority(USART1_IRQn, 0, 1);
-        HAL_NVIC_EnableIRQ(USART1_IRQn);
-    }
-}
-
-/**
-  * @brief UART MSP De-Initialization
-  *        This function frees the hardware resources used in this example:
-  *          - Disable the Peripheral's clock
-  *          - Revert GPIO and NVIC configuration to their default state
-  * @param huart: UART handle pointer
-  * @retval None
-  */
-void HAL_UART_MspDeInit(UART_HandleTypeDef *huart)
-{
-    if (huart->Instance == USART1)
-    {
-        /* Reset peripherals */
-        USART1_FORCE_RESET();
-        USART1_RELEASE_RESET();
-
-        /* Disable peripherals and GPIO Clocks */
-        /* Configure UART Tx as alternate function  */
-        HAL_GPIO_DeInit(USART1_TX_GPIO_PORT, USART1_TX_PIN);
-        /* Configure UART Rx as alternate function  */
-        HAL_GPIO_DeInit(USART1_RX_GPIO_PORT, USART1_RX_PIN);
-
-        /* Disable the NVIC for UART */
-        HAL_NVIC_DisableIRQ(USART1_IRQn);
-    }
-}
-
-int stm32_hw_usart_init(void)
-{
-    struct stm32_uart *uart;
+    struct samv71_uart *uart;
     struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
 
 #ifdef RT_USING_UART1
     uart = &uart1;
-    uart->UartHandle.Instance = USART1;
-
-    serial1.ops    = &stm32_uart_ops;
+    uart->UartHandle = USART1;
+	uart->irq = USART1_IRQn;
+    serial1.ops    = &samv71_uart_ops;
     serial1.config = config;
 
     /* register UART1 device */
@@ -296,4 +188,4 @@ int stm32_hw_usart_init(void)
 
     return 0;
 }
-INIT_BOARD_EXPORT(stm32_hw_usart_init);
+INIT_BOARD_EXPORT(samv71_hw_usart_init);

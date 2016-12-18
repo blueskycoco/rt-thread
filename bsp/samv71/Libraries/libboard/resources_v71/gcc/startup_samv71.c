@@ -31,13 +31,13 @@
 #include "stdio.h"
 
 /* Initialize segments */
-extern uint32_t _sfixed;
+extern uint32_t _stext;
 extern uint32_t _efixed;
 extern uint32_t _etext;
-extern uint32_t _srelocate;
-extern uint32_t _erelocate;
-extern uint32_t _szero;
-extern uint32_t _ezero;
+extern uint32_t _sdata;
+extern uint32_t _edata;
+extern uint32_t _sbss;
+extern uint32_t _ebss;
 extern uint32_t _sstack;
 extern uint32_t _estack;
 
@@ -332,19 +332,19 @@ void Reset_Handler(void)
 
 	/* Initialize the relocate segment */
 	pSrc = &_etext;
-	pDest = &_srelocate;
+	pDest = &_sdata;
 
 	if (pSrc != pDest) {
-		for (; pDest < &_erelocate;)
+		for (; pDest < &_edata;)
 			*pDest++ = *pSrc++;
 	}
 
 	/* Clear the zero segment */
-	for (pDest = &_szero; pDest < &_ezero;)
+	for (pDest = &_sbss; pDest < &_ebss;)
 		*pDest++ = 0;
 
 	/* Set the vector table base address */
-	pSrc = (uint32_t *) & _sfixed;
+	pSrc = (uint32_t *) & _stext;
 	SCB->VTOR = ((uint32_t) pSrc & SCB_VTOR_TBLOFF_Msk);
 
 #ifdef ENABLE_TCM
@@ -375,7 +375,7 @@ void Reset_Handler(void)
 	__libc_init_array();
 
 	/* Branch to main function */
-	main();
+	entry();
 
 	/* Infinite loop */
 	while (1);

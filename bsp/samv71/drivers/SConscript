@@ -2,7 +2,7 @@ from building import *
 
 cwd = GetCurrentDir()
 src = Glob('board.c')
-
+src += Glob('drv_usart.c')
 
 CPPPATH = [cwd]
 
