@@ -22,7 +22,7 @@
  * 2015-08-01     xiaonong     the first version
  */
 #include <rtthread.h>
-#include <board.h>
+#include "board.h"
 
 #include "drv_led.h"
 
@@ -30,26 +30,19 @@ static void led_thread_entry(void *parameter)
 {
     while (1)
     {
-        led_on();
+        LED_Set(0);
+		LED_Clear(1);
         rt_thread_delay(RT_TICK_PER_SECOND);
-        led_off();
+        LED_Clear(0);
+		LED_Set(1);
         rt_thread_delay(RT_TICK_PER_SECOND);
     }
 }
 
 int led_hw_init(void)
 {
-   GPIO_InitTypeDef GPIO_InitStruct;
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOI_CLK_ENABLE();
-
-  /* Configure GPIO pin: PI1 (LD1) */
-  GPIO_InitStruct.Pin   = GPIO_PIN_1;
-  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull  = GPIO_PULLDOWN;
-  GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
-  HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+   LED_Configure(0);
+   LED_Configure(1);
   return 0;
 }
 INIT_BOARD_EXPORT(led_hw_init);

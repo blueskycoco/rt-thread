@@ -14,10 +14,7 @@
 #ifndef __DRV_LED_H
 #define __DRV_LED_H
 
-#include "board.h"
-
-#define led_on()  HAL_GPIO_WritePin(GPIOI, GPIO_PIN_1, GPIO_PIN_SET)
-#define led_off()  HAL_GPIO_WritePin(GPIOI, GPIO_PIN_1, GPIO_PIN_RESET)
+#include "rt_board.h"
 
 int led_hw_init(void);
 
