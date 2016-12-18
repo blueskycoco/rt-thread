@@ -1,0 +1,35 @@
+import rtconfig
+Import('RTT_ROOT')
+from building import *
+
+# get current directory
+cwd = GetCurrentDir()
+
+# The set of source files associated with this SConscript file.
+src = Split("""
+libboard/resources_e70/system_same70.c
+""")
+
+src += Glob('libchip/source/*.c')
+
+
+#add for startup script 
+src = src + ['libboard/resources_e70/gcc/startup_same70.c']
+src = src + ['libboard/source/board_lowlevel.c']
+src = src + ['libboard/source/board_memories.c']
+src = src + ['libboard/source/led.c']
+src = src + ['libboard/source/trace.c']
+
+path = [cwd + './', 
+    cwd + '/libchip',
+    cwd + '/libchip/include',
+    cwd + '/libchip/include/same70',
+    cwd + '/libboard',
+    cwd + '/libboard/include',
+    cwd + '/libchip/include/cmsis/CMSIS/Include',
+    cwd + '/libstoragemedia/include/sdmmc']
+
+CPPDEFINES = ['USE_STDPERIPH_DRIVER']
+group = DefineGroup('SAME70_StdPeriph', src, depend = [''], CPPPATH = path, CPPDEFINES = CPPDEFINES)
+
+Return('group')
