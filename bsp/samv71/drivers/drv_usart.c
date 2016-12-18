@@ -72,9 +72,9 @@ static rt_err_t samv71_configure(struct rt_serial_device *serial, struct serial_
 
 	// Enable receiver and transmitter
 	uart->UartHandle->US_CR = US_CR_RXEN | US_CR_TXEN;
-	NVIC_ClearPendingIRQ(uart->irq);
-	NVIC_SetPriority(uart->irq , 1);
-	USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
+	//NVIC_ClearPendingIRQ(uart->irq);
+	//NVIC_SetPriority(uart->irq , 1);
+	//USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
     return RT_EOK;
 }
 

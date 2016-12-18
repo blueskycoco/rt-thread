@@ -34,12 +34,19 @@
 extern uint32_t _stext;
 extern uint32_t _efixed;
 extern uint32_t _etext;
+extern uint32_t _sidata;
 extern uint32_t _sdata;
 extern uint32_t _edata;
 extern uint32_t _sbss;
 extern uint32_t _ebss;
 extern uint32_t _sstack;
 extern uint32_t _estack;
+extern uint32_t _sfixed;
+extern uint32_t _srelocate;
+extern uint32_t _erelocate;
+extern uint32_t _szero;
+extern uint32_t _ezero;
+extern int entry(void);
 
 /** \cond DOXYGEN_SHOULD_SKIP_THIS */
 int main(void);
@@ -329,15 +336,15 @@ __STATIC_INLINE void TCM_Disable(void)
 void Reset_Handler(void)
 {
 	uint32_t *pSrc, *pDest;
-
+#if 0
 	/* Initialize the relocate segment */
-	pSrc = &_etext;
+	pSrc = &_sidata;
 	pDest = &_sdata;
-
-	if (pSrc != pDest) {
+	
+	//if (pSrc != pDest) {
 		for (; pDest < &_edata;)
 			*pDest++ = *pSrc++;
-	}
+	//}
 
 	/* Clear the zero segment */
 	for (pDest = &_sbss; pDest < &_ebss;)
@@ -346,7 +353,22 @@ void Reset_Handler(void)
 	/* Set the vector table base address */
 	pSrc = (uint32_t *) & _stext;
 	SCB->VTOR = ((uint32_t) pSrc & SCB_VTOR_TBLOFF_Msk);
-
+#else
+/* Initialize the relocate segment */	
+pSrc = &_etext;	
+pDest = &_srelocate;	
+if (pSrc != pDest) 
+	{		
+	for (; pDest < &_erelocate;)
+		*pDest++ = *pSrc++;	
+	}	
+/* Clear the zero segment */	
+for (pDest = &_szero; pDest < &_ezero;)		
+	*pDest++ = 0;	
+/* Set the vector table base address */	
+pSrc = (uint32_t *) & _sfixed;	
+SCB->VTOR = ((uint32_t) pSrc & SCB_VTOR_TBLOFF_Msk);
+#endif
 #ifdef ENABLE_TCM
 #ifndef FFT_DEMO
 	// 32 Kb

@@ -43,14 +43,14 @@ extern int Image$$RW_IRAM1$$ZI$$Limit;
 #pragma section="HEAP"
 #define HEAP_BEGIN    (__segment_end("HEAP"))
 #else
-extern int __bss_end;
-#define HEAP_BEGIN    (&__bss_end)
+extern int _ebss;
+#define HEAP_BEGIN    (&_ebss)
 #endif
 
 // <o> Internal SRAM memory size[Kbytes] <8-64>
 //  <i>Default: 64
-#define STM32_SRAM_SIZE   (256 * 1024)
-#define HEAP_END          (0x20010000 + STM32_SRAM_SIZE)
+#define STM32_SRAM_SIZE   (384 * 1024)
+#define HEAP_END          (0x20400000 + STM32_SRAM_SIZE)
 
 void rt_hw_board_init(void);
 

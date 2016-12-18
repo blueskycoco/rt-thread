@@ -102,7 +102,7 @@ uint32_t TimeTick_Configure(void)
 	uint32_t Pck;
 	_dwTickCount = 0;
 
-	TRACE_INFO("Configure system tick to get 1ms tick period.\n\r");
+	//TRACE_INFO("Configure system tick to get 1ms tick period.\n\r");
 	/* check if there is MDIV value */
 	Mdiv_Val = ((PMC->PMC_MCKR & PMC_MCKR_MDIV_Msk) >> PMC_MCKR_MDIV_Pos);
 
@@ -117,7 +117,7 @@ uint32_t TimeTick_Configure(void)
 
 	/* Configure SysTick for 1 ms. */
 	if (SysTick_Config(Pck / 1000)) {
-		TRACE_ERROR("SysTick configuration error\n\r");
+		//TRACE_ERROR("SysTick configuration error\n\r");
 		SysTickConfigured = 0;
 		return 1;
 	}

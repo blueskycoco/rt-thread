@@ -31,7 +31,7 @@ STRIP = PREFIX + 'strip'
 DEVICE = '  -mcpu=cortex-m7 -mthumb -mfpu=fpv5-sp-d16 -mfloat-abi=softfp -ffunction-sections -fdata-sections'
 CFLAGS = DEVICE + ' -g -Wall -DBOARD_SAMV71_XULT -D__SAMV71Q21__ -DTRACE_LEVEL=4 -eentry'
 AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -Wa,-mimplicit-it=thumb -D__ASSEMBLY__ '
-LFLAGS = DEVICE + ' -lm -lgcc -lc' + ' -nostartfiles  -Wl,--gc-sections,-Map=rtthread_samv71.map,-cref,-u,Reset_Handler -T rtthread-samv71.ld'
+LFLAGS = DEVICE + ' -lm -lgcc -lc' + ' -nostartfiles  -Wl,--gc-sections,-Map=rtthread_samv71.map,-cref,-u,Reset_Handler -T samv71q21_flash.ld'
 
 CPATH = ''
 LPATH = ''
