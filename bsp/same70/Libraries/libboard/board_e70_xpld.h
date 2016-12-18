@@ -286,7 +286,7 @@
 #define LED_YELLOW0  0
 
 /** LED #0 pin definition (GREEN). */
-#define PIN_LED_0  {PIO_PC8, PIOC, ID_PIOC, PIO_OUTPUT_1, PIO_DEFAULT}
+#define PIN_LED_0  {PIO_PD8, PIOD, ID_PIOD, PIO_OUTPUT_1, PIO_DEFAULT}
 
 /** List of all LEDs definitions. */
 #define PINS_LEDS  {PIN_LED_0}

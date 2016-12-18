@@ -31,10 +31,8 @@ static void led_thread_entry(void *parameter)
     while (1)
     {
         LED_Set(0);
-		LED_Clear(1);
         rt_thread_delay(RT_TICK_PER_SECOND);
         LED_Clear(0);
-		LED_Set(1);
         rt_thread_delay(RT_TICK_PER_SECOND);
     }
 }
@@ -42,7 +40,6 @@ static void led_thread_entry(void *parameter)
 int led_hw_init(void)
 {
    LED_Configure(0);
-   LED_Configure(1);
   return 0;
 }
 INIT_BOARD_EXPORT(led_hw_init);

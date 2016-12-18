@@ -19,7 +19,7 @@
  *
  * Change Logs:
  * Date           Author       Notes
- * 2015-08-01     xiaonong     the first version for samv71f7xx
+ * 2015-08-01     xiaonong     the first version for same70f7xx
  */
 
 #include "drv_usart.h"
@@ -27,32 +27,31 @@
 
 #include <rtdevice.h>
 #include "board.h"
-/** USART1 pin RX */
-#define PIN_USART1_RXD_DBG \
-	{PIO_PA21A_RXD1, PIOA, ID_PIOA, PIO_PERIPH_A, PIO_DEFAULT}
-/** USART1 pin TX */
-#define PIN_USART1_TXD_DBG \
-	{PIO_PB4D_TXD1, PIOB, ID_PIOB, PIO_PERIPH_D, PIO_DEFAULT}
-//#define PINS_USART1        PIN_USART1_TXD_DBG, PIN_USART1_RXD_DBG
+/** USART0 pin RX */
+#define PIN_USART0_RXD_DBG \
+	{PIO_PB0C_RXD0, PIOB, ID_PIOB, PIO_PERIPH_B, PIO_DEFAULT}
+/** USART0 pin TX */
+#define PIN_USART0_TXD_DBG \
+	{PIO_PB1C_TXD0, PIOB, ID_PIOB, PIO_PERIPH_B, PIO_DEFAULT}
 
-#define CONSOLE_PINS      {PIN_USART1_TXD_DBG, PIN_USART1_RXD_DBG}
+#define CONSOLE_PINS      {PIN_USART0_TXD_DBG, PIN_USART0_RXD_DBG}
 
 /* STM32 uart driver */
-struct samv71_uart
+struct same70_uart
 {
     Usart *UartHandle;
     IRQn_Type irq;
 };
 
-static rt_err_t samv71_configure(struct rt_serial_device *serial, struct serial_configure *cfg)
+static rt_err_t same70_configure(struct rt_serial_device *serial, struct serial_configure *cfg)
 {
-    struct samv71_uart *uart;
+    struct same70_uart *uart;
 	const Pin pPins[] = CONSOLE_PINS;
 
     RT_ASSERT(serial != RT_NULL);
     RT_ASSERT(cfg != RT_NULL);
 
-    uart = (struct samv71_uart *)serial->parent.user_data;
+    uart = (struct same70_uart *)serial->parent.user_data;
 	// Disable the MATRIX registers write protection
 	MATRIX->MATRIX_WPMR  = MATRIX_WPMR_WPKEY_PASSWD;
 	MATRIX->CCFG_SYSIO |= CCFG_SYSIO_SYSIO4;
@@ -62,7 +61,7 @@ static rt_err_t samv71_configure(struct rt_serial_device *serial, struct serial_
 	// Reset & disable receiver and transmitter, disable interrupts
 	uart->UartHandle->US_CR = US_CR_RSTRX | US_CR_RSTTX | US_CR_RSTSTA;
 	uart->UartHandle->US_IDR = 0xFFFFFFFF;
-	PMC_EnablePeripheral(ID_USART1);
+	PMC_EnablePeripheral(ID_USART0);
 	uart->UartHandle->US_BRGR = (BOARD_MCK / cfg->baud_rate) / 16;
 
 	// Configure mode register
@@ -78,12 +77,12 @@ static rt_err_t samv71_configure(struct rt_serial_device *serial, struct serial_
     return RT_EOK;
 }
 
-static rt_err_t samv71_control(struct rt_serial_device *serial, int cmd, void *arg)
+static rt_err_t same70_control(struct rt_serial_device *serial, int cmd, void *arg)
 {
-    struct samv71_uart *uart;
+    struct same70_uart *uart;
 
     RT_ASSERT(serial != RT_NULL);
-    uart = (struct samv71_uart *)serial->parent.user_data;
+    uart = (struct same70_uart *)serial->parent.user_data;
 
     switch (cmd)
     {
@@ -104,12 +103,12 @@ static rt_err_t samv71_control(struct rt_serial_device *serial, int cmd, void *a
     return RT_EOK;
 }
 
-static int samv71_putc(struct rt_serial_device *serial, char c)
+static int same70_putc(struct rt_serial_device *serial, char c)
 {
-    struct samv71_uart *uart;
+    struct same70_uart *uart;
 
     RT_ASSERT(serial != RT_NULL);
-    uart = (struct samv71_uart *)serial->parent.user_data;
+    uart = (struct same70_uart *)serial->parent.user_data;
 
 	while ((uart->UartHandle->US_CSR & US_CSR_TXEMPTY) == 0);
 	uart->UartHandle->US_THR = c;
@@ -117,13 +116,13 @@ static int samv71_putc(struct rt_serial_device *serial, char c)
     return 1;
 }
 
-static int samv71_getc(struct rt_serial_device *serial)
+static int same70_getc(struct rt_serial_device *serial)
 {
     int ch;
-    struct samv71_uart *uart;
+    struct same70_uart *uart;
 
     RT_ASSERT(serial != RT_NULL);
-    uart = (struct samv71_uart *)serial->parent.user_data;
+    uart = (struct same70_uart *)serial->parent.user_data;
 
     ch = -1;
     if (uart->UartHandle->US_CSR & US_CSR_RXRDY)
@@ -134,23 +133,23 @@ static int samv71_getc(struct rt_serial_device *serial)
     return ch;
 }
 
-static const struct rt_uart_ops samv71_uart_ops =
+static const struct rt_uart_ops same70_uart_ops =
 {
-    samv71_configure,
-    samv71_control,
-    samv71_putc,
-    samv71_getc,
+    same70_configure,
+    same70_control,
+    same70_putc,
+    same70_getc,
 };
 
 #if defined(RT_USING_UART1)
 /* UART1 device driver structure */
 
-static struct samv71_uart uart1;
+static struct same70_uart uart1;
 struct rt_serial_device serial1;
 
-void USART1_Handler(void)
+void USART0_Handler(void)
 {
-    struct samv71_uart *uart;
+    struct same70_uart *uart;
 
     uart = &uart1;
 
@@ -168,16 +167,16 @@ void USART1_Handler(void)
 }
 #endif /* RT_USING_UART1 */
 
-int samv71_hw_usart_init(void)
+int same70_hw_usart_init(void)
 {
-    struct samv71_uart *uart;
+    struct same70_uart *uart;
     struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
 
 #ifdef RT_USING_UART1
     uart = &uart1;
-    uart->UartHandle = USART1;
-	uart->irq = USART1_IRQn;
-    serial1.ops    = &samv71_uart_ops;
+    uart->UartHandle = USART0;
+	uart->irq = USART0_IRQn;
+    serial1.ops    = &same70_uart_ops;
     serial1.config = config;
 
     /* register UART1 device */
@@ -188,4 +187,4 @@ int samv71_hw_usart_init(void)
 
     return 0;
 }
-INIT_BOARD_EXPORT(samv71_hw_usart_init);
+INIT_BOARD_EXPORT(same70_hw_usart_init);
