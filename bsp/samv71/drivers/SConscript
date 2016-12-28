@@ -4,6 +4,7 @@ cwd = GetCurrentDir()
 src = Glob('board.c')
 src += Glob('drv_usart.c')
 src += Glob('drv_led.c')
+src += Glob('drv_timer.c')
 CPPPATH = [cwd]
 
 group = DefineGroup('Drivers', src, depend = [''], CPPPATH = CPPPATH)
