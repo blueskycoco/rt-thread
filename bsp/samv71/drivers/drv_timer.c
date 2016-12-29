@@ -39,7 +39,7 @@ ErrorID GeneratePWMByTimers (int TimerID,int Timer_CHID,int LineID,int Freq,int 
 	if (TimerID == 3)
 		tc_base = TC3;
 	else
-		tc_base = (Tc *)(0x4000C000 + TimerID*4000);
+		tc_base = (Tc *)(0x4000C000 + TimerID*0x4000);
 	
 	PIO_Configure( pPwmpins, PIO_LISTSIZE(pPwmpins));
 
@@ -67,29 +67,18 @@ ErrorID GeneratePWMByTimers (int TimerID,int Timer_CHID,int LineID,int Freq,int 
 	tc_base->TC_CHANNEL[Timer_CHID].TC_SR;	
 	tc_base->TC_CHANNEL[Timer_CHID].TC_RC = rc;
 
-	if (TimerID == 0) {
-		if (LineID == 1) {
-			tc_base->TC_CHANNEL[Timer_CHID].TC_CMR =		
-			clockSelection									 
-			|TC_CMR_EEVT_XC0
-			|TC_CMR_WAVSEL_UP_RC
-			|TC_CMR_WAVE
-			|TC_CMR_ACPA_SET
-			|TC_CMR_ACPC_CLEAR;
-			tc_base->TC_CHANNEL[Timer_CHID].TC_RA = ra;
-		} else {
-			tc_base->TC_CHANNEL[Timer_CHID].TC_CMR =		
-			clockSelection									 
-			|TC_CMR_EEVT_XC0
-			|TC_CMR_WAVSEL_UP_RC
-			|TC_CMR_WAVE
-			|TC_CMR_BCPB_SET
-			|TC_CMR_BCPC_CLEAR;
-			tc_base->TC_CHANNEL[Timer_CHID].TC_RB = ra;
-		}
-	} else if (TimerID == 2) {
+	if (LineID == 1) {
 		tc_base->TC_CHANNEL[Timer_CHID].TC_CMR =		
-		clockSelection									
+		clockSelection									 
+		|TC_CMR_EEVT_XC0
+		|TC_CMR_WAVSEL_UP_RC
+		|TC_CMR_WAVE
+		|TC_CMR_ACPA_SET
+		|TC_CMR_ACPC_CLEAR;
+		tc_base->TC_CHANNEL[Timer_CHID].TC_RA = ra;
+	} else {
+		tc_base->TC_CHANNEL[Timer_CHID].TC_CMR =		
+		clockSelection									 
 		|TC_CMR_EEVT_XC0
 		|TC_CMR_WAVSEL_UP_RC
 		|TC_CMR_WAVE
@@ -138,7 +127,7 @@ ErrorID ChangePulseWidthByTimers(int TimerID,int Timer_CHID,int LineID,int Freq 
 	if (TimerID == 3)
 		tc_base = TC3;
 	else
-		tc_base = (Tc *)(0x4000C000 + TimerID*4000);
+		tc_base = (Tc *)(0x4000C000 + TimerID*0x4000);
 	
 	if (Freq > 290)
 		clockSelection = TC_CMR_TCCLKS_TIMER_CLOCK2;
@@ -150,19 +139,20 @@ ErrorID ChangePulseWidthByTimers(int TimerID,int Timer_CHID,int LineID,int Freq 
 	rc = (BOARD_MCK / divisors[clockSelection])/Freq;	
 	temp = (BOARD_MCK / divisors[clockSelection])/1000000.0;
 	ra = rc - temp*PulseWidth;
+	tc_base->TC_CHANNEL[Timer_CHID].TC_RC = rc;
 
-	if (TimerID == 0) {
-		if (LineID == 1) {
-			tc_base->TC_CHANNEL[Timer_CHID].TC_RA = ra;
-		} else {
-			tc_base->TC_CHANNEL[Timer_CHID].TC_RB = ra;
-		}
-	} else if (TimerID == 2) {
+	if (LineID == 1) {
+		tc_base->TC_CHANNEL[Timer_CHID].TC_RA = ra;
+	} else {
 		tc_base->TC_CHANNEL[Timer_CHID].TC_RB = ra;
 	}
-	rt_kprintf ("Change waveform: Frequency = %d Hz,pulseWidth = %2dus\n\r",			
+	rt_kprintf ("Change waveform: Frequency = %d Hz,pulseWidth = %2dus,TC_CMR %x TC_RA %x TC_RB %x TC_RC %x\n\r",			
 		Freq,			
-		PulseWidth);
+		PulseWidth,
+		tc_base->TC_CHANNEL[Timer_CHID].TC_CMR,
+		tc_base->TC_CHANNEL[Timer_CHID].TC_RA,
+		tc_base->TC_CHANNEL[Timer_CHID].TC_RB,
+		tc_base->TC_CHANNEL[Timer_CHID].TC_RC);
 	return Function_OK;
 }
 
