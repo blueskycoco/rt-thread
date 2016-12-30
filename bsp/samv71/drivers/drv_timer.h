@@ -91,7 +91,7 @@ extern bool StartTimesInterrupt(int TimerID,int Timer_CHID,int Freq,int priority
 extern bool StopTimersInterrupt(int TimerID,int Timer_CHID);
 
 extern ErrorID GeneratePWMByPWM(int PWMID,int PWM_CHID,int LineID,int Freq,int PulseWidth);
-extern bool ChangePulseWidthByPWM(int PWMID,int PWM_CHID,int PulseWidth);
+extern ErrorID ChangePulseWidthByPWM(int PWMID,int PWM_CHID,int LineID,int Freq,int PulseWidth);
 
 #endif
 

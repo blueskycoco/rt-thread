@@ -6,7 +6,21 @@
 #define PIN_TC0_CH1   {PIO_PA1B_TIOB0, PIOA, ID_PIOA, PIO_PERIPH_B, PIO_DEFAULT}
 #define PIN_TC2_CH1   {PIO_PC9B_TIOB7, PIOC, ID_PIOC, PIO_PERIPH_B, PIO_DEFAULT}
 #define PIN_TC2_CH2   {PIO_PC12B_TIOB8, PIOC, ID_PIOC, PIO_PERIPH_B, PIO_DEFAULT}
+#define PIN_PWM0_CH0  {PIO_PA23B_PWMC0_PWMH0, PIOA, ID_PIOA, PIO_PERIPH_B, PIO_DEFAULT}
+#define PIN_PWM0_CH1  {PIO_PA2A_PWMC0_PWMH1, PIOA, ID_PIOA, PIO_PERIPH_A, PIO_DEFAULT}
+#define PIN_PWM0_CH2  {PIO_PB13A_PWMC0_PWML2, PIOB, ID_PIOB, PIO_PERIPH_A, PIO_DEFAULT}
+#define PIN_PWM0_CH3  {PIO_PC13B_PWMC0_PWMH3, PIOC, ID_PIOC, PIO_PERIPH_B, PIO_DEFAULT}
+#define PIN_PWM1_CH0  {PIO_PD1B_PWMC1_PWMH0, PIOD, ID_PIOD, PIO_PERIPH_B, PIO_DEFAULT}
+#define PIN_PWM1_CH1  {PIO_PD3B_PWMC1_PWMH1, PIOD, ID_PIOD, PIO_PERIPH_B, PIO_DEFAULT}
+#define PIN_PWM1_CH2  {PIO_PD5B_PWMC1_PWMH2, PIOD, ID_PIOD, PIO_PERIPH_B, PIO_DEFAULT}
+#define PIN_PWM1_CH3  {PIO_PD7B_PWMC1_PWMH3, PIOD, ID_PIOD, PIO_PERIPH_B, PIO_DEFAULT}
+#define PIN_PWM_CTL   {PIO_PA29, PIOA, ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT}
+
 static const Pin pPwmpins[] = {PIN_TC0_CH0, PIN_TC0_CH1, PIN_TC2_CH1, PIN_TC2_CH2};
+static const Pin pPwmpins1[] = {PIN_PWM0_CH0, PIN_PWM0_CH1, PIN_PWM0_CH2, PIN_PWM0_CH3,
+								PIN_PWM1_CH0,PIN_PWM1_CH1,PIN_PWM1_CH2,PIN_PWM1_CH3};
+static const Pin pPwmCtl[] = {PIN_PWM_CTL};
+
 const uint32_t divisors[5] = {2, 8, 32, 128, BOARD_MCK / 32768};
 
 ErrorID GeneratePWMByTimers (int TimerID,int Timer_CHID,int LineID,int Freq,int PulseWidth)
@@ -155,6 +169,168 @@ ErrorID ChangePulseWidthByTimers(int TimerID,int Timer_CHID,int LineID,int Freq 
 		tc_base->TC_CHANNEL[Timer_CHID].TC_RC);
 	return Function_OK;
 }
+ErrorID GeneratePWMByPWM(int PWMID,int PWM_CHID,int LineID,int Freq,int PulseWidth)
+{	
+	Pwm *pwm_base;
+	uint16_t period,duty;
+	int index;
+	
+	if (PWMID != 0 && PWMID !=1)
+		return PWMIDError;
+
+	if (PWM_CHID != 0 && PWM_CHID != 1
+		&& PWM_CHID != 2 && PWM_CHID != 3)
+		return PWMCHIDError;
+
+	if (LineID != 1 && LineID !=2)
+		return LineIDError;
+
+	if (Freq < 1 || Freq > 1000)
+		return WrongFrequency;
+
+	if (PulseWidth < 10 || PulseWidth > 5000)
+		return WrongPulseWidth;
+
+	if (Freq == 1000 && PulseWidth >= 1000)
+		return WrongPulseWidth;
+
+	if (PWMID == 0)
+		pwm_base = PWM0;
+	else
+		pwm_base = PWM1;
+	
+	PIO_Configure( pPwmpins1, PIO_LISTSIZE(pPwmpins1));
+	
+	if (PWMID == 0)		
+		PMC_EnablePeripheral(ID_PWM0);
+	else
+		PMC_EnablePeripheral(ID_PWM1);
+	if (Freq > 573)
+		index = 4;
+	else if (Freq > 290)
+		index = 8;
+	else if (Freq > 144)
+		index = 16;
+	else if (Freq > 72)
+		index = 32;
+	else if (Freq > 36)
+		index = 64;
+	else
+		index = 128;
+
+	if (LineID == 1)
+	{
+		PWMC_ConfigureClocks(pwm_base, BOARD_MCK/index , 0, BOARD_MCK);		
+		PWMC_ConfigureChannel( pwm_base,
+				PWM_CHID,
+				PWM_CMR_CPRE_CLKA,
+				0,
+				0
+				);
+	}
+	else
+	{
+		PWMC_ConfigureClocks(pwm_base, 0, BOARD_MCK/index , BOARD_MCK);		
+		PWMC_ConfigureChannel( pwm_base,
+			PWM_CHID,
+			PWM_CMR_CPRE_CLKB,
+			0,
+			0
+			);
+	}
+	period = BOARD_MCK / (Freq * index);
+	duty = period  - (double)(BOARD_MCK/(index*1000000.0))*PulseWidth;
+	rt_kprintf("period %d, duty %d\n",period,duty);
+	PWMC_SetPeriod(pwm_base, PWM_CHID, period);
+	PWMC_SetDutyCycle(pwm_base, PWM_CHID, duty);
+	PWMC_EnableChannel(pwm_base, PWM_CHID);
+
+	return Function_OK;
+}
+
+ErrorID ChangePulseWidthByPWM(int PWMID,int PWM_CHID,int LineID,int Freq,int PulseWidth)
+{	
+	Pwm *pwm_base;
+	uint16_t period,duty;
+	int index;
+	
+	if (PWMID != 0 && PWMID !=1)
+		return PWMIDError;
+
+	if (PWM_CHID != 0 && PWM_CHID != 1
+		&& PWM_CHID != 2 && PWM_CHID != 3)
+		return PWMCHIDError;
+
+	if (LineID != 1 && LineID !=2)
+		return LineIDError;
+
+	if (Freq < 1 || Freq > 1000)
+		return WrongFrequency;
+
+	if (PulseWidth < 10 || PulseWidth > 5000)
+		return WrongPulseWidth;
+
+	if (Freq == 1000 && PulseWidth >= 1000)
+		return WrongPulseWidth;
+
+	if (PWMID == 0)
+		pwm_base = PWM0;
+	else
+		pwm_base = PWM1;
+	
+	if (Freq > 573)
+		index = 4;
+	else if (Freq > 290)
+		index = 8;
+	else if (Freq > 144)
+		index = 16;
+	else if (Freq > 72)
+		index = 32;
+	else if (Freq > 36)
+		index = 64;
+	else
+		index = 128;
+/*
+	if (LineID == 1)
+	{
+		PWMC_ConfigureClocks(pwm_base, BOARD_MCK/index , 0, BOARD_MCK);		
+		PWMC_ConfigureChannel( pwm_base,
+				PWM_CHID,
+				PWM_CMR_CPRE_CLKA,
+				0,
+				0
+				);
+	}
+	else
+	{
+		PWMC_ConfigureClocks(pwm_base, 0, BOARD_MCK/index , BOARD_MCK);		
+		PWMC_ConfigureChannel( pwm_base,
+			PWM_CHID,
+			PWM_CMR_CPRE_CLKB,
+			0,
+			0
+			);
+	}*/
+	period = BOARD_MCK / (Freq * index);
+	duty = period  - (double)(BOARD_MCK/(index*1000000.0))*PulseWidth;
+	rt_kprintf("period %d, duty %d\n",period,duty);
+	//PWMC_SetPeriod(pwm_base, PWM_CHID, period);
+	PWMC_SetDutyCycle(pwm_base, PWM_CHID, duty);
+	PWMC_EnableChannel(pwm_base, PWM_CHID);
+
+	return Function_OK;
+}
+void PWM_enable(void)
+{
+	PIO_Configure(&pPwmCtl[0], 1);
+	PIO_Clear(&pPwmCtl[0]);
+}
+
+void PWM_disable(void)
+{
+	PIO_Configure(&pPwmCtl[0], 1);
+	PIO_Set(&pPwmCtl[0]);
+}
 
 #ifdef RT_USING_FINSH
 #include <finsh.h>
@@ -190,7 +366,52 @@ static void pwm_timerC(int TimerID,int Timer_CHID,int LineID,int Freq,int PulseW
 	else if (result == 5)
 		rt_kprintf("ChangePulseWidthByTimers WrongPulseWidth\n");
 }
+static void pwm_pwmG(int PWMID,int PWM_CHID,int LineID,int Freq,int PulseWidth)
+{
+	int result = GeneratePWMByPWM(PWMID,PWM_CHID,LineID,Freq,PulseWidth);
+	if (result == 0)
+		rt_kprintf("GeneratePWMByPWM Function_OK\n");
+	else if (result == 1)
+		rt_kprintf("GeneratePWMByPWM TimesIDError\n");	
+	else if (result == 2)
+		rt_kprintf("GeneratePWMByPWM TimesCHIDError\n");
+	else if (result == 3)
+		rt_kprintf("GeneratePWMByPWM LineIDError\n");
+	else if (result == 4)
+		rt_kprintf("GeneratePWMByPWM WrongFrequency\n");
+	else if (result == 5)
+		rt_kprintf("GeneratePWMByPWM WrongPulseWidth\n");
+}
+static void pwm_pwmC(int PWMID,int PWM_CHID,int LineID,int Freq,int PulseWidth)
+{
+	int result = ChangePulseWidthByPWM(PWMID,PWM_CHID,LineID,Freq,PulseWidth);
+	if (result == 0)
+		rt_kprintf("ChangePulseWidthByPWM Function_OK\n");
+	else if (result == 1)
+		rt_kprintf("ChangePulseWidthByPWM TimesIDError\n");	
+	else if (result == 2)
+		rt_kprintf("ChangePulseWidthByPWM TimesCHIDError\n");
+	else if (result == 3)
+		rt_kprintf("ChangePulseWidthByPWM LineIDError\n");
+	else if (result == 4)
+		rt_kprintf("ChangePulseWidthByPWM WrongFrequency\n");
+	else if (result == 5)
+		rt_kprintf("ChangePulseWidthByPWM WrongPulseWidth\n");
+}
+static void pwm_on()
+{
+	PWM_enable();
+}
+static void pwm_off()
+{
+	PWM_disable();
+}
 
 FINSH_FUNCTION_EXPORT(pwm_timerG, test pwm timer GeneratePWMByTimers);
 FINSH_FUNCTION_EXPORT(pwm_timerC, test pwm timer ChangePulseWidthByTimers);
+FINSH_FUNCTION_EXPORT(pwm_pwmG, test pwm pwm GeneratePWMByPWM);
+FINSH_FUNCTION_EXPORT(pwm_pwmC, test pwm timer ChangePulseWidthByPWM);
+FINSH_FUNCTION_EXPORT(pwm_on, test pwm on);
+FINSH_FUNCTION_EXPORT(pwm_off, test pwm off);
+
 #endif
