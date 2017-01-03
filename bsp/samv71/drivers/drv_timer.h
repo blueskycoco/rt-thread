@@ -87,7 +87,8 @@ typedef    int	ErrorID;
 /*-----------------------------------Function Definitions-----------------------------------------*/
 extern ErrorID GeneratePWMByTimers(int TimerID,int Timer_CHID,int LineID,int Freq,int PulseWidth);
 extern ErrorID ChangePulseWidthByTimers(int TimerID,int Timer_CHID,int LineID,int Freq , int PulseWidth);
-extern bool StartTimesInterrupt(int TimerID,int Timer_CHID,int Freq,int priority,void *callback_function);
+typedef void (*callback_t)();
+extern bool StartTimesInterrupt(int TimerID,int Timer_CHID,int Freq,int priority,callback_t callback_function);
 extern bool StopTimersInterrupt(int TimerID,int Timer_CHID);
 
 extern ErrorID GeneratePWMByPWM(int PWMID,int PWM_CHID,int LineID,int Freq,int PulseWidth);

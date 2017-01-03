@@ -22,6 +22,8 @@ static const Pin pPwmpins1[] = {PIN_PWM0_CH0, PIN_PWM0_CH1, PIN_PWM0_CH2, PIN_PW
 static const Pin pPwmCtl[] = {PIN_PWM_CTL};
 
 const uint32_t divisors[5] = {2, 8, 32, 128, BOARD_MCK / 32768};
+callback_t tc_callback;
+int channel = 0;
 
 ErrorID GeneratePWMByTimers (int TimerID,int Timer_CHID,int LineID,int Freq,int PulseWidth)
 {
@@ -174,6 +176,7 @@ ErrorID GeneratePWMByPWM(int PWMID,int PWM_CHID,int LineID,int Freq,int PulseWid
 	Pwm *pwm_base;
 	uint16_t period,duty;
 	int index;
+	int polarity = 0;
 	
 	if (PWMID != 0 && PWMID !=1)
 		return PWMIDError;
@@ -218,24 +221,31 @@ ErrorID GeneratePWMByPWM(int PWMID,int PWM_CHID,int LineID,int Freq,int PulseWid
 	else
 		index = 128;
 
+	if (PWMID == 0 && PWM_CHID == 2)
+		polarity = PWM_CMR_CPOL;
+	
+	PWMC_ConfigureClocks(pwm_base, BOARD_MCK/index, BOARD_MCK/index, BOARD_MCK);	
+
 	if (LineID == 1)
-	{
-		PWMC_ConfigureClocks(pwm_base, BOARD_MCK/index , 0, BOARD_MCK);		
-		PWMC_ConfigureChannel( pwm_base,
+	{	
+		PWMC_DisableChannel(pwm_base, PWM_CHID);
+		PWMC_ConfigureChannelExt( pwm_base,
 				PWM_CHID,
 				PWM_CMR_CPRE_CLKA,
 				0,
-				0
+				polarity,
+				0,0,0,0
 				);
 	}
 	else
 	{
-		PWMC_ConfigureClocks(pwm_base, 0, BOARD_MCK/index , BOARD_MCK);		
-		PWMC_ConfigureChannel( pwm_base,
+		PWMC_DisableChannel(pwm_base, PWM_CHID);			
+		PWMC_ConfigureChannelExt( pwm_base,
 			PWM_CHID,
 			PWM_CMR_CPRE_CLKB,
 			0,
-			0
+			polarity,
+			0,0,0,0
 			);
 	}
 	period = BOARD_MCK / (Freq * index);
@@ -290,33 +300,12 @@ ErrorID ChangePulseWidthByPWM(int PWMID,int PWM_CHID,int LineID,int Freq,int Pul
 		index = 64;
 	else
 		index = 128;
-/*
-	if (LineID == 1)
-	{
-		PWMC_ConfigureClocks(pwm_base, BOARD_MCK/index , 0, BOARD_MCK);		
-		PWMC_ConfigureChannel( pwm_base,
-				PWM_CHID,
-				PWM_CMR_CPRE_CLKA,
-				0,
-				0
-				);
-	}
-	else
-	{
-		PWMC_ConfigureClocks(pwm_base, 0, BOARD_MCK/index , BOARD_MCK);		
-		PWMC_ConfigureChannel( pwm_base,
-			PWM_CHID,
-			PWM_CMR_CPRE_CLKB,
-			0,
-			0
-			);
-	}*/
+	
 	period = BOARD_MCK / (Freq * index);
 	duty = period  - (double)(BOARD_MCK/(index*1000000.0))*PulseWidth;
 	rt_kprintf("period %d, duty %d\n",period,duty);
-	//PWMC_SetPeriod(pwm_base, PWM_CHID, period);
-	PWMC_SetDutyCycle(pwm_base, PWM_CHID, duty);
-	PWMC_EnableChannel(pwm_base, PWM_CHID);
+ 	PWMC_SetDutyCycle(pwm_base, PWM_CHID, duty);
+	//MC_EnableChannel(pwm_base, PWM_CHID);
 
 	return Function_OK;
 }
@@ -330,6 +319,154 @@ void PWM_disable(void)
 {
 	PIO_Configure(&pPwmCtl[0], 1);
 	PIO_Set(&pPwmCtl[0]);
+}
+void TC0_Handler(void)
+{
+	uint32_t status;	
+	status = TC0->TC_CHANNEL[channel].TC_SR; 
+	rt_kprintf("TC0_Handler %x \n", status);
+	if ((status & TC_SR_CPCS) == TC_SR_CPCS) 
+		tc_callback();
+}
+void TC1_Handler(void)
+{
+	uint32_t status;	
+	status = TC1->TC_CHANNEL[channel].TC_SR; 
+	rt_kprintf("TC1_Handler %x \n", status);
+	if ((status & TC_SR_CPCS) == TC_SR_CPCS) 
+		tc_callback();
+}
+void TC2_Handler(void)
+{
+	uint32_t status;	
+	status = TC2->TC_CHANNEL[channel].TC_SR; 
+	rt_kprintf("TC2_Handler %x \n", status);
+	if ((status & TC_SR_CPCS) == TC_SR_CPCS) 
+		tc_callback();
+}
+void TC3_Handler(void)
+{
+	uint32_t status;	
+	status = TC3->TC_CHANNEL[channel].TC_SR; 
+	rt_kprintf("TC3_Handler %x \n", status);
+	if ((status & TC_SR_CPCS) == TC_SR_CPCS) 
+		tc_callback();
+}
+
+bool StartTimesInterrupt(int TimerID,int Timer_CHID,int Freq,int priority,callback_t callback_function)
+{
+	Tc *tc_base;
+	uint32_t rc;
+	int irq;
+	uint32_t clockSelection;
+	
+	if (TimerID != 0 && TimerID !=1 
+		&& TimerID !=2 && TimerID != 3)
+		return false;
+
+	if (Timer_CHID != 0 && Timer_CHID != 1
+		&& Timer_CHID != 2)
+		return false;
+
+	if (TimerID == 3)
+		tc_base = TC3;
+	else
+		tc_base = (Tc *)(0x4000C000 + TimerID*0x4000);
+	
+	if (TimerID == 0)		
+	{
+		if (Timer_CHID == 1)
+			PMC_EnablePeripheral(ID_TC1);
+		else if (Timer_CHID == 2)
+			PMC_EnablePeripheral(ID_TC2);
+		else
+			return false;
+		irq = TC0_IRQn;
+	}
+	else if (TimerID == 1)
+	{
+		if (Timer_CHID == 0)
+			PMC_EnablePeripheral(ID_TC3);
+		else if (Timer_CHID == 1)
+			PMC_EnablePeripheral(ID_TC4);
+		else if (Timer_CHID == 2)
+			PMC_EnablePeripheral(ID_TC5);
+		else
+			return false;
+		irq = TC1_IRQn;
+	}
+	else if (TimerID == 2) 
+	{
+		if (Timer_CHID == 0)
+			PMC_EnablePeripheral(ID_TC6);
+		else
+			return false;
+		irq = TC2_IRQn;
+	}
+	else
+	{
+		if (Timer_CHID == 0)
+			PMC_EnablePeripheral(ID_TC9);
+		else if (Timer_CHID == 1)
+			PMC_EnablePeripheral(ID_TC10);
+		else if (Timer_CHID == 2)
+			PMC_EnablePeripheral(ID_TC11);
+		else
+			return false;
+		irq = TC3_IRQn;
+	}
+	tc_callback = callback_function;
+	channel = Timer_CHID;
+#if 0
+	if (Freq > 290)
+		clockSelection = TC_CMR_TCCLKS_TIMER_CLOCK2;
+	else if (Freq > 72)
+		clockSelection = TC_CMR_TCCLKS_TIMER_CLOCK3;
+	else 
+		clockSelection = TC_CMR_TCCLKS_TIMER_CLOCK4;
+	
+	rc = (BOARD_MCK / divisors[clockSelection])/Freq;
+	tc_base->TC_CHANNEL[Timer_CHID].TC_CCR = TC_CCR_CLKDIS;	
+	tc_base->TC_CHANNEL[Timer_CHID].TC_IDR = 0xFFFFFFFF;	
+	tc_base->TC_CHANNEL[Timer_CHID].TC_SR;	
+	tc_base->TC_CHANNEL[Timer_CHID].TC_RC = rc;
+
+	tc_base->TC_CHANNEL[Timer_CHID].TC_CMR = clockSelection	| TC_CMR_CPCTRG;
+	NVIC_DisableIRQ(irq);
+	NVIC_ClearPendingIRQ(irq);
+	NVIC_SetPriority(irq, priority);
+	NVIC_EnableIRQ(irq);	
+	tc_base->TC_CHANNEL[Timer_CHID].TC_IER = TC_IER_CPCS;
+	tc_base->TC_CHANNEL[Timer_CHID].TC_CCR =  TC_CCR_CLKEN | TC_CCR_SWTRG;
+#else
+	uint32_t div;
+	uint32_t tcclks;
+	/** Configure TC for a 4Hz frequency and trigger on RC compare. */
+	TC_FindMckDivisor(Freq, BOARD_MCK, &div, &tcclks, BOARD_MCK);
+
+	TC_Configure(tc_base, Timer_CHID, tcclks | TC_CMR_CPCTRG);
+	tc_base->TC_CHANNEL[Timer_CHID].TC_RC = (BOARD_MCK / div) / Freq;
+
+	/* Configure and enable interrupt on RC compare */
+	NVIC_ClearPendingIRQ(irq);
+	NVIC_EnableIRQ(irq);
+
+	tc_base->TC_CHANNEL[Timer_CHID].TC_IER = TC_IER_CPCS;
+
+	/** Start the counter */
+	TC_Start(tc_base, Timer_CHID);
+#endif
+	rt_kprintf ("StartTimesInterrupt: Frequency = %d Hz,TC_IER %x TC_CMR %x TC_RC %x\n\r",			
+		Freq,
+		tc_base->TC_CHANNEL[Timer_CHID].TC_IMR,
+		tc_base->TC_CHANNEL[Timer_CHID].TC_CMR,
+		tc_base->TC_CHANNEL[Timer_CHID].TC_RC);
+    return true;
+
+}
+bool StopTimersInterrupt(int TimerID,int Timer_CHID)
+{
+	return true;
 }
 
 #ifdef RT_USING_FINSH
@@ -406,12 +543,23 @@ static void pwm_off()
 {
 	PWM_disable();
 }
-
+void tc_cb()
+{
+	rt_kprintf("in tc_cb\n");
+}
+static void timer_start(int TimerID,int Timer_CHID,int Freq,int priority)
+{
+	if(StartTimesInterrupt(TimerID,Timer_CHID,Freq,priority,(callback_t) tc_cb))
+		rt_kprintf("StartTimesInterrupt ok\n");
+	else
+		rt_kprintf("StartTimesInterrupt failed\n");
+}
 FINSH_FUNCTION_EXPORT(pwm_timerG, test pwm timer GeneratePWMByTimers);
 FINSH_FUNCTION_EXPORT(pwm_timerC, test pwm timer ChangePulseWidthByTimers);
 FINSH_FUNCTION_EXPORT(pwm_pwmG, test pwm pwm GeneratePWMByPWM);
 FINSH_FUNCTION_EXPORT(pwm_pwmC, test pwm timer ChangePulseWidthByPWM);
 FINSH_FUNCTION_EXPORT(pwm_on, test pwm on);
 FINSH_FUNCTION_EXPORT(pwm_off, test pwm off);
+FINSH_FUNCTION_EXPORT(timer_start, test StartTimesInterrupt);
 
 #endif
