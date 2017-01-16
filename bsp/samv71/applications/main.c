@@ -24,10 +24,30 @@
  */
 
 #include <rtthread.h>
-
+#ifdef RT_USING_DFS
+/* dfs filesystem:ELM filesystem init */
+#include <dfs_elm.h>
+/* dfs Filesystem APIs */
+#include <dfs_fs.h>
+#include <spi_flash.h>
+#include <spi_flash_sfud.h>
+#include "drv_qspi.h"
+#endif 
 int main(void)
 {
-    /* put user application code here */
-    return 0;
+	/* put user application code here */
+#ifdef RT_USING_DFS
+	rt_hw_spi_init();	
+	rt_sfud_flash_probe("flash", "spi10");	
+	if (dfs_mount("rootfs", "/", "elm", 0, 0) == 0)
+	{
+		rt_kprintf("root file system initialized!\n");
+	}
+	else
+	{
+		rt_kprintf("root file system failed!\n");
+	}
+#endif 
+	return 0;
 }
 

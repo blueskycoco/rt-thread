@@ -73,13 +73,7 @@
 // <bool name="RT_USING_SERIAL" description="Using Serial Device Driver Framework" default="true" />
 #define RT_USING_SERIAL
 // <integer name="RT_UART_RX_BUFFER_SIZE" description="The buffer size for UART reception" default="64" />
-#define RT_SERIAL_RB_BUFSZ    64
-// <bool name="RT_USING_MTD_NAND" description="Using MTD NAND Framework" default="true" />
-//#define RT_USING_MTD_NAND
-// <bool name="RT_MTD_NAND_DEBUG" description="Enable MTD NAND Framework Debug" default="true" />
-#define RT_MTD_NAND_DEBUG
-// <bool name="RT_USING_NFTL" description="Using NFTL layer" default="true" />
-#define RT_USING_NFTL
+#define RT_SERIAL_RB_BUFSZ    128//64
 // <bool name="RT_USING_SPI" description="Using SPI Device Driver Framework" default="true" />
 #define RT_USING_SPI
 // <bool name="RT_USING_I2C" description="Using I2C Device Driver Framework" default="true" />
@@ -120,7 +114,7 @@
 // </section>
 
 // <section name="RT_USING_DFS" description="Device file system" default="true" >
-//#define RT_USING_DFS
+#define RT_USING_DFS
 // <bool name="DFS_USING_WORKDIR" description="Using working directory" default="true" />
 #define DFS_USING_WORKDIR
 // <integer name="DFS_FILESYSTEM_TYPES_MAX" description="The maximal number of the supported file system type" default="4" />
@@ -229,5 +223,8 @@
 
 #define RT_USING_COMPONENTS_INIT
 #define RT_USING_USER_MAIN
-
+#define RT_USING_SFUD
+#define RT_SFUD_USING_SFDP
+#define RT_SFUD_USING_FLASH_INFO_TABLE
+#define RT_DEBUG_SFUD 1
 #endif
