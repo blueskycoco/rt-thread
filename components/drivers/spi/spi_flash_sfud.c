@@ -190,7 +190,7 @@ void sfud_log_debug(const char *file, const long line, const char *format, ...) 
     va_start(args, format);
     rt_kprintf("[SFUD](%s:%ld) ", file, line);
     /* must use vprintf to print */
-    vsnprintf(log_buf, sizeof(log_buf), format, args);
+    rt_vsnprintf(log_buf, sizeof(log_buf), format, args);
     rt_kprintf("%s\n", log_buf);
     va_end(args);
 }
@@ -208,7 +208,7 @@ void sfud_log_info(const char *format, ...) {
     va_start(args, format);
     rt_kprintf("[SFUD]");
     /* must use vprintf to print */
-    vsnprintf(log_buf, sizeof(log_buf), format, args);
+    rt_vsnprintf(log_buf, sizeof(log_buf), format, args);
     rt_kprintf("%s\n", log_buf);
     va_end(args);
 }

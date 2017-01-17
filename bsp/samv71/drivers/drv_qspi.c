@@ -22,8 +22,8 @@ static struct rt_spi_ops same70_qspi_ops =
 static rt_err_t configure(struct rt_spi_device* device, struct rt_spi_configuration* configuration)
 {
     //struct same70_qspi_bus * same70_qspi_bus = (struct same70_qspi_bus *)device->bus;
-	rt_kprintf("configure mode %x, data_width %x, max_hz %d\n",configuration->mode,
-		configuration->data_width, configuration->max_hz);
+	//rt_kprintf("configure mode %x, data_width %x, max_hz %d\n",configuration->mode,
+	//	configuration->data_width, configuration->max_hz);
 #if 0
     SPI_InitTypeDef SPI_InitStructure;
 
@@ -87,37 +87,31 @@ static rt_err_t configure(struct rt_spi_device* device, struct rt_spi_configurat
 
 static rt_uint32_t xfer(struct rt_spi_device* device, struct rt_spi_message* message)
 {
-    struct rt_spi_configuration * config = &device->config;
-	int i;
-	
-	//const rt_uint8_t * send_ptr = message->send_buf;
-	//rt_uint8_t * recv_ptr = message->recv_buf;
-
 	if(message->send_buf != RT_NULL)
 	{
-		qspi.qspiBuffer.pDataTx = 
+		qspi.qspiBuffer.pDataTx = (rt_uint32_t *)
 			message->send_buf;
 		qspi.qspiBuffer.TxDataSize = 
 			message->length;
-		QSPI_MultiWriteSPI(&qspi,(uint16_t const *)qspi.qspiBuffer.pDataTx,
+		QSPI_MultiWriteSPI(&qspi,(uint16_t * const)qspi.qspiBuffer.pDataTx,
 					   qspi.qspiBuffer.TxDataSize); 
 	}
 
 	if(message->recv_buf != RT_NULL)
 	{
-		qspi.qspiBuffer.pDataRx = 
+		qspi.qspiBuffer.pDataRx = (rt_uint32_t *)
 			message->recv_buf;
 		qspi.qspiBuffer.RxDataSize = 
 			message->length;
-		QSPI_MultiReadSPI(&qspi,(uint16_t const *)qspi.qspiBuffer.pDataRx,
+		QSPI_MultiReadSPI(&qspi,(uint16_t * const)qspi.qspiBuffer.pDataRx,
 					   qspi.qspiBuffer.RxDataSize); 
 	}
     
-	/* release CS */
 	if(message->cs_release)
 	{ 
 		QSPI_EndTransfer(qspi.pQspiHw);
 		#if 0
+		int i;
 		if(message->send_buf) {
 			rt_uint8_t * send_ptr = &(message->send_buf[0]);
 			for (i=0;i<message->length;i++)		
@@ -137,23 +131,24 @@ static rt_uint32_t xfer(struct rt_spi_device* device, struct rt_spi_message* mes
 
 void rt_hw_spi_init(void)
 {
-	rt_uint8_t id[3] = {0};
 	static struct same70_qspi_bus same70_qspi;
 	static struct rt_spi_device spi_device;
-	//static const Pin pinsCS = PIN_CS;	
 	static const Pin pQspipins[] = {PIN_IO0, PIN_IO1, PIN_IO2, PIN_IO3, PIN_SCK, PIN_CS};
-	//PIO_Configure(&pinsCS, 1);
+
 	PIO_Configure(pQspipins, PIO_LISTSIZE(pQspipins));
 	PMC_EnablePeripheral(ID_QSPI);
 	QSPI_ConfigureInterface(&qspi, QSPI_MR_SMM_SPI, QSPI_MR_CSMODE_LASTXFER | QSPI_MR_DLYCS (20));
-	QSPI_ConfigureClock(qspi.pQspiHw, ClockMode_00, QSPI_SCR_SCBR(1));
+	QSPI_ConfigureClock(qspi.pQspiHw, ClockMode_00, QSPI_SCR_SCBR(2));
 	QSPI_Enable(qspi.pQspiHw);
     rt_spi_bus_register(&(same70_qspi.parent), "qspi", &same70_qspi_ops);
 	rt_spi_bus_attach_device(&spi_device, "spi10", "qspi", RT_NULL);
+/*	
+	rt_uint8_t id[3] = {0};
 	qspi.qspiCommand.Instruction = 0x9F;
 	qspi.qspiBuffer.pDataRx = id;
 	QSPI_SingleWriteSPI(&qspi, (uint16_t const *)&qspi.qspiCommand.Instruction);
 	QSPI_MultiReadSPI(&qspi,  (uint16_t *)qspi.qspiBuffer.pDataRx, 3);
 	QSPI_EndTransfer(qspi.pQspiHw);
 	rt_kprintf("id %x %x %x\n",id[0], id[1], id[2]);
+*/	
 }

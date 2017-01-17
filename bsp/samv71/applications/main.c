@@ -38,16 +38,16 @@ int main(void)
 	/* put user application code here */
 #ifdef RT_USING_DFS
 	rt_hw_spi_init();	
-	rt_sfud_flash_probe("flash", "spi10");	
-	if (dfs_mount("rootfs", "/", "elm", 0, 0) == 0)
-	{
-		rt_kprintf("root file system initialized!\n");
+    rt_sfud_flash_probe("flash", "spi10");	
+    if (dfs_mount("flash", "/", "elm", 0, 0) == 0)
+    {
+        rt_kprintf("root file system initialized!\n");
 	}
 	else
 	{
-		rt_kprintf("root file system failed!\n");
+		rt_kprintf("root file system failed %d!\n", rt_get_errno());
 	}
-#endif 
-	return 0;
+#endif
+    return 0;
 }
 
