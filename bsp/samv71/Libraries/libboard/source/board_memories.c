@@ -55,7 +55,7 @@ uint32_t BOARD_SdramValidation(uint32_t baseAddr, uint32_t size)
 	uint16_t *ptr16 = (uint16_t *) baseAddr;
 	uint8_t *ptr8 = (uint8_t *) baseAddr;
 	/* Test for 55AA55AA/AA55AA55 pattern */
-	printf(" Test for 55AA55AA/AA55AA55 pattern ... \n\r");
+	rt_kprintf(" Test for 55AA55AA/AA55AA55 pattern ... \n\r");
 
 	for (i = 0; i < size; i ++) {
 		if (i & 1)
@@ -69,14 +69,14 @@ uint32_t BOARD_SdramValidation(uint32_t baseAddr, uint32_t size)
 	for (i = 0; i <  size; i++) {
 		if (i & 1) {
 			if (ptr32[i] != 0x55AA55AA) {
-				printf("-E- Expected:%x, read %x @ %x \n\r" ,
+				rt_kprintf("-E- Expected:%x, read %x @ %x \n\r" ,
 					   0xAA55AA55, (unsigned)ptr32[i], (unsigned)(baseAddr + i));
 				ret = 0;
 
 			}
 		} else {
 			if (ptr32[i] != 0xAA55AA55) {
-				printf("-E- Expected:%x, read %x @ %x \n\r" ,
+				rt_kprintf("-E- Expected:%x, read %x @ %x \n\r" ,
 					   0xAA55AA55 , (unsigned)ptr32[i], (unsigned)(baseAddr + i));
 				ret = 0;
 			}
@@ -85,7 +85,7 @@ uint32_t BOARD_SdramValidation(uint32_t baseAddr, uint32_t size)
 
 	if (!ret) return ret;
 
-	printf(" Test for BYTE accessing... \n\r");
+	rt_kprintf(" Test for BYTE accessing... \n\r");
 
 	/* Test for BYTE accessing */
 	for (i = 0; i < size; i ++)
@@ -93,7 +93,7 @@ uint32_t BOARD_SdramValidation(uint32_t baseAddr, uint32_t size)
 
 	for (i = 0; i <  size; i++) {
 		if (ptr8[i] != (uint8_t)(i & 0xFF))  {
-			printf("-E- Expected:%x, read %x @ %x \n\r" ,
+			rt_kprintf("-E- Expected:%x, read %x @ %x \n\r" ,
 				   (unsigned)(i & 0xFF), ptr8[i], (unsigned)(baseAddr + i));
 			ret = 0;
 		}
@@ -101,7 +101,7 @@ uint32_t BOARD_SdramValidation(uint32_t baseAddr, uint32_t size)
 
 	if (!ret) return ret;
 
-	printf(" Test for WORD accessing... \n\r");
+	rt_kprintf(" Test for WORD accessing... \n\r");
 
 	/* Test for WORD accessing */
 	for (i = 0; i < size / 2; i ++)
@@ -109,7 +109,7 @@ uint32_t BOARD_SdramValidation(uint32_t baseAddr, uint32_t size)
 
 	for (i = 0; i <  size / 2; i++) {
 		if (ptr16[i] != (uint16_t)(i & 0xFFFF))  {
-			printf("-E- Expected:%x, read %x @ %x \n\r" ,
+			rt_kprintf("-E- Expected:%x, read %x @ %x \n\r" ,
 				   (unsigned)(i & 0xFFFF), ptr16[i], (unsigned)(baseAddr + i));
 			ret = 0;
 		}
@@ -117,7 +117,7 @@ uint32_t BOARD_SdramValidation(uint32_t baseAddr, uint32_t size)
 
 	if (!ret) return ret;
 
-	printf(" Test for DWORD accessing... \n\r");
+	rt_kprintf(" Test for DWORD accessing... \n\r");
 
 	/* Test for DWORD accessing */
 	for (i = 0; i < size / 4; i ++) {
@@ -127,7 +127,7 @@ uint32_t BOARD_SdramValidation(uint32_t baseAddr, uint32_t size)
 
 	for (i = 0; i <  size / 4; i++) {
 		if (ptr32[i] != (uint32_t)(i & 0xFFFFFFFF))  {
-			printf("-E- Expected:%x, read %x @ %x \n\r" ,
+			rt_kprintf("-E- Expected:%x, read %x @ %x \n\r" ,
 				   (unsigned)(i & 0xFFFFFFFF), (unsigned)ptr32[i], (unsigned)(baseAddr + i));
 			ret = 0;
 		}
