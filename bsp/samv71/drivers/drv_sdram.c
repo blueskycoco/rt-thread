@@ -11,7 +11,7 @@ bool sdram_init(void)
 	if (RT_EOK != rt_memheap_init(&system_heap,
 						"system",
 						(void *)SDRAM_CS_ADDR,
-						SDRAM_LENGTH))
+						BOARD_SDRAM_SIZE))
 		return false;
 	
 	return true;
@@ -46,7 +46,7 @@ static void sdram_init_t(void)
 }
 static void sdram_test(void)
 {
-	bool result = BOARD_SdramValidation(SDRAM_CS_ADDR, SDRAM_LENGTH);
+	bool result = BOARD_SdramValidation(SDRAM_CS_ADDR, BOARD_SDRAM_SIZE);
 	if (result)
 		rt_kprintf("sdram_test ok\n");
 	else		
