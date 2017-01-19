@@ -137,7 +137,7 @@ void rt_hw_spi_init(void)
 
 	PIO_Configure(pQspipins, PIO_LISTSIZE(pQspipins));
 	PMC_EnablePeripheral(ID_QSPI);
-	QSPI_ConfigureInterface(&qspi, QSPI_MR_SMM_SPI, QSPI_MR_CSMODE_LASTXFER | QSPI_MR_DLYCS (20));
+	QSPI_ConfigureInterface(&qspi, QSPI_MR_SMM_SPI, QSPI_MR_CSMODE_LASTXFER | QSPI_MR_DLYCS (50));
 	QSPI_ConfigureClock(qspi.pQspiHw, ClockMode_00, QSPI_SCR_SCBR(2));
 	QSPI_Enable(qspi.pQspiHw);
     rt_spi_bus_register(&(same70_qspi.parent), "qspi", &same70_qspi_ops);

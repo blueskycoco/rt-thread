@@ -56,10 +56,10 @@ SECTIONS
         __init_array_end = .;
 
         . = ALIGN(0x4);
-        KEEP (*crtbegin.o(.ctors))
-        KEEP (*(EXCLUDE_FILE (*crtend.o) .ctors))
-        KEEP (*(SORT(.ctors.*)))
-        KEEP (*crtend.o(.ctors))
+        PROVIDE(__ctors_start__ = .);
+        KEEP(*(SORT(.ctors.*)))
+        KEEP(*(.ctors))
+        PROVIDE(__ctors_end__ = .);
 
         . = ALIGN(4);
         KEEP(*(.fini))
@@ -70,10 +70,10 @@ SECTIONS
         KEEP (*(SORT(.fini_array.*)))
         __fini_array_end = .;
 
-        KEEP (*crtbegin.o(.dtors))
-        KEEP (*(EXCLUDE_FILE (*crtend.o) .dtors))
-        KEEP (*(SORT(.dtors.*)))
-        KEEP (*crtend.o(.dtors))
+        PROVIDE(__dtors_start__ = .);
+        KEEP(*(SORT(.dtors.*)))
+        KEEP(*(.dtors))
+        PROVIDE(__dtors_end__ = .);
 
 		        /* section information for finsh shell */
         . = ALIGN(4);
@@ -93,6 +93,11 @@ SECTIONS
         __rt_init_end = .;
         . = ALIGN(4);
 
+        /* section information for modules */
+        . = ALIGN(4);
+        __rtmsymtab_start = .;
+        KEEP(*(RTMSymTab))
+        __rtmsymtab_end = .;
         . = ALIGN(4);
         _efixed = .;            /* End of text section */
     } > rom
