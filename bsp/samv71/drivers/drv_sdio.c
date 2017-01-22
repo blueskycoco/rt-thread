@@ -121,12 +121,12 @@ static void same70_sdio_process_next(struct same70_sdio *mci)
 	if (mci->current_status == REQ_ST_INIT) 
 	{
 		mci->current_status = REQ_ST_CMD;
-		same70_sdio_send_command(mci, mci->req->cmd);
+		//same70_sdio_send_command(mci, mci->req->cmd);
 	}
 	else if ((mci->current_status == REQ_ST_CMD) && mci->req->stop) 
 	{
 		mci->current_status = REQ_ST_STOP;
-		same70_sdio_send_command(mci, mci->req->stop);
+		//same70_sdio_send_command(mci, mci->req->stop);
 	} 
 	else 
 	{
@@ -144,7 +144,6 @@ static void same70_sdio_process_next(struct same70_sdio *mci)
  */
 static void same70_sdio_request(struct rt_mmcsd_host *host, struct rt_mmcsd_req *req)
 {
-#if 0
 	rt_uint32_t timeout = RT_TICK_PER_SECOND;
 	struct same70_sdio *mci = host->private_data;
 	mci->req = req;
@@ -154,7 +153,6 @@ static void same70_sdio_request(struct rt_mmcsd_host *host, struct rt_mmcsd_req 
 	rt_timer_start(&mci->timer);
 
 	same70_sdio_process_next(mci);
-#endif
 }
 void XDMAC_Handler(void)
 {	

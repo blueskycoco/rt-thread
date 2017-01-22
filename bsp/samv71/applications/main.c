@@ -34,7 +34,7 @@
 #include "drv_qspi.h"
 #include "drv_sdio.h"
 #endif 
-int mnt_init(void)
+void mnt_init(void)
 {
 #ifdef RT_USING_SDIO
     rt_mmcsd_core_init();
@@ -62,7 +62,12 @@ int main(void)
     rt_sfud_flash_probe("flash", "spi10");	
     if (dfs_mount("flash", "/", "elm", 0, 0) == 0)
     {
+    	DIR *dir = RT_NULL;
         rt_kprintf("root file system initialized!\n");
+		if ((dir = opendir("/sd"))==RT_NULL)
+			mkdir("/sd",0);
+		else
+			closedir(dir);
 	}
 	else
 	{
