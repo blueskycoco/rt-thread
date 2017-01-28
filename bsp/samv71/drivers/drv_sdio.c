@@ -140,12 +140,16 @@ static rt_size_t sdcard_flash_write(rt_device_t dev,
 }
 void XDMAC_Handler(void)
 {	
+	rt_interrupt_enter();
 	XDMAD_Handler(&dmaDrv);
+	rt_interrupt_leave();
 }
 /** * MCI interrupt handler. Forwards the event to the MCI driver handlers. */
 void HSMCI_Handler(void)
 {	
+	rt_interrupt_enter();
 	MCID_Handler(&mciDrv[0]);
+	rt_interrupt_leave();
 }
 
 rt_int32_t rt_hw_sdio_init(void)
