@@ -70,12 +70,7 @@ SECTIONS
         KEEP (*(SORT(.fini_array.*)))
         __fini_array_end = .;
 
-        PROVIDE(__dtors_start__ = .);
-        KEEP(*(SORT(.dtors.*)))
-        KEEP(*(.dtors))
-        PROVIDE(__dtors_end__ = .);
-
-		        /* section information for finsh shell */
+		/* section information for finsh shell */
         . = ALIGN(4);
         __fsymtab_start = .;
         KEEP(*(FSymTab))
@@ -93,6 +88,20 @@ SECTIONS
         __rt_init_end = .;
         . = ALIGN(4);
 
+		. = ALIGN(4);
+        PROVIDE(__ctors_start__ = .);
+		/* old GCC version uses .ctors */
+		KEEP(*(SORT(.ctors.*)))
+		KEEP(*(.ctors))
+		/* new GCC version uses .init_array */
+		KEEP (*(SORT(.init_array.*)))
+		KEEP (*(.init_array))
+		PROVIDE(__ctors_end__ = .);
+
+        PROVIDE(__dtors_start__ = .);
+        KEEP(*(SORT(.dtors.*)))
+        KEEP(*(.dtors))
+        PROVIDE(__dtors_end__ = .);
         /* section information for modules */
         . = ALIGN(4);
         __rtmsymtab_start = .;
@@ -103,12 +112,12 @@ SECTIONS
     } > rom
 
     /* .ARM.exidx is sorted, so has to go in its own output section.  */
-    PROVIDE_HIDDEN (__exidx_start = .);
+    PROVIDE (__exidx_start = .);
     .ARM.exidx :
     {
       *(.ARM.exidx* .gnu.linkonce.armexidx.*)
     } > rom
-    PROVIDE_HIDDEN (__exidx_end = .);
+    PROVIDE (__exidx_end = .);
 
     . = ALIGN(4);
     _etext = .;

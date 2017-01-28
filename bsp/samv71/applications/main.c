@@ -50,6 +50,18 @@ void mnt_init(void)
     {
         rt_kprintf("SD File System initialzation failed!\n");
     }
+	/*int fd;
+
+	fd = open("/1.txt", O_RDWR | O_APPEND | O_CREAT, 0);
+	if (fd >= 0)
+	{
+		write (fd, "1234", 4);
+		close(fd);
+	}
+	else
+	{
+		rt_kprintf("open file:/1.txt failed!\n");
+	}*/
 }
 int main(void)
 {
