@@ -229,5 +229,5 @@
 #define RT_USING_CPLUSPLUS
 //#define RT_SFUD_USING_FLASH_INFO_TABLE
 //#define RT_DEBUG_SFUD 1
-#define RT_USING_SDIO
+//#define RT_USING_SDIO
 #endif

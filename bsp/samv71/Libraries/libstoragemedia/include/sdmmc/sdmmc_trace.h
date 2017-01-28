@@ -69,6 +69,7 @@
  */
 
 #include <stdio.h>
+extern void rt_kprintf(const char *fmt, ...);
 
 /*
  *         Global Definitions
@@ -139,56 +140,56 @@
 #elif (DYN_TRACES == 1)
 
 	/* Trace output depends on dwTraceLevel value */
-	#define TRACE_DEBUG(...)      { if (dwTraceLevel >= TRACE_LEVEL_DEBUG)   { printf("-D- " __VA_ARGS__); } }
-	#define TRACE_INFO(...)       { if (dwTraceLevel >= TRACE_LEVEL_INFO)    { printf("-I- " __VA_ARGS__); } }
-	#define TRACE_WARNING(...)    { if (dwTraceLevel >= TRACE_LEVEL_WARNING) { printf("-W- " __VA_ARGS__); } }
-	#define TRACE_ERROR(...)      { if (dwTraceLevel >= TRACE_LEVEL_ERROR)   { printf("-E- " __VA_ARGS__); } }
-	#define TRACE_FATAL(...)      { if (dwTraceLevel >= TRACE_LEVEL_FATAL)   { printf("-F- " __VA_ARGS__); while (1); } }
+	#define TRACE_DEBUG(...)      { if (dwTraceLevel >= TRACE_LEVEL_DEBUG)   { rt_kprintf("-D- " __VA_ARGS__); } }
+	#define TRACE_INFO(...)       { if (dwTraceLevel >= TRACE_LEVEL_INFO)    { rt_kprintf("-I- " __VA_ARGS__); } }
+	#define TRACE_WARNING(...)    { if (dwTraceLevel >= TRACE_LEVEL_WARNING) { rt_kprintf("-W- " __VA_ARGS__); } }
+	#define TRACE_ERROR(...)      { if (dwTraceLevel >= TRACE_LEVEL_ERROR)   { rt_kprintf("-E- " __VA_ARGS__); } }
+	#define TRACE_FATAL(...)      { if (dwTraceLevel >= TRACE_LEVEL_FATAL)   { rt_kprintf("-F- " __VA_ARGS__); while (1); } }
 
-	#define TRACE_DEBUG_WP(...)   { if (dwTraceLevel >= TRACE_LEVEL_DEBUG)   { printf(__VA_ARGS__); } }
-	#define TRACE_INFO_WP(...)    { if (dwTraceLevel >= TRACE_LEVEL_INFO)    { printf(__VA_ARGS__); } }
-	#define TRACE_WARNING_WP(...) { if (dwTraceLevel >= TRACE_LEVEL_WARNING) { printf(__VA_ARGS__); } }
-	#define TRACE_ERROR_WP(...)   { if (dwTraceLevel >= TRACE_LEVEL_ERROR)   { printf(__VA_ARGS__); } }
-	#define TRACE_FATAL_WP(...)   { if (dwTraceLevel >= TRACE_LEVEL_FATAL)   { printf(__VA_ARGS__); while (1); } }
+	#define TRACE_DEBUG_WP(...)   { if (dwTraceLevel >= TRACE_LEVEL_DEBUG)   { rt_kprintf(__VA_ARGS__); } }
+	#define TRACE_INFO_WP(...)    { if (dwTraceLevel >= TRACE_LEVEL_INFO)    { rt_kprintf(__VA_ARGS__); } }
+	#define TRACE_WARNING_WP(...) { if (dwTraceLevel >= TRACE_LEVEL_WARNING) { rt_kprintf(__VA_ARGS__); } }
+	#define TRACE_ERROR_WP(...)   { if (dwTraceLevel >= TRACE_LEVEL_ERROR)   { rt_kprintf(__VA_ARGS__); } }
+	#define TRACE_FATAL_WP(...)   { if (dwTraceLevel >= TRACE_LEVEL_FATAL)   { rt_kprintf(__VA_ARGS__); while (1); } }
 
 #else
 
 	/* Trace compilation depends on TRACE_LEVEL value */
 	#if (TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
-		#define TRACE_DEBUG(...)      { printf("-D- " __VA_ARGS__); }
-		#define TRACE_DEBUG_WP(...)   { printf(__VA_ARGS__); }
+		#define TRACE_DEBUG(...)      { rt_kprintf("-D- " __VA_ARGS__); }
+		#define TRACE_DEBUG_WP(...)   { rt_kprintf(__VA_ARGS__); }
 	#else
 		#define TRACE_DEBUG(...)      { }
 		#define TRACE_DEBUG_WP(...)   { }
 	#endif
 
 	#if (TRACE_LEVEL >= TRACE_LEVEL_INFO)
-		#define TRACE_INFO(...)       { printf("-I- " __VA_ARGS__); }
-		#define TRACE_INFO_WP(...)    { printf(__VA_ARGS__); }
+		#define TRACE_INFO(...)       { rt_kprintf("-I- " __VA_ARGS__); }
+		#define TRACE_INFO_WP(...)    { rt_kprintf(__VA_ARGS__); }
 	#else
 		#define TRACE_INFO(...)       { }
 		#define TRACE_INFO_WP(...)    { }
 	#endif
 
 	#if (TRACE_LEVEL >= TRACE_LEVEL_WARNING)
-		#define TRACE_WARNING(...)    { printf("-W- " __VA_ARGS__); }
-		#define TRACE_WARNING_WP(...) { printf(__VA_ARGS__); }
+		#define TRACE_WARNING(...)    { rt_kprintf("-W- " __VA_ARGS__); }
+		#define TRACE_WARNING_WP(...) { rt_kprintf(__VA_ARGS__); }
 	#else
 		#define TRACE_WARNING(...)    { }
 		#define TRACE_WARNING_WP(...) { }
 	#endif
 
 	#if (TRACE_LEVEL >= TRACE_LEVEL_ERROR)
-		#define TRACE_ERROR(...)      { printf("-E- " __VA_ARGS__); }
-		#define TRACE_ERROR_WP(...)   { printf(__VA_ARGS__); }
+		#define TRACE_ERROR(...)      { rt_kprintf("-E- " __VA_ARGS__); }
+		#define TRACE_ERROR_WP(...)   { rt_kprintf(__VA_ARGS__); }
 	#else
 		#define TRACE_ERROR(...)      { }
 		#define TRACE_ERROR_WP(...)   { }
 	#endif
 
 	#if (TRACE_LEVEL >= TRACE_LEVEL_FATAL)
-		#define TRACE_FATAL(...)      { printf("-F- " __VA_ARGS__); while (1); }
-		#define TRACE_FATAL_WP(...)   { printf(__VA_ARGS__); while (1); }
+		#define TRACE_FATAL(...)      { rt_kprintf("-F- " __VA_ARGS__); while (1); }
+		#define TRACE_FATAL_WP(...)   { rt_kprintf(__VA_ARGS__); while (1); }
 	#else
 		#define TRACE_FATAL(...)      { while (1); }
 		#define TRACE_FATAL_WP(...)   { while (1); }

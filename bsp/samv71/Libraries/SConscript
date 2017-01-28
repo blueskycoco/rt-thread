@@ -19,6 +19,9 @@ src = src + ['libboard/source/board_lowlevel.c']
 src = src + ['libboard/source/board_memories.c']
 src = src + ['libboard/source/led.c']
 src = src + ['libboard/source/trace.c']
+src = src + ['libstoragemedia/source/Media.c']
+src = src + ['libstoragemedia/source/MEDSdcard.c']
+src = src + ['libstoragemedia/source/sdmmc/sdmmc.c']
 
 path = [cwd + './', 
     cwd + '/libchip',
@@ -27,7 +30,9 @@ path = [cwd + './',
     cwd + '/libboard',
     cwd + '/libboard/include',
     cwd + '/libchip/include/cmsis/CMSIS/Include',
-    cwd + '/libstoragemedia/include/sdmmc']
+    cwd + '/libstoragemedia/include/sdmmc',
+    cwd + 'libstoragemedia',
+    cwd + '/libstoragemedia/include']
 
 CPPDEFINES = ['USE_STDPERIPH_DRIVER']
 group = DefineGroup('SAMV71_StdPeriph', src, depend = [''], CPPPATH = path, CPPDEFINES = CPPDEFINES)

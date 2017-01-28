@@ -36,11 +36,9 @@
 #endif 
 void mnt_init(void)
 {
-#ifdef RT_USING_SDIO
-    rt_mmcsd_core_init();
-    rt_mmcsd_blk_init();
 
-    rt_hw_sdio_init();
+    if (RT_EOK != rt_hw_sdio_init())
+		return ;
     rt_thread_delay(RT_TICK_PER_SECOND * 1);
 
     /* mount sd card fat partition 1 as root directory */
@@ -52,7 +50,6 @@ void mnt_init(void)
     {
         rt_kprintf("SD File System initialzation failed!\n");
     }
-#endif
 }
 int main(void)
 {

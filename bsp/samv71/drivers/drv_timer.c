@@ -356,9 +356,9 @@ void TC3_Handler(void)
 bool StartTimesInterrupt(int TimerID,int Timer_CHID,int Freq,int priority,callback_t callback_function)
 {
 	Tc *tc_base;
-	uint32_t rc;
+//	uint32_t rc;
 	int irq;
-	uint32_t clockSelection;
+//	uint32_t clockSelection;
 	
 	if (TimerID != 0 && TimerID !=1 
 		&& TimerID !=2 && TimerID != 3)
