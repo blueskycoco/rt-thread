@@ -14,7 +14,8 @@ PLATFORM 	= 'gcc'
 EXEC_PATH 	= r'e:/project/atmel/gcc-arm-none-eabi-5_4-2016q3-20160926-win32/bin'
 #EXEC_PATH 	= r'z:/gcc-arm-none-eabi-5_4-2016q3-20160926-win32/bin'
 BUILD = 'debug'
-
+if os.getenv('RTT_EXEC_PATH'):
+     EXEC_PATH = os.getenv('RTT_EXEC_PATH')
 # toolchains
 PREFIX = 'arm-none-eabi-'
 CC = PREFIX + 'gcc'

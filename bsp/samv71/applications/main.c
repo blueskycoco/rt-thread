@@ -39,8 +39,8 @@ rt_device_t dev_usart1 = RT_NULL;
 
 static rt_err_t rx_ind(rt_device_t dev, rt_size_t size)
 {
-    rt_sem_release(&rx_sem);
-    return RT_EOK;
+	rt_sem_release(&rx_sem);
+	return RT_EOK;
 }
 static void usart1_rx(void* parameter)
 {
@@ -57,31 +57,31 @@ static void usart1_rx(void* parameter)
 void mnt_init(void)
 {
 
-    if (RT_EOK != rt_hw_sdio_init())
+	if (RT_EOK != rt_hw_sdio_init())
 		return ;
-    //rt_thread_delay(RT_TICK_PER_SECOND * 1);
+	//rt_thread_delay(RT_TICK_PER_SECOND * 1);
 
-    /* mount sd card fat partition 1 as root directory */
-    if (dfs_mount("sd0", "/sd", "elm", 0, 0) == 0)
-    {
-        rt_kprintf("SD File System initialized!\n");
-    }
-    else
-    {
-        rt_kprintf("SD File System initialzation failed!\n");
-    }
-	/*int fd;
-
-	fd = open("/1.txt", O_RDWR | O_APPEND | O_CREAT, 0);
-	if (fd >= 0)
+	/* mount sd card fat partition 1 as root directory */
+	if (dfs_mount("sd0", "/sd", "elm", 0, 0) == 0)
 	{
-		write (fd, "1234", 4);
-		close(fd);
+		rt_kprintf("SD File System initialized!\n");
 	}
 	else
 	{
-		rt_kprintf("open file:/1.txt failed!\n");
-	}*/
+		rt_kprintf("SD File System initialzation failed!\n");
+	}
+	/*int fd;
+
+	  fd = open("/1.txt", O_RDWR | O_APPEND | O_CREAT, 0);
+	  if (fd >= 0)
+	  {
+	  write (fd, "1234", 4);
+	  close(fd);
+	  }
+	  else
+	  {
+	  rt_kprintf("open file:/1.txt failed!\n");
+	  }*/
 }
 int main(void)
 {
@@ -93,21 +93,21 @@ int main(void)
 		return 0;
 	}
 	if (rt_device_open(dev_usart1, 
-		RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX 
-		) == RT_EOK)
+				RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX 
+				) == RT_EOK)
 	{
 		rt_sem_init(&rx_sem, "usart1_sem", 0, 0);
 		rt_device_set_rx_indicate(dev_usart1, rx_ind);
 		rt_thread_startup(rt_thread_create("usart1_rx",
-			usart1_rx, RT_NULL,2048, 20, 10));
+					usart1_rx, RT_NULL,2048, 20, 10));
 	}
 #ifdef RT_USING_DFS
 	rt_hw_spi_init();	
-    rt_sfud_flash_probe("flash", "spi10");	
-    if (dfs_mount("flash", "/", "elm", 0, 0) == 0)
-    {
-    	DIR *dir = RT_NULL;
-        rt_kprintf("root file system initialized!\n");
+	rt_sfud_flash_probe("flash", "spi10");	
+	if (dfs_mount("flash", "/", "elm", 0, 0) == 0)
+	{
+		DIR *dir = RT_NULL;
+		rt_kprintf("root file system initialized!\n");
 		if ((dir = opendir("/sd"))==RT_NULL)
 			mkdir("/sd",0);
 		else
@@ -119,6 +119,22 @@ int main(void)
 	}
 	mnt_init();
 #endif
-    return 0;
+	return 0;
 }
+#ifdef FINSH_USING_MSH
+#include <finsh.h>
+
+#ifdef DFS_USING_WORKDIR
+int cmd_exec(int argc, char **argv)
+{
+	if (argc == 2)
+	{
+		msh_exec(argv[1],strlen(argv[1]));
+	}
+
+	return 0;
+}
+FINSH_FUNCTION_EXPORT_ALIAS(cmd_exec, __cmd_exec, exec a app module);
+#endif
+#endif
 
