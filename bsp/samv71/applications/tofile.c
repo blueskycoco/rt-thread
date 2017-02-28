@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include <rt_board.h>
-
+char yfile[256] = {0};
 struct custom_ctx
 {
 	struct rym_ctx parent;
@@ -21,6 +21,8 @@ static enum rym_code _rym_bg(
 	struct custom_ctx *cctx = (struct custom_ctx*)ctx;
 	cctx->fpath[0] = '/';
 	/* the buf should be the file name */
+	memset(yfile,0,256);
+	strcpy(yfile,(const char *)buf);
 	strcpy(&(cctx->fpath[1]), (const char*)buf);
 	cctx->fd = open(cctx->fpath, O_CREAT | O_WRONLY | O_TRUNC, 0);
 	if (cctx->fd < 0)

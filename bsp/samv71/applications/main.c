@@ -83,8 +83,10 @@ void mnt_init(void)
 	  rt_kprintf("open file:/1.txt failed!\n");
 	  }*/
 }
+extern char yfile[256];
 int main(void)
 {
+#if 0
 	/* put user application code here */
 	dev_usart1 = rt_device_find("uart1");
 
@@ -101,6 +103,7 @@ int main(void)
 		rt_thread_startup(rt_thread_create("usart1_rx",
 					usart1_rx, RT_NULL,2048, 20, 10));
 	}
+#endif
 #ifdef RT_USING_DFS
 	rt_hw_spi_init();	
 	rt_sfud_flash_probe("flash", "spi10");	
@@ -118,6 +121,15 @@ int main(void)
 		rt_kprintf("root file system failed %d!\n", rt_get_errno());
 	}
 	mnt_init();
+	rt_device_t dev = rt_device_find("uart1");
+	if (!dev)
+	{
+		rt_kprintf("could not find device:uart1\n");
+		return -RT_ERROR;
+	}
+
+	rym_write_to_file(dev);
+	msh_exec(yfile,strlen(yfile));
 #endif
 	return 0;
 }
