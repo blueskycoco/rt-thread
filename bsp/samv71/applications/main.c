@@ -84,6 +84,32 @@ void mnt_init(void)
 	  }*/
 }
 extern char yfile[256];
+int low_level_init(void)
+{
+#ifdef RT_USING_DFS
+	rt_hw_spi_init();	
+	rt_sfud_flash_probe("flash", "spi10");	
+	if (dfs_mount("flash", "/", "elm", 0, 0) == 0)
+	{
+		DIR *dir = RT_NULL;
+		rt_kprintf("root file system initialized!\n");
+		if ((dir = opendir("/sd"))==RT_NULL)
+			mkdir("/sd",0);
+		else
+			closedir(dir);
+	}
+	else
+	{
+		rt_kprintf("root file system failed %d!\n", rt_get_errno());
+	}
+	mnt_init();
+	
+
+#endif
+
+	return 0;
+}
+
 int main(void)
 {
 #if 0
@@ -104,23 +130,14 @@ int main(void)
 					usart1_rx, RT_NULL,2048, 20, 10));
 	}
 #endif
-#ifdef RT_USING_DFS
-	rt_hw_spi_init();	
-	rt_sfud_flash_probe("flash", "spi10");	
-	if (dfs_mount("flash", "/", "elm", 0, 0) == 0)
-	{
-		DIR *dir = RT_NULL;
-		rt_kprintf("root file system initialized!\n");
-		if ((dir = opendir("/sd"))==RT_NULL)
-			mkdir("/sd",0);
-		else
-			closedir(dir);
-	}
-	else
-	{
-		rt_kprintf("root file system failed %d!\n", rt_get_errno());
-	}
-	mnt_init();
+	//low_level_init();
+
+	return 0;
+}
+INIT_ENV_EXPORT(low_level_init);
+int download_file(void)
+{
+
 	rt_device_t dev = rt_device_find("uart1");
 	if (!dev)
 	{
@@ -130,9 +147,10 @@ int main(void)
 
 	rym_write_to_file(dev);
 	msh_exec(yfile,strlen(yfile));
-#endif
 	return 0;
 }
+INIT_APP_EXPORT(download_file);
+
 #ifdef FINSH_USING_MSH
 #include <finsh.h>
 
