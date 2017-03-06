@@ -355,7 +355,7 @@ extern WEAK void LowLevelInit(void)
 	_SetupMemoryRegion();
 #endif
 
-#if defined(FFT_DEMO) && (defined(__GNUC__) || defined(__CC_ARM))
+#if defined(__GNUC__) || defined(__CC_ARM)
 	/* Enabling the FPU */
 	SCB->CPACR |= 0x00F00000;
 	__DSB();

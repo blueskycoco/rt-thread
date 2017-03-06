@@ -46,6 +46,7 @@ static void usart1_rx(void* parameter)
 {
 	int len = 0;
 	rt_uint8_t buf[256] = {0};
+	return;
 	while (1)
 	{	
 		if (rt_sem_take(&rx_sem, RT_WAITING_FOREVER) != RT_EOK) continue;
@@ -130,11 +131,14 @@ int main(void)
 					usart1_rx, RT_NULL,2048, 20, 10));
 	}
 #endif
-	//low_level_init();
+	rt_thread_startup(rt_thread_create("usart1_rx",
+						usart1_rx, RT_NULL,2048, 20, 10));
+
+	low_level_init();
 
 	return 0;
 }
-INIT_ENV_EXPORT(low_level_init);
+//INIT_ENV_EXPORT(low_level_init);
 int download_file(void)
 {
 
@@ -149,7 +153,7 @@ int download_file(void)
 	msh_exec(yfile,strlen(yfile));
 	return 0;
 }
-INIT_APP_EXPORT(download_file);
+//INIT_APP_EXPORT(download_file);
 
 #ifdef FINSH_USING_MSH
 #include <finsh.h>

@@ -227,6 +227,7 @@
 #define RT_SFUD_USING_SFDP
 #define RT_USING_RYM
 #define RT_USING_CPLUSPLUS
+#define RT_DEBUG_MEM                   0
 //#define RT_SFUD_USING_FLASH_INFO_TABLE
 //#define RT_DEBUG_SFUD 1
 //#define RT_USING_SDIO
