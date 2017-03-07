@@ -43,8 +43,8 @@ extern int Image$$RW_IRAM1$$ZI$$Limit;
 #pragma section="HEAP"
 #define HEAP_BEGIN    (__segment_end("HEAP"))
 #else
-extern int _ebss;
-#define HEAP_BEGIN    (&_ebss)
+extern int __bss_end;
+#define HEAP_BEGIN    (&__bss_end)
 #endif
 
 // <o> Internal SRAM memory size[Kbytes] <8-64>

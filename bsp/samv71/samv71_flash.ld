@@ -132,19 +132,6 @@ SECTIONS
         _erelocate = .;
     } > ram
 
-    /* .bss section which is used for uninitialized data */
-    .bss (NOLOAD) :
-    {
-        . = ALIGN(4);
-        _sbss = . ;
-        _szero = .;
-        *(.bss .bss.*)
-        *(COMMON)
-        . = ALIGN(4);
-        _ebss = . ;
-        _ezero = .;
-    } > ram
-
     /* stack section */
     .stack (NOLOAD):
     {
@@ -165,6 +152,25 @@ SECTIONS
         _eheap = .;
     } > ram
 
+    /* .bss section which is used for uninitialized data */
+    __bss_start = .;
+    .bss :
+    {
+        . = ALIGN(4);
+        /* This is used by the startup in order to initialize the .bss secion */
+        _sbss = .;
+
+        *(.bss)
+        *(.bss.*)
+        *(COMMON)
+
+        . = ALIGN(4);
+        /* This is used by the startup in order to initialize the .bss secion */
+        _ebss = . ;
+        
+        *(.bss.init)
+    } > ram
+    __bss_end = .;
     . = ALIGN(4);
     _end = . ;
     _ram_end_ = ORIGIN(ram) + LENGTH(ram) -1 ;

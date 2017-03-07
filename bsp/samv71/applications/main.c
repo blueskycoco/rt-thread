@@ -131,14 +131,14 @@ int main(void)
 					usart1_rx, RT_NULL,2048, 20, 10));
 	}
 #endif
-	rt_thread_startup(rt_thread_create("usart1_rx",
-						usart1_rx, RT_NULL,2048, 20, 10));
+	//rt_thread_startup(rt_thread_create("usart1_rx",
+	//					usart1_rx, RT_NULL,2048, 20, 10));
 
-	low_level_init();
+	//low_level_init();
 
 	return 0;
 }
-//INIT_ENV_EXPORT(low_level_init);
+INIT_ENV_EXPORT(low_level_init);
 int download_file(void)
 {
 
@@ -153,7 +153,7 @@ int download_file(void)
 	msh_exec(yfile,strlen(yfile));
 	return 0;
 }
-//INIT_APP_EXPORT(download_file);
+INIT_APP_EXPORT(download_file);
 
 #ifdef FINSH_USING_MSH
 #include <finsh.h>
