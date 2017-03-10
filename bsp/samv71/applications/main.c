@@ -153,7 +153,7 @@ int download_file(void)
 	msh_exec(yfile,strlen(yfile));
 	return 0;
 }
-INIT_APP_EXPORT(download_file);
+//INIT_APP_EXPORT(download_file);
 
 #ifdef FINSH_USING_MSH
 #include <finsh.h>
