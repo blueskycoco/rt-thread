@@ -103,7 +103,7 @@ int low_level_init(void)
 	{
 		rt_kprintf("root file system failed %d!\n", rt_get_errno());
 	}
-	mnt_init();
+//	mnt_init();
 	
 
 #endif

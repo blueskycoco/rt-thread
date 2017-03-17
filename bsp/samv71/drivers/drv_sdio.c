@@ -20,7 +20,7 @@ static struct rt_device flash_device;
 #define SECTOR_SIZE_DEFAULT 512
 #define MAX_MEDS        1
 sMedia medias[MAX_MEDS];
-static sXdmad dmaDrv;
+sXdmad dmaDrv;
 /** MCI driver instance. */
 static sMcid mciDrv[BOARD_NUM_MCI];
 /** SDCard driver instance. */
