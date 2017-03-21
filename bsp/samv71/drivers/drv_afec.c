@@ -44,11 +44,8 @@ static void _afe_initialization(Afec *base,int id,int *channel,int num_ch) {
 			| AFEC_EMR_RES_NO_AVERAGE
 			| AFEC_EMR_TAG
 			| AFEC_EMR_STM);
-	AFEC_SetAnalogControl(base, AFEC_ACR_IBCTL(2) | AFEC_ACR_PGA0_ON |
+	AFEC_SetAnalogControl(base, AFEC_ACR_IBCTL(1) | AFEC_ACR_PGA0_ON |
 			AFEC_ACR_PGA1_ON);
-	AFEC_SetChannelGain(base, AFEC_CGR_GAIN6(2));
-	AFEC_SetChannelGain(base, AFEC_CGR_GAIN7(2));
-	AFEC_SetChannelGain(base, AFEC_CGR_GAIN8(2));
 	for (int i=0; i < num_ch; i++) {
 		AFEC_SetAnalogOffset(base, channel[i], 0x200);
 		AFEC_EnableChannel(base, channel[i]);
@@ -58,6 +55,7 @@ bool AFEC_get_data(int AFEC_ID, uint32_t *data, int len)
 {
 	Afec *afec_base;
 	int afeId = 0;
+	int i;
 	int channel[2] = {0};
 	int num_ch=0;
 	if (AFEC_ID != 0 && AFEC_ID != 1)
@@ -73,7 +71,7 @@ bool AFEC_get_data(int AFEC_ID, uint32_t *data, int len)
 	{
 		afec_base = AFEC0;
 		afeId = ID_AFEC0;
-		channel[0]=7;channel[1]=8;
+		channel[0]=8;channel[1]=7;
 		num_ch=2;
 	}
 	else
@@ -89,26 +87,28 @@ bool AFEC_get_data(int AFEC_ID, uint32_t *data, int len)
 		rt_kprintf("afe dma timeout\n");
 	return true;
 }
-#ifdef RT_USING_FINSH
-#include <finsh.h>
-static void afec_get(int AFEC_ID, int len)	
+void afec_get(int AFEC_ID,int len)	
 {
-	uint32_t data[1000] = {0};
 	int i = 0;
-	rt_memset(data,0,len);
+	uint32_t *data[100]={0};
+	rt_memset(data,0,len*sizeof(uint32_t));
 	int result = AFEC_get_data(AFEC_ID,data, len);
 	if (result == true)
 	{
-		rt_kprintf("AFEC_get_data len %d\n", len);
+		rt_kprintf("AFEC_get_data len %d\n",len);
 		for (i = 0; i < len; i++)
 		{
 			rt_kprintf("%07x ",(data[i]!=0)?data[i]-0x200:0);
 			if ((i+1)%10 == 0)
-			rt_kprintf("\n");
+				rt_kprintf("\n");
 		}
+		rt_kprintf("\n");
 	}
 	else		
 		rt_kprintf("AFEC_get_data failed\n");
+	//rt_free(data);
 }
+#ifdef RT_USING_FINSH
+#include <finsh.h>
 FINSH_FUNCTION_EXPORT(afec_get, test AFEC_get_data);
 #endif

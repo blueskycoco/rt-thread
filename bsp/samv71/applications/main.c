@@ -33,6 +33,7 @@
 #include <spi_flash_sfud.h>
 #include "drv_qspi.h"
 #include "drv_sdio.h"
+#include "drv_afec.h"
 #endif 
 static struct rt_semaphore rx_sem;
 rt_device_t dev_usart1 = RT_NULL;
@@ -42,17 +43,30 @@ static rt_err_t rx_ind(rt_device_t dev, rt_size_t size)
 	rt_sem_release(&rx_sem);
 	return RT_EOK;
 }
+static rt_err_t tx_ind(rt_device_t dev, void *buffer)
+{
+	rt_sem_release(&rx_sem);
+	return RT_EOK;
+}
+
 static void usart1_rx(void* parameter)
 {
 	int len = 0;
 	rt_uint8_t buf[256] = {0};
-	return;
+	int i=0;
+	//return;
 	while (1)
 	{	
+		//len=rt_device_read(dev_usart1, 0, buf, 256);
+		//buf[len]='\0';
+		//rt_kprintf("%s", buf);
+		rt_memset(buf,i+0x30,256);
+		i++;
+		if(i==30)
+			i=0;
+		rt_device_write(dev_usart1,0,buf,256);
 		if (rt_sem_take(&rx_sem, RT_WAITING_FOREVER) != RT_EOK) continue;
-		len=rt_device_read(dev_usart1, 0, buf, 256);
-		buf[len]='\0';
-		rt_kprintf("%s", buf);
+		rt_thread_delay(1000);
 	}
 }
 void mnt_init(void)
@@ -113,7 +127,7 @@ int low_level_init(void)
 
 int main(void)
 {
-#if 0
+#if 1
 	/* put user application code here */
 	dev_usart1 = rt_device_find("uart1");
 
@@ -122,11 +136,12 @@ int main(void)
 		return 0;
 	}
 	if (rt_device_open(dev_usart1, 
-				RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX 
+				RT_DEVICE_OFLAG_WRONLY | RT_DEVICE_FLAG_DMA_TX
 				) == RT_EOK)
 	{
 		rt_sem_init(&rx_sem, "usart1_sem", 0, 0);
-		rt_device_set_rx_indicate(dev_usart1, rx_ind);
+		//rt_device_set_rx_indicate(dev_usart1, rx_ind);
+		rt_device_set_tx_complete(dev_usart1,tx_ind);
 		rt_thread_startup(rt_thread_create("usart1_rx",
 					usart1_rx, RT_NULL,2048, 20, 10));
 	}
@@ -135,7 +150,12 @@ int main(void)
 	//					usart1_rx, RT_NULL,2048, 20, 10));
 
 	//low_level_init();
-
+	/*
+	uint32_t data[1000]={0};
+	rt_memset(data,0,1000*sizeof(uint32_t));
+	afec_get(1,data,1000);
+	rt_memset(data,0,1000*sizeof(uint32_t));
+	afec_get(0,data,1000);*/
 	return 0;
 }
 INIT_ENV_EXPORT(low_level_init);
@@ -154,7 +174,7 @@ int download_file(void)
 	return 0;
 }
 //INIT_APP_EXPORT(download_file);
-
+#ifdef RT_USING_FINSH
 #ifdef FINSH_USING_MSH
 #include <finsh.h>
 
@@ -171,4 +191,4 @@ int cmd_exec(int argc, char **argv)
 FINSH_FUNCTION_EXPORT_ALIAS(cmd_exec, __cmd_exec, exec a app module);
 #endif
 #endif
-
+#endif
