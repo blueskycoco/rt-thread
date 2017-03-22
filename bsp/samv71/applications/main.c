@@ -22,7 +22,7 @@
  * 2009-01-05     Bernard      the first version
  * 2014-04-27     Bernard      make code cleanup.
  */
-
+	 
 #include <rtthread.h>
 #ifdef RT_USING_DFS
 /* dfs filesystem:ELM filesystem init */
@@ -36,6 +36,8 @@
 #include "drv_afec.h"
 #endif 
 static struct rt_semaphore rx_sem;
+static struct rt_semaphore tx_sem;
+
 rt_device_t dev_usart1 = RT_NULL;
 
 static rt_err_t rx_ind(rt_device_t dev, rt_size_t size)
@@ -45,28 +47,28 @@ static rt_err_t rx_ind(rt_device_t dev, rt_size_t size)
 }
 static rt_err_t tx_ind(rt_device_t dev, void *buffer)
 {
-	rt_sem_release(&rx_sem);
+	rt_sem_release(&tx_sem);
 	return RT_EOK;
 }
 
 static void usart1_rx(void* parameter)
 {
 	int len = 0;
-	rt_uint8_t buf[256] = {0};
+	__attribute__((__aligned__(32))) rt_uint8_t buf[257] = {0};
+	__attribute__((__aligned__(32))) rt_uint8_t buf1[257] = {0};
 	int i=0;
-	//return;
 	while (1)
 	{	
-		//len=rt_device_read(dev_usart1, 0, buf, 256);
-		//buf[len]='\0';
-		//rt_kprintf("%s", buf);
-		rt_memset(buf,i+0x30,256);
-		i++;
-		if(i==30)
-			i=0;
-		rt_device_write(dev_usart1,0,buf,256);
+		rt_device_read(dev_usart1,0,buf,256);
 		if (rt_sem_take(&rx_sem, RT_WAITING_FOREVER) != RT_EOK) continue;
-		rt_thread_delay(1000);
+		//for (i=0;i<256;i++)
+		//	rt_kprintf("%c",buf[i]);
+		//rt_memset(buf1,0,256);
+		//for(i=0;i<256;i++)
+		//	buf1[i]=buf[255-i];
+		//rt_memcpy(buf1,buf,256);
+		rt_device_write(dev_usart1,0,buf,256);
+		if (rt_sem_take(&tx_sem, RT_WAITING_FOREVER) != RT_EOK) continue;
 	}
 }
 void mnt_init(void)
@@ -136,11 +138,12 @@ int main(void)
 		return 0;
 	}
 	if (rt_device_open(dev_usart1, 
-				RT_DEVICE_OFLAG_WRONLY | RT_DEVICE_FLAG_DMA_TX
+				RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_TX| RT_DEVICE_FLAG_DMA_RX
 				) == RT_EOK)
 	{
-		rt_sem_init(&rx_sem, "usart1_sem", 0, 0);
-		//rt_device_set_rx_indicate(dev_usart1, rx_ind);
+		rt_sem_init(&rx_sem, "usart1_rsem", 0, 0);
+		rt_sem_init(&tx_sem, "usart1_tsem", 0, 0);
+		rt_device_set_rx_indicate(dev_usart1, rx_ind);
 		rt_device_set_tx_complete(dev_usart1,tx_ind);
 		rt_thread_startup(rt_thread_create("usart1_rx",
 					usart1_rx, RT_NULL,2048, 20, 10));

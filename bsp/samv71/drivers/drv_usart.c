@@ -44,6 +44,7 @@ struct samv71_uart
     Usart *UartHandle;
     IRQn_Type irq;
 	UsartChannel UsartTx;
+	UsartChannel UsartRx;
 	UsartDma Usartd;
 	uint32_t mode;
 	uint32_t baud;
@@ -102,9 +103,9 @@ static rt_err_t samv71_control(struct rt_serial_device *serial, int cmd, void *a
         break;
     case RT_DEVICE_CTRL_SET_INT:
         /* enable rx irq */
-        UART_ENABLE_IRQ(uart->irq);
+        ///UART_ENABLE_IRQ(uart->irq);
         /* enable interrupt */
-        USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
+        //USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
         break;
     }
 
@@ -185,10 +186,25 @@ static void samv71_USARTD_Tx_Cb(uint32_t channel, struct samv71_uart *pArg)
 	XDMAD_FreeChannel(pArg->Usartd.pXdmad, pUsartdCh->ChNum);
 
 	pUsartdCh->dmaProgress = 1;
-	USARTD_DisableTxChannels(&(pArg->Usartd), &(pArg->UsartTx));
 	rt_hw_serial_isr(&serial1, RT_SERIAL_EVENT_TX_DMADONE);
-	//rt_kprintf("samv71_USARTD_Tx_Cb \n");
+	USARTD_DisableTxChannels(&(pArg->Usartd), &(pArg->UsartTx));
 }
+static void samv71_USARTD_Rx_Cb(uint32_t channel, struct samv71_uart *pArg)
+{
+
+	UsartChannel *pUsartdCh = pArg->Usartd.pRxChannel;
+
+	if (channel != pUsartdCh->ChNum)
+		return;
+
+	/* Release the DMA channels */
+	XDMAD_FreeChannel(pArg->Usartd.pXdmad, pUsartdCh->ChNum);
+	pUsartdCh->dmaProgress = 1;
+	SCB_InvalidateDCache_by_Addr((uint32_t *)pUsartdCh->pBuff, pUsartdCh->BuffSize);
+	rt_hw_serial_isr(&serial1, (pUsartdCh->BuffSize << 8)|RT_SERIAL_EVENT_RX_DMADONE);
+	USARTD_DisableRxChannels(&(pArg->Usartd), &(pArg->UsartRx));
+}
+
 rt_size_t samv71_dma_transmit(struct rt_serial_device *serial, rt_uint8_t *buf, rt_size_t size, int direction)
 {
     struct samv71_uart *uart;
@@ -210,6 +226,21 @@ rt_size_t samv71_dma_transmit(struct rt_serial_device *serial, rt_uint8_t *buf, 
 		USARTD_EnableTxChannels(&(uart->Usartd), &(uart->UsartTx));
 		USARTD_SendData(&(uart->Usartd));
 	}
+	else
+	{
+		rt_memset(&(uart->UsartRx), 0, sizeof(UsartChannel));
+		uart->UsartRx.BuffSize = size;
+		uart->UsartRx.pBuff = buf;
+		uart->UsartRx.dmaProgress = 1;
+		uart->UsartRx.dmaProgrammingMode = XDMAD_SINGLE;
+		uart->Usartd.pXdmad = &dmaDrv;
+		uart->Usartd.pRxChannel = &(uart->UsartRx);
+		uart->Usartd.pRxChannel->callback = (UsartdCallback)samv71_USARTD_Rx_Cb;
+		uart->Usartd.pRxChannel->pArgument= uart;
+		USARTD_Configure(&(uart->Usartd), ID_USART1, uart->mode, uart->baud, BOARD_MCK);
+		USARTD_EnableRxChannels(&(uart->Usartd), &(uart->UsartRx));
+		USARTD_RcvData(&(uart->Usartd));
+	}
 	return size;
 }
 #endif /* RT_USING_UART1 */
@@ -224,11 +255,11 @@ int samv71_hw_usart_init(void)
     uart->UartHandle = USART1;
 	uart->irq = USART1_IRQn;
     serial1.ops    = &samv71_uart_ops;
+	config.bufsz = 0;
     serial1.config = config;
-
     /* register UART1 device */
     rt_hw_serial_register(&serial1, "uart1",
-                          RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX | RT_DEVICE_FLAG_DMA_TX,
+                          RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX | RT_DEVICE_FLAG_DMA_TX | RT_DEVICE_FLAG_DMA_RX,
                           uart);
 #endif /* RT_USING_UART1 */
 
