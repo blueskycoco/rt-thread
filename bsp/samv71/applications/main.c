@@ -54,21 +54,16 @@ static rt_err_t tx_ind(rt_device_t dev, void *buffer)
 static void usart1_rx(void* parameter)
 {
 	int len = 0;
-	__attribute__((__aligned__(32))) rt_uint8_t buf[257] = {0};
-	__attribute__((__aligned__(32))) rt_uint8_t buf1[257] = {0};
+	__attribute__((__aligned__(32))) rt_uint8_t buf[256] = {0};
 	int i=0;
 	while (1)
 	{	
+		//rt_memset(buf,0,256);
 		rt_device_read(dev_usart1,0,buf,256);
-		if (rt_sem_take(&rx_sem, RT_WAITING_FOREVER) != RT_EOK) continue;
-		//for (i=0;i<256;i++)
-		//	rt_kprintf("%c",buf[i]);
-		//rt_memset(buf1,0,256);
-		//for(i=0;i<256;i++)
-		//	buf1[i]=buf[255-i];
-		//rt_memcpy(buf1,buf,256);
+		rt_sem_take(&rx_sem, RT_WAITING_FOREVER);
 		rt_device_write(dev_usart1,0,buf,256);
 		if (rt_sem_take(&tx_sem, RT_WAITING_FOREVER) != RT_EOK) continue;
+		rt_thread_delay(10);
 	}
 }
 void mnt_init(void)

@@ -183,11 +183,11 @@ static void samv71_USARTD_Tx_Cb(uint32_t channel, struct samv71_uart *pArg)
 		return;
 
 	/* Release the DMA channels */
-	XDMAD_FreeChannel(pArg->Usartd.pXdmad, pUsartdCh->ChNum);
+	//XDMAD_FreeChannel(pArg->Usartd.pXdmad, pUsartdCh->ChNum);
 
-	pUsartdCh->dmaProgress = 1;
-	rt_hw_serial_isr(&serial1, RT_SERIAL_EVENT_TX_DMADONE);
+	//pUsartdCh->dmaProgress = 1;
 	USARTD_DisableTxChannels(&(pArg->Usartd), &(pArg->UsartTx));
+	rt_hw_serial_isr(&serial1, RT_SERIAL_EVENT_TX_DMADONE);
 }
 static void samv71_USARTD_Rx_Cb(uint32_t channel, struct samv71_uart *pArg)
 {
@@ -198,11 +198,11 @@ static void samv71_USARTD_Rx_Cb(uint32_t channel, struct samv71_uart *pArg)
 		return;
 
 	/* Release the DMA channels */
-	XDMAD_FreeChannel(pArg->Usartd.pXdmad, pUsartdCh->ChNum);
-	pUsartdCh->dmaProgress = 1;
+	//XDMAD_FreeChannel(pArg->Usartd.pXdmad, pUsartdCh->ChNum);
+	//pUsartdCh->dmaProgress = 1;
+	USARTD_DisableRxChannels(&(pArg->Usartd), &(pArg->UsartRx));
 	SCB_InvalidateDCache_by_Addr((uint32_t *)pUsartdCh->pBuff, pUsartdCh->BuffSize);
 	rt_hw_serial_isr(&serial1, (pUsartdCh->BuffSize << 8)|RT_SERIAL_EVENT_RX_DMADONE);
-	USARTD_DisableRxChannels(&(pArg->Usartd), &(pArg->UsartRx));
 }
 
 rt_size_t samv71_dma_transmit(struct rt_serial_device *serial, rt_uint8_t *buf, rt_size_t size, int direction)
