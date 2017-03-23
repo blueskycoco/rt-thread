@@ -124,7 +124,7 @@ int low_level_init(void)
 
 int main(void)
 {
-#if 1
+#if 0
 	/* put user application code here */
 	dev_usart1 = rt_device_find("uart1");
 

@@ -103,9 +103,9 @@ static rt_err_t samv71_control(struct rt_serial_device *serial, int cmd, void *a
         break;
     case RT_DEVICE_CTRL_SET_INT:
         /* enable rx irq */
-        ///UART_ENABLE_IRQ(uart->irq);
+        UART_ENABLE_IRQ(uart->irq);
         /* enable interrupt */
-        //USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
+        USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
         break;
     }
 
@@ -255,7 +255,7 @@ int samv71_hw_usart_init(void)
     uart->UartHandle = USART1;
 	uart->irq = USART1_IRQn;
     serial1.ops    = &samv71_uart_ops;
-	config.bufsz = 0;
+	//config.bufsz = 0;
     serial1.config = config;
     /* register UART1 device */
     rt_hw_serial_register(&serial1, "uart1",
