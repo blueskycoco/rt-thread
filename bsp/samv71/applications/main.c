@@ -42,6 +42,7 @@ rt_device_t dev_usart1 = RT_NULL;
 
 static rt_err_t rx_ind(rt_device_t dev, rt_size_t size)
 {
+	//rt_kprintf("rx_ind %d\n",size);
 	rt_sem_release(&rx_sem);
 	return RT_EOK;
 }
@@ -58,7 +59,7 @@ static void usart1_rx(void* parameter)
 	int i=0;
 	while (1)
 	{	
-		//rt_memset(buf,0,256);
+		rt_memset(buf,0,256);
 		rt_device_read(dev_usart1,0,buf,256);
 		rt_sem_take(&rx_sem, RT_WAITING_FOREVER);
 		rt_device_write(dev_usart1,0,buf,256);
@@ -124,7 +125,7 @@ int low_level_init(void)
 
 int main(void)
 {
-#if 0
+#if 1
 	/* put user application code here */
 	dev_usart1 = rt_device_find("uart1");
 
@@ -132,6 +133,9 @@ int main(void)
 		rt_kprintf("can not find usart1 \n");
 		return 0;
 	}
+	struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+	config.bufsz = 0;
+	rt_device_control(RT_DEVICE(dev_usart1), RT_DEVICE_CTRL_CONFIG, &config);
 	if (rt_device_open(dev_usart1, 
 				RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_TX| RT_DEVICE_FLAG_DMA_RX
 				) == RT_EOK)
