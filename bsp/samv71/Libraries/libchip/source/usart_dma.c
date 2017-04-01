@@ -372,7 +372,7 @@ uint32_t USARTD_Configure(UsartDma *pUsartd ,
 	pUsartd->pXdmad->pXdmacs = XDMAC;
 	/* Enable the USART Peripheral ,Execute a software reset of the USART,
 	    Configure USART in Master Mode*/
-	USART_Configure (pUsartd->pUsartHw, UsartMode, BaudRate, UsartClk);
+	//USART_Configure (pUsartd->pUsartHw, UsartMode, BaudRate, UsartClk);
 
 	/* Driver initialize */
 	XDMAD_Initialize(pUsartd->pXdmad, 0);
@@ -507,7 +507,7 @@ uint32_t USARTD_DisableRxChannels(UsartDma *pUsartd, UsartChannel *pRxCh)
 	assert(pRxCh);
 
 	/* Enables the USART to transfer data. */
-	USART_SetReceiverEnabled (pUsartd->pUsartHw , DISABLE);
+	//USART_SetReceiverEnabled (pUsartd->pUsartHw , DISABLE);
 
 	XDMAD_StopTransfer(pUsartd->pXdmad, pRxCh->ChNum);
 
@@ -541,7 +541,7 @@ uint32_t USARTD_DisableTxChannels(UsartDma *pUsartd, UsartChannel *pTxCh)
 	assert(pTxCh);
 
 	/* Enables the USART to transfer data. */
-	USART_SetTransmitterEnabled (pUsartd->pUsartHw , DISABLE);
+	//USART_SetTransmitterEnabled (pUsartd->pUsartHw , DISABLE);
 
 	XDMAD_StopTransfer(pUsartd->pXdmad, pTxCh->ChNum);
 

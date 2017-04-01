@@ -87,11 +87,6 @@ static rt_err_t samv71_configure(struct rt_serial_device *serial, struct serial_
 		   | US_MR_CHRL_8_BIT);
 	// Enable receiver and transmitter
 	uart->UartHandle->US_CR = US_CR_RXEN | US_CR_TXEN;
-	//NVIC_ClearPendingIRQ(uart->irq);
-	//NVIC_SetPriority(uart->irq , 1);
-	//USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
-    /* enable interrupt */
-    //USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
     return RT_EOK;
 }
 
@@ -106,17 +101,15 @@ static rt_err_t samv71_control(struct rt_serial_device *serial, int cmd, void *a
     {
     case RT_DEVICE_CTRL_CLR_INT:
         /* disable rx irq */
-        //UART_DISABLE_IRQ(uart->irq);
+        UART_DISABLE_IRQ(uart->irq);
         /* disable interrupt */
-		//USART_DisableIt(uart->UartHandle, US_IER_RXRDY);
+		USART_DisableIt(uart->UartHandle, US_IER_RXRDY);
         break;
     case RT_DEVICE_CTRL_SET_INT:
         /* enable rx irq */
-        //UART_ENABLE_IRQ(uart->irq);
+        UART_ENABLE_IRQ(uart->irq);
         /* enable interrupt */
-        //USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
-		//USART_EnableIt(uart->UartHandle, US_IER_TIMEOUT);
-		//USART_EnableRecvTimeOut(uart->UartHandle, 115200);
+		USART_EnableIt(uart->UartHandle, US_IER_RXRDY);
         break;
     }
 
@@ -177,18 +170,14 @@ void USART1_Handler(void)
     /* enter interrupt */
     rt_interrupt_enter();
 	    
-    //if (uart->UartHandle->US_CSR & US_CSR_RXRDY)
-    //{
-    //    rt_hw_serial_isr(&serial1, RT_SERIAL_EVENT_RX_IND);
-        /* Clear RXNE interrupt flag */
-        //__HAL_UART_SEND_REQ(&uart->UartHandle, UART_RXDATA_FLUSH_REQUEST);
-    //} 
-		//rt_kprintf("CSR TIMEOUT occur\n");
+    if (uart->UartHandle->US_CSR & US_CSR_RXRDY)
+    {
+        rt_hw_serial_isr(&serial1, RT_SERIAL_EVENT_RX_IND);
+    } 
 	if (uart->UartHandle->US_CSR & US_CSR_TIMEOUT) {
 		USART_AcknowledgeRxTimeOut(uart->UartHandle, 0);
-		//USART_AcknowledgeRxTimeOut(uart->UartHandle, 1); // generate periodic interrupt
 		UsartChannel *pUsartdCh = uart->Usartd.pRxChannel;
-		XDMAC_SoftwareFlushReq(uart->Usartd.pXdmad->pXdmacs, pUsartdCh->ChNum);
+		//XDMAC_SoftwareFlushReq(uart->Usartd.pXdmad->pXdmacs, pUsartdCh->ChNum);
 		if (pUsartdCh->dmaProgress == 0) {
 			USARTD_DisableRxChannels(&(uart->Usartd), &(uart->UsartRx));
 			SCB_InvalidateDCache_by_Addr((uint32_t *)pUsartdCh->pBuff, pUsartdCh->BuffSize);
@@ -204,11 +193,6 @@ static void samv71_USARTD_Tx_Cb(uint32_t channel, struct samv71_uart *pArg)
 
 	if (channel != pUsartdCh->ChNum)
 		return;
-
-	/* Release the DMA channels */
-	//XDMAD_FreeChannel(pArg->Usartd.pXdmad, pUsartdCh->ChNum);
-
-	//pUsartdCh->dmaProgress = 1;
 	USARTD_DisableTxChannels(&(pArg->Usartd), &(pArg->UsartTx));
 	rt_hw_serial_isr(pArg->serial_device, RT_SERIAL_EVENT_TX_DMADONE);
 }
@@ -219,10 +203,6 @@ static void samv71_USARTD_Rx_Cb(uint32_t channel, struct samv71_uart *pArg)
 
 	if (channel != pUsartdCh->ChNum)
 		return;
-
-	/* Release the DMA channels */
-	//XDMAD_FreeChannel(pArg->Usartd.pXdmad, pUsartdCh->ChNum);
-	//pUsartdCh->dmaProgress = 1;
 	USARTD_DisableRxChannels(&(pArg->Usartd), &(pArg->UsartRx));
 	SCB_InvalidateDCache_by_Addr((uint32_t *)pUsartdCh->pBuff, pUsartdCh->BuffSize);
 	rt_hw_serial_isr(pArg->serial_device, (pUsartdCh->BuffSize << 8)|RT_SERIAL_EVENT_RX_DMADONE);

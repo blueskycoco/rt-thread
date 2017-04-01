@@ -388,7 +388,7 @@ uint32_t UARTD_Configure(UartDma *pUartd ,
 
 	/* Enable the UART Peripheral ,Execute a software reset of the UART,
 	    Configure UART in Master Mode*/
-	UART_Configure (pUartd->pUartHw, uartMode, baud, clk);
+	//UART_Configure (pUartd->pUartHw, uartMode, baud, clk);
 
 	/* Driver initialize */
 	XDMAD_Initialize(pUartd->pXdmad, 0);
@@ -522,7 +522,7 @@ uint32_t UARTD_DisableRxChannels(UartDma *pUartd, UartChannel *pRxCh)
 	assert(pRxCh);
 
 	/* Enables the USART to transfer data. */
-	UART_SetReceiverEnabled (pUartd->pUartHw , DISABLE);
+	//UART_SetReceiverEnabled (pUartd->pUartHw , DISABLE);
 
 	XDMAD_StopTransfer(pUartd->pXdmad, pRxCh->ChNum);
 
@@ -557,7 +557,7 @@ uint32_t UARTD_DisableTxChannels(UartDma *pUartd, UartChannel *pTxCh)
 	assert(pTxCh);
 
 	/* Enables the USART to transfer data. */
-	UART_SetTransmitterEnabled (pUartd->pUartHw , DISABLE);
+	//UART_SetTransmitterEnabled (pUartd->pUartHw , DISABLE);
 
 	XDMAD_StopTransfer(pUartd->pXdmad, pTxCh->ChNum);
 

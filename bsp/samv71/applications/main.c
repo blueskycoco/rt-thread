@@ -35,36 +35,180 @@
 #include "drv_sdio.h"
 #include "drv_afec.h"
 #endif 
-static struct rt_semaphore rx_sem;
-static struct rt_semaphore tx_sem;
+static struct rt_semaphore rx_sem_uart2;
+static struct rt_semaphore tx_sem_uart2;
+rt_device_t dev_uart2 = RT_NULL;
 
-rt_device_t dev_usart1 = RT_NULL;
-
-static rt_err_t rx_ind(rt_device_t dev, rt_size_t size)
+static rt_err_t rx_ind_uart2(rt_device_t dev, rt_size_t size)
 {
-	//rt_kprintf("rx_ind %d\n",size);
-	rt_sem_release(&rx_sem);
-	return RT_EOK;
+    rt_sem_release(&rx_sem_uart2);
+    return RT_EOK;
 }
-static rt_err_t tx_ind(rt_device_t dev, void *buffer)
+static rt_err_t tx_ind_uart2(rt_device_t dev, void *buffer)
 {
-	rt_sem_release(&tx_sem);
-	return RT_EOK;
+    rt_sem_release(&tx_sem_uart2);
+    return RT_EOK;
 }
-
-static void usart1_rx(void* parameter)
+static void uart2_rx_int_normal_tx(void* parameter)
 {
 	int len = 0;
-	__attribute__((__aligned__(32))) rt_uint8_t buf[256] = {0};
+	rt_uint8_t buf[256] = {0};
+	rt_kprintf("uart2_rx_int_normal_tx start\r\n");
+	while (1)
+	{	
+		if (rt_sem_take(&rx_sem_uart2, RT_WAITING_FOREVER) != RT_EOK) 
+		{
+			rt_kprintf("no message from uart2\n");
+			continue;
+		}
+		len=rt_device_read(dev_uart2, 0, buf, 256);
+		rt_device_write(dev_uart2,0,buf,len);
+	}
+}
+static void uart2_rx_int_dma_tx(void* parameter)
+{
+	rt_kprintf("uart2_rx_int_dma_tx start\r\n");
+	int len = 0;
+	rt_uint8_t buf[256] = {0};
+	while (1)
+	{	
+		if (rt_sem_take(&rx_sem_uart2, RT_WAITING_FOREVER) != RT_EOK) 
+		{
+			rt_kprintf("no message from uart2\n");
+			continue;
+		}
+		
+		len=rt_device_read(dev_uart2, 0, buf, 256);
+		rt_device_write(dev_uart2,0,buf,len);
+		rt_sem_take(&tx_sem_uart2, RT_WAITING_FOREVER);
+	}
+}
+static void uart2_rx_dma_dma_tx(void* parameter)
+{
+	rt_kprintf("uart2_rx_dma_dma_tx start\r\n");
 	int i=0;
+	__attribute__((__aligned__(32))) rt_uint8_t buf[256] = {0};
 	while (1)
 	{	
 		rt_memset(buf,0,256);
-		rt_device_read(dev_usart1,0,buf,256);
-		rt_sem_take(&rx_sem, RT_WAITING_FOREVER);
-		rt_device_write(dev_usart1,0,buf,256);
-		if (rt_sem_take(&tx_sem, RT_WAITING_FOREVER) != RT_EOK) continue;
-		rt_thread_delay(10);
+		rt_device_read(dev_uart2, 0, buf, 256);
+		rt_sem_take(&rx_sem_uart2, RT_WAITING_FOREVER);
+		i=0;
+		while(buf[i]!=0)
+			i++;
+		rt_device_write(dev_uart2,0,buf,i-1);
+		rt_sem_take(&tx_sem_uart2, RT_WAITING_FOREVER);
+	}
+}
+static void uart2_rx_dma_normal_tx(void* parameter)
+{
+	rt_kprintf("uart2_rx_dma_normal_tx start\r\n");
+	int i=0;
+	__attribute__((__aligned__(32))) rt_uint8_t buf[256] = {0};
+	while (1)
+	{	
+		rt_memset(buf,0,256);
+		rt_device_read(dev_uart2, 0, buf, 256);
+		rt_sem_take(&rx_sem_uart2, RT_WAITING_FOREVER);
+		i=0;
+		while(buf[i]!=0)
+			i++;
+		rt_device_write(dev_uart2,0,buf,i-1);
+	}
+}
+
+void test_uart2_rx_dma_normal_tx(void)
+{
+	dev_uart2 = rt_device_find("uart1");
+	if (dev_uart2 == RT_NULL) {
+		rt_kprintf("can not find uart2 \n");
+		return ;
+	}
+	struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+		config.baud_rate=115200;
+		config.parity=PARITY_NONE;
+		config.bufsz = 0;
+	rt_device_control(RT_DEVICE(dev_uart2), RT_DEVICE_CTRL_CONFIG, &config);
+	if (rt_device_open(dev_uart2, 
+		RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX 
+		) == RT_EOK)
+	{
+		rt_device_control(RT_DEVICE(dev_uart2), RT_DEVICE_CTRL_CLR_INT, (void *)RT_DEVICE_FLAG_INT_RX);
+		rt_sem_init(&rx_sem_uart2, "uart2_sem", 0, 0);
+		rt_device_set_rx_indicate(dev_uart2, rx_ind_uart2);
+		rt_thread_startup(rt_thread_create("uart2_rx",
+			uart2_rx_dma_normal_tx, RT_NULL,2048, 20, 10));
+	}
+}
+void test_uart2_rx_dma_dma_tx(void)
+{
+	dev_uart2 = rt_device_find("uart1");
+	if (dev_uart2 == RT_NULL) {
+		rt_kprintf("can not find uart2 \n");
+		return ;
+	}
+	struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+		config.baud_rate=115200;
+		config.parity=PARITY_NONE;
+		config.bufsz = 0;
+	rt_device_control(RT_DEVICE(dev_uart2), RT_DEVICE_CTRL_CONFIG, &config);
+	if (rt_device_open(dev_uart2, 
+		RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX | RT_DEVICE_FLAG_DMA_TX 
+		) == RT_EOK)
+	{
+		rt_device_control(RT_DEVICE(dev_uart2), RT_DEVICE_CTRL_CLR_INT, (void *)RT_DEVICE_FLAG_INT_RX);
+		rt_sem_init(&rx_sem_uart2, "uart2_sem", 0, 0);
+		rt_device_set_rx_indicate(dev_uart2, rx_ind_uart2);
+		rt_sem_init(&tx_sem_uart2, "uart2_tsem", 0, 0);
+		rt_device_set_tx_complete(dev_uart2, tx_ind_uart2);
+		rt_thread_startup(rt_thread_create("uart2_rx",
+			uart2_rx_dma_dma_tx, RT_NULL,2048, 20, 10));
+	}
+}
+void test_uart2_rx_int_dma_tx(void)
+{
+	dev_uart2 = rt_device_find("uart1");
+	if (dev_uart2 == RT_NULL) {
+		rt_kprintf("can not find uart2 \n");
+		return ;
+	}
+	struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+	config.baud_rate=115200;
+	config.parity=PARITY_NONE;
+	rt_device_control(RT_DEVICE(dev_uart2), RT_DEVICE_CTRL_CONFIG, &config);
+	rt_device_control(RT_DEVICE(dev_uart2), RT_DEVICE_CTRL_SET_INT, (void *)RT_DEVICE_FLAG_INT_RX);
+	if (rt_device_open(dev_uart2, 
+		RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX | RT_DEVICE_FLAG_DMA_TX 
+		) == RT_EOK)
+	{		
+		rt_sem_init(&rx_sem_uart2, "uart2_sem", 0, 0);
+		rt_device_set_rx_indicate(dev_uart2, rx_ind_uart2);
+		rt_sem_init(&tx_sem_uart2, "uart2_tsem", 0, 0);
+		rt_device_set_tx_complete(dev_uart2, tx_ind_uart2);
+		rt_thread_startup(rt_thread_create("uart2_rx",
+			uart2_rx_int_dma_tx, RT_NULL,2048, 20, 10));
+	}
+}
+void test_uart2_rx_int_normal_tx(void)
+{
+	dev_uart2 = rt_device_find("uart1");
+	if (dev_uart2 == RT_NULL) {
+		rt_kprintf("can not find uart2 \n");
+		return ;
+	}
+	struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+	config.baud_rate=115200;
+	config.parity=PARITY_NONE;
+	rt_device_control(RT_DEVICE(dev_uart2), RT_DEVICE_CTRL_CONFIG, &config);
+	rt_device_control(RT_DEVICE(dev_uart2), RT_DEVICE_CTRL_SET_INT, (void *)RT_DEVICE_FLAG_INT_RX);
+	if (rt_device_open(dev_uart2, 
+		RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX  
+		) == RT_EOK)
+	{		
+		rt_sem_init(&rx_sem_uart2, "uart2_sem", 0, 0);
+		rt_device_set_rx_indicate(dev_uart2, rx_ind_uart2);
+		rt_thread_startup(rt_thread_create("uart2_rx",
+			uart2_rx_int_normal_tx, RT_NULL,2048, 20, 10));
 	}
 }
 void mnt_init(void)
@@ -125,7 +269,7 @@ int low_level_init(void)
 
 int main(void)
 {
-#if 1
+#if 0
 	/* put user application code here */
 	dev_usart1 = rt_device_find("uart1");
 
@@ -133,31 +277,25 @@ int main(void)
 		rt_kprintf("can not find usart1 \n");
 		return 0;
 	}
-	struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
-	config.bufsz = 0;
-	rt_device_control(RT_DEVICE(dev_usart1), RT_DEVICE_CTRL_CONFIG, &config);
+	//struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+	//config.bufsz = 0;
+	//rt_device_control(RT_DEVICE(dev_usart1), RT_DEVICE_CTRL_CONFIG, &config);
 	if (rt_device_open(dev_usart1, 
-				RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_TX| RT_DEVICE_FLAG_DMA_RX
+				RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX
 				) == RT_EOK)
 	{
 		rt_sem_init(&rx_sem, "usart1_rsem", 0, 0);
-		rt_sem_init(&tx_sem, "usart1_tsem", 0, 0);
+		//rt_sem_init(&tx_sem, "usart1_tsem", 0, 0);
 		rt_device_set_rx_indicate(dev_usart1, rx_ind);
-		rt_device_set_tx_complete(dev_usart1,tx_ind);
+		//rt_device_set_tx_complete(dev_usart1,tx_ind);
 		rt_thread_startup(rt_thread_create("usart1_rx",
 					usart1_rx, RT_NULL,2048, 20, 10));
 	}
 #endif
-	//rt_thread_startup(rt_thread_create("usart1_rx",
-	//					usart1_rx, RT_NULL,2048, 20, 10));
-
-	//low_level_init();
-	/*
-	uint32_t data[1000]={0};
-	rt_memset(data,0,1000*sizeof(uint32_t));
-	afec_get(1,data,1000);
-	rt_memset(data,0,1000*sizeof(uint32_t));
-	afec_get(0,data,1000);*/
+	//test_uart2_rx_int_normal_tx();
+	//test_uart2_rx_int_dma_tx();
+	//test_uart2_rx_dma_dma_tx();
+	//test_uart2_rx_dma_normal_tx();
 	return 0;
 }
 INIT_ENV_EXPORT(low_level_init);
