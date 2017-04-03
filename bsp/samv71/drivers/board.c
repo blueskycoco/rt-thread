@@ -130,7 +130,9 @@ void rt_hw_board_init()
     rt_system_heap_init((void*)EXT_SDRAM_BEGIN, (void*)EXT_SDRAM_END);
     sram_init();
 #else
+	BOARD_ConfigureSdram();
     rt_system_heap_init((void*)HEAP_BEGIN, (void*)HEAP_END);
+    //rt_system_heap_init((void*)SDRAM_CS_ADDR, (void*)(SDRAM_CS_ADDR+BOARD_SDRAM_SIZE));
 #endif
 
 #ifdef RT_USING_CONSOLE
