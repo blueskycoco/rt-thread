@@ -29,6 +29,7 @@
 #include <dfs_elm.h>
 /* dfs Filesystem APIs */
 #include <dfs_fs.h>
+#include <dfs_posix.h>
 #include <spi_flash.h>
 #include <spi_flash_sfud.h>
 #include "drv_qspi.h"
