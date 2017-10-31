@@ -3178,7 +3178,7 @@ static rt_size_t rt_stm32_eth_write (rt_device_t dev, rt_off_t pos, const void* 
     return 0;
 }
 
-static rt_err_t rt_stm32_eth_control(rt_device_t dev, rt_uint8_t cmd, void *args)
+static rt_err_t rt_stm32_eth_control(rt_device_t dev, int cmd, void *args)
 {
     switch(cmd)
     {
@@ -3206,7 +3206,12 @@ rt_err_t rt_stm32_eth_tx( rt_device_t dev, struct pbuf* p)
     {
         rt_err_t result;
         result = rt_sem_take(&tx_buf_free, 2);
-        if (result != RT_EOK) return -RT_ERROR;
+        if (result != RT_EOK)
+        {
+            ETH_FlushTransmitFIFO();  // clear fifo
+            ETH_ResumeDMATransmission();	 //	resume dma	
+            return -RT_ERROR;
+        }
     }
 
     offset = 0;

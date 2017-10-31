@@ -154,7 +154,6 @@
 /* Trace LwIP protocol */
 /* #define RT_LWIP_DEBUG */
 
-//#define RT_LWIP_USING_RT_MEM
 //#define RT_LWIP_REASSEMBLY_FRAG
 
 #define SO_REUSE 1
@@ -267,5 +266,8 @@
  * And the maximal length must great than 64
  * #define RT_DFS_ELM_MAX_LFN	128
  */
+
+#define RT_USING_COMPONENTS_INIT
+#define RT_USING_USER_MAIN
 
 #endif
