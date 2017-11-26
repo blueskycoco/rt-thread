@@ -24,10 +24,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef  RT_USING_COMPONENTS_INIT
-#include <components.h>
-#endif  /* RT_USING_COMPONENTS_INIT */
-
 #ifdef RT_USING_DFS
 /* dfs filesystem:ELM filesystem init */
 #include <dfs_elm.h>
@@ -523,10 +519,6 @@ void rt_init_thread_entry(void* parameter)
     /* initialization RT-Thread Components */
     rt_components_init();
 #endif
-
-#ifdef  RT_USING_FINSH
-    finsh_set_device(RT_CONSOLE_DEVICE_NAME);
-#endif  /* RT_USING_FINSH */
 
     /* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)

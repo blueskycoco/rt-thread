@@ -23,6 +23,28 @@
 
 #include <rtconfig.h>
 
+/* settings depend check */
+#ifdef RT_USING_POSIX
+#if !defined(RT_USING_DFS) || !defined(RT_USING_DFS_DEVFS)
+#error "POSIX poll/select, stdin need file system(RT_USING_DFS) and device file system(RT_USING_DFS_DEVFS)"
+#endif
+
+#if defined(RT_USING_LWIP) && !defined(RT_USING_DFS_NET)
+#error "POSIX poll/select, stdin need file BSD socket API(RT_USING_DFS_NET)"
+#endif
+
+#if !defined(RT_USING_LIBC)
+#error "POSIX layer need standard C library(RT_USING_LIBC)"
+#endif
+
+#endif
+
+#ifdef RT_USING_POSIX_TERMIOS
+#if !defined(RT_USING_POSIX)
+#error "termios need POSIX layer(RT_USING_POSIX)"
+#endif
+#endif
+
 /* Using this macro to control all kernel debug features. */
 #ifdef RT_DEBUG
 
@@ -83,9 +105,7 @@ while (0)
 #define RT_ASSERT(EX)                                                         \
 if (!(EX))                                                                    \
 {                                                                             \
-    volatile char dummy = 0;                                                  \
-    rt_kprintf("(%s) assert failed at %s:%d \n", #EX, __FUNCTION__, __LINE__);\
-    while (dummy == 0);                                                       \
+    rt_assert_handler(#EX, __FUNCTION__, __LINE__);                           \
 }
 
 /* Macro to check current context */

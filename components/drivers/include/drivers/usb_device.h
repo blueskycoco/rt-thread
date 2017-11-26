@@ -22,19 +22,20 @@
  * 2012-10-01     Yi Qiu       first version
  * 2012-12-12     heyuanjie87  change endpoint and function handler
  * 2013-04-26     aozima       add DEVICEQUALIFIER support.
+ * 2017-11-15     ZYH          fix ep0 transform error
  */
 
 #ifndef  __USB_DEVICE_H__
 #define  __USB_DEVICE_H__
 
 #include <rtthread.h>
-#include "usb_common.h"
+#include "drivers/usb_common.h"
 
 /* Vendor ID */
 #ifdef USB_VENDOR_ID
-#define _VENDOR_ID              USB_VENDOR_ID
+#define _VENDOR_ID                  USB_VENDOR_ID
 #else
-#define _VENDOR_ID              0x0EFF
+#define _VENDOR_ID                  0x0EFF
 #endif
 /* Product ID */
 #ifdef USB_PRODUCT_ID
@@ -76,7 +77,7 @@ typedef enum
     /* request to read full count */
     UIO_REQUEST_READ_FULL,
     /* request to read any count */
-    UIO_REQUEST_READ_MOST,  
+    UIO_REQUEST_READ_BEST,  
     /* request to write full count */
     UIO_REQUEST_WRITE,
 }UIO_REQUEST_TYPE;
@@ -99,11 +100,11 @@ struct udcd_ops
 
 struct ep_id
 {
-    rt_uint8_t addr;
-    rt_uint8_t type;
-    rt_uint8_t dir;
-    rt_uint8_t maxpacket;
-    rt_uint8_t status;
+    rt_uint8_t  addr;
+    rt_uint8_t  type;
+    rt_uint8_t  dir;
+    rt_uint16_t maxpacket;
+    rt_uint8_t  status;
 };
 
 typedef rt_err_t (*udep_handler_t)(struct ufunction* func, rt_size_t size);
@@ -137,6 +138,7 @@ struct udcd
     struct rt_device parent;
     const struct udcd_ops* ops;
     struct uendpoint ep0;
+    uep0_stage_t stage;
     struct ep_id* ep_pool;
 };
 typedef struct udcd* udcd_t;
@@ -198,6 +200,7 @@ struct udevice
     struct udevice_descriptor dev_desc;
 
     struct usb_qualifier_descriptor * dev_qualifier;
+    usb_os_comp_id_desc_t    os_comp_id_desc;
     const char** str;
 
     udevice_state_t state;
@@ -238,7 +241,7 @@ struct udev_msg
     udcd_t dcd;
     union
     {
-        struct ep_msg ep_msg;
+        struct ep_msg   ep_msg;
         struct urequest setup;
     } content;
 };
@@ -259,11 +262,13 @@ rt_err_t rt_usbd_device_set_controller(udevice_t device, udcd_t dcd);
 rt_err_t rt_usbd_device_set_descriptor(udevice_t device, udev_desc_t dev_desc);
 rt_err_t rt_usbd_device_set_string(udevice_t device, const char** ustring);
 rt_err_t rt_usbd_device_set_qualifier(udevice_t device, struct usb_qualifier_descriptor* qualifier);
+rt_err_t rt_usbd_device_set_os_comp_id_desc(udevice_t device, usb_os_comp_id_desc_t os_comp_id_desc);
 rt_err_t rt_usbd_device_add_config(udevice_t device, uconfig_t cfg);
 rt_err_t rt_usbd_config_add_function(uconfig_t cfg, ufunction_t func);
 rt_err_t rt_usbd_function_add_interface(ufunction_t func, uintf_t intf);
 rt_err_t rt_usbd_interface_add_altsetting(uintf_t intf, ualtsetting_t setting);
 rt_err_t rt_usbd_altsetting_add_endpoint(ualtsetting_t setting, uep_t ep);
+rt_err_t rt_usbd_os_comp_id_desc_add_os_func_comp_id_desc(usb_os_comp_id_desc_t os_comp_id_desc, usb_os_func_comp_id_desc_t os_func_comp_id_desc);
 rt_err_t rt_usbd_altsetting_config_descriptor(ualtsetting_t setting, const void* desc, rt_off_t intf_pos);
 rt_err_t rt_usbd_set_config(udevice_t device, rt_uint8_t value);
 rt_err_t rt_usbd_set_altsetting(uintf_t intf, rt_uint8_t value);
@@ -295,7 +300,7 @@ rt_err_t rt_usbd_ep0_clear_stall(udevice_t device);
 rt_err_t rt_usbd_ep0_setup_handler(udcd_t dcd, struct urequest* setup);
 rt_err_t rt_usbd_ep0_in_handler(udcd_t dcd);
 rt_err_t rt_usbd_ep0_out_handler(udcd_t dcd, rt_size_t size);
-rt_err_t rt_usbd_ep_in_handler(udcd_t dcd, rt_uint8_t address);
+rt_err_t rt_usbd_ep_in_handler(udcd_t dcd, rt_uint8_t address, rt_size_t size);
 rt_err_t rt_usbd_ep_out_handler(udcd_t dcd, rt_uint8_t address, rt_size_t size);
 rt_err_t rt_usbd_reset_handler(udcd_t dcd);
 rt_err_t rt_usbd_connect_handler(udcd_t dcd);

@@ -361,7 +361,7 @@ static rt_size_t _log_write(rt_device_t dev, rt_off_t pos, const void *buffer, r
     return size;
 }
 
-static rt_err_t _log_control(rt_device_t dev, rt_uint8_t cmd, void *arg)
+static rt_err_t _log_control(rt_device_t dev, int cmd, void *arg)
 {
     if (_traceout_device == RT_NULL) return -RT_ERROR;
 
@@ -391,6 +391,7 @@ int log_trace_init(void)
 
     return 0;
 }
+INIT_DEVICE_EXPORT(log_trace_init);
 
 rt_device_t log_trace_get_device(void)
 {

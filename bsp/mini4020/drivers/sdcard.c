@@ -271,7 +271,7 @@ static rt_err_t sd_readblock(rt_uint32_t address, rt_uint8_t* buf)
 	U32 complete,i;
 	rt_uint8_t temp;
 	rt_err_t err;
-	UNUSED rt_uint32_t discard;
+	RT_UNUSED rt_uint32_t discard;
 	#ifdef USE_TIMEOUT
 	rt_uint32_t to = 10;
 	#endif
@@ -503,7 +503,7 @@ static rt_err_t rt_sdcard_close(rt_device_t dev)
  *
  * @param hook the hook function
  */
-static rt_err_t rt_sdcard_control(rt_device_t dev, rt_uint8_t cmd, void *args)
+static rt_err_t rt_sdcard_control(rt_device_t dev, int cmd, void *args)
 {
 	rt_kprintf("cmd = %d\n",cmd);
 	    RT_ASSERT(dev != RT_NULL);

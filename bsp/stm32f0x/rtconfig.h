@@ -34,7 +34,7 @@
 #define RT_USING_SEMAPHORE
 
 /* Using Mutex */
-/* #define RT_USING_MUTEX */
+#define RT_USING_MUTEX
 
 /* Using Event */
 /* #define RT_USING_EVENT */
@@ -83,11 +83,13 @@
 #define FINSH_THREAD_STACK_SIZE	1024
 #define FINSH_HISTORY_LINES	1
 /* Using symbol table */
-#define FINSH_USING_SYMTAB
-#define FINSH_USING_DESCRIPTION
+//#define FINSH_USING_SYMTAB
+//#define FINSH_USING_DESCRIPTION
+#define FINSH_USING_MSH
+#define FINSH_USING_MSH_ONLY
 
 /* SECTION: libc management */
-#define RT_USING_LIBC
+// #define RT_USING_LIBC
 
 /* SECTION: device filesystem */
 /* #define RT_USING_DFS */
