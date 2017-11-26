@@ -213,8 +213,8 @@ rt_err_t rt_data_queue_pop(struct rt_data_queue *queue,
             goto __exit;
     }
 
-    *data_ptr = queue->queue[queue->get_index & mask].data_ptr;
-    *size     = queue->queue[queue->get_index & mask].data_size;
+    *data_ptr = queue->queue[queue->get_index % queue->size].data_ptr;
+    *size     = queue->queue[queue->get_index % queue->size].data_size;
     queue->get_index += 1;
 
     if ((queue->put_index - queue->get_index) <= queue->lwm)
