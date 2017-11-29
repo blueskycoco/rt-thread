@@ -6,17 +6,41 @@
 #define HW 1
 #define GDO0_H (1<<0)
 #define GDO0_L (1<<1)
+//#define STM32F103ZET6
+#ifdef STM32F103ZET6
+#define PIN_CS		GPIO_Pin_4
+#define PORT_CS		GPIOA
+#define PIN_GDO0	GPIO_Pin_5
+#define PORT_GDO0	GPIOC
+#define PIN_GDO2	GPIO_Pin_4
+#define PORT_GDO2	GPIOC
+#define GPIO_PortSourceX GPIO_PortSourceGPIOC
+#define GPIO_PinSourceX GPIO_PinSource5
+#define EXTI_IRQnX EXTI9_5_IRQn
+#define EXTI_LineX	EXTI_Line5
+#else
+#define PIN_CS		GPIO_Pin_1
+#define PORT_CS		GPIOA
+#define PIN_GDO0	GPIO_Pin_2
+#define PORT_GDO0	GPIOA
+#define PIN_GDO2	GPIO_Pin_3
+#define PORT_GDO2	GPIOA
+#define GPIO_PortSourceX GPIO_PortSourceGPIOA
+#define GPIO_PinSourceX GPIO_PinSource2
+#define EXTI_IRQnX EXTI2_IRQn
+#define EXTI_LineX	EXTI_Line2
+#endif
 struct rt_event cc1101_event;
 #if 1
 void cs(int type)
 {
 	if(type)
 	{
-		GPIO_SetBits(GPIOA,GPIO_Pin_4);
+		GPIO_SetBits(PORT_CS,PIN_CS);
 	}
 	else
 	{
-		GPIO_ResetBits(GPIOA,GPIO_Pin_4);
+		GPIO_ResetBits(PORT_CS,PIN_CS);
 	}
 }
 void mosi(int type)
@@ -95,8 +119,8 @@ void spi_init()
 	/* SPI  MOSI pin configuration */
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_7;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = PIN_CS;
+	GPIO_Init(PORT_CS, &GPIO_InitStructure);
 
 	/* SPI MISO pin
 	 * configuration */
@@ -194,8 +218,8 @@ void spi_init()
 	 *      *
 	 *      */
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = PIN_CS;
+	GPIO_Init(PORT_CS, &GPIO_InitStructure);
 
 	/* SPI
 	 * configuration
@@ -273,18 +297,18 @@ void reset_cs()
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = PIN_CS;
+	GPIO_Init(PORT_CS, &GPIO_InitStructure);
 
-	GPIO_SetBits(GPIOA,GPIO_Pin_4);
-
-	rt_thread_delay(1);
-
-	GPIO_ResetBits(GPIOA,GPIO_Pin_4);
+	GPIO_SetBits(PORT_CS,PIN_CS);
 
 	rt_thread_delay(1);
 
-	GPIO_SetBits(GPIOA,GPIO_Pin_4);
+	GPIO_ResetBits(PORT_CS,PIN_CS);
+
+	rt_thread_delay(1);
+
+	GPIO_SetBits(PORT_CS,PIN_CS);
 
 	rt_thread_delay(2);
 
@@ -314,22 +338,21 @@ int cc1101_init()
 	/* cc1101 int init
 	 *      * */
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_5;
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin =  PIN_GDO0;
+	GPIO_Init(PORT_GDO0, &GPIO_InitStructure);
 #if HW
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-	//SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOC, EXTI_PinSource5);
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource5);	
+	GPIO_EXTILineConfig(GPIO_PortSourceX, GPIO_PinSourceX);	
 
 	/* Configure the
 	 * SPI interrupt
 	 * priority */
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI_IRQnX;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
-	EXTI_InitStructure.EXTI_Line = EXTI_Line5;
+	EXTI_InitStructure.EXTI_Line = EXTI_LineX;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
@@ -342,7 +365,7 @@ int cc1101_init()
 	 * pending
 	 * bit
 	 * */
-	EXTI_ClearITPendingBit(EXTI_Line5);
+	EXTI_ClearITPendingBit(EXTI_LineX);
 #endif
 	return RT_TRUE;
 }
@@ -350,7 +373,7 @@ int cc1101_init()
 void cc1101_isr()
 {
 
-	if(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_5) ==SET)
+	if(GPIO_ReadInputDataBit(PORT_GDO0, PIN_GDO0) ==SET)
 	{
 		rt_event_send(&cc1101_event,GDO0_H);
 
@@ -382,7 +405,7 @@ int wait_int(int flag)
 				return RT_FALSE;
 			}
 #else
-		while(GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_4)==RESET);
+		while(GPIO_ReadInputDataBit(PORT_GDO2,PIN_GDO2)==RESET);
 #endif
 	}
 	else
@@ -402,7 +425,7 @@ int wait_int(int flag)
 				return RT_FALSE;
 			}
 #else
-		while(GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_4)==SET);
+		while(GPIO_ReadInputDataBit(PORT_GDO2,PIN_GDO2)==SET);
 #endif
 	}
 	return RT_TRUE;

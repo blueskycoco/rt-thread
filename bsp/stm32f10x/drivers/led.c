@@ -25,7 +25,15 @@
 #define led2_pin                    (GPIO_Pin_6)
 
 #else
+#ifndef STM32F103ZET6
+#define led1_rcc                    RCC_APB2Periph_GPIOC
+#define led1_gpio                   GPIOC
+#define led1_pin                    (GPIO_Pin_3)
 
+#define led2_rcc                    RCC_APB2Periph_GPIOC
+#define led2_gpio                   GPIOC
+#define led2_pin                    (GPIO_Pin_4)
+#else
 #define led1_rcc                    RCC_APB2Periph_GPIOE
 #define led1_gpio                   GPIOE
 #define led1_pin                    (GPIO_Pin_2)
@@ -33,7 +41,7 @@
 #define led2_rcc                    RCC_APB2Periph_GPIOE
 #define led2_gpio                   GPIOE
 #define led2_pin                    (GPIO_Pin_3)
-
+#endif
 #endif // led define #ifdef STM32_SIMULATOR
 
 void rt_hw_led_init(void)
