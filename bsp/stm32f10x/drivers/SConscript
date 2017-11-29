@@ -10,6 +10,7 @@ board.c
 stm32f10x_it.c
 led.c
 usart.c
+swo.c
 """)
 
 if GetDepend(['RT_USING_PIN']):

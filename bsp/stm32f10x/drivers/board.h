@@ -46,5 +46,6 @@
 #define USING_BXCAN1
 
 void rt_hw_board_init(void);
+void SWO_Enable( void );
 
 #endif /* __BOARD_H__ */
