@@ -37,29 +37,33 @@
 #endif
 
 #include "led.h"
-
+#include "cc1101.h"
+#include "string.h"
 ALIGN(RT_ALIGN_SIZE)
-static rt_uint8_t led_stack[ 512 ];
+static rt_uint8_t led_stack[ 2048 ];
 static struct rt_thread led_thread;
 static void led_thread_entry(void* parameter)
 {
     unsigned int count=0;
+	rt_uint8_t buf[256]={0};
 
     rt_hw_led_init();
-
+	cc1101_init();
     while (1)
     {
         /* led1 on */
 #ifndef RT_USING_FINSH
-        rt_kprintf("led on, count : %d\r\n",count);
+//        rt_kprintf("led on, count : %d\r\n",count);
 #endif
+		rt_sprintf(buf,"led on , count : %d",count);
+		cc1101_send_packet(buf,strlen(buf));
         count++;
         rt_hw_led_on(0);
         rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 
         /* led1 off */
 #ifndef RT_USING_FINSH
-        rt_kprintf("led off\r\n");
+//        rt_kprintf("led off\r\n");
 #endif
         rt_hw_led_off(0);
         rt_thread_delay( RT_TICK_PER_SECOND/2 );

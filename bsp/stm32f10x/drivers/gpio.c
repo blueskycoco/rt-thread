@@ -800,6 +800,7 @@ void EXTI4_IRQHandler(void)
     /* leave interrupt */
     rt_interrupt_leave();
 }
+#if 0
 void EXTI9_5_IRQHandler(void)
 {
      /* enter interrupt */
@@ -827,6 +828,7 @@ void EXTI9_5_IRQHandler(void)
     /* leave interrupt */
     rt_interrupt_leave();
 }
+#endif
 void EXTI15_10_IRQHandler(void)
 {
      /* enter interrupt */

@@ -11,6 +11,8 @@ stm32f10x_it.c
 led.c
 usart.c
 swo.c
+cc1101.c
+cc1101_hw.c
 """)
 
 if GetDepend(['RT_USING_PIN']):
