@@ -322,6 +322,7 @@ int gprs_init(void)
 		rt_device_set_rx_indicate(dev_gprs, gprs_rx_ind);
 		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,512, 20, 10));
 		m26_startup();
+		m26_open_cnn("106.3.45.71", "60000");
 	}
 	return 0;
 }
