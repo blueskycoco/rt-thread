@@ -51,7 +51,7 @@ rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t **rcv, uint32_t 
 	if (ret == RT_EOK)
 		ret = gprs_wait_event(timeout);
 	
-	if (ret == RT_EOK && g_len > 0 && rcv != RT_NULL) {
+	if (ret == RT_EOK && g_len > 0 && rcv != RT_NULL && rcv != RT_NULL && rcv_len != RT_NULL) {
 		*rcv = (uint8_t *)rt_malloc(g_len * sizeof(uint8_t));
 		memcpy(*rcv, g_rcv, g_len);
 		*rcv_len = g_len;
@@ -143,14 +143,15 @@ uint8_t m26_startup(void)
 	uint32_t len = 0, retry = 0;
 	uint8_t apn[10] = {0};
 	rt_err_t	ret = RT_EOK;
+	const uint8_t e0[] 		= "ATE0\n";
 	const uint8_t cgreg[] 	= "AT+CGREG?\n";
 	const uint8_t cimi[] 	= "AT+CIMI\n";
 	const uint8_t qifgcnt[] = "AT+QIFGCNT=0\n";
+	const uint8_t qisrvc[] = "AT+QISRVC=1\n";
 	const uint8_t qimux[] = "AT+QIMUX=0\n";
 	uint8_t qicsgp[10]= {0};//"AT+QICSGP=1,\"CMNET\"\n";
 	const uint8_t qiregapp[]= "AT+QIREGAPP\n";
 	const uint8_t qiact[] 	= "AT+QIACT\n";
-	const uint8_t qistat[] 	= "AT+QISTAT\n";
     GPIO_InitTypeDef GPIO_InitStructure;
 
     RCC_APB2PeriphClockCmd(GPRS_POWER_RCC,ENABLE);
@@ -166,6 +167,11 @@ uint8_t m26_startup(void)
 	}
 	m26_restart();
 	auto_baud();
+
+    ret = gprs_cmd(e0, rt_strlen(e0), &rcv, &len, 200);
+    if (ret == RT_EOK && len > 0 && rcv != RT_NULL) {
+    	rt_free(rcv);
+	}
 	while (1) {
     	/*waiting for gprs register complete */
     	while (1) {
@@ -227,6 +233,11 @@ uint8_t m26_startup(void)
 		if (ret == RT_EOK) {
 			if (rcv)
 				rt_free(rcv);
+			ret = gprs_cmd(qisrvc, rt_strlen(qisrvc), &rcv, &len, 200);
+		}
+		if (ret == RT_EOK) {
+			if (rcv)
+				rt_free(rcv);
 			ret = gprs_cmd(qiact, rt_strlen(qiact), &rcv, &len, 6000);
 		}
 		
@@ -243,11 +254,6 @@ uint8_t m26_startup(void)
 					m26_restart();
 				rt_free(rcv);
 			}
-			ret = gprs_cmd(qistat, rt_strlen(qistat), &rcv, &len, 200);
-			if (ret == RT_EOK && rcv != RT_NULL) {
-				rt_kprintf("gprs status %s\r\n", rcv);
-				rt_free(rcv);
-			}
 		}
 	}
 
@@ -262,14 +268,31 @@ uint8_t m26_open_cnn(uint8_t* server_addr, uint8_t* server_port)
 	uint8_t qiopen[64] = {0};
 	uint8_t *rcv = RT_NULL;
 	uint32_t len = 0;
+	uint8_t can_open = 0;
+	const uint8_t qistat[] 	= "AT+QISTAT\n";
+	const uint8_t qiclose[] 	= "AT+QICLOSE\n";
 	if (g_gprs_state != GPRS_STATE_DIAL_UP) {
 		rt_kprintf("open cnn, gprs state not dial up,return\r\n");
 		return 0;
 	}
+	rt_err_t ret = gprs_cmd(qistat, rt_strlen(qistat), &rcv, &len, 200);
+	if (ret == RT_EOK && rcv != RT_NULL) {
+		rt_kprintf("gprs status %s\r\n", rcv);
+		if (strstr((const char *)rcv, "IP INITIAL") != RT_NULL ||
+			strstr((const char *)rcv, "IP STATUS") != RT_NULL ||
+			strstr((const char *)rcv, "IP CLOSE") != RT_NULL)
+			can_open = 1;
+		else if(strstr((const char *)rcv, "TCP CONNECTING") != RT_NULL) {
+			rt_free(rcv);
+			gprs_cmd(qiclose, rt_strlen(qiclose), RT_NULL, RT_NULL, 200);
+		}
+		rt_free(rcv);
+	}
 
+	if (can_open) {
 	rt_sprintf(qiopen, "AT+QIOPEN=\"TCP\",\"%s\",\"%s\"\n",
 			server_addr,server_port);
-	rt_err_t ret = gprs_cmd(qiopen, rt_strlen(qiopen), &rcv, &len, 300);
+	ret = gprs_cmd(qiopen, rt_strlen(qiopen), &rcv, &len, 300);
 	if (ret == RT_EOK && rcv != RT_NULL) {
 		if (strstr((const char *)rcv, "OK") != RT_NULL) {
 			rt_free(rcv);
@@ -287,6 +310,7 @@ uint8_t m26_open_cnn(uint8_t* server_addr, uint8_t* server_port)
 	}
 	else
 		rt_kprintf("connect to %s:%s timeout\r\n",server_addr,server_port);
+	}
 }
 int gprs_init(void)
 {
