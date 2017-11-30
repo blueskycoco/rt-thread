@@ -343,9 +343,9 @@ void init_rf(void)
 void cc1101_send_packet(uint8_t *txBuffer, uint8_t size) 
 {
 	int i;
-	DEBUG("<<cc1101 write %d\r\n",size);
+	/*DEBUG("<<cc1101 write %d\r\n",size);
     	for(i=0;i<size;i++)
-        		DEBUG("%c",txBuffer[i]);
+        		DEBUG("%c",txBuffer[i]);*/
 	write_cc1101(CCxxx0_TXFIFO, &size,1,TYPE_REG);
     write_cc1101(CCxxx0_TXFIFO, txBuffer, size,TYPE_BURST);
 	
@@ -356,7 +356,7 @@ void cc1101_send_packet(uint8_t *txBuffer, uint8_t size)
 	write_cc1101(CCxxx0_SRX,RT_NULL,0,TYPE_STROBE_STATUS);  
 	if((read_cc1101(CCxxx0_TXBYTES,RT_NULL,0,TYPE_REG)&0x7f)==0)
 	{
-		rt_kprintf(" cc1101 send ok>>\r\n");
+		//rt_kprintf(" cc1101 send ok>>\r\n");
 		return ;
 	}
 	rt_kprintf(" cc1101 send failed 2>>\r\n");

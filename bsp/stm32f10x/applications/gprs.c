@@ -24,16 +24,37 @@ static rt_err_t gprs_rx_ind(rt_device_t dev, rt_size_t size)
 }
 void gprs_rcv(void* parameter)
 {	
+	int len = 0;
 	while(1)	
 	{		
 		if (rt_sem_take(&(gprs_rx_sem), RT_WAITING_FOREVER) != RT_EOK) continue;		
-		rt_memset(g_rcv,0,2048);
-		g_len=rt_device_read(dev_gprs, 0, g_rcv, 2048);		
+		do {
+			len=rt_device_read(dev_gprs, 0, g_rcv+g_len, 2048-g_len);		
+			g_len += len;
+		} while (len > 0);
 		if(g_len>0)	
 		{
+			//rt_kprintf(">>%s", g_rcv);
 			rt_event_send(&gprs_event,GPRS_EVENT_0);
 		}		
 	}	
+}
+static rt_size_t gprs_read_data(
+		uint8_t *rcv,
+        rt_size_t len,
+        uint32_t timeout)
+{
+    rt_size_t readlen = 0;
+
+    do
+    {
+        readlen += rt_device_read(dev_gprs,
+                0, rcv+readlen, len-readlen);
+        if (readlen >= len)
+            return readlen;
+    } while (rt_sem_take(&gprs_rx_sem, timeout) == RT_EOK);
+
+    return readlen;
 }
 rt_err_t gprs_wait_event(int timeout)
 {
@@ -43,21 +64,34 @@ rt_err_t gprs_wait_event(int timeout)
 
 rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t **rcv, uint32_t *rcv_len, uint32_t timeout)
 {
-	rt_err_t ret;
+	uint32_t read_len;
 	
 	if (cmd != RT_NULL)	
-		ret = rt_device_write(dev_gprs, 0, (void *)cmd, cmd_len);
+	{
+		read_len = rt_device_write(dev_gprs, 0, (void *)cmd, cmd_len);
+		rt_kprintf("<%d><%d> sending %s", read_len,cmd_len,cmd);
+	}
 	
-	if (ret == RT_EOK)
-		ret = gprs_wait_event(timeout);
+	if (read_len == cmd_len)
+	{
+		//ret = gprs_wait_event(timeout);
+		memset(g_rcv,0,2048);
+		read_len = gprs_read_data(g_rcv, 100, timeout);
+		//rt_kprintf("read len %d \r\n", read_len);
+	}
 	
-	if (ret == RT_EOK && g_len > 0 && rcv != RT_NULL && rcv != RT_NULL && rcv_len != RT_NULL) {
-		*rcv = (uint8_t *)rt_malloc(g_len * sizeof(uint8_t));
-		memcpy(*rcv, g_rcv, g_len);
-		*rcv_len = g_len;
+	//rt_kprintf("ret %d %d\r\n", ret,g_len);
+	//if (ret == RT_EOK && g_len > 0 && rcv != RT_NULL && rcv != RT_NULL && rcv_len != RT_NULL) {
+	if (read_len > 0) {
+		*rcv = (uint8_t *)rt_malloc((read_len+1) * sizeof(uint8_t));
+		(*rcv)[read_len] = '\0';
+		memcpy(*rcv, g_rcv, read_len);
+		*rcv_len = read_len;
+		rt_kprintf("%s", *rcv);
+		return RT_EOK;
 	}
 
-	return ret;
+	return RT_ERROR;
 }
 void m26_restart(void)
 {
@@ -81,7 +115,7 @@ void change_baud(int baud)
 int auto_baud(void)
 {
 	int baud = 75;
-	uint8_t *rcv = {0};
+	uint8_t *rcv = RT_NULL;
 	const uint8_t at[] 	= "AT\n";
 	uint32_t len;
 	while (1) {
@@ -94,9 +128,9 @@ int auto_baud(void)
 				rt_free(rcv);
 				break;
 			}
+			rt_free(rcv);
 		}
 		
-		rt_free(rcv);
 		if (baud == 75)
 			baud = 150;
 		else if (baud == 150)
@@ -149,7 +183,7 @@ uint8_t m26_startup(void)
 	const uint8_t qifgcnt[] = "AT+QIFGCNT=0\n";
 	const uint8_t qisrvc[] = "AT+QISRVC=1\n";
 	const uint8_t qimux[] = "AT+QIMUX=0\n";
-	uint8_t qicsgp[10]= {0};//"AT+QICSGP=1,\"CMNET\"\n";
+	uint8_t qicsgp[32]= {0};//"AT+QICSGP=1,\"CMNET\"\n";
 	const uint8_t qiregapp[]= "AT+QIREGAPP\n";
 	const uint8_t qiact[] 	= "AT+QIACT\n";
     GPIO_InitTypeDef GPIO_InitStructure;
@@ -199,15 +233,16 @@ uint8_t m26_startup(void)
 		ret = gprs_cmd(cimi, rt_strlen(cimi), &rcv, &len, 200);
 		if (ret == RT_EOK && rcv != RT_NULL)
 		{
-			rt_kprintf("len %d => %s", len, rcv);
+			//rt_kprintf("len %d => %s", len, rcv);
 			if (strstr((const char *)rcv, "46000") != RT_NULL 
-				|| strstr((const char *)rcv, "46002") != RT_NULL)
+				|| strstr((const char *)rcv, "46002") != RT_NULL
+				|| strstr((const char *)rcv, "46004") != RT_NULL)
 				rt_sprintf(qicsgp, "AT+QICSGP=1,\"%s\"\n", "CMNET");
 			else if(strstr((const char *)rcv, "46001") != RT_NULL)
 				rt_sprintf(qicsgp, "AT+QICSGP=1,\"%s\"\n", "UNINET");
 			else if(strstr((const char *)rcv, "46003") != RT_NULL)
 				rt_sprintf(qicsgp, "AT+QICSGP=1,\"%s\"\n", "CTNET");
-			rt_kprintf("%s", qicsgp);
+			//rt_kprintf("%s", qicsgp);
 			rt_free(rcv);
 			ret = gprs_cmd(qifgcnt, rt_strlen(qifgcnt), &rcv, &len, 200);
 		}
@@ -318,9 +353,19 @@ int gprs_init(void)
 	dev_gprs=rt_device_find("uart3");
 	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX) == RT_EOK)			
 	{
+		change_baud(9600);
+		rt_event_init(&gprs_event, "gprs_event", RT_IPC_FLAG_FIFO );
 		rt_sem_init(&(gprs_rx_sem), "ch2o_rx", 0, 0);
 		rt_device_set_rx_indicate(dev_gprs, gprs_rx_ind);
-		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,512, 20, 10));
+		//rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,512, 20, 10));
+    	uint8_t *rcv;
+    	uint32_t len;
+		const uint8_t cimi[] 	= "AT+CIMI\n";
+    	rt_err_t ret = gprs_cmd(cimi, rt_strlen(cimi), &rcv, &len, 200);
+    	if (ret == RT_EOK && len > 0 && rcv != RT_NULL) {
+    		rt_kprintf("rcv %s\r\n", rcv);
+    		rt_free(rcv);
+		}
 		m26_startup();
 		m26_open_cnn("106.3.45.71", "60000");
 	}
