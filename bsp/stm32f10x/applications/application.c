@@ -39,9 +39,6 @@
 #include "led.h"
 #include "cc1101.h"
 #include "string.h"
-rt_device_t dev_gprs;
-struct rt_semaphore gprs_rx_sem;
-const uint8_t qifcimi[] = "AT+CIMI\n";
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 2048 ];
 	static struct rt_thread led_thread;
@@ -60,7 +57,6 @@ static void led_thread_entry(void* parameter)
 #endif
 		rt_sprintf(buf,"led on , count : %d",count);
 		cc1101_send_packet(buf,strlen(buf));
-		rt_device_write(dev_gprs, 0, (void *)qifcimi, rt_strlen(qifcimi));
 		count++;
 		rt_hw_led_on(0);
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
@@ -90,26 +86,6 @@ void cali_store(struct calibration_data *data)
 			data->max_y);
 }
 #endif /* RT_USING_RTGUI */
-static rt_err_t gprs_rx_ind(rt_device_t dev, rt_size_t size)
-{
-	rt_sem_release(&(gprs_rx_sem));    
-	return RT_EOK;
-}
-void gprs_rcv(void* parameter)
-{	
-	int len1=0,m=0;
-	char *ptr=rt_malloc(128);			
-	while(1)	
-	{		
-		if (rt_sem_take(&(gprs_rx_sem), RT_WAITING_FOREVER) != RT_EOK) continue;		
-		rt_memset(ptr,0,128);
-		int len=rt_device_read(dev_gprs, 0, ptr, 128);		
-		if(len>0)	
-		{
-			rt_kprintf("%s", ptr);
-		}		
-	}	
-}
 void rt_init_thread_entry(void* parameter)
 {
 #ifdef RT_USING_COMPONENTS_INIT
@@ -158,23 +134,6 @@ void rt_init_thread_entry(void* parameter)
 	}
 #endif /* #ifdef RT_USING_RTGUI */
 
-	/*handle m26*/
-	dev_gprs=rt_device_find("uart3");
-	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX) == RT_EOK)			
-	{
-		struct serial_configure config;			
-		config.baud_rate=9600;
-		config.bit_order = BIT_ORDER_LSB;			
-		config.data_bits = DATA_BITS_8;			
-		config.parity	 = PARITY_NONE;			
-		config.stop_bits = STOP_BITS_1;				
-		config.invert	 = NRZ_NORMAL;				
-		config.bufsz	 = RT_SERIAL_RB_BUFSZ;			
-		rt_device_control(dev_gprs,RT_DEVICE_CTRL_CONFIG,&config);	
-		rt_sem_init(&(gprs_rx_sem), "ch2o_rx", 0, 0);
-		rt_device_set_rx_indicate(dev_gprs, gprs_rx_ind);
-		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,512, 20, 10));
-	}
 }
 
 int rt_application_init(void)
