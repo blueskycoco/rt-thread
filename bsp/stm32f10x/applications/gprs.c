@@ -69,7 +69,7 @@ rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t **rcv, uint32_t 
 	if (cmd != RT_NULL)	
 	{
 		read_len = rt_device_write(dev_gprs, 0, (void *)cmd, cmd_len);
-		rt_kprintf("<%d><%d> sending %s", read_len,cmd_len,cmd);
+		rt_kprintf("%s", cmd);
 	}
 	
 	if (read_len == cmd_len)
@@ -89,7 +89,8 @@ rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t **rcv, uint32_t 
 		*rcv_len = read_len;
 		rt_kprintf("%s", *rcv);
 		return RT_EOK;
-	}
+	} else
+		rt_kprintf("rcv timeout\r\n");
 
 	return RT_ERROR;
 }
@@ -138,7 +139,7 @@ int auto_baud(void)
 		else if (baud == 300)
 			baud = 600;
 		else if (baud == 600)
-			baud = 1200;
+			baud = 2400;
 		else if (baud == 1200)
 			baud = 2400;
 		else if (baud == 2400)
