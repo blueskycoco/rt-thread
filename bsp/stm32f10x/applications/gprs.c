@@ -57,6 +57,9 @@ static rt_size_t gprs_read_data(
 		{
 			if (strstr((const char *)rcv, magic) != RT_NULL)
 			return readlen;
+			if (strcmp(magic, "CONNECT OK") == 0)
+				if (strstr((const char *)rcv, "CONNECT FAIL") != RT_NULL)
+				return readlen;
 		}
 		else {
 			if (strstr((const char *)rcv, "OK") != RT_NULL ||
@@ -88,17 +91,14 @@ rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t **rcv, uint32_t 
 		//ret = gprs_wait_event(timeout);
 		memset(g_rcv,0,2048);
 		read_len = gprs_read_data(g_rcv, 100, timeout, magic);
-		//rt_kprintf("read len %d \r\n", read_len);
 	}
 	
-	//rt_kprintf("ret %d %d\r\n", ret,g_len);
-	//if (ret == RT_EOK && g_len > 0 && rcv != RT_NULL && rcv != RT_NULL && rcv_len != RT_NULL) {
 	if (read_len > 0 && rcv != RT_NULL && rcv_len != RT_NULL) {
 		*rcv = (uint8_t *)rt_malloc((read_len+1) * sizeof(uint8_t));
 		(*rcv)[read_len] = '\0';
 		memcpy(*rcv, g_rcv, read_len);
 		*rcv_len = read_len;
-		rt_kprintf("%s\r\n", *rcv);
+		rt_kprintf("%s\r\n\r\n", *rcv);
 		return RT_EOK;
 	} else
 		rt_kprintf("rcv timeout\r\n");
@@ -192,10 +192,12 @@ uint8_t m26_startup(void)
 	const uint8_t e0[] 		= "ATE0\n";
 	const uint8_t cgreg[] 	= "AT+CGREG?\n";
 	const uint8_t cimi[] 	= "AT+CIMI\n";
+	const uint8_t cpin[] 	= "AT+CPIN?\n";
 	const uint8_t qifgcnt[] = "AT+QIFGCNT=0\n";
-	const uint8_t qisrvc[] = "AT+QISRVC=1\n";
-	const uint8_t qimux[] = "AT+QIMUX=0\n";
-	uint8_t qicsgp[32]= {0};//"AT+QICSGP=1,\"CMNET\"\n";
+	const uint8_t qisrvc[] 	= "AT+QISRVC=1\n";
+	const uint8_t qimux[] 	= "AT+QIMUX=0\n";
+	const uint8_t ask_qimux[] 	= "AT+QIMUX?\n";
+	uint8_t 	  qicsgp[32]= {0};
 	const uint8_t qiregapp[]= "AT+QIREGAPP\n";
 	const uint8_t qiact[] 	= "AT+QIACT\n";
 	const uint8_t qistat[] 	= "AT+QISTAT\n";
@@ -216,6 +218,25 @@ uint8_t m26_startup(void)
 	auto_baud();
 
     ret = gprs_cmd(e0, rt_strlen(e0), &rcv, &len, 200, RT_NULL);
+    if (ret == RT_EOK && len > 0 && rcv != RT_NULL) {
+    	rt_free(rcv);
+	}
+	/*check sim card inserted*/
+	while (1) {
+	ret = gprs_cmd(cpin, rt_strlen(cpin), &rcv, &len, 200, RT_NULL);
+    if (ret == RT_EOK && len > 0 && rcv != RT_NULL) {
+		if (strstr((const char *)rcv, "+CPIN: READY") == RT_NULL)
+			rt_kprintf("sim card not inserted.\r\n");
+		else {
+			rt_free(rcv);
+			break;
+		}
+    	rt_free(rcv);
+	}
+	rt_thread_delay(100*5);
+	}
+
+    ret = gprs_cmd(ask_qimux, rt_strlen(ask_qimux), &rcv, &len, 200, RT_NULL);
     if (ret == RT_EOK && len > 0 && rcv != RT_NULL) {
     	rt_free(rcv);
 	}
@@ -264,7 +285,8 @@ uint8_t m26_startup(void)
 			if (rcv)
 				rt_free(rcv);
 			ret = gprs_cmd(qistat, rt_strlen(qistat), &rcv, &len, 100, "STATE1");
-			if (strstr((const char *)rcv, "IP START") == RT_NULL)
+			if (strstr((const char *)rcv, "IP START") == RT_NULL &&
+				strstr((const char *)rcv, "PDP DEACT") == RT_NULL)
 			{
 				rt_kprintf("gprs already dial ok\r\n");
 				g_gprs_state = GPRS_STATE_DIAL_UP;
@@ -320,9 +342,28 @@ uint8_t m26_startup(void)
 
 	return ret;
 }
-void handle_open_error(void)
+void handle_connect_fail(void)
 {
-
+	uint8_t *rcv = RT_NULL;
+	uint32_t len = 0;
+	const uint8_t qistat[] 	= "AT+QISTAT\n";
+	const uint8_t qiclose[] 	= "AT+QICLOSE\n";
+	const uint8_t qideact[] 	= "AT+QIDEACT\n";
+	const uint8_t qiact[] 	= "AT+QIACT\n";
+	rt_err_t ret = gprs_cmd(qistat, rt_strlen(qistat), &rcv, &len, 100, "STATE1");
+	if (ret == RT_EOK && rcv != RT_NULL) {
+		if (strstr((const char *)rcv, "TCP CONNECTING") != RT_NULL) {
+			gprs_cmd(qiclose, rt_strlen(qiclose), RT_NULL, RT_NULL, 200, RT_NULL);
+		} else {
+			rt_free(rcv);
+			ret = gprs_cmd(qideact, rt_strlen(qideact), &rcv, &len, 6000, RT_NULL);		
+			if (ret == RT_EOK && rcv != RT_NULL)
+				rt_free(rcv);
+			gprs_cmd(qiact, rt_strlen(qiact), &rcv, &len, 6000, RT_NULL);			
+		}
+		if (rcv)
+		rt_free(rcv);
+	}
 }
 uint8_t m26_open_cnn(uint8_t* server_addr, uint8_t* server_port)
 {
@@ -330,6 +371,7 @@ uint8_t m26_open_cnn(uint8_t* server_addr, uint8_t* server_port)
 	uint8_t *rcv = RT_NULL;
 	uint32_t len = 0;
 	uint8_t can_open = 0;
+	rt_err_t ret;
 	const uint8_t qistat[] 	= "AT+QISTAT\n";
 	const uint8_t qiclose[] 	= "AT+QICLOSE\n";
 	const uint8_t qilocip[] 	= "AT+QILOCIP\n";
@@ -338,13 +380,13 @@ uint8_t m26_open_cnn(uint8_t* server_addr, uint8_t* server_port)
 		rt_kprintf("open cnn, gprs state not dial up,return\r\n");
 		return 0;
 	}
+	#if 0
 	rt_err_t ret = gprs_cmd(qistat, rt_strlen(qistat), &rcv, &len, 100, "STATE1");
 	if (ret == RT_EOK && rcv != RT_NULL) {
-		rt_kprintf("gprs status %s\r\n", rcv);
+		//rt_kprintf("gprs status %s\r\n", rcv);
 		if (strstr((const char *)rcv, "IP INITIAL") != RT_NULL ||
 			strstr((const char *)rcv, "IP STATUS") != RT_NULL ||
 			strstr((const char *)rcv, "IP GPRSACT") != RT_NULL ||
-			strstr((const char *)rcv, "CONNECT OK") != RT_NULL ||
 			strstr((const char *)rcv, "IP CLOSE") != RT_NULL)
 			can_open = 1;
 		else if(strstr((const char *)rcv, "TCP CONNECTING") != RT_NULL) {
@@ -353,8 +395,9 @@ uint8_t m26_open_cnn(uint8_t* server_addr, uint8_t* server_port)
 		}
 		rt_free(rcv);
 	}
-
-	if (can_open) {
+	#endif
+	//if (can_open) {
+	while (1) {
 	rt_sprintf(qiopen, "AT+QIOPEN=\"TCP\",\"%s\",\"%s\"\n",
 			server_addr,server_port);
 	ret = gprs_cmd(qiopen, rt_strlen(qiopen), &rcv, &len, 300, RT_NULL);
@@ -363,7 +406,7 @@ uint8_t m26_open_cnn(uint8_t* server_addr, uint8_t* server_port)
 			rt_free(rcv);
 			ret = gprs_cmd(RT_NULL, 0, &rcv, &len, 10000, "CONNECT OK");
 			if (ret == RT_EOK && rcv != RT_NULL) {				
-				if (strstr((const char *)rcv, "CONNECT OK") != RT_NULL)
+				if (strstr((const char *)rcv, "CONNECT OK") != RT_NULL) {
 					g_gprs_state = GPRS_STATE_OPEN_CNN;
 					ret = gprs_cmd(qilocip, rt_strlen(qilocip), &rcv, &len, 100, "STATE1");
 					if (ret == RT_EOK && rcv != RT_NULL) {
@@ -373,39 +416,60 @@ uint8_t m26_open_cnn(uint8_t* server_addr, uint8_t* server_port)
 					if (ret == RT_EOK && rcv != RT_NULL) {
 						rt_free(rcv);
 					}
+					break;
 				} else {
 					/*error handle*/
+					handle_connect_fail();
 				}
-		} else {
-			/* error handle*/
-			if (strstr((const char *)rcv, "ALREADY CONNECT") != RT_NULL) {
-				rt_free(rcv);
-					g_gprs_state = GPRS_STATE_OPEN_CNN;
-					ret = gprs_cmd(qilocip, rt_strlen(qilocip), &rcv, &len, 100, "STATE1");
-					if (ret == RT_EOK && rcv != RT_NULL) {
-						rt_free(rcv);
-					}
-					ret = gprs_cmd(qilport, rt_strlen(qilport), &rcv, &len, 100, "STATE1");
-					if (ret == RT_EOK && rcv != RT_NULL) {
-						rt_free(rcv);
-					}
-		//	gprs_cmd(qiclose, rt_strlen(qiclose), RT_NULL, RT_NULL, 200, RT_NULL);
-			}
+			} 
 		}
+		else if (strstr((const char *)rcv, "ALREADY CONNECT") != RT_NULL) {
+					rt_free(rcv);
+			gprs_cmd(qiclose, rt_strlen(qiclose), RT_NULL, RT_NULL, 200, RT_NULL);
+			}
+		else {
+			handle_connect_fail();
 		}
 	}
+		}
+	//}
 }
-uint8_t m26_send(uint8_t *data, uint32_t len)
+uint8_t m26_send(const uint8_t *data, uint32_t send_len)
 {
+	uint8_t qisend[32] 	= {0};//"AT+QISEND=\n";
+	const uint8_t qisack[32] 	= "AT+QISACK\n";
+	uint8_t *rcv;
+	uint32_t len;
+	rt_sprintf(qisend, "AT+QISEND=%d\n", send_len);
+	rt_err_t ret = gprs_cmd(qisend, rt_strlen(qisend), &rcv, &len, 300, ">");
+	if (ret == RT_EOK && rcv != RT_NULL) {
+		if (strstr((const char *)rcv,">") != RT_NULL) {
+			rt_device_write(dev_gprs, 0, data, send_len);
+			rt_free(rcv);
+			ret = gprs_cmd(RT_NULL, 0, &rcv, &len, 300, RT_NULL);
+			if (ret == RT_EOK && rcv != RT_NULL) {
+				if (strstr((const char *)rcv, "SEND OK") != RT_NULL) {
+					rt_free(rcv);
+					ret = gprs_cmd(qisack, rt_strlen(qisack), &rcv, &len, 100, RT_NULL);
+					if (ret == RT_EOK && rcv != RT_NULL)
+						rt_free(rcv);
+				}
+			}
+		}
+	}
+
+	return 0;
 }
 int gprs_init(void)
 {
 	/*handle m26*/
+	const char test_string[] = "hello m26 client upload";
+	char test[64] = {0};
+	int i = 0;
 	rt_thread_delay(1000);
 	dev_gprs=rt_device_find("uart3");
 	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX) == RT_EOK)			
 	{
-//		change_baud(9600);
 		rt_event_init(&gprs_event, "gprs_event", RT_IPC_FLAG_FIFO );
 		rt_sem_init(&(gprs_rx_sem), "ch2o_rx", 0, 0);
 		rt_device_set_rx_indicate(dev_gprs, gprs_rx_ind);
@@ -420,6 +484,15 @@ int gprs_init(void)
 		}
 		m26_startup();
 		m26_open_cnn("106.3.45.71", "60001");
+		while (1) {
+			rt_memset(test,0,64);
+			rt_sprintf(test,"%s %d", test_string,i);
+			m26_send(test, rt_strlen(test));
+			i++;
+			rt_thread_delay(100);
+			if (i>10)
+				break;
+		}
 	}
 	return 0;
 }
