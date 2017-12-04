@@ -9,36 +9,41 @@
 #define GPRS_POWER_RCC	RCC_APB2Periph_GPIOA
 struct rt_event gprs_event;
 #define GPRS_EVENT_0 (1<<0)
-#define GPRS_STATE_INIT		0
-#define GPRS_STATE_DIAL_UP	1
-#define GPRS_STATE_OPEN_CNN	2
+#define GPRS_STATE_INIT			0
+#define GPRS_STATE_POWER_ON		1
+#define GPRS_STATE_SYNC_BAUD	2
 uint8_t g_gprs_state = GPRS_STATE_INIT;
 rt_device_t dev_gprs;
-uint8_t g_rcv[2048] = {0};
-uint32_t g_len = 0;
 struct rt_semaphore gprs_rx_sem;
+struct rt_data_queue *g_data_queue;
 static rt_err_t gprs_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&(gprs_rx_sem));    
 	return RT_EOK;
 }
+/*read data from usart , put to dataqueue */
 void gprs_rcv(void* parameter)
 {	
-	int len = 0;
+	uint8_t rcv[64] = {0};
+	uint32_t len = 0;
 	while(1)	
-	{		
-		if (rt_sem_take(&(gprs_rx_sem), RT_WAITING_FOREVER) != RT_EOK) continue;		
-		do {
-			len=rt_device_read(dev_gprs, 0, g_rcv+g_len, 2048-g_len);		
-			g_len += len;
-		} while (len > 0);
-		if(g_len>0)	
-		{
-			//rt_kprintf(">>%s", g_rcv);
-			rt_event_send(&gprs_event,GPRS_EVENT_0);
-		}		
-	}	
+	{			
+		rt_sem_take(&gprs_rx_sem, RT_WAITING_FOREVER);
+		len = rt_device_read(dev_gprs, 0, rcv, 64);
+		if (len > 0) {
+			uint8_t *ptr = (uint8_t *)rt_malloc(len * sizeof(uint8_t));
+			rt_memcpy(ptr, rcv, len);
+			rt_data_queue_push(g_data_queue, ptr, len, RT_WAITING_FOREVER);
+		}
+	}
 }
+#if 0
+rt_err_t gprs_wait_event(int timeout)
+{
+	rt_uint32_t ev;
+	return rt_event_recv( &gprs_event, GPRS_EVENT_0, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, timeout, &ev ); 
+}
+
 static rt_size_t gprs_read_data(
 		uint8_t *rcv,
         rt_size_t len,
@@ -46,7 +51,7 @@ static rt_size_t gprs_read_data(
         uint8_t *magic)
 {
     rt_size_t readlen = 0;
-
+#if 0
     do
     {
         readlen += rt_device_read(dev_gprs,
@@ -67,13 +72,42 @@ static rt_size_t gprs_read_data(
 			return readlen;
 		}
     } while (rt_sem_take(&gprs_rx_sem, timeout) == RT_EOK);
-
+#else
+	while(1) {
+	rt_err_t ret = gprs_wait_event(timeout);
+	if (ret != RT_EOK)
+		continue;
+	if (g_len >= len)
+		{
+			readlen = g_len;
+			g_len = 0;			
+            return readlen;
+		}
+		else if (magic != RT_NULL)
+		{
+			if (strstr((const char *)g_rcv, magic) != RT_NULL){
+			readlen = g_len;
+			g_len = 0;
+			return readlen;
+				}
+			if (strcmp(magic, "CONNECT OK") == 0)
+				if (strstr((const char *)g_rcv, "CONNECT FAIL") != RT_NULL){
+			readlen = g_len;
+			g_len = 0;
+				return readlen;
+					}
+		}
+		else {
+			if (strstr((const char *)g_rcv, "OK") != RT_NULL ||
+					strstr((const char *)g_rcv, "ERROR") != RT_NULL){
+			readlen = g_len;
+			g_len = 0;
+			return readlen;
+				}
+		}
+	}
+#endif
     return readlen;
-}
-rt_err_t gprs_wait_event(int timeout)
-{
-	rt_uint32_t ev;
-	return rt_event_recv( &gprs_event, GPRS_EVENT_0, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, timeout, &ev ); 
 }
 
 rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t **rcv, uint32_t *rcv_len, uint32_t timeout,uint8_t *magic)
@@ -89,7 +123,7 @@ rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t **rcv, uint32_t 
 	if (read_len == cmd_len)
 	{
 		//ret = gprs_wait_event(timeout);
-		memset(g_rcv,0,2048);
+		//memset(g_rcv,0,2048);
 		read_len = gprs_read_data(g_rcv, 100, timeout, magic);
 	}
 	
@@ -98,13 +132,15 @@ rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t **rcv, uint32_t 
 		(*rcv)[read_len] = '\0';
 		memcpy(*rcv, g_rcv, read_len);
 		*rcv_len = read_len;
-		rt_kprintf("%s\r\n\r\n", *rcv);
+		rt_kprintf("<%s>", *rcv);
+		rt_memset(g_rcv,0,2048);
 		return RT_EOK;
 	} else
 		rt_kprintf("rcv timeout\r\n");
 
 	return RT_ERROR;
 }
+#endif
 void m26_restart(void)
 {
     GPIO_ResetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
@@ -215,7 +251,7 @@ uint8_t m26_startup(void)
 		return 0;
 	}
 	m26_restart();
-	auto_baud();
+	//auto_baud();
 
     ret = gprs_cmd(e0, rt_strlen(e0), &rcv, &len, 200, RT_NULL);
     if (ret == RT_EOK && len > 0 && rcv != RT_NULL) {
@@ -460,39 +496,40 @@ uint8_t m26_send(const uint8_t *data, uint32_t send_len)
 
 	return 0;
 }
-int gprs_init(void)
+void gprs_process(void* parameter)
 {
-	/*handle m26*/
+
 	const char test_string[] = "hello m26 client upload";
 	char test[64] = {0};
 	int i = 0;
+	m26_startup();
+	m26_open_cnn("106.3.45.71", "60001");
+	while (1) {
+		rt_memset(test,0,64);
+		rt_sprintf(test,"%s %d", test_string,i);
+		m26_send(test, rt_strlen(test));
+		i++;
+		rt_thread_delay(100);
+		if (i>10)
+			break;
+	}
+}
+int gprs_init(void)
+{
+	/*handle m26*/
 	rt_thread_delay(1000);
 	dev_gprs=rt_device_find("uart3");
-	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX) == RT_EOK)			
+	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX) == RT_EOK)			
 	{
+		change_baud(115200);
 		rt_event_init(&gprs_event, "gprs_event", RT_IPC_FLAG_FIFO );
 		rt_sem_init(&(gprs_rx_sem), "ch2o_rx", 0, 0);
 		rt_device_set_rx_indicate(dev_gprs, gprs_rx_ind);
-		//rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,512, 20, 10));
-    	uint8_t *rcv;
-    	uint32_t len;
-		const uint8_t cimi[] 	= "AT+CIMI\n";
-    	rt_err_t ret = gprs_cmd(cimi, rt_strlen(cimi), &rcv, &len, 200, RT_NULL);
-    	if (ret == RT_EOK && len > 0 && rcv != RT_NULL) {
-    		rt_kprintf("rcv %s\r\n", rcv);
-    		rt_free(rcv);
-		}
-		m26_startup();
-		m26_open_cnn("106.3.45.71", "60001");
-		while (1) {
-			rt_memset(test,0,64);
-			rt_sprintf(test,"%s %d", test_string,i);
-			m26_send(test, rt_strlen(test));
-			i++;
-			rt_thread_delay(100);
-			if (i>10)
-				break;
-		}
+		g_data_queue = (struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*1);
+		rt_data_queue_init(g_data_queue,64,4,RT_NULL);
+		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,512, 20, 10));
+		rt_thread_startup(rt_thread_create("gprs_init",gprs_process, 0,2048, 20, 10));
+    	
 	}
 	return 0;
 }
