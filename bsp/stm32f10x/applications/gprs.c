@@ -71,9 +71,9 @@ void gprs_rcv(void* parameter)
 			uint8_t *ptr = (uint8_t *)rt_malloc((len+1) * sizeof(uint8_t));
 			rt_memcpy(ptr, rcv, len);
 			ptr[len] = '\0';
-			len=0;
 			rt_memset(rcv,0,64);
 			rt_data_queue_push(g_data_queue, ptr, len+1, RT_WAITING_FOREVER);
+			len=0;
 		}
 	}
 }
@@ -594,7 +594,7 @@ rt_bool_t have_str(const char *str, const char *magic)
 }
 void gprs_at_cmd(const char *cmd)
 {
-	rt_kprintf("sending %s",cmd);
+	rt_kprintf("%s",cmd);
 	rt_device_write(dev_gprs, 0, (void *)cmd, rt_strlen(cmd));
 }
 void gprs_process(void* parameter)
@@ -622,7 +622,7 @@ void gprs_process(void* parameter)
 		rt_err_t r = rt_data_queue_pop(g_data_queue, &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 
 		if (r == RT_EOK && last_data_ptr != RT_NULL) {
-			rt_kprintf("data_size %d, <%s>\r\n", data_size, last_data_ptr);
+			rt_kprintf("%s",last_data_ptr);
 			switch (g_gprs_state) {
 				case GPRS_STATE_INIT:
 						g_gprs_state = GPRS_STATE_CHECK_CPIN;
@@ -687,10 +687,10 @@ void gprs_process(void* parameter)
 						break;						
 				case GPRS_STATE_SET_QICSGP:
 						if (have_str(last_data_ptr, STR_OK)) {
-							g_gprs_state = GPRS_STATE_CHECK_CIMI;
-							gprs_at_cmd(cimi);
+							//g_gprs_state = GPRS_STATE_CHECK_CIMI;
+							//gprs_at_cmd(cimi);
 						} else {
-							gprs_at_cmd(qimux); 						
+							gprs_at_cmd(qicsgp); 						
 						}
 						break;		
 						
