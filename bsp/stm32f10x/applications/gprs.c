@@ -7,11 +7,38 @@
 #define GPRS_POWER_PORT GPIOA
 #define GPRS_POWER_PIN	GPIO_Pin_7
 #define GPRS_POWER_RCC	RCC_APB2Periph_GPIOA
+#define MAGIC_OK	"OK"
 struct rt_event gprs_event;
 #define GPRS_EVENT_0 (1<<0)
 #define GPRS_STATE_INIT			0
-#define GPRS_STATE_POWER_ON		1
-#define GPRS_STATE_SYNC_BAUD	2
+#define GPRS_STATE_CHECK_CPIN	1
+#define GPRS_STATE_CHECK_QIMUX	2
+#define GPRS_STATE_SET_QIMUX	3
+#define GPRS_STATE_CHECK_CGREG	4
+#define GPRS_STATE_CHECK_QISTAT	5
+#define GPRS_STATE_SET_QICSGP	6
+#define GPRS_STATE_SET_QIREGAPP	7
+#define GPRS_STATE_SET_QISRVC	8
+#define GPRS_STATE_SET_QIACT	9
+#define GPRS_STATE_CHECK_CIMI	10
+
+#define STR_CPIN_READY		"+CPIN: READY"
+#define STR_CGREG_READY		"+CGREG: 0,1"
+const uint8_t qistat[] 		= "AT+QISTAT\n";
+const uint8_t qiclose[] 	= "AT+QICLOSE\n";
+const uint8_t qilocip[] 	= "AT+QILOCIP\n";
+const uint8_t qilport[] 	= "AT+QILPORT?\n";
+const uint8_t e0[] 			= "ATE0\n";
+const uint8_t cgreg[] 		= "AT+CGREG?\n";
+const uint8_t cimi[] 		= "AT+CIMI\n";
+const uint8_t cpin[] 		= "AT+CPIN?\n";
+const uint8_t qifgcnt[] 	= "AT+QIFGCNT=0\n";
+const uint8_t qisrvc[] 		= "AT+QISRVC=1\n";
+const uint8_t qimux[] 		= "AT+QIMUX=0\n";
+const uint8_t ask_qimux[] 	= "AT+QIMUX?\n";
+uint8_t 	  qicsgp[32]	= {0};
+const uint8_t qiregapp[]	= "AT+QIREGAPP\n";
+const uint8_t qiact[] 		= "AT+QIACT\n";
 uint8_t g_gprs_state = GPRS_STATE_INIT;
 rt_device_t dev_gprs;
 struct rt_semaphore gprs_rx_sem;
@@ -160,23 +187,55 @@ void change_baud(int baud)
 	config.bufsz	 = RT_SERIAL_RB_BUFSZ;			
 	rt_device_control(dev_gprs,RT_DEVICE_CTRL_CONFIG,&config);	
 }
+static rt_size_t gprs_read_data(
+		uint8_t *rcv,
+        rt_size_t len,
+        uint32_t timeout)
+{
+    rt_size_t readlen = 0;
+    do
+    {
+        readlen += rt_device_read(dev_gprs,
+                0, rcv+readlen, len-readlen);
+        if (readlen >= len)
+            return readlen;
+		else if (strstr((const char *)rcv, "OK") != RT_NULL)
+			return readlen;
+		
+    } while (rt_sem_take(&gprs_rx_sem, timeout) == RT_EOK);
+    return readlen;
+}
+rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t *rcv, uint32_t *rcv_len, uint32_t timeout)
+{
+	uint32_t write_len;
+		
+	write_len = rt_device_write(dev_gprs, 0, (void *)cmd, cmd_len);
+	
+	if (write_len == cmd_len)
+	{
+		*rcv_len = gprs_read_data(rcv, 2, timeout);
+	}
+
+	if (*rcv_len > 0)
+		return RT_EOK;
+
+	return RT_ERROR;
+}
 int auto_baud(void)
 {
 	int baud = 115200;
-	uint8_t *rcv = RT_NULL;
 	const uint8_t at[] 	= "AT\n";
+	uint8_t rcv[3] = {0};
 	uint32_t len;
 	while (1) {
 		rt_kprintf("trying baud %d\r\n", baud);
     	change_baud(baud);	
-    	rt_err_t ret = gprs_cmd(at, rt_strlen(at), &rcv, &len, 200, RT_NULL);
-    	if (ret == RT_EOK && len > 0 && rcv != RT_NULL) {
+    	rt_err_t ret = gprs_cmd(at, rt_strlen(at), rcv, &len, 200);
+    	if (ret == RT_EOK && len > 0) {
 			if (strstr((const char *)rcv, "OK") != NULL)
 			{
-				rt_free(rcv);
 				break;
 			}
-			rt_free(rcv);
 		}
 		
 		if (baud == 75)
@@ -214,6 +273,7 @@ int auto_baud(void)
 	rt_kprintf("baud is %d\r\n",baud);
 	return baud;
 }
+#if 0
 /*
  * power on m26
  * waiting for gprs register network
@@ -496,9 +556,21 @@ uint8_t m26_send(const uint8_t *data, uint32_t send_len)
 
 	return 0;
 }
+#endif
+rt_bool_t have_str(const char *str, const char *magic)
+{
+	if (strstr(str, magic) != RT_NULL)
+		return RT_TRUE;
+
+	return RT_FALSE;
+}
+void gprs_at_cmd(const char *cmd)
+{
+	rt_device_write(dev_gprs, 0, (void *)cmd, rt_strlen(cmd));
+}
 void gprs_process(void* parameter)
 {
-
+#if 0
 	const char test_string[] = "hello m26 client upload";
 	char test[64] = {0};
 	int i = 0;
@@ -513,6 +585,44 @@ void gprs_process(void* parameter)
 		if (i>10)
 			break;
 	}
+#endif
+	rt_size_t data_size;
+	const void *last_data_ptr;
+	while (1) {
+		rt_err_t r = rt_data_queue_pop(g_data_queue, &last_data_ptr, &data_size, RT_WAITING_FOREVER);
+
+		if (r == RT_EOK && last_data_ptr != RT_NULL) {
+			rt_kprintf("data_size %d, <%s>", last_data_ptr);
+			switch (g_gprs_state) {
+				case GPRS_STATE_INIT:
+						g_gprs_state = GPRS_STATE_CHECK_CPIN;
+						gprs_at_cmd(cpin);
+						break;
+				case GPRS_STATE_CHECK_CPIN:
+						if (have_str(last_data_ptr,STR_CPIN_READY)) {
+							g_gprs_state = GPRS_STATE_CHECK_CGREG;
+							gprs_at_cmd(cgreg);
+						} else {
+							rt_thread_delay(100);
+							gprs_at_cmd(cpin);
+						}
+						break;
+				case GPRS_STATE_CHECK_CGREG:
+						if (have_str(last_data_ptr, STR_CGREG_READY)) {
+							g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+							gprs_at_cmd(qistat);
+						} else {
+							rt_thread_delay(100);
+							gprs_at_cmd(cgreg);
+						}
+						break;
+
+
+			}
+			rt_free((void *)last_data_ptr);
+		}
+	}
+
 }
 int gprs_init(void)
 {
@@ -527,9 +637,20 @@ int gprs_init(void)
 		rt_device_set_rx_indicate(dev_gprs, gprs_rx_ind);
 		g_data_queue = (struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*1);
 		rt_data_queue_init(g_data_queue,64,4,RT_NULL);
+    	GPIO_InitTypeDef GPIO_InitStructure;
+
+    	RCC_APB2PeriphClockCmd(GPRS_POWER_RCC,ENABLE);
+    	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+    	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    	GPIO_InitStructure.GPIO_Pin   = GPRS_POWER_PIN;
+    	GPIO_Init(GPRS_POWER_PORT, &GPIO_InitStructure);
+	
+		m26_restart();
+		auto_baud();
 		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,512, 20, 10));
 		rt_thread_startup(rt_thread_create("gprs_init",gprs_process, 0,2048, 20, 10));
-    	
+		rt_thread_delay(100);
+		rt_device_write(dev_gprs, 0, (void *)e0, rt_strlen(e0));
 	}
 	return 0;
 }
