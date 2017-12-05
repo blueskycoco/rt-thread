@@ -33,6 +33,8 @@ struct rt_event gprs_event;
 #define STR_46002			"46002"
 #define STR_46003			"46003"
 #define STR_46004			"46004"
+#define DEFAULT_SERVER		"106.3.45.71"
+#define DEFAULT_PORT		"60001"
 const uint8_t qistat[] 		= "AT+QISTAT\n";
 const uint8_t qiclose[] 	= "AT+QICLOSE\n";
 const uint8_t qilocip[] 	= "AT+QILOCIP\n";
@@ -48,6 +50,10 @@ const uint8_t ask_qimux[] 	= "AT+QIMUX?\n";
 uint8_t 	  qicsgp[32]	= {0};
 const uint8_t qiregapp[]	= "AT+QIREGAPP\n";
 const uint8_t qiact[] 		= "AT+QIACT\n";
+uint8_t server_addr[5][32] = {0};
+uint8_t server_port[5][8] = {0};
+uint8_t server_index = 0;
+rt_bool_t m26_module_use = RT_TRUE;
 uint8_t g_gprs_state = GPRS_STATE_INIT;
 rt_device_t dev_gprs;
 struct rt_semaphore gprs_rx_sem;
@@ -64,6 +70,8 @@ void gprs_rcv(void* parameter)
 	uint32_t len = 0;
 	while(1)	
 	{			
+		if (!m26_module_use) 
+			return;
 		rt_sem_take(&gprs_rx_sem, RT_WAITING_FOREVER);
 		rt_thread_delay(1);
 		len += rt_device_read(dev_gprs, 0, rcv+len, 64-len);
@@ -615,6 +623,7 @@ void gprs_process(void* parameter)
 			break;
 	}
 #endif
+	uint8_t cpin_count = 0;
 	rt_size_t data_size;
 	const void *last_data_ptr;
 	gprs_at_cmd(e0);
@@ -635,6 +644,12 @@ void gprs_process(void* parameter)
 						} else {
 							rt_thread_delay(100);
 							gprs_at_cmd(cpin);
+							if (cpin_count > 3)
+							{
+								m26_module_use = RT_FALSE;
+								return;
+							}
+							cpin_count ++;
 						}
 						break;
 				case GPRS_STATE_CHECK_CGREG:
@@ -687,10 +702,36 @@ void gprs_process(void* parameter)
 						break;						
 				case GPRS_STATE_SET_QICSGP:
 						if (have_str(last_data_ptr, STR_OK)) {
-							//g_gprs_state = GPRS_STATE_CHECK_CIMI;
-							//gprs_at_cmd(cimi);
+							g_gprs_state = GPRS_STATE_SET_QIREGAPP;
+							gprs_at_cmd(qiregapp);
 						} else {
 							gprs_at_cmd(qicsgp); 						
+						}
+						break;		
+				case GPRS_STATE_SET_QIREGAPP:
+						if (have_str(last_data_ptr, STR_OK)) {
+							g_gprs_state = GPRS_STATE_SET_QISRVC;
+							gprs_at_cmd(qisrvc);
+						} else {
+							gprs_at_cmd(qiregapp); 						
+						}
+						break;		
+				case GPRS_STATE_SET_QISRVC:
+						if (have_str(last_data_ptr, STR_OK)) {
+							g_gprs_state = GPRS_STATE_SET_QIACT;
+							gprs_at_cmd(qiact);
+						} else {
+							gprs_at_cmd(qisrvc); 						
+						}
+						break;		
+				case GPRS_STATE_SET_QIACT:
+						if (have_str(last_data_ptr, STR_OK)) {
+							g_gprs_state = GPRS_STATE_SET_QIOPEN;
+							rt_sprintf(qiopen, "AT+QIOPEN=\"TCP\",\"%s\",\"%s\"\n",
+										server_addr[server_index],server_port[server_index]);
+							gprs_at_cmd(qiopen);
+						} else {
+							/*check error condition*/
 						}
 						break;		
 						
@@ -720,7 +761,9 @@ int gprs_init(void)
     	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     	GPIO_InitStructure.GPIO_Pin   = GPRS_POWER_PIN;
     	GPIO_Init(GPRS_POWER_PORT, &GPIO_InitStructure);
-	
+
+		strcpy(server_addr[0], DEFAULT_SERVER);
+		strcpy(server_port[0], DEFAULT_PORT);
 		m26_restart();
 		auto_baud();
 		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,512, 20, 10));
