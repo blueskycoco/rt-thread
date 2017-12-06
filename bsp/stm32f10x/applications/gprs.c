@@ -22,6 +22,7 @@ struct rt_event gprs_event;
 #define GPRS_STATE_SET_QIACT	9
 #define GPRS_STATE_CHECK_CIMI	10
 #define GPRS_STATE_SET_QIFGCNT	11
+#define GPRS_STATE_SET_QIOPEN 	12
 
 #define STR_CPIN_READY		"+CPIN: READY"
 #define STR_CGREG_READY		"+CGREG: 0,1"
@@ -33,6 +34,7 @@ struct rt_event gprs_event;
 #define STR_46002			"46002"
 #define STR_46003			"46003"
 #define STR_46004			"46004"
+#define STR_CONNECT_OK		"CONNECT OK"
 #define DEFAULT_SERVER		"106.3.45.71"
 #define DEFAULT_PORT		"60001"
 const uint8_t qistat[] 		= "AT+QISTAT\n";
@@ -669,14 +671,14 @@ void gprs_process(void* parameter)
 						} else {
 							rt_kprintf("others\r\n");
 						}
-						break;					
+						break;
 				case GPRS_STATE_CHECK_QIMUX:
 						if (have_str(last_data_ptr, STR_QIMUX_0)) {
 							g_gprs_state = GPRS_STATE_CHECK_CIMI;
 							gprs_at_cmd(cimi);
 						} else {
 							g_gprs_state = GPRS_STATE_SET_QIMUX;
-							gprs_at_cmd(qimux);							
+							gprs_at_cmd(qimux);
 						}
 						break;
 				case GPRS_STATE_SET_QIMUX:
@@ -717,7 +719,7 @@ void gprs_process(void* parameter)
 						} else {
 							gprs_at_cmd(qiregapp); 						
 						}
-						break;		
+						break;
 				case GPRS_STATE_SET_QISRVC:
 						if (have_str(last_data_ptr, STR_OK)) {
 							g_gprs_state = GPRS_STATE_SET_QIACT;
@@ -736,8 +738,23 @@ void gprs_process(void* parameter)
 						} else {
 							/*check error condition*/
 						}
-						break;		
+						break;						
+				case GPRS_STATE_SET_QIOPEN:
+						if (have_str(last_data_ptr, STR_CONNECT_OK)) {
+							g_gprs_state = GPRS_STATE_DATA_PROCESS;
+							/*send data here */
+						} else {
+							gprs_at_cmd(qiopen);
+						}
+						break;
+				case GPRS_STATE_DATA_PROCESS:
+						if (have_str(last_data_ptr, STR_CLIENT_DATA_ACK)) {
+						/*check buffer , sending next data */
 						
+						} else if (have_str(last_data_ptr, STR_SERVER_DATA_IN)){
+
+						}
+						break;
 			}
 			rt_free((void *)last_data_ptr);
 		}
