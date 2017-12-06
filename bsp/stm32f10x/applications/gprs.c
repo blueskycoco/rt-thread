@@ -48,6 +48,7 @@ const uint8_t qisrvc[] 		= "AT+QISRVC=1\n";
 const uint8_t qimux[] 		= "AT+QIMUX=0\n";
 const uint8_t ask_qimux[] 	= "AT+QIMUX?\n";
 uint8_t 	  qicsgp[32]	= {0};
+uint8_t 	  qiopen[64]	= {0};
 const uint8_t qiregapp[]	= "AT+QIREGAPP\n";
 const uint8_t qiact[] 		= "AT+QIACT\n";
 uint8_t server_addr[5][32] = {0};
@@ -686,7 +687,8 @@ void gprs_process(void* parameter)
 							gprs_at_cmd(qimux);							
 						}
 						break;		
-				case GPRS_STATE_CHECK_CIMI:					
+				case GPRS_STATE_CHECK_CIMI:
+						rt_memset(qicsgp, 0, 32);
 						if (have_str(last_data_ptr, STR_46000) ||
 							have_str(last_data_ptr, STR_46002) ||
 							have_str(last_data_ptr, STR_46004)) {
@@ -727,6 +729,7 @@ void gprs_process(void* parameter)
 				case GPRS_STATE_SET_QIACT:
 						if (have_str(last_data_ptr, STR_OK)) {
 							g_gprs_state = GPRS_STATE_SET_QIOPEN;
+							rt_memset(qiopen, 0, 64);
 							rt_sprintf(qiopen, "AT+QIOPEN=\"TCP\",\"%s\",\"%s\"\n",
 										server_addr[server_index],server_port[server_index]);
 							gprs_at_cmd(qiopen);
