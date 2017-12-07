@@ -12,7 +12,7 @@ struct rt_event gprs_event;
 #define GPRS_EVENT_0 (1<<0)
 #define GPRS_STATE_INIT			0
 #define GPRS_STATE_CHECK_CPIN	1
-#define GPRS_STATE_CHECK_QIMUX	2
+#define GPRS_STATE_SET_QINDI	2
 #define GPRS_STATE_SET_QIMUX	3
 #define GPRS_STATE_CHECK_CGREG	4
 #define GPRS_STATE_CHECK_QISTAT	5
@@ -23,18 +23,24 @@ struct rt_event gprs_event;
 #define GPRS_STATE_CHECK_CIMI	10
 #define GPRS_STATE_SET_QIFGCNT	11
 #define GPRS_STATE_SET_QIOPEN 	12
-
+#define GPRS_STATE_SET_QIDEACT  13
+#define GPRS_STATE_DATA_PROCESSING 14
+#define GPRS_STATE_DATA_READ		15
 #define STR_CPIN_READY		"+CPIN: READY"
 #define STR_CGREG_READY		"+CGREG: 0,1"
 #define STR_STAT_INIT		"IP INITIAL"
+#define STR_STAT_IND		"IP IND"
 #define STR_QIMUX_0			"+QIMUX: 0"
 #define STR_OK				"OK"
+#define STR_ERROR			"ERROR"
 #define STR_46000			"46000"
 #define STR_46001			"46001"
 #define STR_46002			"46002"
 #define STR_46003			"46003"
 #define STR_46004			"46004"
+#define STR_STAT_DEACT_OK 	"DEACT OK"
 #define STR_CONNECT_OK		"CONNECT OK"
+#define STR_QIRDI			"+QIRDI"
 #define DEFAULT_SERVER		"106.3.45.71"
 #define DEFAULT_PORT		"60001"
 const uint8_t qistat[] 		= "AT+QISTAT\n";
@@ -49,6 +55,10 @@ const uint8_t qifgcnt[] 	= "AT+QIFGCNT=0\n";
 const uint8_t qisrvc[] 		= "AT+QISRVC=1\n";
 const uint8_t qimux[] 		= "AT+QIMUX=0\n";
 const uint8_t ask_qimux[] 	= "AT+QIMUX?\n";
+const uint8_t qideact[]		= "AT+QIDEACT\n";
+const uint8_t qindi[]		= "AT+QINDI=1\n";
+const uint8_t qird[]		= {"AT+QIRD=0,1,0,1024\n"};
+
 uint8_t 	  qicsgp[32]	= {0};
 uint8_t 	  qiopen[64]	= {0};
 const uint8_t qiregapp[]	= "AT+QIREGAPP\n";
@@ -76,7 +86,7 @@ void gprs_rcv(void* parameter)
 		if (!m26_module_use) 
 			return;
 		rt_sem_take(&gprs_rx_sem, RT_WAITING_FOREVER);
-		rt_thread_delay(1);
+		//rt_thread_delay(1);
 		len += rt_device_read(dev_gprs, 0, rcv+len, 64-len);
 		if (len > 0) {
 			uint8_t *ptr = (uint8_t *)rt_malloc((len+1) * sizeof(uint8_t));
@@ -634,7 +644,7 @@ void gprs_process(void* parameter)
 		rt_err_t r = rt_data_queue_pop(g_data_queue, &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 
 		if (r == RT_EOK && last_data_ptr != RT_NULL) {
-			rt_kprintf("%s",last_data_ptr);
+			rt_kprintf("<%s>",last_data_ptr);
 			switch (g_gprs_state) {
 				case GPRS_STATE_INIT:
 						g_gprs_state = GPRS_STATE_CHECK_CPIN;
@@ -666,25 +676,29 @@ void gprs_process(void* parameter)
 						break;
 				case GPRS_STATE_CHECK_QISTAT:
 						if (have_str(last_data_ptr, STR_STAT_INIT)) {
-							g_gprs_state = GPRS_STATE_CHECK_QIMUX;
-							gprs_at_cmd(ask_qimux);
-						} else {
-							rt_kprintf("others\r\n");
-						}
-						break;
-				case GPRS_STATE_CHECK_QIMUX:
-						if (have_str(last_data_ptr, STR_QIMUX_0)) {
-							g_gprs_state = GPRS_STATE_CHECK_CIMI;
-							gprs_at_cmd(cimi);
-						} else {
 							g_gprs_state = GPRS_STATE_SET_QIMUX;
 							gprs_at_cmd(qimux);
+						} else if (have_str(last_data_ptr, STR_STAT_IND)){
+							g_gprs_state = GPRS_STATE_SET_QIDEACT;
+							gprs_at_cmd(qideact);
+						} else if (have_str(last_data_ptr, STR_CONNECT_OK)){
+							g_gprs_state = GPRS_STATE_DATA_PROCESSING;
+							
+							rt_kprintf("already connect to server ok\r\n");
 						}
 						break;
-				case GPRS_STATE_SET_QIMUX:
+				case GPRS_STATE_SET_QINDI:
 						if (have_str(last_data_ptr, STR_OK)) {
 							g_gprs_state = GPRS_STATE_CHECK_CIMI;
 							gprs_at_cmd(cimi);
+						} else {
+							gprs_at_cmd(qindi); 						
+						}
+						break;								
+				case GPRS_STATE_SET_QIMUX:
+						if (have_str(last_data_ptr, STR_OK)) {
+							g_gprs_state = GPRS_STATE_SET_QINDI;
+							gprs_at_cmd(qindi);
 						} else {
 							gprs_at_cmd(qimux);							
 						}
@@ -737,24 +751,46 @@ void gprs_process(void* parameter)
 							gprs_at_cmd(qiopen);
 						} else {
 							/*check error condition*/
+							g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+							gprs_at_cmd(qistat);
+						}
+						break;
+				case GPRS_STATE_SET_QIDEACT:
+						if (have_str(last_data_ptr, STR_STAT_DEACT_OK)) {
+							g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+							gprs_at_cmd(qistat);
+						} else if (have_str(last_data_ptr, STR_ERROR)){
+							g_gprs_state = GPRS_STATE_SET_QIDEACT;
+							gprs_at_cmd(qideact);
 						}
 						break;						
 				case GPRS_STATE_SET_QIOPEN:
 						if (have_str(last_data_ptr, STR_CONNECT_OK)) {
-							g_gprs_state = GPRS_STATE_DATA_PROCESS;
+							g_gprs_state = GPRS_STATE_DATA_PROCESSING;
 							/*send data here */
+							rt_kprintf("connect to server ok\r\n");
 						} else {
-							gprs_at_cmd(qiopen);
+							//gprs_at_cmd(qiopen);
 						}
 						break;
-				case GPRS_STATE_DATA_PROCESS:
-						if (have_str(last_data_ptr, STR_CLIENT_DATA_ACK)) {
-						/*check buffer , sending next data */
-						
-						} else if (have_str(last_data_ptr, STR_SERVER_DATA_IN)){
+				case GPRS_STATE_DATA_PROCESSING:
+						if (have_str(last_data_ptr, STR_QIRDI)) {
+							/*server data in */
+							g_gprs_state = GPRS_STATE_DATA_READ;
+							gprs_at_cmd(qird);
+						} /*else if (have_str(last_data_ptr, STR_SERVER_DATA_IN)){
 
-						}
+						}*/
 						break;
+				case GPRS_STATE_DATA_READ:
+						if (have_str(last_data_ptr, STR_OK)) {
+							rt_kprintf("rcving full\r\n");
+							g_gprs_state = GPRS_STATE_DATA_PROCESSING;
+						}
+						else
+						{
+							rt_kprintf("not recving full\r\n");
+						}
 			}
 			rt_free((void *)last_data_ptr);
 		}
