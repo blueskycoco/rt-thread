@@ -9,6 +9,7 @@
 #define GPRS_POWER_RCC	RCC_APB2Periph_GPIOA
 #define MAGIC_OK	"OK"
 struct rt_event gprs_event;
+static struct rt_mutex gprs_lock;
 #define GPRS_EVENT_0 (1<<0)
 #define GPRS_STATE_INIT			0
 #define GPRS_STATE_CHECK_CPIN	1
@@ -27,19 +28,22 @@ struct rt_event gprs_event;
 #define GPRS_STATE_DATA_PROCESSING 14
 #define GPRS_STATE_DATA_READ		15
 #define GPRS_STATE_SET_QICLOSE		16
-
+#define GPRS_STATE_DATA_WRITE		17
+#define GPRS_STATE_DATA_ACK			18
+#define GPRS_STATE_DATA_PRE_WRITE	19
 #define STR_CPIN_READY		"+CPIN: READY"
 #define STR_CGREG_READY		"+CGREG: 0,1"
 #define STR_STAT_INIT		"IP INITIAL"
 #define STR_STAT_IND		"IP IND"
 #define STR_STAT_CLOSE		"IP CLOSE"
 #define STR_STAT_STATUS		"IP STATUS"
+#define STR_STAT_DEACT		"PDP DEACT"
 #define STR_QIMUX_0			"+QIMUX: 0"
 #define STR_OK				"OK"
 #define STR_QIRD				"+QIRD"
 #define STR_TCP				"TCP,"
 #define STR_CLOSED				"CLOSED"
-
+#define STR_BEGIN_WRITE		">"
 #define STR_ERROR			"ERROR"
 #define STR_46000			"46000"
 #define STR_46001			"46001"
@@ -49,10 +53,12 @@ struct rt_event gprs_event;
 #define STR_STAT_DEACT_OK 	"DEACT OK"
 #define STR_CONNECT_OK		"CONNECT OK"
 #define STR_CLOSE_OK		"CLOSE OK"
-
+#define STR_SEND_OK			"SEND OK"
 #define STR_QIRDI			"+QIRDI"
-#define DEFAULT_SERVER		"106.3.45.71"
-#define DEFAULT_PORT		"60001"
+#define STR_QISACK			"+QISACK"
+//#define DEFAULT_SERVER		"106.3.45.71"
+#define DEFAULT_SERVER		"101.132.177.116"
+#define DEFAULT_PORT		"60002"
 const uint8_t qistat[] 		= "AT+QISTAT\n";
 const uint8_t qiclose[] 	= "AT+QICLOSE\n";
 const uint8_t qilocip[] 	= "AT+QILOCIP\n";
@@ -68,6 +74,7 @@ const uint8_t ask_qimux[] 	= "AT+QIMUX?\n";
 const uint8_t qideact[]		= "AT+QIDEACT\n";
 const uint8_t qindi[]		= "AT+QINDI=1\n";
 const uint8_t qird[]		= {"AT+QIRD=0,1,0,1500\n"};
+const uint8_t qisack[]	= "AT+QISACK\n";
 
 uint8_t 	  qicsgp[32]	= {0};
 uint8_t 	  qiopen[64]	= {0};
@@ -77,10 +84,13 @@ uint8_t server_addr[5][32] = {0};
 uint8_t server_port[5][8] = {0};
 uint8_t server_index = 0;
 rt_bool_t m26_module_use = RT_TRUE;
+rt_bool_t g_data_in_m26 = RT_FALSE;
 uint8_t g_gprs_state = GPRS_STATE_INIT;
 rt_device_t dev_gprs;
 struct rt_semaphore gprs_rx_sem;
 struct rt_data_queue *g_data_queue;
+uint8_t *server_buf = RT_NULL;
+uint32_t server_len = 0;
 static rt_err_t gprs_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&(gprs_rx_sem));    
@@ -118,11 +128,6 @@ void gprs_rcv(void* parameter)
 	}
 }
 #if 0
-rt_err_t gprs_wait_event(int timeout)
-{
-	rt_uint32_t ev;
-	return rt_event_recv( &gprs_event, GPRS_EVENT_0, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, timeout, &ev ); 
-}
 
 static rt_size_t gprs_read_data(
 		uint8_t *rcv,
@@ -302,6 +307,8 @@ int auto_baud(void)
     	if (ret == RT_EOK && len > 0) {
 			if (strstr((const char *)rcv, "OK") != NULL)
 			{
+				uint8_t ch;
+				while(rt_device_read(dev_gprs, 0, &ch, 1)==1);
 				break;
 			}
 		}
@@ -598,32 +605,6 @@ uint8_t m26_open_cnn(uint8_t* server_addr, uint8_t* server_port)
 		}
 	//}
 }
-uint8_t m26_send(const uint8_t *data, uint32_t send_len)
-{
-	uint8_t qisend[32] 	= {0};//"AT+QISEND=\n";
-	const uint8_t qisack[32] 	= "AT+QISACK\n";
-	uint8_t *rcv;
-	uint32_t len;
-	rt_sprintf(qisend, "AT+QISEND=%d\n", send_len);
-	rt_err_t ret = gprs_cmd(qisend, rt_strlen(qisend), &rcv, &len, 300, ">");
-	if (ret == RT_EOK && rcv != RT_NULL) {
-		if (strstr((const char *)rcv,">") != RT_NULL) {
-			rt_device_write(dev_gprs, 0, data, send_len);
-			rt_free(rcv);
-			ret = gprs_cmd(RT_NULL, 0, &rcv, &len, 300, RT_NULL);
-			if (ret == RT_EOK && rcv != RT_NULL) {
-				if (strstr((const char *)rcv, "SEND OK") != RT_NULL) {
-					rt_free(rcv);
-					ret = gprs_cmd(qisack, rt_strlen(qisack), &rcv, &len, 100, RT_NULL);
-					if (ret == RT_EOK && rcv != RT_NULL)
-						rt_free(rcv);
-				}
-			}
-		}
-	}
-
-	return 0;
-}
 #endif
 rt_bool_t have_str(const char *str, const char *magic)
 {
@@ -637,26 +618,91 @@ void gprs_at_cmd(const char *cmd)
 	rt_kprintf("%s",cmd);
 	rt_device_write(dev_gprs, 0, (void *)cmd, rt_strlen(cmd));
 }
+void handle_server_in(const void *last_data_ptr)
+{
+	if (have_str(last_data_ptr, STR_QIRD))
+	{	
+		uint8_t *begin = (uint8_t *)strstr(last_data_ptr,STR_QIRD);
+		uint8_t *pos = (uint8_t *)strstr(begin, STR_TCP);
+		if (pos != RT_NULL) {
+			int i = 4;
+			//rt_kprintf("\r\n<><>\r\n");
+				while (pos[i] != '\r' && pos[i+1] != '\n' && i<strlen(pos))
+				{
+					//rt_kprintf("%c",pos[i]);
+				server_len = server_len*10 + pos[i] - '0';
+					i++;
+				}
+			rt_kprintf("server len %d\r\n", server_len);
+			server_buf = (uint8_t *)rt_malloc(server_len * sizeof(uint8_t));
+			rt_memset(server_buf,0,server_len);
+			server_len = 0;
+			i+=2;
+			while(i<strlen(pos) && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
+			{
+				
+				server_buf[server_len++] = pos[i++];
+				rt_kprintf("%c", server_buf[server_len-1]);
+			}
+			//rt_kprintf("%c %c %c %c\r\n",pos[i],pos[i+1],pos[i+2],pos[i+3]);
+			if (pos[i]=='\r' &&pos[i+1]=='\n' &&pos[i+2]=='O' &&pos[i+3]=='K')
+			{
+				//rt_kprintf("{%s}\r\n",server_buf);
+				//rt_kprintf("free server buf\r\n");
+				rt_free(server_buf);									
+				g_gprs_state = GPRS_STATE_DATA_PROCESSING;
+				g_data_in_m26 = RT_FALSE;
+				rt_mutex_release(&gprs_lock);
+			}									
+			/*handle server request
+			  put to another dataqueue
+			  */
+		}
+	}else {
+			int i=0;
+			//rt_kprintf("><%d><%d\r\n",server_len,data_size);
+			uint8_t *pos = (uint8_t *)last_data_ptr;
+			while(i<strlen(pos) && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
+			{
+				server_buf[server_len++] = pos[i++];
+				rt_kprintf("%c", server_buf[server_len-1]);
+			}
+			//rt_kprintf("%c %c %c %c\r\n",pos[i],pos[i+1],pos[i+2],pos[i+3]);
+			if (pos[i]=='\r' &&pos[i+1]=='\n' &&pos[i+2]=='O' &&pos[i+3]=='K')
+			{
+				rt_free(server_buf);						
+				//rt_kprintf("\r\nfree server buf2\r\n");
+				g_gprs_state = GPRS_STATE_DATA_PROCESSING;
+				g_data_in_m26 = RT_FALSE;
+				rt_mutex_release(&gprs_lock);
+			}
+		}
+}
+rt_err_t gprs_wait_event(int timeout)
+{
+	rt_uint32_t ev;
+	return rt_event_recv( &gprs_event, GPRS_EVENT_0, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, timeout, &ev ); 
+}
+uint8_t m26_send(const uint8_t *data, uint32_t send_len)
+{
+	uint8_t qisend[32] 	= {0};
+	uint8_t *rcv;
+	uint32_t len;
+	while (g_gprs_state != GPRS_STATE_DATA_PROCESSING)
+		rt_thread_delay(100);
+	rt_mutex_take(&gprs_lock, RT_WAITING_FOREVER);
+	g_gprs_state = GPRS_STATE_DATA_PRE_WRITE;
+	rt_sprintf(qisend, "AT+QISEND=%d\n", send_len);
+	gprs_at_cmd(qisend);
+	gprs_wait_event(RT_WAITING_FOREVER);
+	rt_device_write(dev_gprs, 0, data, send_len);
+	gprs_wait_event(RT_WAITING_FOREVER);
+	rt_mutex_release(&gprs_lock);
+	return 0;
+}
+
 void gprs_process(void* parameter)
 {
-#if 0
-	const char test_string[] = "hello m26 client upload";
-	char test[64] = {0};
-	int i = 0;
-	m26_startup();
-	m26_open_cnn("106.3.45.71", "60001");
-	while (1) {
-		rt_memset(test,0,64);
-		rt_sprintf(test,"%s %d", test_string,i);
-		m26_send(test, rt_strlen(test));
-		i++;
-		rt_thread_delay(100);
-		if (i>10)
-			break;
-	}
-#endif
-	uint8_t *server_buf = RT_NULL;
-	uint32_t server_len = 0;
 	uint8_t *rcv_server = RT_NULL;
 	uint8_t cpin_count = 0;
 	rt_size_t data_size;
@@ -697,7 +743,8 @@ void gprs_process(void* parameter)
 						}
 						break;
 				case GPRS_STATE_CHECK_QISTAT:
-						if (have_str(last_data_ptr, STR_STAT_INIT)) {
+						if (have_str(last_data_ptr, STR_STAT_INIT) ||
+							have_str(last_data_ptr, STR_STAT_DEACT)) {
 							g_gprs_state = GPRS_STATE_SET_QIMUX;
 							gprs_at_cmd(qimux);
 						} else if (have_str(last_data_ptr, STR_STAT_IND)){
@@ -741,7 +788,8 @@ void gprs_process(void* parameter)
 						}
 						break;								
 				case GPRS_STATE_SET_QIMUX:
-						if (have_str(last_data_ptr, STR_OK)) {
+						if (have_str(last_data_ptr, STR_OK) ||
+							have_str(last_data_ptr, STR_ERROR)) {
 							g_gprs_state = GPRS_STATE_SET_QINDI;
 							gprs_at_cmd(qindi);
 						} else {
@@ -772,7 +820,8 @@ void gprs_process(void* parameter)
 						}
 						break;		
 				case GPRS_STATE_SET_QIREGAPP:
-						if (have_str(last_data_ptr, STR_OK)) {
+						if (have_str(last_data_ptr, STR_OK) ||
+							have_str(last_data_ptr, STR_ERROR)) {
 							g_gprs_state = GPRS_STATE_SET_QISRVC;
 							gprs_at_cmd(qisrvc);
 						} else {
@@ -823,86 +872,92 @@ void gprs_process(void* parameter)
 						}
 						break;
 				case GPRS_STATE_DATA_PROCESSING:
-						if (have_str(last_data_ptr, STR_QIRDI)) {
+						 if (have_str(last_data_ptr, STR_QIRDI)) {
 							/*server data in */
 							g_gprs_state = GPRS_STATE_DATA_READ;
+							//rt_mutex_take(&gprs_lock, RT_WAITING_FOREVER);
 							gprs_at_cmd(qird);
 							server_len = 0;
-						} else if (have_str(last_data_ptr, STR_CLOSED)){
-							g_gprs_state = GPRS_STATE_CHECK_QISTAT;
-							gprs_at_cmd(qistat);
-						}
+						}else {
+								g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+								gprs_at_cmd(qistat);
+							}
+							
 						break;
 				case GPRS_STATE_DATA_READ:
-						if (have_str(last_data_ptr, STR_QIRD))
-						{	
-							uint8_t *begin = (uint8_t *)strstr(last_data_ptr,STR_QIRD);
-							uint8_t *pos = (uint8_t *)strstr(begin, STR_TCP);
-							if (pos != RT_NULL) {
-								int i = 4;
-								//rt_kprintf("\r\n<><>\r\n");
-			 					while (pos[i] != '\r' && pos[i+1] != '\n' && i<strlen(pos))
-			 					{
-			 						//rt_kprintf("%c",pos[i]);
-									server_len = server_len*10 + pos[i] - '0';
-			 						i++;
-			 					}
-								rt_kprintf("server len %d\r\n", server_len);
-								server_buf = (uint8_t *)rt_malloc(server_len * sizeof(uint8_t));
-								rt_memset(server_buf,0,server_len);
-								server_len = 0;
-								i+=2;
-								while(i<strlen(pos) && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
-								{
-									
-									server_buf[server_len++] = pos[i++];
-									rt_kprintf("%c", server_buf[server_len-1]);
-								}
-								//rt_kprintf("%c %c %c %c\r\n",pos[i],pos[i+1],pos[i+2],pos[i+3]);
-								if (pos[i]=='\r' &&pos[i+1]=='\n' &&pos[i+2]=='O' &&pos[i+3]=='K')
-								{
-									//rt_kprintf("{%s}\r\n",server_buf);
-									//rt_kprintf("free server buf\r\n");
-									rt_free(server_buf);									
-									g_gprs_state = GPRS_STATE_DATA_PROCESSING;
-								}									
-								/*handle server request
-								  put to another dataqueue
-								  */
-							}
-						} else {
-								int i=0;
-								//rt_kprintf("><%d><%d\r\n",server_len,data_size);
-								uint8_t *pos = (uint8_t *)last_data_ptr;
-								while(i<strlen(pos) && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
-								{
-									server_buf[server_len++] = pos[i++];
-									rt_kprintf("%c", server_buf[server_len-1]);
-								}
-								//rt_kprintf("%c %c %c %c\r\n",pos[i],pos[i+1],pos[i+2],pos[i+3]);
-								if (pos[i]=='\r' &&pos[i+1]=='\n' &&pos[i+2]=='O' &&pos[i+3]=='K')
-								{
-									rt_free(server_buf);						
-									//rt_kprintf("\r\nfree server buf2\r\n");
-									g_gprs_state = GPRS_STATE_DATA_PROCESSING;
-								}
-							}
+						handle_server_in(last_data_ptr);
 						break;
+				case GPRS_STATE_DATA_PRE_WRITE:
+						if (have_str(last_data_ptr, STR_BEGIN_WRITE)) {
+							g_gprs_state = GPRS_STATE_DATA_WRITE;
+							rt_event_send(&gprs_event,GPRS_EVENT_0);
+						}
+						else if(have_str(last_data_ptr, STR_ERROR))
+						{
+							g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+								gprs_at_cmd(qistat);
+								rt_event_send(&gprs_event,GPRS_EVENT_0);
+						}
+						if (have_str(last_data_ptr, STR_QIRDI))
+							g_data_in_m26 = RT_TRUE;
+						break;
+				case GPRS_STATE_DATA_WRITE:
+						if (have_str(last_data_ptr, STR_SEND_OK)) {
+							g_gprs_state = GPRS_STATE_DATA_ACK;
+							gprs_at_cmd(qisack);
+						}
+						else {
+								g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+								gprs_at_cmd(qistat);
+							}
+						if (have_str(last_data_ptr, STR_QIRDI))
+							g_data_in_m26 = RT_TRUE;
+						break;
+				case GPRS_STATE_DATA_ACK:
+						if (have_str(last_data_ptr, STR_QISACK)) {
+							g_gprs_state = GPRS_STATE_DATA_PROCESSING;
+							rt_event_send(&gprs_event,GPRS_EVENT_0);
+							if (g_data_in_m26 || have_str(last_data_ptr, STR_QIRDI)) {
+									g_gprs_state = GPRS_STATE_DATA_READ;
+									//rt_mutex_take(&gprs_lock, RT_WAITING_FOREVER);
+									gprs_at_cmd(qird);
+									server_len = 0;
+								}							
+						} else if (have_str(last_data_ptr, STR_QIRDI))
+							g_data_in_m26 = RT_TRUE;
+						else{
+								g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+								gprs_at_cmd(qistat);
+							}
+						break;		
 			}
 			rt_free((void *)last_data_ptr);
 		}
 	}
 
 }
+void send_process(void* parameter)
+{
+	uint8_t buf[128] = {0};
+	int i=0;
+	while(1)	{
+	rt_thread_delay(100);
+	rt_sprintf(buf, "sending test data %d\r\n",i);
+	//rt_kprintf("%s",buf);
+	m26_send(buf, rt_strlen(buf));
+	i++;
+		}
+}
 int gprs_init(void)
 {
 	/*handle m26*/
-	rt_thread_delay(1000);
+	//rt_thread_delay(1000);
 	dev_gprs=rt_device_find("uart3");
 	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX) == RT_EOK)			
 	{
 		change_baud(115200);
-		rt_event_init(&gprs_event, "gprs_event", RT_IPC_FLAG_FIFO );
+		rt_event_init(&gprs_event, "gprs_event", RT_IPC_FLAG_FIFO );		
+		rt_mutex_init(&gprs_lock, "gprs_lock", RT_IPC_FLAG_FIFO);
 		rt_sem_init(&(gprs_rx_sem), "ch2o_rx", 0, 0);
 		rt_device_set_rx_indicate(dev_gprs, gprs_rx_ind);
 		g_data_queue = (struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*1);
@@ -921,6 +976,7 @@ int gprs_init(void)
 		auto_baud();
 		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,1524, 20, 10));
 		rt_thread_startup(rt_thread_create("gprs_init",gprs_process, 0,2048, 20, 10));
+		rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,512, 20, 10));
 		//rt_thread_delay(100);
 		//gprs_at_cmd(e0);
 	}
