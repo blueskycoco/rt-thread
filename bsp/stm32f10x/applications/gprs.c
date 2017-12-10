@@ -75,7 +75,7 @@ const uint8_t qideact[]		= "AT+QIDEACT\n";
 const uint8_t qindi[]		= "AT+QINDI=1\n";
 const uint8_t qird[]		= {"AT+QIRD=0,1,0,1500\n"};
 const uint8_t qisack[]	= "AT+QISACK\n";
-
+const uint8_t qiat[]	="AT\n";
 uint8_t 	  qicsgp[32]	= {0};
 uint8_t 	  qiopen[64]	= {0};
 const uint8_t qiregapp[]	= "AT+QIREGAPP\n";
@@ -863,6 +863,7 @@ void gprs_process(void* parameter)
 							g_gprs_state = GPRS_STATE_DATA_PROCESSING;
 							/*send data here */
 							rt_kprintf("connect to server ok\r\n");
+							gprs_at_cmd(qiat);
 						} else {
 							if (!have_str(last_data_ptr, STR_OK)) {
 								rt_thread_delay(100*3);
@@ -878,7 +879,16 @@ void gprs_process(void* parameter)
 							//rt_mutex_take(&gprs_lock, RT_WAITING_FOREVER);
 							gprs_at_cmd(qird);
 							server_len = 0;
-						}else {
+						} else if (have_str(last_data_ptr, STR_OK)){
+							/*check have data to send */
+							if (have_data_to_send())
+								send_data();
+							else {								
+									rt_thread_delay(100);
+									gprs_at_cmd(AT);
+								}
+								
+						} else{
 								g_gprs_state = GPRS_STATE_CHECK_QISTAT;
 								gprs_at_cmd(qistat);
 							}
