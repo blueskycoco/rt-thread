@@ -18,7 +18,7 @@
 /* Thread Debug */
 #define RT_DEBUG
 #define RT_THREAD_DEBUG
-
+//#define RT_DEBUG_MEM 1
 #define RT_USING_OVERFLOW_CHECK
 
 /* Using Hook */
