@@ -56,6 +56,7 @@ static struct rt_mutex gprs_lock;
 #define STR_SEND_OK			"SEND OK"
 #define STR_QIRDI			"+QIRDI:"
 #define STR_QISACK			"+QISACK"
+#define STR_SOCKET_BUSSY	"SOCKET BUSY"
 //#define DEFAULT_SERVER		"106.3.45.71"
 #define DEFAULT_SERVER		"101.132.177.116"
 #define DEFAULT_PORT		"60002"
@@ -902,7 +903,11 @@ void gprs_process(void* parameter)
 							/*send data here */
 							rt_kprintf("connect to server ok\r\n");
 							gprs_at_cmd(qiat);
-						} else {
+						} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
+							g_gprs_state = GPRS_STATE_SET_QIDEACT;
+							gprs_at_cmd(qideact);
+							}
+						else {
 							if (!have_str(last_data_ptr, STR_OK)) {
 								rt_thread_delay(100*3);
 								g_gprs_state = GPRS_STATE_CHECK_QISTAT;
