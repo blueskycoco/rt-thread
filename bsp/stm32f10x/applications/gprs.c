@@ -388,7 +388,11 @@ void handle_server_in(const void *last_data_ptr)
 	if (/*have_str(last_data_ptr, STR_QIRD) && */have_str(last_data_ptr, STR_TCP))
 	{	
 		uint8_t *begin = (uint8_t *)strstr(last_data_ptr,STR_QIRD);
-		uint8_t *pos = (uint8_t *)strstr(begin, STR_TCP);
+		uint8_t *pos = RT_NULL;
+		if (begin == RT_NULL)
+			pos = (uint8_t *)strstr(last_data_ptr, STR_TCP);
+		else
+			pos = (uint8_t *)strstr(begin, STR_TCP);
 		if (pos != RT_NULL) {
 			int i = 4;
 			//rt_kprintf("\r\n<><>\r\n");
