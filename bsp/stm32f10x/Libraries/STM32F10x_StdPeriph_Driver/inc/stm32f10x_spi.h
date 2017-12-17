@@ -466,7 +466,8 @@ FlagStatus SPI_I2S_GetFlagStatus(SPI_TypeDef* SPIx, uint16_t SPI_I2S_FLAG);
 void SPI_I2S_ClearFlag(SPI_TypeDef* SPIx, uint16_t SPI_I2S_FLAG);
 ITStatus SPI_I2S_GetITStatus(SPI_TypeDef* SPIx, uint8_t SPI_I2S_IT);
 void SPI_I2S_ClearITPendingBit(SPI_TypeDef* SPIx, uint8_t SPI_I2S_IT);
-
+uint8_t SPI_ReceiveData8(SPI_TypeDef* SPIx);
+void SPI_SendData8(SPI_TypeDef* SPIx, uint8_t Data);
 #ifdef __cplusplus
 }
 #endif

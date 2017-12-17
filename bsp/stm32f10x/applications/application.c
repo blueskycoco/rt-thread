@@ -48,22 +48,22 @@ static void led_thread_entry(void* parameter)
 	rt_uint8_t buf[256]={0};
 
 	rt_hw_led_init();
-	cc1101_init();
+	radio_init();
 	while (1)
 	{
 		/* led1 on */
 #ifndef RT_USING_FINSH
-		//        rt_kprintf("led on, count : %d\r\n",count);
+		        rt_kprintf("led on, count : %d\r\n",count);
 #endif
 		rt_sprintf(buf,"led on , count : %d",count);
-		cc1101_send_packet(buf,strlen(buf));
+		//radio_send(buf,strlen(buf));
 		count++;
 		rt_hw_led_on(0);
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 
 		/* led1 off */
 #ifndef RT_USING_FINSH
-		//        rt_kprintf("led off\r\n");
+		        rt_kprintf("led off\r\n");
 #endif
 		rt_hw_led_off(0);
 		rt_thread_delay( RT_TICK_PER_SECOND/2 );

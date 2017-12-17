@@ -535,6 +535,27 @@ void SPI_I2S_DMACmd(SPI_TypeDef* SPIx, uint16_t SPI_I2S_DMAReq, FunctionalState 
     SPIx->CR2 &= (uint16_t)~SPI_I2S_DMAReq;
   }
 }
+void SPI_SendData8(SPI_TypeDef* SPIx, uint8_t Data)
+{
+  uint32_t spixbase = 0x00;
+
+  /* Check the parameters */
+  assert_param(IS_SPI_ALL_PERIPH(SPIx));
+
+  spixbase = (uint32_t)SPIx; 
+  spixbase += 0x0C;
+  
+  *(__IO uint8_t *) spixbase = Data;
+}
+uint8_t SPI_ReceiveData8(SPI_TypeDef* SPIx)
+{
+  uint32_t spixbase = 0x00;
+  
+  spixbase = (uint32_t)SPIx; 
+  spixbase += 0x0C;
+  
+  return *(__IO uint8_t *) spixbase;
+}
 
 /**
   * @brief  Transmits a Data through the SPIx/I2Sx peripheral.
