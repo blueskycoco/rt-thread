@@ -178,17 +178,16 @@ int radio_init(void)
 	unsigned char i, writeByte, preferredSettings_length;
 	registerSetting_t *preferredSettings;
 
-	//hal_timer_init(32768);
-	trxRfSpiInterfaceInit(2);
+	trxRfSpiInterfaceInit();	
 
 	trxSpiCmdStrobe(RF_SRES);
 
 	rt_thread_delay(100);
-	preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);
-	preferredSettings = (registerSetting_t *)preferredSettings_1200bps;
-	for(i = 0; i < preferredSettings_length; i++) {
+	preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);	
+	preferredSettings = (registerSetting_t *)preferredSettings_1200bps;	
+	for(i = 0; i < preferredSettings_length; i++) {	
 		writeByte = preferredSettings[i].data;
-		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);
+		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);	
 	}
 	paTable[0] = 0xC5;	
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, PATABLE, paTable, 1);
@@ -197,13 +196,15 @@ int radio_init(void)
 		uint8 readByte = 0;
 		trx8BitRegAccess(RADIO_READ_ACCESS, preferredSettings[i].addr, &readByte, 1);
 		if (readByte == preferredSettings[i].data)
-			rt_kprintf("rf reg set ok\r\n");
+			rt_kprintf("rf reg set ok %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
 		else
 			rt_kprintf("rf reg set failed\r\n");
 	}
 	radio_set_freq(902750);
 	set_rf_packet_length(TX_BUF_SIZE);
+	trxRfSpiInterruptInit();
 	radio_receive_on();
+
 	return 0;
 }
 int radio_receive_on(void) {
@@ -218,15 +219,20 @@ int radio_receive_on(void) {
 	return(0);
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
-
+	rt_kprintf("send %s, len %d\r\n",payload, payload_len);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
-
+	rt_kprintf("send 1\r\n");
 	/* Range extender in TX mode */
 #ifdef ENABLE_RANGE_EXTENDER
 	range_extender_txon();
 #endif
 
 	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating
+	rt_kprintf("send 2\r\n");
+	radio_wait_for_idle(0);
+	rt_kprintf("send 3\r\n");
+	radio_receive_on();
+	rt_kprintf("send 4\r\n");
 	return(0);
 }
 int radio_read(unsigned char *buf, unsigned short *buf_len) {

@@ -14,7 +14,7 @@
 #define EXTI_IRQnX EXTI2_IRQn
 #define EXTI_LineX	EXTI_Line2
 #define st(x)      do { x } while (__LINE__ == -1)
-rt_event_t cc1101_event;
+struct rt_event cc1101_event;
 #define GDO0_H (1<<0)
 #define GDO0_L (1<<1)
 void cs(int type)
@@ -33,12 +33,16 @@ void cs(int type)
 #define RF_SPI_END()                st( cs(1); )
 void cc1101_isr()
 {	
+	rt_kprintf(" cc1101_isr 1\r\n");
 	if(GPIO_ReadInputDataBit(PORT_GDO0, PIN_GDO0) ==SET)	
 	{		
+		rt_kprintf(" cc1101_isr 2\r\n");
 		rt_event_send(&cc1101_event,GDO0_H);	
 	}	else	{	
+		rt_kprintf(" cc1101_isr 3\r\n");
 		rt_event_send(&cc1101_event,GDO0_L);	
 	}
+		rt_kprintf(" cc1101_isr 4\r\n");
 }
 int wait_int(int flag)
 {	
@@ -69,7 +73,7 @@ int wait_int(int flag)
 	return RT_TRUE;
 }
 
-void spi_init()
+void trxRfSpiInterfaceInit()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;	
 	SPI_InitTypeDef  SPI_InitStructure;	
@@ -119,33 +123,32 @@ void spi_init()
 	SPI_Cmd(SPI1, ENABLE);
 
 }
-void trxRfSpiInterfaceInit(uint8 prescalerValue)
+void trxRfSpiInterruptInit()
 {
-	GPIO_InitTypeDef GPIO_InitStructure;	
-	NVIC_InitTypeDef NVIC_InitStructure;	
-	EXTI_InitTypeDef EXTI_InitStructure;	
-	rt_bool_t status = RT_FALSE;	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	EXTI_InitTypeDef EXTI_InitStructure;
 	rt_event_init(&cc1101_event, "cc1101_event", RT_IPC_FLAG_FIFO );	
-	spi_init();	
-//	cc1101_hw_init();	
-	/* cc1101 int init	 *      * */	
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;	
-	GPIO_InitStructure.GPIO_Pin =  PIN_GDO0;	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_AFIO, ENABLE);
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	GPIO_InitStructure.GPIO_Pin =  PIN_GDO0;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(PORT_GDO0, &GPIO_InitStructure);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);	
-	GPIO_EXTILineConfig(GPIO_PortSourceX, GPIO_PinSourceX);		
-	/* Configure the	 * SPI interrupt	 * priority */	
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI_IRQnX;	
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;	
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;	
-	NVIC_Init(&NVIC_InitStructure);	
-	EXTI_InitStructure.EXTI_Line = EXTI_LineX;	
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;	
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;	
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;	
+
+	GPIO_EXTILineConfig(GPIO_PortSourceX, GPIO_PinSourceX);
+
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI_IRQnX;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority= 2; 
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	EXTI_InitStructure.EXTI_Line = EXTI_LineX;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 	EXTI_ClearITPendingBit(EXTI_LineX);
-	return;
 }
 int check_status(uint8_t bit)
 {	
@@ -209,10 +212,8 @@ static void trxReadWriteBurstSingle(uint8 addr,uint8 *pData,uint16 len)
 rfStatus_t trx8BitRegAccess(uint8 accessType, uint8 addrByte, uint8 *pData, uint16 len)
 {
 	uint8 readValue;
-
 	RF_SPI_BEGIN();
-	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET)
-		rt_kprintf("trx8BitRegAccess\r\n");
+	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET);
 	if(check_status(SPI_I2S_IT_TXE))
 		SPI_SendData8(SPI1, accessType|addrByte);
 	if(check_status(SPI_I2S_IT_RXNE))		
@@ -226,8 +227,7 @@ rfStatus_t trxSpiCmdStrobe(uint8 cmd)
 {
 	uint8 rc;
 	RF_SPI_BEGIN();
-	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET)
-		rt_kprintf("trxSpiCmdStrobe\r\n");
+	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET);
 	if(check_status(SPI_I2S_IT_TXE))
 		SPI_SendData8(SPI1, cmd);
 	if(check_status(SPI_I2S_IT_RXNE))		
