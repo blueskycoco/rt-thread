@@ -144,7 +144,7 @@ char get_device_id(void) {
   
   trx8BitRegAccess(RADIO_READ_ACCESS+RADIO_BURST_ACCESS, VERSION, &ret_version, 1);
   trx8BitRegAccess(RADIO_READ_ACCESS+RADIO_BURST_ACCESS, PARTNUM, &ret_partnum, 1);
-
+rt_kprintf("version %d, partnum %d\r\n", ret_version,ret_partnum);
   switch (ret_partnum) {
   case 0:
     if(ret_version == 0x04) {
@@ -181,7 +181,8 @@ int radio_init(void)
 	trxRfSpiInterfaceInit();	
 
 	trxSpiCmdStrobe(RF_SRES);
-
+	get_device_id();
+	rt_kprintf("rssi %d\r\n",radio_get_rssi());
 	rt_thread_delay(100);
 	preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);	
 	preferredSettings = (registerSetting_t *)preferredSettings_1200bps;	
@@ -195,16 +196,14 @@ int radio_init(void)
 	for(i = 0; i < preferredSettings_length; i++) {
 		uint8 readByte = 0;
 		trx8BitRegAccess(RADIO_READ_ACCESS, preferredSettings[i].addr, &readByte, 1);
-		if (readByte == preferredSettings[i].data)
-			rt_kprintf("rf reg set ok %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
-		else
-			rt_kprintf("rf reg set failed\r\n");
+		if (readByte != preferredSettings[i].data)
+			rt_kprintf("rf reg set failed %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
 	}
 	radio_set_freq(902750);
 	set_rf_packet_length(TX_BUF_SIZE);
-	trxRfSpiInterruptInit();
 	radio_receive_on();
-
+	//radio_idle();
+	trxRfSpiInterruptInit();
 	return 0;
 }
 int radio_receive_on(void) {
@@ -221,28 +220,29 @@ int radio_receive_on(void) {
 int radio_send(unsigned char *payload, unsigned short payload_len) {
 	rt_kprintf("send %s, len %d\r\n",payload, payload_len);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
-	rt_kprintf("send 1\r\n");
 	/* Range extender in TX mode */
 #ifdef ENABLE_RANGE_EXTENDER
 	range_extender_txon();
 #endif
 
 	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating
-	rt_kprintf("send 2\r\n");
-	radio_wait_for_idle(0);
-	rt_kprintf("send 3\r\n");
+//	radio_wait_for_idle(0);
+	
+	//wait_int(1);
+	//wait_int(0);
 	radio_receive_on();
-	rt_kprintf("send 4\r\n");
 	return(0);
 }
 int radio_read(unsigned char *buf, unsigned short *buf_len) {
 	unsigned char status;
 	unsigned char pktLen;
+	wait_int(1);
+	wait_int(0);
 
 	/* Read number of bytes in RX FIFO */
 	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXBYTES, &pktLen, 1);
 	pktLen = pktLen  & NUM_RXBYTES;
-
+	rt_kprintf("pktLen %d\r\n", pktLen);
 	/* make sure the packet size is appropriate, that is 1 -> buffer_size */
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
 
@@ -262,6 +262,7 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 		status = 0;
 		trxSpiCmdStrobe(RF_SFRX);	                 // Flush RXFIFO
 	}
+	trxSpiCmdStrobe(RF_SFRX);	  
 
 	/* return status information, CRC OK or NOT OK */
 	return (status & CRC_OK);
@@ -302,6 +303,7 @@ int radio_wait_for_idle(unsigned short max_hold) {
 		}
 #else
 	wait_int(1);
+	//wait_int(0);
 #endif
 
 	}

@@ -80,7 +80,7 @@
 #define FINSH_USING_SYMTAB
 #define FINSH_USING_DESCRIPTION
 
-#define RT_USING_PIN
+//#define RT_USING_PIN
 
 //#define RT_USING_CAN
 

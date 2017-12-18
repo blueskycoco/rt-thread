@@ -33,16 +33,12 @@ void cs(int type)
 #define RF_SPI_END()                st( cs(1); )
 void cc1101_isr()
 {	
-	rt_kprintf(" cc1101_isr 1\r\n");
 	if(GPIO_ReadInputDataBit(PORT_GDO0, PIN_GDO0) ==SET)	
 	{		
-		rt_kprintf(" cc1101_isr 2\r\n");
 		rt_event_send(&cc1101_event,GDO0_H);	
 	}	else	{	
-		rt_kprintf(" cc1101_isr 3\r\n");
 		rt_event_send(&cc1101_event,GDO0_L);	
 	}
-		rt_kprintf(" cc1101_isr 4\r\n");
 }
 int wait_int(int flag)
 {	
@@ -77,6 +73,7 @@ void trxRfSpiInterfaceInit()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;	
 	SPI_InitTypeDef  SPI_InitStructure;	
+	rt_event_init(&cc1101_event, "cc1101_event", RT_IPC_FLAG_FIFO );	
 	SPI_I2S_DeInit(SPI1);	
 	/* Enable the SPI peripheral */	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);	
@@ -128,7 +125,6 @@ void trxRfSpiInterruptInit()
 	GPIO_InitTypeDef GPIO_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
-	rt_event_init(&cc1101_event, "cc1101_event", RT_IPC_FLAG_FIFO );	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_AFIO, ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_InitStructure.GPIO_Pin =  PIN_GDO0;
@@ -138,7 +134,7 @@ void trxRfSpiInterruptInit()
 	GPIO_EXTILineConfig(GPIO_PortSourceX, GPIO_PinSourceX);
 
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI_IRQnX;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority= 2; 
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);

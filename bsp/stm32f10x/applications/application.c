@@ -40,32 +40,26 @@
 #include "cc1101.h"
 #include "string.h"
 ALIGN(RT_ALIGN_SIZE)
-	static rt_uint8_t led_stack[ 2048 ];
+	static rt_uint8_t led_stack[ 512 ];
 	static struct rt_thread led_thread;
 static void led_thread_entry(void* parameter)
 {
 	unsigned int count=0;
-	rt_uint8_t buf[256]={0};
 
 	rt_hw_led_init();
-	rt_thread_delay(1000);
-	radio_init();
-	rt_kprintf("leave radio init\r\n");
 	while (1)
 	{
 		/* led1 on */
 #ifndef RT_USING_FINSH
-	    rt_kprintf("led on, count : %d\r\n",count);
+	    //rt_kprintf("led on, count : %d\r\n",count);
 #endif
-		rt_sprintf(buf,"led on , count : %d",count);
-		radio_send(buf,strlen(buf));
-		count++;
 		rt_hw_led_on(0);
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
+		count++;
 
 		/* led1 off */
 #ifndef RT_USING_FINSH
-		rt_kprintf("led off\r\n");
+		//rt_kprintf("led off\r\n");
 #endif
 		rt_hw_led_off(0);
 		rt_thread_delay( RT_TICK_PER_SECOND/2 );
@@ -134,7 +128,26 @@ void rt_init_thread_entry(void* parameter)
 		calibration_set_after(cali_store);
 		calibration_init();
 	}
-#endif /* #ifdef RT_USING_RTGUI */
+#endif /* #ifdef RT_USINGRTGUI */
+	unsigned int count=0,count1=256;
+	rt_uint8_t buf[256]={0};
+	rt_uint8_t buf1[256]={0};
+	rt_thread_delay(1000);
+	radio_init();
+	while (1) {
+	/*rt_memset(buf,0,256);
+	rt_sprintf(buf,"led on , count : %d",count);
+	buf1[0] = 0;//rt_strlen(buf);
+	rt_memcpy(buf1+1, buf, rt_strlen(buf));
+	radio_send(buf1,strlen(buf)+1);*/
+	//radio_wait_for_idle(0);
+	rt_memset(buf1,0,256);
+	count1=256;
+	radio_read(buf1,&count1);
+	rt_kprintf("rcv %s %d\r\n", buf1,count1);
+	//count++;
+	//rt_thread_delay(RT_TICK_PER_SECOND);
+	}
 
 }
 
