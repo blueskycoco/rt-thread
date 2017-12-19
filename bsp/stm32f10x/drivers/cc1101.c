@@ -8,110 +8,331 @@
 #define SCALING_FREQEST  (unsigned long)((RF_XTAL)/16.384)
 unsigned char volatile timer_event;
 unsigned long volatile time_counter = 0;
+#define MODE_RX                  0x00  
+#define MODE_TX                  0x01  
+#define TX_BUF_SIZE              128  
+#define RX_BUF_SIZE              256  
+#define MAX_FIFO_SIZE            0x38 
 
 unsigned char paTable[1];           
 unsigned char rf_end_packet = 0;
+struct rf_dev  
+{  
+    unsigned char tx_buf[TX_BUF_SIZE];  
+    unsigned short tx_rd;  
+    unsigned short tx_wr;  
+    unsigned char rx_buf[RX_BUF_SIZE];  
+    unsigned short rx_rd;  
+    unsigned short rx_wr;  
+    unsigned short mode;  
+};  
+static struct rf_dev rf_dev;  
+#define cc1101_hex_printf(buf, count) \  
+{\  
+    int i;\  
+    for(i = 0; i < count; i++)\  
+    {\  
+        rt_kprintf("%2x", buf[i]);\  
+    }\  
+}
 
 const registerSetting_t preferredSettings_1200bps[]=
 {
-	{IOCFG2,      0x06},
-	{IOCFG1,      0x2E},
-	{IOCFG0,      0x06},
-	{FIFOTHR,     0x47},
-	{SYNC1,       0xD3},
-	{SYNC0,       0x91},
-	{PKTLEN,      0x18},
-	{PKTCTRL1,    0x00},
-	{PKTCTRL0,    0x04},
-	{FSCTRL1,     0x06},
-	{FREQ2,       0x23},
-	{FREQ1,       0xB8},
-	{FREQ0,       0x9D},
-	{MDMCFG4,     0xF5},
-	{MDMCFG3,     0x83},
-	{MDMCFG2,     0x13},
-	{MDMCFG1,     0x22},
-	{MDMCFG0,     0xF7},
-	{DEVIATN,     0x14},
-	{MCSM0,       0x18},
-	{FOCCFG,      0x14},
-	{WORCTRL,     0xFB},
-	{FSCAL3,      0xE9},
-	{FSCAL2,      0x2A},
-	{FSCAL1,      0x00},
-	{FSCAL0,      0x1F},
-	{TEST2,       0x81},
-	{TEST1,       0x35},
-	{TEST0,       0x09},
+		{IOCFG0,0x06},
+		{PKTCTRL1,0x04},
+		{PKTCTRL0,0x05},
+		{FSCTRL1,0x0C},
+		{FREQ2,0x21},
+		{FREQ1,0x62},
+		{FREQ0,0x76},
+		{MDMCFG4,0x2D},
+		{MDMCFG3,0x3B},
+		{MDMCFG2,0x13},
+		{DEVIATN,0x62},
+		{MCSM0,0x18},
+		{FOCCFG,0x1D},
+		{BSCFG,0x1C},
+		{AGCCTRL2,0xC7},
+		{AGCCTRL1,0x00},
+		{AGCCTRL0,0xB0},
+		{WORCTRL,0xFB},
+		{FREND1,0xB6},
+		{FSCAL3,0xEA},
+		{FSCAL2,0x2A},
+		{FSCAL1,0x00},
+		{FSCAL0,0x1F},
+		{TEST0,0x09},
+		{PATABLE,0xc0}			
 };
-#if 0
-void hal_timer_init(unsigned int master_count) {
-
-  // Start Timer 0 using the ACLK as a source (this enables the use of
-  // various low power modes). Timer 0 will be used to keep RF burst time
-  TA0CCR0  = master_count - 1;              // Seting for MASTER SCHEDULE
-  TA0CCR1  = 0;                             // will be used for burst alignnment
-  TA0CCR2  = 0;                             // will be used for expiration counter
-  TA0CTL   = TASSEL_1 + MC_1 + TACLR + ID_0;// ACLK, Up to CCR0, clear TB0R, div/1
-
-  return;
-}
-unsigned int hal_timer_wait(unsigned int time) {
-  unsigned int wait_count, TBR_init;
-
-  TBR_init = TA0R;   // store the current value of the timer register
-  wait_count = TBR_init + time;
-
-  // if the requested wait time exceeds the TBCCR0 (max value) then make a loop
-  while(wait_count > TA0CCR0) {
-
-	  // configure the timeout for 1 less than the master clock
-	  TA0CCR2  = TA0CCR0-1;
-
-	  // calculate the remaining wait time remaining
-	  wait_count = wait_count - (TA0CCR2 - TBR_init);
-
-	  // do not count the initial timer values more that once, zero it out
-	  timer_event = 0;
-	  TBR_init = 0;
-
-		while (!(TA0CCTL1 & CCIFG) && !(TA0CCTL2 & CCIFG) && !(RF_GDO_PxIFG & RF_GDO_PIN));
-		if (TA0CCTL1 & CCIFG) timer_event = TA0IV_TACCR1;
-		else if (TA0CCTL2 & CCIFG) timer_event = TA0IV_TACCR2;
-		else if (RF_GDO_PxIFG & RF_GDO_PIN) timer_event = 0;
-		TA0CCTL1 &= ~(CCIFG);
-		TA0CCTL2 &= ~(CCIFG);
-		RF_GDO_PxIFG &= ~RF_GDO_PIN;
-
-      // check to see if the timer woke us up or not
-	  if (timer_event == 0)
-		  // it did not, return imidiately and note time actual delay
-		  return (time - (wait_count - TA0R));
-  }
-
-  // in the case of loop, this executes the remaining wait, in the case of no
-  // loop this is the only wait that gets executed
-
-  /* define maximum timeout by using timer counter 2 */
-  TA0CCR2  = wait_count;
-
+static void cc1101_set_rx_mode(void)  
+{  
+    trxSpiCmdStrobe(RF_SFRX);  
+    trxSpiCmdStrobe(RF_SIDLE);  
+    trxSpiCmdStrobe(RF_SRX);  
   
-
-
-	while (!(TA0CCTL1 & CCIFG) && !(TA0CCTL2 & CCIFG) && !(RF_GDO_PxIFG & RF_GDO_PIN));
-	if (TA0CCTL1 & CCIFG) timer_event = TA0IV_TACCR1;
-	else if (TA0CCTL2 & CCIFG) timer_event = TA0IV_TACCR2;
-	else if (RF_GDO_PxIFG & RF_GDO_PIN) timer_event = 0;
-	TA0CCTL1 &= ~(CCIFG);
-	TA0CCTL2 &= ~(CCIFG);
-	RF_GDO_PxIFG &= ~RF_GDO_PIN;
-
-  /* return the time spend in sleep */
-  	if (timer_event == 0) return 0;
-	else return (time - (wait_count-TA0R));
+    rf_dev.mode = MODE_RX;  
+} 
+static void cc1101_set_tx_mode(void)  
+{    
+    trxSpiCmdStrobe(RF_SIDLE);  
+    trxSpiCmdStrobe(RF_STX);  
+  
+    rf_dev.mode = MODE_TX;  
+}  
+static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)  
+{  
+    unsigned char packet_len, status[2];  
+  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXBYTES, &packet_len, 1);
+	rt_kprintf("packet len is %d\r\n",packet_len);
+    if(packet_len & 0x7f == 0)    
+    {  
+        return -1;  
+    }  
+  
+    //packet_len = cc1101_read_signle_reg(RF_RXFIFO);  
+     // trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, &packet_len, 1);
+	//rt_kprintf("packet len is %d\r\n",packet_len);
+    if(packet_len <= *count)  
+    {  
+        //cc1101_read_burst_reg(RF_RXFIFO, buf, packet_len);            
+        //cc1101_read_burst_reg(RF_RXFIFO, status, 2);  
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, buf, packet_len);
+		*count = packet_len;
+		//trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, status, 2);
+		//rt_kprintf("status %x %x \r\n",status[0],status[1]);
+        //*count = packet_len;  
+        return 0;//((status[1] & 0x80) ? 0 : -2);  
+    }  
+    else   
+    {  
+        cc1101_set_rx_mode();  
+           
+        return -3;  
+    }       
+       
+}  
+static int cc1101_send_packet(unsigned char *buf, unsigned char count)  
+{     
+  
+    rt_kprintf("cc1101 send data:");  
+    cc1101_hex_printf(buf, count);  
+    rt_kprintf("\r\n");  
+    //cc1101_write_signle_reg(RF_TXFIFO, count);  
+    //cc1101_write_burst_reg(RF_RXFIFO, buf, count);  
+    trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, &count,1);
+  	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, buf, count);
+    return 0;    
+} 
+static void cc1101_gdo0_rx_it(void)  
+{  
+    unsigned char rx_buf[MAX_FIFO_SIZE], rx_count;  
+    int ret, i;  
+         
+    rx_count = MAX_FIFO_SIZE;  
+  
+    ret = cc1101_receive_packet(rx_buf, &rx_count);  
+          
+    cc1101_set_rx_mode();  
+      
+    if(ret == 0)  
+    {  
+        for(i = 0; i < rx_count; i++)  
+        {  
+            rf_dev.rx_buf[rf_dev.rx_wr++] = rx_buf[i];  
+            rf_dev.rx_wr %= RX_BUF_SIZE;  
+  
+            /* 
+                overflow handle 
+            */  
+            if(rf_dev.rx_wr == rf_dev.rx_rd)  
+            {  
+                rf_dev.rx_rd++;  
+                rf_dev.rx_rd %= RX_BUF_SIZE;  
+            }  
+        }   
+  
+        rt_kprintf("cc1101 receive data:");  
+        cc1101_hex_printf(rx_buf, rx_count);  
+        rt_kprintf("\r\n");  
+    }  
 }
-#else
-#endif
+static unsigned short cc1101_get_tx_buf_count(void)  
+{  
+    unsigned short count;  
+  
+    if(rf_dev.tx_rd < rf_dev.tx_wr)  
+    {  
+        count = rf_dev.tx_wr - rf_dev.tx_rd;  
+    }  
+    else if(rf_dev.tx_rd == rf_dev.tx_wr)   
+    {  
+        count = 0;  
+    }  
+    else   
+    {  
+        count = TX_BUF_SIZE - rf_dev.tx_rd + rf_dev.tx_wr;  
+    }  
+  
+    return count;  
+}  
+static int cc1101_read_tx_buf(void *_buf, int count)  
+{  
+    unsigned char *buf = (unsigned char *)_buf;  
+    int i, real_count;  
+  
+    for(i = 0, real_count = 0; i < count; i++)  
+    {  
+        if(rf_dev.tx_rd == rf_dev.tx_wr)  
+        {  
+            return real_count;  
+        }  
+        else    
+        {  
+            buf[i] = rf_dev.tx_buf[rf_dev.tx_rd++];  
+            rf_dev.tx_rd %= TX_BUF_SIZE;  
+            real_count++;  
+        }  
+    }  
+  
+    return real_count;   
+}  
+static void cc1101_write_tx_buf(void *_buf, int count)  
+{  
+    unsigned char *buf = (unsigned char *)_buf;  
+    int i;  
+  
+    for(i = 0; i < count; i++)  
+    {  
+        while(((rf_dev.tx_wr+1) % TX_BUF_SIZE) == rf_dev.tx_rd);  
+        rf_dev.tx_buf[rf_dev.tx_wr++] = buf[i];  
+        rf_dev.tx_wr %= TX_BUF_SIZE;  
+    }  
+}  
+static void cc1101_gdo0_tx_it(void)  
+{  
+    short wait_tx_count;  
+    unsigned char buf_tmp[TX_BUF_SIZE], status;  
+    
+    wait_tx_count = cc1101_get_tx_buf_count();  
+  
+    status = trxSpiCmdStrobe(RF_SFTX);  
+  
+    /* 
+        wait device to IDLE status, very important !!!! 
+        ohterwise, transmit loss packet. 
+        if device into IDLE, prove transmit end. 
+    */  
+    while(status & 0x70)  
+    {  
+        status = trxSpiCmdStrobe(RF_SNOP);  
+    }  
+  
+    if(wait_tx_count == 0)  
+    {               
+        cc1101_set_rx_mode();  
+    }  
+    else if(wait_tx_count < MAX_FIFO_SIZE)  
+    {     
+        cc1101_read_tx_buf(buf_tmp, wait_tx_count);    
+        cc1101_send_packet(buf_tmp, wait_tx_count);  
+        cc1101_set_tx_mode();  
+    }  
+    else if(wait_tx_count >= MAX_FIFO_SIZE)  
+    {  
+        cc1101_read_tx_buf(buf_tmp, MAX_FIFO_SIZE);  
+        cc1101_send_packet(buf_tmp, MAX_FIFO_SIZE);  
+        cc1101_set_tx_mode();  
+    }  
+}  
+static void cc1101_send(void*_buf, unsigned short count)  
+{  
+    unsigned char *buf = (unsigned char *)_buf;  
+    unsigned char buf_tmp[TX_BUF_SIZE];  
+  
+    if(count == 0 || count > TX_BUF_SIZE)  
+    {  
+        return;  
+    }  
+  
+    /* 
+      if device is transmit mode, write data to transmit buffer,  
+      and interrupt auto transmit data. 
+      don't write data to device fifo directly. 
+       
+      if device is receive mode, tx buf free size is TX_BUF_SIZE 
+    */  
+  
+    cc1101_write_tx_buf(buf, count);  
+  
+    if(rf_dev.mode == MODE_RX)  
+    {  
+        if(count < MAX_FIFO_SIZE)  
+        {  
+            cc1101_read_tx_buf(buf_tmp, count);  
+            cc1101_send_packet(buf_tmp, count);  
+        }  
+        else if(count >= MAX_FIFO_SIZE)  
+        {  
+            cc1101_read_tx_buf(buf_tmp, MAX_FIFO_SIZE);  
+            cc1101_send_packet(buf_tmp, MAX_FIFO_SIZE);  
+        }  
+  
+        cc1101_set_tx_mode();  
+    }  
+}  
+void cc1101_send_write(void*_buf, unsigned short count)  
+{  
+    int n1, n2, i;  
+    unsigned char *buf = (unsigned char *)_buf;  
+  
+    n1 = count / TX_BUF_SIZE;   
+    n2 = count % TX_BUF_SIZE;  
+  
+    for(i = 0; i < n1; i++)  
+    {  
+        cc1101_send(buf, TX_BUF_SIZE);  
+        buf += TX_BUF_SIZE;  
+    }  
+  
+    cc1101_send(buf, n2);  
+}  
+int cc1101_receive_read(unsigned char *buf, int count)  
+{   
+    int i, real_read_count;  
+      
+    for(i = 0, real_read_count = 0; i < count; i++)  
+    {  
+        if(rf_dev.rx_rd == rf_dev.rx_wr)  
+        {  
+            return real_read_count;  
+        }  
+        else  
+        {  
+            buf[i] = rf_dev.rx_buf[rf_dev.rx_rd++];  
+            rf_dev.rx_rd %= RX_BUF_SIZE;  
+            real_read_count++;  
+        }  
+    }  
+     
+    return real_read_count;  
+}  
+void cc1101_isr(void)  
+{  
+    if(rf_dev.mode  == MODE_RX)  
+    {  
+    	//rt_kprintf("cc1101 isr rx\r\n");
+        cc1101_gdo0_rx_it();  
+    }  
+    else if(rf_dev.mode == MODE_TX)     
+    {  
+        cc1101_gdo0_tx_it();  
+    }  
+    else  
+    {  
+        rf_dev.mode  = MODE_RX;  
+    }  
+}  
+
 unsigned char set_rf_packet_length(unsigned char length) {
   unsigned char reg_value;
 
@@ -144,7 +365,7 @@ char get_device_id(void) {
   
   trx8BitRegAccess(RADIO_READ_ACCESS+RADIO_BURST_ACCESS, VERSION, &ret_version, 1);
   trx8BitRegAccess(RADIO_READ_ACCESS+RADIO_BURST_ACCESS, PARTNUM, &ret_partnum, 1);
-rt_kprintf("version %d, partnum %d\r\n", ret_version,ret_partnum);
+  rt_kprintf("version %d, partnum %d\r\n", ret_version,ret_partnum);
   switch (ret_partnum) {
   case 0:
     if(ret_version == 0x04) {
@@ -190,8 +411,8 @@ int radio_init(void)
 		writeByte = preferredSettings[i].data;
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);	
 	}
-	paTable[0] = 0xC5;	
-	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, PATABLE, paTable, 1);
+	//paTable[0] = 0xC5;	
+	//trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, PATABLE, paTable, 1);
 
 	for(i = 0; i < preferredSettings_length; i++) {
 		uint8 readByte = 0;
@@ -199,9 +420,10 @@ int radio_init(void)
 		if (readByte != preferredSettings[i].data)
 			rt_kprintf("rf reg set failed %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
 	}
-	radio_set_freq(902750);
-	set_rf_packet_length(TX_BUF_SIZE);
-	radio_receive_on();
+	radio_set_freq(433000);
+	//set_rf_packet_length(TX_BUF_SIZE);
+	//radio_receive_on();
+	cc1101_set_rx_mode();
 	//radio_idle();
 	trxRfSpiInterruptInit();
 	return 0;
@@ -212,7 +434,8 @@ int radio_receive_on(void) {
 #ifdef ENABLE_RANGE_EXTENDER
 	range_extender_rxon();
 #endif
-
+	trxSpiCmdStrobe(RF_SFRX); 
+	trxSpiCmdStrobe(RF_SIDLE); 
 	trxSpiCmdStrobe(RF_SRX);                 // Change state to TX, initiating
 
 	return(0);
@@ -241,8 +464,8 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 
 	/* Read number of bytes in RX FIFO */
 	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXBYTES, &pktLen, 1);
-	pktLen = pktLen  & NUM_RXBYTES;
 	rt_kprintf("pktLen %d\r\n", pktLen);
+	pktLen = pktLen  & NUM_RXBYTES;
 	/* make sure the packet size is appropriate, that is 1 -> buffer_size */
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
 
@@ -260,9 +483,10 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 		/* if the length returned by the transciever does not make sense, flush it */
 		*buf_len = 0;                                // 0
 		status = 0;
-		trxSpiCmdStrobe(RF_SFRX);	                 // Flush RXFIFO
-	}
-	trxSpiCmdStrobe(RF_SFRX);	  
+		//trxSpiCmdStrobe(RF_SFRX);	                 // Flush RXFIFO
+	}  
+	
+	radio_receive_on(); 
 
 	/* return status information, CRC OK or NOT OK */
 	return (status & CRC_OK);
@@ -328,14 +552,18 @@ int radio_set_freq(unsigned long freq) {
 
 	freq_float = freq*1000;
 	freq_word = (unsigned long) (freq_float * 1/(float)SCALING_FREQ);
-
+	
 	/* return the frequency word */
 	freq_byte[2] = ((uint8*)&freq_word)[0];
 	freq_byte[1] = ((uint8*)&freq_word)[1];
 	freq_byte[0] = ((uint8*)&freq_word)[2];
+	rt_kprintf("set to %x %x %x\r\n",freq_byte[2],freq_byte[1],freq_byte[0]);
 
 	// upload the frequency word to the transciver using a 3 byte write
-	trx8BitRegAccess(RADIO_WRITE_ACCESS | RADIO_BURST_ACCESS , FREQ2, freq_byte, 3);
+	//trx8BitRegAccess(RADIO_WRITE_ACCESS | RADIO_BURST_ACCESS , FREQ2, freq_byte, 3);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ2, &(freq_byte[2]), 1);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ1, &(freq_byte[1]), 1);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ0, &(freq_byte[0]), 1);
 
 	return 0;
 }

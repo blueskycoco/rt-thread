@@ -31,15 +31,16 @@ void cs(int type)
 
 #define RF_SPI_BEGIN()              st( cs(0); )
 #define RF_SPI_END()                st( cs(1); )
-void cc1101_isr()
+/*void cc1101_isr()
 {	
+	rt_kprintf("cc1101 isr\r\n");
 	if(GPIO_ReadInputDataBit(PORT_GDO0, PIN_GDO0) ==SET)	
 	{		
 		rt_event_send(&cc1101_event,GDO0_H);	
 	}	else	{	
 		rt_event_send(&cc1101_event,GDO0_L);	
 	}
-}
+}*/
 int wait_int(int flag)
 {	
 	rt_uint32_t ev;	
@@ -80,10 +81,6 @@ void trxRfSpiInterfaceInit()
 	/* Enable SCK, MOSI, MISO and NSS GPIO clocks */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);	
 	/* SPI pin mappings */	
-	//GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_0);	
-	//GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_0);	
-	 //GPIO_PinAFConfig(GPIOA, GPIO_PinSource4, GPIO_AF_0);	
-	//GPIO_PinAFConfig(GPIOA, GPIO_PinSource6, GPIO_AF_0);	
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;	
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;	
 	/* SPI SCK pin	 * configuration	 * */	
@@ -126,7 +123,7 @@ void trxRfSpiInterruptInit()
 	NVIC_InitTypeDef NVIC_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_AFIO, ENABLE);
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_InitStructure.GPIO_Pin =  PIN_GDO0;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(PORT_GDO0, &GPIO_InitStructure);
@@ -141,7 +138,7 @@ void trxRfSpiInterruptInit()
 
 	EXTI_InitStructure.EXTI_Line = EXTI_LineX;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 	EXTI_ClearITPendingBit(EXTI_LineX);
@@ -149,7 +146,7 @@ void trxRfSpiInterruptInit()
 int check_status(uint8_t bit)
 {	
 	int i=0;	
-	while(SPI_I2S_GetITStatus(SPI1,bit)!=SET)	
+	while(SPI_I2S_GetITStatus(SPI1,bit)!=SET);/*	
 	{		
 		i++;		
 		if(i==100)
@@ -158,7 +155,7 @@ int check_status(uint8_t bit)
 			return RT_FALSE;		
 		}		
 		rt_thread_delay(1);	
-	}	
+	}	*/
 	return RT_TRUE;
 }
 
@@ -171,8 +168,9 @@ static void trxReadWriteBurstSingle(uint8 addr,uint8 *pData,uint16 len)
 		{
 			for (i = 0; i < len; i++)
 			{
-				if(check_status(SPI_I2S_IT_TXE))
-					SPI_SendData8(SPI1, 0);		
+				//if(check_status(SPI_I2S_IT_TXE))
+					SPI_SendData8(SPI1, 0);
+				check_status(SPI_I2S_IT_TXE);
 				if(check_status(SPI_I2S_IT_RXNE))			
 					*pData=SPI_ReceiveData8(SPI1);
 				pData++;
@@ -180,8 +178,9 @@ static void trxReadWriteBurstSingle(uint8 addr,uint8 *pData,uint16 len)
 		}
 		else
 		{
-			if(check_status(SPI_I2S_IT_TXE))
+			//if(check_status(SPI_I2S_IT_TXE))
 				SPI_SendData8(SPI1, 0);		
+			check_status(SPI_I2S_IT_TXE);
 			if(check_status(SPI_I2S_IT_RXNE))			
 				*pData=SPI_ReceiveData8(SPI1);
 		}
@@ -192,15 +191,17 @@ static void trxReadWriteBurstSingle(uint8 addr,uint8 *pData,uint16 len)
 		{
 			for (i = 0; i < len; i++)
 			{
-				if(check_status(SPI_I2S_IT_TXE))
+				//if(check_status(SPI_I2S_IT_TXE))
 					SPI_SendData8(SPI1, *pData);
+				check_status(SPI_I2S_IT_TXE);
 				pData++;
 			}
 		}
 		else
 		{
-			if(check_status(SPI_I2S_IT_TXE))
+			//if(check_status(SPI_I2S_IT_TXE))
 				SPI_SendData8(SPI1, *pData);
+			check_status(SPI_I2S_IT_TXE);
 		}
 	}
 	return;
@@ -210,8 +211,9 @@ rfStatus_t trx8BitRegAccess(uint8 accessType, uint8 addrByte, uint8 *pData, uint
 	uint8 readValue;
 	RF_SPI_BEGIN();
 	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET);
-	if(check_status(SPI_I2S_IT_TXE))
+//	if(check_status(SPI_I2S_IT_TXE))
 		SPI_SendData8(SPI1, accessType|addrByte);
+	check_status(SPI_I2S_IT_TXE);
 	if(check_status(SPI_I2S_IT_RXNE))		
 		readValue = SPI_ReceiveData8(SPI1);
 	trxReadWriteBurstSingle(accessType|addrByte,pData,len);
@@ -224,8 +226,9 @@ rfStatus_t trxSpiCmdStrobe(uint8 cmd)
 	uint8 rc;
 	RF_SPI_BEGIN();
 	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET);
-	if(check_status(SPI_I2S_IT_TXE))
+	//if(check_status(SPI_I2S_IT_TXE))
 		SPI_SendData8(SPI1, cmd);
+	check_status(SPI_I2S_IT_TXE);
 	if(check_status(SPI_I2S_IT_RXNE))		
 		rc = SPI_ReceiveData8(SPI1);
 	RF_SPI_END();
