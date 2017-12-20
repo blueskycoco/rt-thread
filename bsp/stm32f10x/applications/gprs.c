@@ -333,7 +333,7 @@ int auto_baud(void)
 			}
 		}
 		i++;
-		if (i>20)
+		if (i>8)
 			break;
 		if (baud == 75)
 		{

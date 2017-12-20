@@ -32,7 +32,7 @@ static struct rf_dev rf_dev;
     int i;\  
     for(i = 0; i < count; i++)\  
     {\  
-        rt_kprintf("%2x", buf[i]);\  
+        rt_kprintf("%c", buf[i]);\  
     }\  
 }
 
@@ -93,8 +93,8 @@ static void cc1101_set_tx_mode(void)
 static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)  
 {  
     unsigned char packet_len, status[2];  
-  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXBYTES, &packet_len, 1);
-	rt_kprintf("packet len is %x\r\n",packet_len);
+  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &packet_len, 1);
+	//rt_kprintf("packet len is %x\r\n",packet_len);
     if((packet_len & 0x7f) == 0 || (packet_len & 0x80) != 0)    
     {  
         return -1;  
@@ -111,11 +111,11 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 		*count = packet_len;
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, status, 2);
 		rt_kprintf("status %x %x \r\n",status[0],status[1]);
-		trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, RSSI, &status[0], 1);
-		trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, LQI, &status[1], 1);
-		rt_kprintf("status %x %x \r\n",status[0],status[1]);
+		//trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, RSSI, &status[0], 1);
+		//trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, LQI, &status[1], 1);
+		//rt_kprintf("status %x %x \r\n",status[0],status[1]);
         //*count = packet_len;  
-        return 0;//((status[1] & 0x80) ? 0 : -2);  
+        return ((status[1] & 0x80) ? 0 : -2);  
     }  
     else   
     {  
