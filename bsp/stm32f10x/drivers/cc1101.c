@@ -146,8 +146,8 @@ static void cc1101_gdo0_rx_it(void)
     rx_count = MAX_FIFO_SIZE;  
   
     ret = cc1101_receive_packet(rx_buf, &rx_count);  
-          
-    cc1101_set_rx_mode();  
+
+	cc1101_set_rx_mode();  
       
     if(ret == 0)  
     {  
@@ -212,7 +212,7 @@ static void cc1101_write_tx_buf(void *_buf, int count)
     int i;  
     for(i = 0; i < count; i++)  
     {  
-        //while(((rf_dev.tx_wr+1) % TX_BUF_SIZE) == rf_dev.tx_rd)
+        while(((rf_dev.tx_wr+1) % TX_BUF_SIZE) == rf_dev.tx_rd);
 		//	rt_kprintf("waiting here\r\n");  
         rf_dev.tx_buf[rf_dev.tx_wr++] = buf[i];  
         rf_dev.tx_wr %= TX_BUF_SIZE;  
@@ -325,6 +325,7 @@ int cc1101_receive_read(unsigned char *buf, int count)
 }  
 void cc1101_isr(void)  
 {  
+	#if 1
     if(rf_dev.mode  == MODE_RX)  
     {  
         cc1101_gdo0_rx_it();  
@@ -337,6 +338,10 @@ void cc1101_isr(void)
     {  
         rf_dev.mode  = MODE_RX;  
     }
+	#else
+		cc1101_gdo0_rx_it();  
+		cc1101_gdo0_tx_it();  
+	#endif
 }  
 unsigned char set_rf_packet_length(unsigned char length) {
   unsigned char reg_value;
