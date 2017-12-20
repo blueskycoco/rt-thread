@@ -132,7 +132,7 @@ void rt_init_thread_entry(void* parameter)
 	unsigned int count=0,count1=256;
 	rt_uint8_t buf[256]={0};
 	rt_uint8_t buf1[256]={0};
-	rt_thread_delay(1000);
+	//rt_thread_delay(1000);
 	radio_init();
 	//while (1) {
 	/*rt_memset(buf,0,256);

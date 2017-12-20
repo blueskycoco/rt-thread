@@ -38,31 +38,42 @@ static struct rf_dev rf_dev;
 
 const registerSetting_t preferredSettings_1200bps[]=
 {
-		{IOCFG0,0x06},
-		{PKTCTRL1,0x04},
-		{PKTCTRL0,0x05},
-		{FSCTRL1,0x0C},
-		{FREQ2,0x21},
-		{FREQ1,0x62},
-		{FREQ0,0x76},
-		{MDMCFG4,0x2D},
-		{MDMCFG3,0x3B},
-		{MDMCFG2,0x13},
-		{DEVIATN,0x62},
-		{MCSM0,0x18},
-		{FOCCFG,0x1D},
-		{BSCFG,0x1C},
-		{AGCCTRL2,0xC7},
-		{AGCCTRL1,0x00},
-		{AGCCTRL0,0xB0},
-		{WORCTRL,0xFB},
-		{FREND1,0xB6},
-		{FSCAL3,0xEA},
-		{FSCAL2,0x2A},
-		{FSCAL1,0x00},
-		{FSCAL0,0x1F},
-		{TEST0,0x09},
-		{PATABLE,0xc0}			
+	{IOCFG0,0x06},
+	{PKTCTRL1,0x04},
+	{PKTCTRL0,0x05},
+	{FSCTRL1,0x06},
+	{FSCTRL0,0x00},
+	{FREQ2,0x10},
+	{FREQ1,0xa7},
+	{FREQ0,0x62},
+	{MDMCFG4,0xf5},
+	{MDMCFG3,0x83},
+	{MDMCFG2,0x13},
+	{MDMCFG1,0x22},
+	{MDMCFG0,0xf8},
+	{CHANNR,0x00},
+	{DEVIATN,0x15},
+	{MCSM0,0x18},
+	{FOCCFG,0x16},
+	{BSCFG,0x6C},
+	{AGCCTRL2,0x03},
+	{AGCCTRL1,0x40},
+	{AGCCTRL0,0x91},
+	{WORCTRL,0xFB},
+	{FREND1,0x56},
+	{FREND0,0x10},
+	{FSCAL3,0xE9},
+	{FSCAL2,0x2A},
+	{FSCAL1,0x00},
+	{FSCAL0,0x1F},
+	{TEST2,0x81},
+	{TEST1,0x35},
+	{TEST0,0x09},
+	{FSTEST,0x59},
+	{FIFOTHR,0x47},
+	{ADDR,0x00},
+	{PKTLEN,0x3d},
+	{PATABLE,0x60} 
 };
 static void cc1101_set_rx_mode(void)  
 {  
@@ -83,23 +94,26 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 {  
     unsigned char packet_len, status[2];  
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXBYTES, &packet_len, 1);
-	rt_kprintf("packet len is %d\r\n",packet_len);
-    if(packet_len & 0x7f == 0)    
+	rt_kprintf("packet len is %x\r\n",packet_len);
+    if((packet_len & 0x7f) == 0 || (packet_len & 0x80) != 0)    
     {  
         return -1;  
     }  
   
     //packet_len = cc1101_read_signle_reg(RF_RXFIFO);  
-     // trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, &packet_len, 1);
-	//rt_kprintf("packet len is %d\r\n",packet_len);
+    trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &packet_len, 1);
+	rt_kprintf("packet len is %d\r\n",packet_len);
     if(packet_len <= *count)  
     {  
         //cc1101_read_burst_reg(RF_RXFIFO, buf, packet_len);            
         //cc1101_read_burst_reg(RF_RXFIFO, status, 2);  
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, buf, packet_len);
 		*count = packet_len;
-		//trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, status, 2);
-		//rt_kprintf("status %x %x \r\n",status[0],status[1]);
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, status, 2);
+		rt_kprintf("status %x %x \r\n",status[0],status[1]);
+		trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, RSSI, &status[0], 1);
+		trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, LQI, &status[1], 1);
+		rt_kprintf("status %x %x \r\n",status[0],status[1]);
         //*count = packet_len;  
         return 0;//((status[1] & 0x80) ? 0 : -2);  
     }  
@@ -420,7 +434,7 @@ int radio_init(void)
 		if (readByte != preferredSettings[i].data)
 			rt_kprintf("rf reg set failed %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
 	}
-	radio_set_freq(433000);
+	//radio_set_freq(433000);
 	//set_rf_packet_length(TX_BUF_SIZE);
 	//radio_receive_on();
 	cc1101_set_rx_mode();

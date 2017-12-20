@@ -319,7 +319,7 @@ int auto_baud(void)
 	int baud = 115200;
 	const uint8_t at[] 	= "AT\n";
 	uint8_t rcv[10] = {0};
-	uint32_t len;
+	uint32_t len,i=0;
 	while (1) {
 		rt_kprintf("trying baud %d\r\n", baud);
     	change_baud(baud);	
@@ -332,7 +332,9 @@ int auto_baud(void)
 				break;
 			}
 		}
-		
+		i++;
+		if (i>20)
+			break;
 		if (baud == 75)
 		{
 			rt_kprintf("fuck!\r\n");
@@ -821,4 +823,4 @@ int gprs_init(void)
 	}
 	return 0;
 }
-//INIT_APP_EXPORT(gprs_init);
+INIT_APP_EXPORT(gprs_init);
