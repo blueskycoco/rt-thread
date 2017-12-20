@@ -77,6 +77,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 };
 static void cc1101_set_rx_mode(void)  
 {  
+
     trxSpiCmdStrobe(RF_SFRX);  
     trxSpiCmdStrobe(RF_SIDLE);  
     trxSpiCmdStrobe(RF_SRX);  
@@ -85,14 +86,15 @@ static void cc1101_set_rx_mode(void)
 } 
 static void cc1101_set_tx_mode(void)  
 {    
+
     trxSpiCmdStrobe(RF_SIDLE);  
     trxSpiCmdStrobe(RF_STX);  
   
-    rf_dev.mode = MODE_TX;  
+    rf_dev.mode = MODE_TX; 
 }  
 static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)  
 {  
-    unsigned char packet_len, status[2];  
+    unsigned char packet_len, status[2];
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &packet_len, 1);
 	//rt_kprintf("packet len is %x\r\n",packet_len);
     if((packet_len & 0x7f) == 0 || (packet_len & 0x80) != 0)    
@@ -102,7 +104,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
   
     //packet_len = cc1101_read_signle_reg(RF_RXFIFO);  
     trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &packet_len, 1);
-	rt_kprintf("packet len is %d\r\n",packet_len);
+	//rt_kprintf("packet len is %d\r\n",packet_len);
     if(packet_len <= *count)  
     {  
         //cc1101_read_burst_reg(RF_RXFIFO, buf, packet_len);            
@@ -110,7 +112,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, buf, packet_len);
 		*count = packet_len;
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, status, 2);
-		rt_kprintf("status %x %x \r\n",status[0],status[1]);
+		//rt_kprintf("status %x %x \r\n",status[0],status[1]);
 		//trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, RSSI, &status[0], 1);
 		//trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, LQI, &status[1], 1);
 		//rt_kprintf("status %x %x \r\n",status[0],status[1]);
@@ -127,13 +129,12 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 }  
 static int cc1101_send_packet(unsigned char *buf, unsigned char count)  
 {     
-  
-    rt_kprintf("cc1101 send data:");  
+    rt_kprintf("cc1101 send data %d:", count);  
     cc1101_hex_printf(buf, count);  
     rt_kprintf("\r\n");  
     //cc1101_write_signle_reg(RF_TXFIFO, count);  
     //cc1101_write_burst_reg(RF_RXFIFO, buf, count);  
-    trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, &count,1);
+    trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, &count,1);
   	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, buf, count);
     return 0;    
 } 
@@ -164,7 +165,6 @@ static void cc1101_gdo0_rx_it(void)
                 rf_dev.rx_rd %= RX_BUF_SIZE;  
             }  
         }   
-  
         rt_kprintf("cc1101 receive data:");  
         cc1101_hex_printf(rx_buf, rx_count);  
         rt_kprintf("\r\n");  
@@ -173,7 +173,6 @@ static void cc1101_gdo0_rx_it(void)
 static unsigned short cc1101_get_tx_buf_count(void)  
 {  
     unsigned short count;  
-  
     if(rf_dev.tx_rd < rf_dev.tx_wr)  
     {  
         count = rf_dev.tx_wr - rf_dev.tx_rd;  
@@ -186,14 +185,12 @@ static unsigned short cc1101_get_tx_buf_count(void)
     {  
         count = TX_BUF_SIZE - rf_dev.tx_rd + rf_dev.tx_wr;  
     }  
-  
     return count;  
 }  
 static int cc1101_read_tx_buf(void *_buf, int count)  
 {  
     unsigned char *buf = (unsigned char *)_buf;  
     int i, real_count;  
-  
     for(i = 0, real_count = 0; i < count; i++)  
     {  
         if(rf_dev.tx_rd == rf_dev.tx_wr)  
@@ -207,17 +204,16 @@ static int cc1101_read_tx_buf(void *_buf, int count)
             real_count++;  
         }  
     }  
-  
     return real_count;   
 }  
 static void cc1101_write_tx_buf(void *_buf, int count)  
 {  
     unsigned char *buf = (unsigned char *)_buf;  
     int i;  
-  
     for(i = 0; i < count; i++)  
     {  
-        while(((rf_dev.tx_wr+1) % TX_BUF_SIZE) == rf_dev.tx_rd);  
+        //while(((rf_dev.tx_wr+1) % TX_BUF_SIZE) == rf_dev.tx_rd)
+		//	rt_kprintf("waiting here\r\n");  
         rf_dev.tx_buf[rf_dev.tx_wr++] = buf[i];  
         rf_dev.tx_wr %= TX_BUF_SIZE;  
     }  
@@ -228,7 +224,6 @@ static void cc1101_gdo0_tx_it(void)
     unsigned char buf_tmp[TX_BUF_SIZE], status;  
     
     wait_tx_count = cc1101_get_tx_buf_count();  
-  
     status = trxSpiCmdStrobe(RF_SFTX);  
   
     /* 
@@ -238,9 +233,9 @@ static void cc1101_gdo0_tx_it(void)
     */  
     while(status & 0x70)  
     {  
-        status = trxSpiCmdStrobe(RF_SNOP);  
+        status = trxSpiCmdStrobe(RF_SNOP);
     }  
-  
+	
     if(wait_tx_count == 0)  
     {               
         cc1101_set_rx_mode();  
@@ -313,7 +308,6 @@ void cc1101_send_write(void*_buf, unsigned short count)
 int cc1101_receive_read(unsigned char *buf, int count)  
 {   
     int i, real_read_count;  
-      
     for(i = 0, real_read_count = 0; i < count; i++)  
     {  
         if(rf_dev.rx_rd == rf_dev.rx_wr)  
@@ -327,14 +321,12 @@ int cc1101_receive_read(unsigned char *buf, int count)
             real_read_count++;  
         }  
     }  
-     
     return real_read_count;  
 }  
 void cc1101_isr(void)  
 {  
     if(rf_dev.mode  == MODE_RX)  
     {  
-    	//rt_kprintf("cc1101 isr rx\r\n");
         cc1101_gdo0_rx_it();  
     }  
     else if(rf_dev.mode == MODE_TX)     
@@ -344,9 +336,8 @@ void cc1101_isr(void)
     else  
     {  
         rf_dev.mode  = MODE_RX;  
-    }  
+    }
 }  
-
 unsigned char set_rf_packet_length(unsigned char length) {
   unsigned char reg_value;
 
@@ -437,9 +428,9 @@ int radio_init(void)
 	//radio_set_freq(433000);
 	//set_rf_packet_length(TX_BUF_SIZE);
 	//radio_receive_on();
-	cc1101_set_rx_mode();
 	//radio_idle();
 	trxRfSpiInterruptInit();
+	cc1101_set_rx_mode();
 	return 0;
 }
 int radio_receive_on(void) {

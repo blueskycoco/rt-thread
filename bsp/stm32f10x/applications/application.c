@@ -134,21 +134,18 @@ void rt_init_thread_entry(void* parameter)
 	rt_uint8_t buf1[256]={0};
 	//rt_thread_delay(1000);
 	radio_init();
-	//while (1) {
-	/*rt_memset(buf,0,256);
-	rt_sprintf(buf,"led on , count : %d",count);
-	buf1[0] = 0;//rt_strlen(buf);
-	rt_memcpy(buf1+1, buf, rt_strlen(buf));
-	radio_send(buf1,strlen(buf)+1);*/
-	//radio_wait_for_idle(0);
-	//rt_memset(buf1,0,256);
-	//count1=256;
-	//int crc = radio_read(buf1,&count1);
-	//rt_kprintf("rcv %s %d %x\r\n", buf1,count1,crc);
-	//count++;
-	//rt_thread_delay(RT_TICK_PER_SECOND);
-	//}
 
+	while (1) {
+		rt_memset(buf,0,256);
+		rt_sprintf(buf,"led on , count : %d",count);
+		//cc1101_send_write(buf,strlen(buf));
+		int len = cc1101_receive_read(buf1,128);
+		if (len > 0)
+			rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
+		
+		count++;
+		//rt_thread_delay(RT_TICK_PER_SECOND);
+	}
 }
 
 int rt_application_init(void)
