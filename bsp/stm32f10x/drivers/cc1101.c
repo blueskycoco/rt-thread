@@ -129,9 +129,9 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 }  
 static int cc1101_send_packet(unsigned char *buf, unsigned char count)  
 {     
-    rt_kprintf("cc1101 send data %d:", count);  
-    cc1101_hex_printf(buf, count);  
-    rt_kprintf("\r\n");  
+    //rt_kprintf("cc1101 send data %d:", count);  
+    //cc1101_hex_printf(buf, count);  
+    //rt_kprintf("\r\n");  
     //cc1101_write_signle_reg(RF_TXFIFO, count);  
     //cc1101_write_burst_reg(RF_RXFIFO, buf, count);  
     trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, &count,1);
@@ -167,7 +167,7 @@ static void cc1101_gdo0_rx_it(void)
         }   
         rt_kprintf("cc1101 receive data:");  
         cc1101_hex_printf(rx_buf, rx_count);  
-        rt_kprintf("\r\n");  
+		rt_kprintf("\r\n");  
     }  
 }
 static unsigned short cc1101_get_tx_buf_count(void)  

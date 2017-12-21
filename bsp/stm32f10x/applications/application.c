@@ -138,16 +138,20 @@ void rt_init_thread_entry(void* parameter)
 	while (1) {
 		rt_memset(buf,0,256);
 		rt_sprintf(buf,"led on , count : %d",count);
-		
+		#if 0
+		cc1101_send_write(buf,strlen(buf));
+		count++;
+		#else
+		cc1101_send_write(buf,strlen(buf));
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
 		{
 			rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
-			cc1101_send_write(buf,strlen(buf));
+			//cc1101_send_write(buf,strlen(buf));
 			count++;
 		}
-		
-		//rt_thread_delay(RT_TICK_PER_SECOND);
+		#endif
+		rt_thread_delay(RT_TICK_PER_SECOND);
 	}
 }
 
