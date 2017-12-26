@@ -833,7 +833,7 @@ int gprs_init(void)
 		rt_device_set_rx_indicate(dev_gprs, gprs_rx_ind);
 		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,1524, 20, 10));
 		rt_thread_startup(rt_thread_create("gprs_init",gprs_process, 0,2048, 20, 10));
-		//rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,1024, 20, 10));
+		rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,1024, 20, 10));
 		//rt_thread_delay(100);
 		//gprs_at_cmd(e0);
 	}

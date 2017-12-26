@@ -23,7 +23,7 @@
 
 /* Using Hook */
 #define RT_USING_HOOK
-
+#define RT_USING_LIBC 1
 /* Using Software Timer */
 /* #define RT_USING_TIMER_SOFT */
 #define RT_TIMER_THREAD_PRIO		4
