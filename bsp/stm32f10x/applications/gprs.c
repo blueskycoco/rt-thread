@@ -3,7 +3,8 @@
 #include <rtdevice.h>
 #include "led.h"
 #include "cc1101.h"
-#include "string.h"
+#include <string.h>
+#include "bsp_misc.h"
 #define GPRS_POWER_PORT GPIOA
 #define GPRS_POWER_PIN	GPIO_Pin_7
 #define GPRS_POWER_RCC	RCC_APB2Periph_GPIOA
@@ -63,6 +64,8 @@ static struct rt_mutex gprs_lock;
 #define DEFAULT_SERVER		"106.3.45.71"
 //#define DEFAULT_PORT		"60002"
 #define DEFAULT_PORT		"2011"
+#define DATA_BEGIN0			0x40
+#define DATA_BEGIN1			0x41
 const uint8_t qistat[] 		= "AT+QISTAT\n";
 const uint8_t qiclose[] 	= "AT+QICLOSE\n";
 const uint8_t qilocip[] 	= "AT+QILOCIP\n";
@@ -771,17 +774,30 @@ void gprs_process(void* parameter)
 void send_process(void* parameter)
 {
 	int i=0;
-	while(1)	{
+	while(1)	{		
+	char id[10] = {0};	
+	char data[10] = {0};
 	rt_thread_delay(500);
-	uint8_t *buf = (uint8_t *)rt_malloc(25*sizeof(uint8_t));
-	if (buf != RT_NULL) {
-	rt_memset(buf,0,25);
-	rt_sprintf(buf, "sending test data %d\r\n",i);
-	//rt_kprintf("%s",buf);
-	//m26_send(buf, rt_strlen(buf));
+	rt_sprintf(id, "id>%d", i);
+	rt_sprintf(data, "data>%d", i);
+	char *json = add_item(RT_NULL,id, data);
+	json = add_item(json,"id1", "data1");
+	json = add_item(json,"id2", "data2");
+	json = add_item(json,"id3", "data3");
+	if (json != RT_NULL) {		
+	int len = rt_strlen(json) + 2;
+	uint8_t *buf = (uint8_t *)rt_malloc(len + 4);
+	buf[0] = DATA_BEGIN0;buf[1] = DATA_BEGIN1;
+	buf[2] = (len >> 8) & 0xff;
+	buf[3] = len & 0xff;
+	rt_memcpy(buf+4, json, rt_strlen(json));
+	rt_uint16_t crc = CRC_check(buf, len+2);
+	buf[len+2] = (crc >> 8) & 0xff;
+	buf[len+3] = crc & 0xff;
 	rt_kprintf("push ptr %p\r\n",buf);
-	rt_data_queue_push(&g_data_queue[1], buf, rt_strlen(buf), RT_WAITING_FOREVER);
+	rt_data_queue_push(&g_data_queue[1], buf, len+4, RT_WAITING_FOREVER);
 	gprs_wait_event(RT_WAITING_FOREVER);
+	rt_free(json);
 	rt_free(buf);
 	i++;
 	} else 

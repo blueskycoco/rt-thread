@@ -13,6 +13,8 @@ usart.c
 swo.c
 cc1101.c
 spi.c
+cJSON.c
+bsp_misc.c
 """)
 
 if GetDepend(['RT_USING_PIN']):
