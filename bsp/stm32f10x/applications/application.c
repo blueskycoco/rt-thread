@@ -142,7 +142,7 @@ void rt_init_thread_entry(void* parameter)
 		cc1101_send_write(buf,strlen(buf));
 		count++;
 		#else
-		cc1101_send_write(buf,strlen(buf));
+		//cc1101_send_write(buf,strlen(buf));
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
 		{
