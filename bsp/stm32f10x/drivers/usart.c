@@ -594,6 +594,7 @@ void rt_hw_usart_init(void)
     uart = &uart2;
 
     config.baud_rate = BAUD_RATE_115200;
+	config.bufsz = 2048;
     serial2.ops    = &stm32_uart_ops;
     serial2.config = config;
 

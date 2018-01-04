@@ -133,6 +133,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_uint8_t buf[256]={0};
 	rt_uint8_t buf1[256]={0};
 	//rt_thread_delay(1000);
+	return ;
 	radio_init();
 
 	while (1) {

@@ -5,9 +5,9 @@
 #include "cc1101.h"
 #include <string.h>
 #include "bsp_misc.h"
-#define GPRS_POWER_PORT GPIOA
-#define GPRS_POWER_PIN	GPIO_Pin_7
-#define GPRS_POWER_RCC	RCC_APB2Periph_GPIOA
+#define GPRS_POWER_PORT GPIOE
+#define GPRS_POWER_PIN	GPIO_Pin_14
+#define GPRS_POWER_RCC	RCC_APB2Periph_GPIOE
 #define MAGIC_OK	"OK"
 struct rt_event gprs_event;
 static struct rt_mutex gprs_lock;
@@ -34,6 +34,7 @@ static struct rt_mutex gprs_lock;
 #define GPRS_STATE_DATA_PRE_WRITE	19
 #define STR_CPIN_READY		"+CPIN: READY"
 #define STR_CGREG_READY		"+CGREG: 0,1"
+#define STR_CGREG_READY1	"+CGREG: 0,5"
 #define STR_STAT_INIT		"IP INITIAL"
 #define STR_STAT_IND		"IP IND"
 #define STR_STAT_CLOSE		"IP CLOSE"
@@ -117,15 +118,22 @@ void gprs_rcv(void* parameter)
 		if (!m26_module_use) 
 			return;
 		rt_sem_take(&gprs_rx_sem, RT_WAITING_FOREVER);
+		#if 0
 		len = g_size;
-		uint8_t *buf = rt_malloc(len * sizeof(uint8_t));
+		uint8_t *buf = rt_malloc((len+1) * sizeof(uint8_t));
 		total_len  = rt_device_read(dev_gprs, 0, buf , len);
 		if (total_len  != len)
 			rt_kprintf("total_len %d\r\n", total_len);
 		//for (int i=0; i<total_len; i++)
 		//	rt_kprintf("%c", buf[i]);
+		#else
+		uint8_t *buf = rt_malloc(1024);
+		rt_memset(buf,0,1024);
+		rt_thread_delay(10);
+		total_len  = rt_device_read(dev_gprs, 0, buf , 32);
+		#endif
 		if (total_len > 0) {
-			buf[total_len] = '\0';
+			//buf[total_len] = '\0';
 			rt_data_queue_push(&g_data_queue[0], buf, total_len, RT_WAITING_FOREVER);
 			total_len = 0;
 		}
@@ -139,7 +147,7 @@ void m26_restart(void)
     GPIO_ResetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
     rt_thread_delay(RT_TICK_PER_SECOND);
     GPIO_SetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
-    rt_thread_delay(RT_TICK_PER_SECOND*5);
+    rt_thread_delay(RT_TICK_PER_SECOND*8);
 }
 void change_baud(int baud)
 {
@@ -393,13 +401,15 @@ void gprs_process(void* parameter)
 	const void *last_data_ptr = RT_NULL;
 	void *send_data_ptr = RT_NULL;
 	gprs_at_cmd(e0);
+	gprs_at_cmd(e0);
+	gprs_at_cmd(e0);
 	while (1) {
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[0], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 
 		if (r == RT_EOK && last_data_ptr != RT_NULL) {
-			//if (data_size != 6)
-			//rt_kprintf("\r\n(%d %s)\r\n",data_size,last_data_ptr);
-			if (data_size >= 2) {
+			if (data_size != 6)
+			rt_kprintf("\r\n(%d %s)\r\n",data_size,last_data_ptr);
+			//if (data_size >= 2) {
 			switch (g_gprs_state) {
 				case GPRS_STATE_INIT:
 						g_gprs_state = GPRS_STATE_CHECK_CPIN;
@@ -421,7 +431,8 @@ void gprs_process(void* parameter)
 						}
 						break;
 				case GPRS_STATE_CHECK_CGREG:
-						if (have_str(last_data_ptr, STR_CGREG_READY)) {
+						if (have_str(last_data_ptr, STR_CGREG_READY) ||
+							have_str(last_data_ptr, STR_CGREG_READY1)) {
 							g_gprs_state = GPRS_STATE_CHECK_QISTAT;
 							gprs_at_cmd(qistat);
 						} else {
@@ -652,7 +663,7 @@ void gprs_process(void* parameter)
 							}
 						break;		
 			}
-			}
+			//}
 			if (last_data_ptr != RT_NULL) {
 			rt_free((void *)last_data_ptr);
 			last_data_ptr = RT_NULL;
@@ -711,7 +722,7 @@ int gprs_init(void)
 {
 	/*handle m26*/
 	//rt_thread_delay(1000);
-	dev_gprs=rt_device_find("uart3");
+	dev_gprs=rt_device_find("uart2");
 	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX) == RT_EOK)			
 	{
 		change_baud(115200);

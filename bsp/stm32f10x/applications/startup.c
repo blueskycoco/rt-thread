@@ -60,7 +60,7 @@ void rtthread_startup(void)
     rt_hw_board_init();
 
     /* show version */
-    rt_show_version();
+    //rt_show_version();
 
 #ifdef RT_USING_HEAP
 #if STM32_EXT_SRAM
