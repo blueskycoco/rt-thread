@@ -129,7 +129,7 @@ void gprs_rcv(void* parameter)
 		#else
 		uint8_t *buf = rt_malloc(1024);
 		rt_memset(buf,0,1024);
-		//rt_thread_delay(10);
+		rt_thread_delay(1);
 		total_len  = rt_device_read(dev_gprs, 0, buf , 1024);
 		#endif
 		if (total_len > 0) {
