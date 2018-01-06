@@ -128,9 +128,19 @@ void gprs_rcv(void* parameter)
 		//	rt_kprintf("%c", buf[i]);
 		#else
 		uint8_t *buf = rt_malloc(1024);
-		rt_memset(buf,0,1024);
-		rt_thread_delay(1);
-		total_len  = rt_device_read(dev_gprs, 0, buf , 1024);
+		//rt_memset(buf,0,1024);
+		//rt_thread_delay(1);
+		total_len = 0;
+		while (1) {
+			if (rt_device_read(dev_gprs, 0, &(buf[total_len]) , 1)==1)
+			{
+				total_len ++;
+				if (total_len == 1024)
+					break;
+			}
+			else
+				break;
+		}
 		#endif
 		if (total_len > 0) {
 			//buf[total_len] = '\0';
@@ -406,7 +416,7 @@ void gprs_process(void* parameter)
 
 		if (r == RT_EOK && last_data_ptr != RT_NULL) {
 			if (data_size != 6 && strstr(last_data_ptr, "+QIRD:")==NULL)
-			rt_kprintf("\r\n(%d %s)\r\n",data_size,last_data_ptr);
+			rt_kprintf("\r\n(%d %d %s)\r\n",g_gprs_state, data_size,last_data_ptr);
 			if (data_size >= 2) {
 			switch (g_gprs_state) {
 				case GPRS_STATE_INIT:
