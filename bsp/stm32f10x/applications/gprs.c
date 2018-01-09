@@ -132,7 +132,7 @@ void gprs_rcv(void* parameter)
 		//rt_thread_delay(1);
 		total_len = 0;
 		while (1) {
-			total_len += rt_device_read(dev_gprs, 0, &(buf[total_len]) , 1600);
+			total_len += rt_device_read(dev_gprs, 0, &(buf[total_len]) , 1600-total_len);
 			
 			if (total_len < 6)
 			{
