@@ -133,7 +133,6 @@ void rt_init_thread_entry(void* parameter)
 	rt_uint8_t buf[256]={0};
 	rt_uint8_t buf1[256]={0};
 	//rt_thread_delay(1000);
-	return ;
 	radio_init();
 
 	while (1) {
@@ -148,7 +147,7 @@ void rt_init_thread_entry(void* parameter)
 		if (len > 0)
 		{
 			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
-			//cc1101_send_write(buf,strlen(buf));
+			cc1101_send_write(buf1,len);
 			count++;
 		}
 		#endif

@@ -75,7 +75,8 @@ static void cc1101_set_tx_mode(void)
     rf_dev.mode = MODE_TX; 
 }  
 static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)  
-{  
+{ 
+	int i;
     unsigned char packet_len, status[2];
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &packet_len, 1);
 	//rt_kprintf("packet len is %x\r\n",packet_len);
