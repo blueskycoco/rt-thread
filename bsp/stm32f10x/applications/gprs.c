@@ -111,8 +111,8 @@ static rt_err_t gprs_rx_ind(rt_device_t dev, rt_size_t size)
 /*read data from usart , put to dataqueue */
 void gprs_rcv(void* parameter)
 {	
-	uint8_t rcv[64] = {0};
 	uint32_t len = 0, total_len = 0;
+	uint8_t *buf = rt_malloc(1600);
 	while(1)	
 	{			
 		if (!m26_module_use) 
@@ -127,30 +127,29 @@ void gprs_rcv(void* parameter)
 		//for (int i=0; i<total_len; i++)
 		//	rt_kprintf("%c", buf[i]);
 		#else
-		uint8_t *buf = rt_malloc(1600);
-		//rt_memset(buf,0,1024);
-		//rt_thread_delay(1);
-		total_len = 0;
+		//total_len = 0;
 		while (1) {
-			total_len += rt_device_read(dev_gprs, 0, &(buf[total_len]) , 1600-total_len);
+			len = rt_device_read(dev_gprs, 0, &(buf[total_len]) , 1600-total_len);
 			
-			if (total_len < 6)
+			if (len>0)
 			{
+				total_len += len;
 				buf[total_len] = '\0';
-				if (strstr(buf, "OK") != RT_NULL)	
-					break;
 			}
 			else
 				break;			
 		}
 		#endif
-		if (total_len > 0) {
-			buf[total_len] = '\0';
-			rt_data_queue_push(&g_data_queue[0], buf, total_len, RT_WAITING_FOREVER);
+		//rt_kprintf("==>%s", buf);
+		if (total_len > 0 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n') {
+			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
+			rt_memcpy(rcv, buf, total_len);
+			rcv[total_len] = '\0';
+			rt_data_queue_push(&g_data_queue[0], rcv, total_len, RT_WAITING_FOREVER);
 			total_len = 0;
 		}
-		else
-			rt_free(buf);
+		//else
+		//	rt_free(buf);
 	}
 }
 
