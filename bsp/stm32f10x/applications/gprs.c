@@ -141,15 +141,18 @@ void gprs_rcv(void* parameter)
 		}
 		#endif
 		//rt_kprintf("==>%s", buf);
-		if (total_len > 0 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n') {
+		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n') {
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
 			rt_memcpy(rcv, buf, total_len);
 			rcv[total_len] = '\0';
 			rt_data_queue_push(&g_data_queue[0], rcv, total_len, RT_WAITING_FOREVER);
 			total_len = 0;
 		}
-		//else
-		//	rt_free(buf);
+		else
+		{
+			//rt_kprintf("<%d> %s", total_len, buf);
+			//rt_free(buf);
+		}
 	}
 }
 
