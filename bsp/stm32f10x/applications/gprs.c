@@ -334,8 +334,13 @@ void handle_server_in(const void *last_data_ptr)
 				rt_data_queue_push(&g_data_queue[2], server_buf, server_len, RT_WAITING_FOREVER);
 				//rt_free(server_buf);	
 				//rt_kprintf("free server buf>\r\n");
+				if (server_len == 1500) {
+					g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+					gprs_at_cmd(qistat);
+				} else {
 				g_gprs_state = GPRS_STATE_DATA_PROCESSING;
 				gprs_at_cmd(qiat);
+				}
 				if (!have_str(last_data_ptr, STR_QIRDI))
 					g_data_in_m26 = RT_FALSE;
 				//else
@@ -371,8 +376,13 @@ void handle_server_in(const void *last_data_ptr)
 				rt_data_queue_push(&g_data_queue[2], server_buf, server_len, RT_WAITING_FOREVER);
 				//rt_free(server_buf);						
 				//rt_kprintf("\r\nfree server buf2>\r\n");
-				g_gprs_state = GPRS_STATE_DATA_PROCESSING;
-				gprs_at_cmd(qiat);				
+				if (server_len == 1500) {
+					g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+					gprs_at_cmd(qistat);
+				} else {
+					g_gprs_state = GPRS_STATE_DATA_PROCESSING;
+					gprs_at_cmd(qiat);		
+				}
 				if (!have_str(last_data_ptr, STR_QIRDI))
 					g_data_in_m26 = RT_FALSE;
 				//else
