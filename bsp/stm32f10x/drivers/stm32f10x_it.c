@@ -159,15 +159,15 @@ void EXTI9_5_IRQHandler(void)
 	rt_interrupt_leave();
 }
 #else
-void EXTI4_IRQHandler(void)
+void EXTI2_IRQHandler(void)
 {
     extern void cc1101_isr(void);
 	/* enter interrupt */
 	rt_interrupt_enter();
-	if(EXTI_GetITStatus(EXTI_Line4))
+	if(EXTI_GetITStatus(EXTI_Line2))
 	{	 
 		cc1101_isr();	
-		EXTI_ClearITPendingBit(EXTI_Line4);
+		EXTI_ClearITPendingBit(EXTI_Line2);
 	}
 	/* leave interrupt */
 	rt_interrupt_leave();

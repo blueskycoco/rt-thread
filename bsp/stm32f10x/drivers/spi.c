@@ -117,11 +117,37 @@ void trxRfSpiInterfaceInit()
 	SPI_Cmd(SPI1, ENABLE);
 
 }
+void trxRfEnableInt()
+{
+	EXTI_InitTypeDef EXTI_InitStructure;
+	EXTI_InitStructure.EXTI_Line = EXTI_LineX;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+	EXTI_ClearITPendingBit(EXTI_LineX);
+}
+void trxRfDisableInt()
+{
+	EXTI_InitTypeDef EXTI_InitStructure;
+	EXTI_InitStructure.EXTI_Line = EXTI_LineX;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
+	EXTI_InitStructure.EXTI_LineCmd = DISABLE;
+	EXTI_Init(&EXTI_InitStructure);
+}
+int getIntFlag()
+{
+	return EXTI_GetFlagStatus(EXTI_Line2);
+}
+void clearIntFlag()
+{
+	EXTI_ClearFlag(EXTI_LineX);
+}
 void trxRfSpiInterruptInit()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
-	EXTI_InitTypeDef EXTI_InitStructure;
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_AFIO, ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_InitStructure.GPIO_Pin =  PIN_GDO0;
@@ -135,13 +161,12 @@ void trxRfSpiInterruptInit()
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority= 2; 
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
+	trxRfEnableInt();
 
-	EXTI_InitStructure.EXTI_Line = EXTI_LineX;
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
-	EXTI_ClearITPendingBit(EXTI_LineX);
+}
+int gdo_level()
+{
+	return GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_2);
 }
 int check_status(uint8_t bit)
 {	

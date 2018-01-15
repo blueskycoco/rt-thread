@@ -35,6 +35,203 @@ static struct rf_dev rf_dev;
         rt_kprintf("%c", buf[i]);\  
     }\  
 }
+#if 1
+#define VAL_MDMCFG3	0x83
+#define VAL_MDMCFG4 0xf5
+#define MAX_PAYLOAD	32
+#define MRFI_RSSI_VALID_DELAY_US    13
+void MRFI_RSSI_VALID_WAIT()                                                
+{                                                                             
+  int16_t delay = MRFI_RSSI_VALID_DELAY_US;                                   
+  unsigned char status;															
+  do                                                                          
+  {	
+  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, PKTSTATUS, &status, 1); 
+    if(status & (0x50))  
+    {                                                                         
+      break;                                                                  
+    }                                                                         
+    rt_thread_delay(1); /* sleep */                                           
+    delay -= 640;                                                              
+  }while(delay > 0);                                                          
+}        
+
+void MRFI_STROBE_IDLE_AND_WAIT()                   
+{													  
+  trxSpiCmdStrobe( RF_SIDLE );						  
+  while (trxSpiCmdStrobe( RF_SNOP ) & 0xF0) ; 		  
+}
+
+static uint8_t mrfiRndSeed=0;
+static uint16_t sReplyDelayScalar=0;
+static uint16_t sBackoffHelper=0;
+
+#define   MRFI_RADIO_OSC_FREQ         	26000000
+#define   PLATFORM_FACTOR_CONSTANT    	2
+#define   PHY_PREAMBLE_SYNC_BYTES     	8
+#define   MRFI_BACKOFF_PERIOD_USECS 	250
+#define   MRFI_RSSI_OFFSET	74
+#define MRFI_RANDOM_OFFSET                   67
+#define MRFI_RANDOM_MULTIPLIER              109
+
+int8_t Mrfi_CalculateRssi(uint8_t rawValue)
+{
+  int16_t rssi;
+
+  /* The raw value is in 2's complement and in half db steps. Convert it to
+   * decimal taking into account the offset value.
+   */
+  if(rawValue >= 128)
+  {
+    rssi = (int16_t)(rawValue - 256)/2 - MRFI_RSSI_OFFSET;
+  }
+  else
+  {
+    rssi = (rawValue/2) - MRFI_RSSI_OFFSET;
+  }
+
+  /* Restrict this value to least value can be held in an 8 bit signed int */
+  if(rssi < -128)
+  {
+    rssi = -128;
+  }
+
+  return rssi;
+}
+
+void create_seed()
+{
+	unsigned char rssi;
+	uint32_t dataRate, bits;
+	uint16_t exponent, mantissa;
+	trxSpiCmdStrobe(RF_SRX);
+	MRFI_RSSI_VALID_WAIT();	
+	for(uint8_t i=0; i<16; i++)
+	{
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RSSI, &rssi, 1);
+		mrfiRndSeed = (mrfiRndSeed << 1) | (rssi & 0x01);
+		Mrfi_CalculateRssi(rssi);
+	}
+
+	mrfiRndSeed |= 0x0080;
+	//RF_GDO_PxIE  &= ~RF_GDO_PIN;
+	trxRfDisableInt();
+	MRFI_STROBE_IDLE_AND_WAIT();
+	trxSpiCmdStrobe( RF_SFRX );
+	//RF_GDO_PxIFG &= ~RF_GDO_PIN;
+	clearIntFlag();
+	mantissa = 256 + VAL_MDMCFG3;
+
+	exponent = 28 - (VAL_MDMCFG4 & 0x0F);
+
+	dataRate = mantissa * (MRFI_RADIO_OSC_FREQ>>exponent);
+
+	bits = ((uint32_t)((PHY_PREAMBLE_SYNC_BYTES + MAX_PAYLOAD)*8))*10000;
+
+	sReplyDelayScalar = PLATFORM_FACTOR_CONSTANT + (((bits/dataRate)+5)/10);
+	sBackoffHelper = MRFI_BACKOFF_PERIOD_USECS + (sReplyDelayScalar>>5)*1000;
+	//RF_GDO_PxIE  |= RF_GDO_PIN;
+	trxRfEnableInt();
+	rt_kprintf("s %d\r\n", sBackoffHelper);
+}
+uint8_t MRFI_RandomByte(void)
+{
+  mrfiRndSeed = (mrfiRndSeed*MRFI_RANDOM_MULTIPLIER) + MRFI_RANDOM_OFFSET;
+
+  return mrfiRndSeed;
+}
+
+static void Mrfi_RandomBackoffDelay(void)
+{
+  uint8_t backoffs;
+  uint8_t i;
+
+  /* calculate random value for backoffs - 1 to 16 */
+  backoffs = (MRFI_RandomByte() & 0x0F) + 1;
+
+  /* delay for randomly computed number of backoff periods */
+  for (i=0; i<backoffs*sBackoffHelper; i++)
+  {
+    rt_thread_delay( 1 );
+  }
+}
+void Mrfi_RxModeOff(void)
+{
+  //RF_GDO_PxIE	&= ~RF_GDO_PIN;
+	trxRfDisableInt();
+  MRFI_STROBE_IDLE_AND_WAIT();
+
+  trxSpiCmdStrobe( RF_SFRX );
+
+  //RF_GDO_PxIFG	&= ~RF_GDO_PIN;
+  clearIntFlag();
+}
+static void Mrfi_RxModeOn(void)
+{
+  //RF_GDO_PxIFG	&= ~RF_GDO_PIN;
+	clearIntFlag();
+  trxSpiCmdStrobe( RF_SRX );
+
+ //RF_GDO_PxIE	|= RF_GDO_PIN;
+ trxRfEnableInt();
+}
+void cca()
+{
+	uint8_t ccaRetries = 4;
+	uint8_t papd = 0x1b;
+	uint8_t sync = 0x06;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS, IOCFG0, &papd, 1);
+	for (;;)
+	{
+		trxSpiCmdStrobe( RF_SRX );
+
+		MRFI_RSSI_VALID_WAIT();
+
+		//RF_GDO_PxIFG  &= ~RF_GDO_PIN;
+		clearIntFlag();
+		trxSpiCmdStrobe( RF_STX );
+		rt_kprintf("go here\r\n");
+
+		//__delay_cycles(750);
+		rt_thread_delay(3);
+		if (/*RF_GDO_PxIFG & RF_GDO_PIN*/getIntFlag())
+		{
+			//RF_GDO_PxIFG  &= ~RF_GDO_PIN;
+			clearIntFlag();
+			rt_kprintf("before here\r\n");
+			while (!gdo_level());
+			//RF_GDO_PxIFG  &= ~RF_GDO_PIN;
+			rt_kprintf("break here\r\n");
+			break;
+		}
+		else
+		{
+			MRFI_STROBE_IDLE_AND_WAIT();
+
+			trxSpiCmdStrobe( RF_SFRX );
+
+			if (ccaRetries != 0)
+			{
+				//Mrfi_RandomBackoffDelay();
+				//__delay_cycles(25);
+				rt_thread_delay(1);
+				ccaRetries--;
+			}
+			else 
+			{
+				rt_kprintf("timeout\r\n");
+				break;
+			}
+		} 
+	} 
+	trxSpiCmdStrobe( RF_SFTX );
+	trx8BitRegAccess(RADIO_WRITE_ACCESS, IOCFG0, &sync, 1);
+	Mrfi_RxModeOn();
+	rt_kprintf("return \r\n");
+}
+
+#endif
+
 const registerSetting_t preferredSettings_1200bps[]=
 {
 	{IOCFG0,	0x06},
@@ -47,6 +244,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{MDMCFG3,	0x83},
 	{MDMCFG2,	0x13},
 	{DEVIATN,	0x15},
+	{MCSM1,		0x3c},
 	{MCSM0,		0x18},
 	{FOCCFG,	0x16},
 	{WORCTRL,	0xFB},
@@ -68,10 +266,12 @@ static void cc1101_set_rx_mode(void)
 } 
 static void cc1101_set_tx_mode(void)  
 {    
-
+	#if 0
     trxSpiCmdStrobe(RF_SIDLE);  
     trxSpiCmdStrobe(RF_STX);  
-  
+	  #else
+	  cca();
+	  #endif
     rf_dev.mode = MODE_TX; 
 }  
 static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)  
@@ -112,9 +312,10 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 }  
 static int cc1101_send_packet(unsigned char *buf, unsigned char count)  
 {     
-    //rt_kprintf("cc1101 send data %d:", count);  
-    //cc1101_hex_printf(buf, count);  
-    //rt_kprintf("\r\n");  
+    rt_kprintf("cc1101 send data %d:", count);  
+    cc1101_hex_printf(buf, count);  
+    rt_kprintf("\r\n");  
+	Mrfi_RxModeOff();
     //cc1101_write_signle_reg(RF_TXFIFO, count);  
     //cc1101_write_burst_reg(RF_RXFIFO, buf, count);  
     trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, &count,1);
@@ -148,9 +349,9 @@ static void cc1101_gdo0_rx_it(void)
                 rf_dev.rx_rd %= RX_BUF_SIZE;  
             }  
         }   
-        //rt_kprintf("cc1101 receive data:");  
-        //cc1101_hex_printf(rx_buf, rx_count);  
-		//rt_kprintf("\r\n");  
+        rt_kprintf("cc1101 receive data:");  
+        cc1101_hex_printf(rx_buf, rx_count);  
+		rt_kprintf("\r\n");  
     }  
 }
 static unsigned short cc1101_get_tx_buf_count(void)  
@@ -419,6 +620,7 @@ int radio_init(void)
 	//radio_idle();
 	trxRfSpiInterruptInit();
 	cc1101_set_rx_mode();
+	create_seed();
 	return 0;
 }
 int radio_receive_on(void) {

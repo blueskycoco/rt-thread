@@ -142,12 +142,12 @@ void rt_init_thread_entry(void* parameter)
 		cc1101_send_write(buf,strlen(buf));
 		count++;
 		#else
-		//cc1101_send_write(buf,strlen(buf));
+		cc1101_send_write(buf,strlen(buf));
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
 		{
 			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
-			cc1101_send_write(buf1,len);
+			//cc1101_send_write(buf1,len);
 			count++;
 		}
 		#endif
