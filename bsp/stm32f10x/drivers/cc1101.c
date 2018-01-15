@@ -35,7 +35,7 @@ static struct rf_dev rf_dev;
         rt_kprintf("%c", buf[i]);\  
     }\  
 }
-#if 1
+#if 0
 #define VAL_MDMCFG3	0x83
 #define VAL_MDMCFG4 0xf5
 #define MAX_PAYLOAD	32
@@ -237,14 +237,16 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{IOCFG0,	0x06},
 	{PKTCTRL0,	0x05},
 	{FSCTRL1,	0x06},
-	{FREQ2,		0x10},
+/*   {FREQ2,		0x10},
 	{FREQ1,		0xa7},
-	{FREQ0,		0x62},
+	{FREQ0,		0x62},*/
+	{FREQ2,		0x11},
+	{FREQ1,		0xec},
+	{FREQ0,		0x4e},
 	{MDMCFG4,	0xf5},
 	{MDMCFG3,	0x83},
 	{MDMCFG2,	0x13},
 	{DEVIATN,	0x15},
-	{MCSM1,		0x3c},
 	{MCSM0,		0x18},
 	{FOCCFG,	0x16},
 	{WORCTRL,	0xFB},
@@ -266,7 +268,7 @@ static void cc1101_set_rx_mode(void)
 } 
 static void cc1101_set_tx_mode(void)  
 {    
-	#if 0
+	#if 1
     trxSpiCmdStrobe(RF_SIDLE);  
     trxSpiCmdStrobe(RF_STX);  
 	  #else
@@ -315,7 +317,7 @@ static int cc1101_send_packet(unsigned char *buf, unsigned char count)
     rt_kprintf("cc1101 send data %d:", count);  
     cc1101_hex_printf(buf, count);  
     rt_kprintf("\r\n");  
-	Mrfi_RxModeOff();
+//	Mrfi_RxModeOff();
     //cc1101_write_signle_reg(RF_TXFIFO, count);  
     //cc1101_write_burst_reg(RF_RXFIFO, buf, count);  
     trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, &count,1);
@@ -614,13 +616,13 @@ int radio_init(void)
 		if (readByte != preferredSettings[i].data)
 			rt_kprintf("rf reg set failed %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
 	}
-	//radio_set_freq(433000);
+	//radio_set_freq(433);
 	//set_rf_packet_length(TX_BUF_SIZE);
 	//radio_receive_on();
 	//radio_idle();
 	trxRfSpiInterruptInit();
 	cc1101_set_rx_mode();
-	create_seed();
+//	create_seed();
 	return 0;
 }
 int radio_receive_on(void) {
