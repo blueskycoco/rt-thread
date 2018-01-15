@@ -12,7 +12,7 @@ led.c
 usart.c
 swo.c
 cc1101.c
-spi_gpio.c
+spi.c
 cJSON.c
 bsp_misc.c
 """)
