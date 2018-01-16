@@ -26,9 +26,9 @@
 
 #else
 #ifndef STM32F103ZET6
-#define led1_rcc                    RCC_APB2Periph_GPIOC
-#define led1_gpio                   GPIOC
-#define led1_pin                    (GPIO_Pin_3)
+#define led1_rcc                    RCC_APB2Periph_GPIOD
+#define led1_gpio                   GPIOD
+#define led1_pin                    (GPIO_Pin_5)
 
 #define led2_rcc                    RCC_APB2Periph_GPIOC
 #define led2_gpio                   GPIOC

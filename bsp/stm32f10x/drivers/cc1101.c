@@ -237,12 +237,15 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{IOCFG0,	0x06},
 	{PKTCTRL0,	0x05},
 	{FSCTRL1,	0x06},
-/*   {FREQ2,		0x10},
+	#if 1
+    {FREQ2,		0x10},
 	{FREQ1,		0xa7},
-	{FREQ0,		0x62},*/
+	{FREQ0,		0x62},
+	#else
 	{FREQ2,		0x11},
 	{FREQ1,		0xec},
 	{FREQ0,		0x4e},
+	#endif
 	{MDMCFG4,	0xf5},
 	{MDMCFG3,	0x83},
 	{MDMCFG2,	0x13},
