@@ -51,18 +51,18 @@ static void led_thread_entry(void* parameter)
 	{
 		/* led1 on */
 #ifndef RT_USING_FINSH
-	    //rt_kprintf("led on, count : %d\r\n",count);
+	    rt_kprintf("led on, count : %d\r\n",count);
 #endif
-		rt_hw_led_on(0);
-		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
+		rt_hw_led_off(0);
+		rt_thread_delay( RT_TICK_PER_SECOND ); /* sleep 0.5 second and switch to other thread */
 		count++;
 
 		/* led1 off */
 #ifndef RT_USING_FINSH
-		//rt_kprintf("led off\r\n");
+		rt_kprintf("led off\r\n");
 #endif
-		rt_hw_led_off(0);
-		rt_thread_delay( RT_TICK_PER_SECOND/2 );
+		rt_hw_led_on(0);
+		rt_thread_delay( RT_TICK_PER_SECOND );
 	}
 }
 
@@ -143,11 +143,13 @@ void rt_init_thread_entry(void* parameter)
 		count++;
 		#else
 		//cc1101_send_write(buf,strlen(buf));
+		//rt_hw_led_off(0);
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
 		{
 			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
-			//cc1101_send_write(buf1,len);
+			cc1101_send_write(buf1,len);
+			//rt_hw_led_off(0);
 			count++;
 		}
 		#endif
