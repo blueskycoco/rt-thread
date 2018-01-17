@@ -148,7 +148,7 @@ void rt_init_thread_entry(void* parameter)
 		if (len > 0)
 		{
 			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
-			cc1101_send_write(buf1,len);
+			//cc1101_send_write(buf1,len);
 			//rt_hw_led_off(0);
 			count++;
 		}
