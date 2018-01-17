@@ -146,7 +146,7 @@ void rt_init_thread_entry(void* parameter)
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
 		{
-			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
+			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1+2 );
 			unsigned char tmp = buf1[0];
 			buf1[0] = buf1[1];
 			buf1[1] = tmp;
