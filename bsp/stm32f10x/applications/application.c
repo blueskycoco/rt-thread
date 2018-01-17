@@ -147,11 +147,11 @@ void rt_init_thread_entry(void* parameter)
 		if (len > 0)
 		{
 			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
-			//cc1101_send_write(buf1,len);
+			cc1101_send_write(buf1,len);
 			count++;
 		}
 		#endif
-		rt_thread_delay(RT_TICK_PER_SECOND);
+		//rt_thread_delay(RT_TICK_PER_SECOND);
 	}
 }
 
