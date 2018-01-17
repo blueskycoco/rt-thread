@@ -30,7 +30,7 @@ static struct rf_dev rf_dev;
 #define cc1101_hex_printf(buf, count) \  
 {\  
     int i;\  
-    for(i = 0; i < count; i++)\  
+    for(i = 2; i < count; i++)\  
     {\  
         rt_kprintf("%c", buf[i]);\  
     }\  
@@ -236,6 +236,8 @@ const registerSetting_t preferredSettings_1200bps[]=
 {
 	{IOCFG0,	0x06},
 	{PKTCTRL0,	0x05},
+	{PKTCTRL1,	0x05},
+	{ADDR, 		0x01},
 	{FSCTRL1,	0x06},
 /*   {FREQ2,		0x10},
 	{FREQ1,		0xa7},

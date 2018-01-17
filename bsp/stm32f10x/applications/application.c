@@ -147,6 +147,9 @@ void rt_init_thread_entry(void* parameter)
 		if (len > 0)
 		{
 			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
+			unsigned char tmp = buf1[0];
+			buf1[0] = buf1[1];
+			buf1[1] = tmp;
 			cc1101_send_write(buf1,len);
 			count++;
 		}
