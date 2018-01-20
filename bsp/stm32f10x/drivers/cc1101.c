@@ -32,7 +32,10 @@ static struct rf_dev rf_dev;
     int i;\  
     for(i = 0; i < count; i++)\  
     {\  
-        rt_kprintf("%c", buf[i]);\  
+    	if ((buf[i] >= '0' && buf[i] <= '9') || (buf[i] >= 'a' && buf[i] <='z') || (buf[i] >= 'A' && buf[i] <= 'Z')) \
+        	rt_kprintf("%c", buf[i]);\  
+        else \
+			rt_kprintf("%02x ", buf[i]);\  
     }\  
 }
 #if 0
