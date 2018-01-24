@@ -191,6 +191,7 @@ void rt_init_thread_entry(void* parameter)
 		#else
 		//cc1101_send_write(buf,strlen(buf));
 		//rt_hw_led_off(0);
+		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
 		{
@@ -249,7 +250,7 @@ void rt_init_thread_entry(void* parameter)
 				resp_addr[0] = cmd_alarm_s1[1];
 				resp_addr[1] = cmd_alarm_s1[0];
 				rt_memcpy(resp_addr+2, cmd_alarm_s1+2,13);
-				resp_addr[15]=0x00;resp_addr[16]=0x07;resp_addr[17]=0x02;
+				resp_addr[15]=0x00;resp_addr[16]=0x07;resp_addr[17]=0x01;
 				resp_addr[18]=0x01;
 				resp_addr[4]=16;
 				unsigned short crc = CRC1(resp_addr,19);
@@ -287,11 +288,11 @@ int rt_application_init(void)
 #if (RT_THREAD_PRIORITY_MAX == 32)
 	init_thread = rt_thread_create("init",
 			rt_init_thread_entry, RT_NULL,
-			2048, 8, 20);
+			2048, 8, 25);
 #else
 	init_thread = rt_thread_create("init",
 			rt_init_thread_entry, RT_NULL,
-			2048, 80, 20);
+			2048, 80, 25);
 #endif
 
 	if (init_thread != RT_NULL)

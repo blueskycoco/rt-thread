@@ -13,6 +13,7 @@ unsigned long volatile time_counter = 0;
 #define TX_BUF_SIZE              128  
 #define RX_BUF_SIZE              256  
 #define MAX_FIFO_SIZE            0x38 
+struct rt_semaphore cc1101_rx_sem;
 
 unsigned char paTable[1];           
 unsigned char rf_end_packet = 0;
@@ -375,6 +376,10 @@ static int cc1101_send_packet(unsigned char *buf, unsigned char count)
   	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, buf, count);
     return 0;    
 } 
+void wait_cc1101_sem()
+{
+		rt_sem_take(&cc1101_rx_sem, RT_WAITING_FOREVER);
+}
 static void cc1101_gdo0_rx_it(void)  
 {  
     unsigned char rx_buf[MAX_FIFO_SIZE], rx_count;  
@@ -405,6 +410,7 @@ static void cc1101_gdo0_rx_it(void)
         //rt_kprintf("cc1101 receive data:");  
         //cc1101_hex_printf(rx_buf, rx_count);  
 		//rt_kprintf("\r\n");  
+		rt_sem_release(&(cc1101_rx_sem));
     }  
 }
 static unsigned short cc1101_get_tx_buf_count(void)  
@@ -645,6 +651,7 @@ int radio_init(void)
 
 	unsigned char i, writeByte, preferredSettings_length;
 	registerSetting_t *preferredSettings;
+	rt_sem_init(&(cc1101_rx_sem), "c11_rx", 0, 0);
 
 	trxRfSpiInterfaceInit();	
 
