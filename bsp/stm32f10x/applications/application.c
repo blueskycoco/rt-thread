@@ -156,6 +156,8 @@ void rt_init_thread_entry(void* parameter)
 	rt_uint8_t buf[256]={0};
 	rt_uint8_t buf1[256]={0};
 	rt_uint8_t cmd_addr[] = {0x01,0x00 ,0x6c ,0xaa ,0x12 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x01 ,0x00 ,0x00 ,0x02 ,0xd1};
+	rt_uint8_t cmd_confirm[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x14,0x01,0x17};
+	rt_uint8_t cmd_status[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x10,0x00,0x02};
 	rt_uint8_t resp_addr[32] = {0};
 	rt_uint8_t stm32_id[] = {0xa1,0x18,0x01,0x02,0x12,0x34};
 	//rt_thread_delay(1000);
@@ -183,6 +185,29 @@ void rt_init_thread_entry(void* parameter)
 				rt_memcpy(resp_addr+5, stm32_id, 6);
 				resp_addr[15]=0x00;resp_addr[16]=0x01;resp_addr[17]=0x00;
 				resp_addr[18]=0x17;
+				resp_addr[4]=16;
+				unsigned short crc = CRC1(resp_addr,19);
+				resp_addr[19]=(crc>>8) & 0xff;
+				resp_addr[20]=(crc) & 0xff;
+				cc1101_send_write(resp_addr,21);
+			} else if (rt_memcmp(buf1, cmd_confirm, sizeof(cmd_confirm)) ==0) {
+				resp_addr[0] = cmd_confirm[1];
+				resp_addr[1] = cmd_confirm[0];
+				rt_memcpy(resp_addr+2, cmd_confirm+2,13);
+				//rt_memcpy(resp_addr+5, stm32_id, 6);
+				resp_addr[15]=0x00;resp_addr[16]=0x15;resp_addr[17]=0x00;
+				resp_addr[18]=0x01;
+				resp_addr[4]=16;
+				unsigned short crc = CRC1(resp_addr,19);
+				resp_addr[19]=(crc>>8) & 0xff;
+				resp_addr[20]=(crc) & 0xff;
+				cc1101_send_write(resp_addr,21);
+			} else if (rt_memcmp(buf1, cmd_status, sizeof(cmd_status)) ==0) {
+				resp_addr[0] = cmd_status[1];
+				resp_addr[1] = cmd_status[0];
+				rt_memcpy(resp_addr+2, cmd_status+2,13);
+				resp_addr[15]=0x00;resp_addr[16]=0x11;resp_addr[17]=0x00;
+				resp_addr[18]=0x01;
 				resp_addr[4]=16;
 				unsigned short crc = CRC1(resp_addr,19);
 				resp_addr[19]=(crc>>8) & 0xff;
