@@ -261,6 +261,9 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{MDMCFG3,	0x83},
 	{MDMCFG2,	0x13},
 	{DEVIATN,	0x15},
+	{AGCCTRL2,	0x07},
+	{AGCCTRL1,	0x40},
+//	{MCSM1, 	0x3f},
 	{MCSM0,		0x18},
 	{FOCCFG,	0x16},
 	{WORCTRL,	0xFB},
@@ -280,10 +283,44 @@ static void cc1101_set_rx_mode(void)
   
     rf_dev.mode = MODE_RX;  
 } 
+void __delay_cycles(uint32_t count)
+{
+	volatile long i,j,k;
+	for (i=0;i<count;i++)
+		for (j=0;j<10;j++)
+			k=j;
+}
+
+#define MRFI_RSSI_VALID_DELAY_US    1300
+void MRFI_RSSI_VALID_WAIT()                                                
+{                                                                             
+  uint16_t delay = MRFI_RSSI_VALID_DELAY_US;                                   
+  unsigned char status;	
+  rt_kprintf("st 1\r\n");
+  do                                                                    
+  {	
+  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
+    if(status & (0x50))
+    {
+      break;                                                                  
+    }
+    //__delay_cycles(64);
+	trxSpiCmdStrobe( RF_SRX );
+    rt_thread_delay(1);
+	if (delay>64)
+    	delay -= 64; 
+	else
+		break;
+  }while (delay>0);
+	rt_kprintf("st %x %d\r\n", status,delay);
+}        
+
 static void cc1101_set_tx_mode(void)  
 {    
 	#if 1
-    trxSpiCmdStrobe(RF_SIDLE);  
+	rt_kprintf("st 0\r\n");
+    //trxSpiCmdStrobe(RF_SIDLE);  
+	MRFI_RSSI_VALID_WAIT();
     trxSpiCmdStrobe(RF_STX);  
 	  #else
 	  cca();
@@ -365,9 +402,9 @@ static void cc1101_gdo0_rx_it(void)
                 rf_dev.rx_rd %= RX_BUF_SIZE;  
             }  
         }   
-        rt_kprintf("cc1101 receive data:");  
-        cc1101_hex_printf(rx_buf, rx_count);  
-		rt_kprintf("\r\n");  
+        //rt_kprintf("cc1101 receive data:");  
+        //cc1101_hex_printf(rx_buf, rx_count);  
+		//rt_kprintf("\r\n");  
     }  
 }
 static unsigned short cc1101_get_tx_buf_count(void)  

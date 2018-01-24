@@ -104,6 +104,23 @@ unsigned short CRC1(unsigned char *Data,unsigned char Data_length)
 	}
 	return CRC_data;
 }
+#define cc1101_hex_printf1(buf, count) \  
+{\  
+    int i;\  
+    int flag=0; \
+	for(i = 0; i < count; i++)\  
+	{\
+		if (buf[i] < 32 || buf[i] > 126) \
+			flag =1;\
+	}\
+    for(i = 0; i < count; i++)\  
+    {\  
+    	if (!flag) \
+        	rt_kprintf("%c", buf[i]);\  
+        else \
+			rt_kprintf("%02x ", buf[i]);\  
+    }\  
+}
 
 void rt_init_thread_entry(void* parameter)
 {
@@ -158,6 +175,8 @@ void rt_init_thread_entry(void* parameter)
 	rt_uint8_t cmd_addr[] = {0x01,0x00 ,0x6c ,0xaa ,0x12 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x01 ,0x00 ,0x00 ,0x02 ,0xd1};
 	rt_uint8_t cmd_confirm[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x14,0x01,0x17};
 	rt_uint8_t cmd_status[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x10,0x00,0x02};
+	rt_uint8_t cmd_alarm_infrar[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x06,0x02,0x02};
+	rt_uint8_t cmd_alarm_s1[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x06,0x01,0x02};
 	rt_uint8_t resp_addr[32] = {0};
 	rt_uint8_t stm32_id[] = {0xa1,0x18,0x01,0x02,0x12,0x34};
 	//rt_thread_delay(1000);
@@ -175,7 +194,9 @@ void rt_init_thread_entry(void* parameter)
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
 		{
-			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1 );
+			rt_kprintf("read %d  bytes\r\n",len);
+			cc1101_hex_printf1(buf1,len);
+			rt_kprintf("\r\n");
 			//cc1101_send_write(buf1,len);
 			//rt_hw_led_off(0);.
 			if (rt_memcmp(buf1, cmd_addr, sizeof(cmd_addr)) ==0) {
@@ -213,11 +234,33 @@ void rt_init_thread_entry(void* parameter)
 				resp_addr[19]=(crc>>8) & 0xff;
 				resp_addr[20]=(crc) & 0xff;
 				cc1101_send_write(resp_addr,21);
+			} else if (rt_memcmp(buf1, cmd_alarm_infrar, sizeof(cmd_alarm_infrar)) ==0) {
+				resp_addr[0] = cmd_alarm_infrar[1];
+				resp_addr[1] = cmd_alarm_infrar[0];
+				rt_memcpy(resp_addr+2, cmd_alarm_infrar+2,13);
+				resp_addr[15]=0x00;resp_addr[16]=0x07;resp_addr[17]=0x02;
+				resp_addr[18]=0x01;
+				resp_addr[4]=16;
+				unsigned short crc = CRC1(resp_addr,19);
+				resp_addr[19]=(crc>>8) & 0xff;
+				resp_addr[20]=(crc) & 0xff;
+				cc1101_send_write(resp_addr,21);
+			} else if (rt_memcmp(buf1, cmd_alarm_s1, sizeof(cmd_alarm_s1)) ==0) {
+				resp_addr[0] = cmd_alarm_s1[1];
+				resp_addr[1] = cmd_alarm_s1[0];
+				rt_memcpy(resp_addr+2, cmd_alarm_s1+2,13);
+				resp_addr[15]=0x00;resp_addr[16]=0x07;resp_addr[17]=0x02;
+				resp_addr[18]=0x01;
+				resp_addr[4]=16;
+				unsigned short crc = CRC1(resp_addr,19);
+				resp_addr[19]=(crc>>8) & 0xff;
+				resp_addr[20]=(crc) & 0xff;
+				cc1101_send_write(resp_addr,21);
 			}
 			count++;
 		}
 		#endif
-		rt_thread_delay(RT_TICK_PER_SECOND);
+		//rt_thread_delay(RT_TICK_PER_SECOND);
 	}
 }
 
