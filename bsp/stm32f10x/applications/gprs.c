@@ -161,7 +161,7 @@ void m26_restart(void)
     GPIO_ResetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
     rt_thread_delay(RT_TICK_PER_SECOND);
     GPIO_SetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
-    rt_thread_delay(RT_TICK_PER_SECOND*8);
+    rt_thread_delay(RT_TICK_PER_SECOND*5);
 }
 void change_baud(int baud)
 {

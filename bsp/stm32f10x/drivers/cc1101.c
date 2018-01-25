@@ -297,7 +297,7 @@ void MRFI_RSSI_VALID_WAIT()
 {                                                                             
   uint16_t delay = MRFI_RSSI_VALID_DELAY_US;                                   
   unsigned char status;	
-  rt_kprintf("st 1\r\n");
+ // rt_kprintf("st 1\r\n");
   do                                                                    
   {	
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
@@ -313,13 +313,13 @@ void MRFI_RSSI_VALID_WAIT()
 	else
 		break;
   }while (delay>0);
-	rt_kprintf("st %x %d\r\n", status,delay);
+	//rt_kprintf("st %x %d\r\n", status,delay);
 }        
 
 static void cc1101_set_tx_mode(void)  
 {    
 	#if 1
-	rt_kprintf("st 0\r\n");
+	//rt_kprintf("st 0\r\n");
     //trxSpiCmdStrobe(RF_SIDLE);  
 	MRFI_RSSI_VALID_WAIT();
     trxSpiCmdStrobe(RF_STX);  

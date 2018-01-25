@@ -195,7 +195,7 @@ void rt_init_thread_entry(void* parameter)
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
 		{
-			rt_kprintf("read %d  bytes\r\n",len);
+			rt_kprintf("\r\ncc1101 recv data %d:",len);
 			cc1101_hex_printf1(buf1,len);
 			rt_kprintf("\r\n");
 			//cc1101_send_write(buf1,len);
@@ -229,7 +229,10 @@ void rt_init_thread_entry(void* parameter)
 				resp_addr[1] = cmd_status[0];
 				rt_memcpy(resp_addr+2, cmd_status+2,13);
 				resp_addr[15]=0x00;resp_addr[16]=0x11;resp_addr[17]=0x00;
-				resp_addr[18]=0x01;
+				if (count % 10 ==0)
+					resp_addr[18]=0x01;
+				else
+					resp_addr[18]=0x00;
 				resp_addr[4]=16;
 				unsigned short crc = CRC1(resp_addr,19);
 				resp_addr[19]=(crc>>8) & 0xff;
@@ -240,7 +243,12 @@ void rt_init_thread_entry(void* parameter)
 				resp_addr[1] = cmd_alarm_infrar[0];
 				rt_memcpy(resp_addr+2, cmd_alarm_infrar+2,13);
 				resp_addr[15]=0x00;resp_addr[16]=0x07;resp_addr[17]=0x02;
-				resp_addr[18]=0x01;
+				
+				if (count % 10 !=0)
+					resp_addr[18]=0x01;
+				else
+					resp_addr[18]=0x00;
+				
 				resp_addr[4]=16;
 				unsigned short crc = CRC1(resp_addr,19);
 				resp_addr[19]=(crc>>8) & 0xff;
