@@ -75,9 +75,9 @@ char *cmd_dev_type(rt_uint8_t type)
 {
 	switch (type) {
 		case 0x01:
-			return "Remoter";
+			return "Wire";
 		case 0x02:
-			return "Infrar";
+			return "Wireless";
 		default:
 			return "UnKnown";
 	}
