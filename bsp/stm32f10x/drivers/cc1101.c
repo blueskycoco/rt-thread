@@ -13,6 +13,7 @@ unsigned long volatile time_counter = 0;
 #define TX_BUF_SIZE              128  
 #define RX_BUF_SIZE              256  
 #define MAX_FIFO_SIZE            0x38 
+struct rt_semaphore cc1101_rx_sem;
 
 unsigned char paTable[1];           
 unsigned char rf_end_packet = 0;
@@ -30,9 +31,18 @@ static struct rf_dev rf_dev;
 #define cc1101_hex_printf(buf, count) \  
 {\  
     int i;\  
-    for(i = 2; i < count; i++)\  
+    int flag=0; \
+	for(i = 0; i < count; i++)\  
+	{\
+		if (buf[i] < 32 || buf[i] > 126) \
+			flag =1;\
+	}\
+    for(i = 0; i < count; i++)\  
     {\  
-        rt_kprintf("%c", buf[i]);\  
+    	if (!flag) \
+        	rt_kprintf("%c", buf[i]);\  
+        else \
+			rt_kprintf("%02x ", buf[i]);\  
     }\  
 }
 #if 0
@@ -236,19 +246,25 @@ const registerSetting_t preferredSettings_1200bps[]=
 {
 	{IOCFG0,	0x06},
 	{PKTCTRL0,	0x05},
-	{PKTCTRL1,	0x05},
-	{ADDR, 		0x01},
 	{FSCTRL1,	0x06},
-/*   {FREQ2,		0x10},
+	{ADDR,		0x01},
+	{PKTCTRL1, 	0x05},
+	#if 0
+    {FREQ2,		0x10},
 	{FREQ1,		0xa7},
-	{FREQ0,		0x62},*/
+	{FREQ0,		0x62},
+	#else
 	{FREQ2,		0x11},
 	{FREQ1,		0xec},
 	{FREQ0,		0x4e},
+	#endif
 	{MDMCFG4,	0xf5},
 	{MDMCFG3,	0x83},
 	{MDMCFG2,	0x13},
 	{DEVIATN,	0x15},
+	{AGCCTRL2,	0x07},
+	{AGCCTRL1,	0x40},
+//	{MCSM1, 	0x3f},
 	{MCSM0,		0x18},
 	{FOCCFG,	0x16},
 	{WORCTRL,	0xFB},
@@ -268,10 +284,44 @@ static void cc1101_set_rx_mode(void)
   
     rf_dev.mode = MODE_RX;  
 } 
+void __delay_cycles(uint32_t count)
+{
+	volatile long i,j,k;
+	for (i=0;i<count;i++)
+		for (j=0;j<10;j++)
+			k=j;
+}
+
+#define MRFI_RSSI_VALID_DELAY_US    1300
+void MRFI_RSSI_VALID_WAIT()                                                
+{                                                                             
+  uint16_t delay = MRFI_RSSI_VALID_DELAY_US;                                   
+  unsigned char status;	
+ // rt_kprintf("st 1\r\n");
+  do                                                                    
+  {	
+  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
+    if(status & (0x50))
+    {
+      break;                                                                  
+    }
+    //__delay_cycles(64);
+	trxSpiCmdStrobe( RF_SRX );
+    rt_thread_delay(1);
+	if (delay>64)
+    	delay -= 64; 
+	else
+		break;
+  }while (delay>0);
+	//rt_kprintf("st %x %d\r\n", status,delay);
+}        
+
 static void cc1101_set_tx_mode(void)  
 {    
 	#if 1
-    trxSpiCmdStrobe(RF_SIDLE);  
+	//rt_kprintf("st 0\r\n");
+    //trxSpiCmdStrobe(RF_SIDLE);  
+	MRFI_RSSI_VALID_WAIT();
     trxSpiCmdStrobe(RF_STX);  
 	  #else
 	  cca();
@@ -326,6 +376,10 @@ static int cc1101_send_packet(unsigned char *buf, unsigned char count)
   	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, buf, count);
     return 0;    
 } 
+void wait_cc1101_sem()
+{
+		rt_sem_take(&cc1101_rx_sem, RT_WAITING_FOREVER);
+}
 static void cc1101_gdo0_rx_it(void)  
 {  
     unsigned char rx_buf[MAX_FIFO_SIZE], rx_count;  
@@ -353,9 +407,10 @@ static void cc1101_gdo0_rx_it(void)
                 rf_dev.rx_rd %= RX_BUF_SIZE;  
             }  
         }   
-        rt_kprintf("cc1101 receive data:");  
-        cc1101_hex_printf(rx_buf, rx_count);  
-		rt_kprintf("\r\n");  
+        //rt_kprintf("cc1101 receive data:");  
+        //cc1101_hex_printf(rx_buf, rx_count);  
+		//rt_kprintf("\r\n");  
+		rt_sem_release(&(cc1101_rx_sem));
     }  
 }
 static unsigned short cc1101_get_tx_buf_count(void)  
@@ -596,6 +651,7 @@ int radio_init(void)
 
 	unsigned char i, writeByte, preferredSettings_length;
 	registerSetting_t *preferredSettings;
+	rt_sem_init(&(cc1101_rx_sem), "c11_rx", 0, 0);
 
 	trxRfSpiInterfaceInit();	
 
@@ -781,4 +837,3 @@ int radio_idle(void) {
 	trxSpiCmdStrobe(RF_SFTX);
 	return(0);
 }
-

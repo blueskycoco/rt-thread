@@ -39,6 +39,7 @@
 #include "led.h"
 #include "cc1101.h"
 #include "string.h"
+#include "subPoint.h"
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
 	static struct rt_thread led_thread;
@@ -53,16 +54,16 @@ static void led_thread_entry(void* parameter)
 #ifndef RT_USING_FINSH
 	    //rt_kprintf("led on, count : %d\r\n",count);
 #endif
-		rt_hw_led_on(0);
-		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
+		rt_hw_led_off(0);
+		rt_thread_delay( RT_TICK_PER_SECOND ); /* sleep 0.5 second and switch to other thread */
 		count++;
 
 		/* led1 off */
 #ifndef RT_USING_FINSH
 		//rt_kprintf("led off\r\n");
 #endif
-		rt_hw_led_off(0);
-		rt_thread_delay( RT_TICK_PER_SECOND/2 );
+		rt_hw_led_on(0);
+		rt_thread_delay( RT_TICK_PER_SECOND );
 	}
 }
 
@@ -82,6 +83,23 @@ void cali_store(struct calibration_data *data)
 			data->max_y);
 }
 #endif /* RT_USING_RTGUI */
+#define cc1101_hex_printf1(buf, count) \  
+{\  
+    int i;\  
+    int flag=0; \
+	for(i = 0; i < count; i++)\  
+	{\
+		if (buf[i] < 32 || buf[i] > 126) \
+			flag =1;\
+	}\
+    for(i = 0; i < count; i++)\  
+    {\  
+    	if (!flag) \
+        	rt_kprintf("%c", buf[i]);\  
+        else \
+			rt_kprintf("%02x ", buf[i]);\  
+    }\  
+}
 void rt_init_thread_entry(void* parameter)
 {
 #ifdef RT_USING_COMPONENTS_INIT
@@ -131,7 +149,7 @@ void rt_init_thread_entry(void* parameter)
 #endif /* #ifdef RT_USINGRTGUI */
 	unsigned int count=0,count1=256;
 	rt_uint8_t buf[256]={0};
-	rt_uint8_t buf1[256]={0};
+	rt_uint8_t buf1[256]={0};	
 	//rt_thread_delay(1000);
 	radio_init();
 
@@ -143,14 +161,15 @@ void rt_init_thread_entry(void* parameter)
 		count++;
 		#else
 		//cc1101_send_write(buf,strlen(buf));
+		//rt_hw_led_off(0);
+		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
 		{
-			//rt_kprintf("read %d  bytes, %s\r\n",len , buf1+2 );
-			unsigned char tmp = buf1[0];
-			buf1[0] = buf1[1];
-			buf1[1] = tmp;
-			cc1101_send_write(buf1,len);
+			rt_kprintf("\r\ncc1101 recv data %d:",len);
+			cc1101_hex_printf1(buf1,len);
+			rt_kprintf("\r\n");
+			handleSub(buf1);			
 			count++;
 		}
 		#endif
@@ -181,11 +200,11 @@ int rt_application_init(void)
 #if (RT_THREAD_PRIORITY_MAX == 32)
 	init_thread = rt_thread_create("init",
 			rt_init_thread_entry, RT_NULL,
-			2048, 8, 20);
+			2048, 8, 25);
 #else
 	init_thread = rt_thread_create("init",
 			rt_init_thread_entry, RT_NULL,
-			2048, 80, 20);
+			2048, 80, 25);
 #endif
 
 	if (init_thread != RT_NULL)
