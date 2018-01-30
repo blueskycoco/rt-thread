@@ -39,6 +39,7 @@
 #include "led.h"
 #include "cc1101.h"
 #include "string.h"
+#include "subPoint.h"
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
 	static struct rt_thread led_thread;
@@ -82,28 +83,6 @@ void cali_store(struct calibration_data *data)
 			data->max_y);
 }
 #endif /* RT_USING_RTGUI */
-unsigned short CRC1(unsigned char *Data,unsigned char Data_length)
-{
-	unsigned int mid=0;
-	unsigned char times=0,Data_index=0;
-	unsigned short CRC_data=0xFFFF;
-	while(Data_length)
-	{
-		CRC_data=Data[Data_index]^CRC_data;
-		for(times=0;times<8;times++)
-		{
-			mid=CRC_data;
-			CRC_data=CRC_data>>1;
-			if(mid & 0x0001)
-			{
-				CRC_data=CRC_data^0xA001;
-			}
-		}
-		Data_index++;
-		Data_length--;
-	}
-	return CRC_data;
-}
 #define cc1101_hex_printf1(buf, count) \  
 {\  
     int i;\  
@@ -121,7 +100,6 @@ unsigned short CRC1(unsigned char *Data,unsigned char Data_length)
 			rt_kprintf("%02x ", buf[i]);\  
     }\  
 }
-
 void rt_init_thread_entry(void* parameter)
 {
 #ifdef RT_USING_COMPONENTS_INIT
@@ -171,14 +149,7 @@ void rt_init_thread_entry(void* parameter)
 #endif /* #ifdef RT_USINGRTGUI */
 	unsigned int count=0,count1=256;
 	rt_uint8_t buf[256]={0};
-	rt_uint8_t buf1[256]={0};
-	rt_uint8_t cmd_addr[] = {0x01,0x00 ,0x6c ,0xaa ,0x12 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x01 ,0x00 ,0x00 ,0x02 ,0xd1};
-	rt_uint8_t cmd_confirm[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x14,0x01,0x17};
-	rt_uint8_t cmd_status[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x10,0x00,0x02};
-	rt_uint8_t cmd_alarm_infrar[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x06,0x02,0x02};
-	rt_uint8_t cmd_alarm_s1[] = {0x01,0x17,0x6c,0xaa,0x12,0xa1,0x18,0x01,0x02,0x12,0x34,0x00,0x00,0x00,0x01,0x00,0x06,0x01,0x02};
-	rt_uint8_t resp_addr[32] = {0};
-	rt_uint8_t stm32_id[] = {0xa1,0x18,0x01,0x02,0x12,0x34};
+	rt_uint8_t buf1[256]={0};	
 	//rt_thread_delay(1000);
 	radio_init();
 
@@ -198,74 +169,7 @@ void rt_init_thread_entry(void* parameter)
 			rt_kprintf("\r\ncc1101 recv data %d:",len);
 			cc1101_hex_printf1(buf1,len);
 			rt_kprintf("\r\n");
-			//cc1101_send_write(buf1,len);
-			//rt_hw_led_off(0);.
-			if (rt_memcmp(buf1, cmd_addr, sizeof(cmd_addr)) ==0) {
-				resp_addr[0] = cmd_addr[1];
-				resp_addr[1] = cmd_addr[0];
-				rt_memcpy(resp_addr+2, cmd_addr+2,13);
-				rt_memcpy(resp_addr+5, stm32_id, 6);
-				resp_addr[15]=0x00;resp_addr[16]=0x01;resp_addr[17]=0x00;
-				resp_addr[18]=0x17;
-				resp_addr[4]=16;
-				unsigned short crc = CRC1(resp_addr,19);
-				resp_addr[19]=(crc>>8) & 0xff;
-				resp_addr[20]=(crc) & 0xff;
-				cc1101_send_write(resp_addr,21);
-			} else if (rt_memcmp(buf1, cmd_confirm, sizeof(cmd_confirm)) ==0) {
-				resp_addr[0] = cmd_confirm[1];
-				resp_addr[1] = cmd_confirm[0];
-				rt_memcpy(resp_addr+2, cmd_confirm+2,13);
-				//rt_memcpy(resp_addr+5, stm32_id, 6);
-				resp_addr[15]=0x00;resp_addr[16]=0x15;resp_addr[17]=0x00;
-				resp_addr[18]=0x01;
-				resp_addr[4]=16;
-				unsigned short crc = CRC1(resp_addr,19);
-				resp_addr[19]=(crc>>8) & 0xff;
-				resp_addr[20]=(crc) & 0xff;
-				cc1101_send_write(resp_addr,21);
-			} else if (rt_memcmp(buf1, cmd_status, sizeof(cmd_status)) ==0) {
-				resp_addr[0] = cmd_status[1];
-				resp_addr[1] = cmd_status[0];
-				rt_memcpy(resp_addr+2, cmd_status+2,13);
-				resp_addr[15]=0x00;resp_addr[16]=0x11;resp_addr[17]=0x00;
-				if (count % 10 ==0)
-					resp_addr[18]=0x01;
-				else
-					resp_addr[18]=0x00;
-				resp_addr[4]=16;
-				unsigned short crc = CRC1(resp_addr,19);
-				resp_addr[19]=(crc>>8) & 0xff;
-				resp_addr[20]=(crc) & 0xff;
-				cc1101_send_write(resp_addr,21);
-			} else if (rt_memcmp(buf1, cmd_alarm_infrar, sizeof(cmd_alarm_infrar)) ==0) {
-				resp_addr[0] = cmd_alarm_infrar[1];
-				resp_addr[1] = cmd_alarm_infrar[0];
-				rt_memcpy(resp_addr+2, cmd_alarm_infrar+2,13);
-				resp_addr[15]=0x00;resp_addr[16]=0x07;resp_addr[17]=0x02;
-				
-				if (count % 10 !=0)
-					resp_addr[18]=0x01;
-				else
-					resp_addr[18]=0x00;
-				
-				resp_addr[4]=16;
-				unsigned short crc = CRC1(resp_addr,19);
-				resp_addr[19]=(crc>>8) & 0xff;
-				resp_addr[20]=(crc) & 0xff;
-				cc1101_send_write(resp_addr,21);
-			} else if (rt_memcmp(buf1, cmd_alarm_s1, sizeof(cmd_alarm_s1)) ==0) {
-				resp_addr[0] = cmd_alarm_s1[1];
-				resp_addr[1] = cmd_alarm_s1[0];
-				rt_memcpy(resp_addr+2, cmd_alarm_s1+2,13);
-				resp_addr[15]=0x00;resp_addr[16]=0x07;resp_addr[17]=0x01;
-				resp_addr[18]=0x01;
-				resp_addr[4]=16;
-				unsigned short crc = CRC1(resp_addr,19);
-				resp_addr[19]=(crc>>8) & 0xff;
-				resp_addr[20]=(crc) & 0xff;
-				cc1101_send_write(resp_addr,21);
-			}
+			handleSub(buf1);			
 			count++;
 		}
 		#endif

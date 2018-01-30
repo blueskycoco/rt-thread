@@ -8,6 +8,7 @@ src = Split("""
 application.c
 startup.c
 gprs.c
+subPoint.c
 """)
 
 if GetDepend('RT_USING_CAN'):
