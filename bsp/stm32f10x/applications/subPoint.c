@@ -1,6 +1,7 @@
 #include <board.h>
 #include <rtthread.h>
 #include <rtdevice.h>
+#include "cc1101.h"
 #include "subPoint.h"
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa

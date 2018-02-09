@@ -64,7 +64,7 @@ void cJSON_InitHooks(cJSON_Hooks* hooks)
         return;
     }
 
-	cJSON_malloc = (hooks->malloc_fn)?hooks->malloc_fn:malloc;
+	cJSON_malloc = (hooks->malloc_fn)?hooks->malloc_fn:(void *)malloc;
 	cJSON_free	 = (hooks->free_fn)?hooks->free_fn:free;
 }
 

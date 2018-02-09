@@ -737,7 +737,7 @@ void server_process(void* parameter)
 		for (int i=0; i<data_size;i++)
 			rt_kprintf("%c", ((char *)last_data_ptr)[i]);
 		rt_kprintf(">>\r\n");
-		rt_free(last_data_ptr);
+		rt_free((void *)last_data_ptr);
 	}
 }
 

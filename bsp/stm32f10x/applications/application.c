@@ -83,22 +83,22 @@ void cali_store(struct calibration_data *data)
 			data->max_y);
 }
 #endif /* RT_USING_RTGUI */
-#define cc1101_hex_printf1(buf, count) \  
-{\  
-    int i;\  
+#define cc1101_hex_printf1(buf, count) \
+{\
+    int i;\
     int flag=0; \
-	for(i = 0; i < count; i++)\  
+	for(i = 0; i < count; i++)\
 	{\
 		if (buf[i] < 32 || buf[i] > 126) \
 			flag =1;\
 	}\
-    for(i = 0; i < count; i++)\  
-    {\  
+    for(i = 0; i < count; i++)\
+    {\
     	if (!flag) \
-        	rt_kprintf("%c", buf[i]);\  
+        	rt_kprintf("%c", buf[i]);\
         else \
-			rt_kprintf("%02x ", buf[i]);\  
-    }\  
+			rt_kprintf("%02x ", buf[i]);\
+    }\
 }
 void rt_init_thread_entry(void* parameter)
 {

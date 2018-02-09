@@ -28,22 +28,22 @@ struct rf_dev
     unsigned short mode;  
 };  
 static struct rf_dev rf_dev;  
-#define cc1101_hex_printf(buf, count) \  
-{\  
-    int i;\  
+#define cc1101_hex_printf(buf, count) \
+{\
+    int i;\
     int flag=0; \
-	for(i = 0; i < count; i++)\  
+	for(i = 0; i < count; i++)\
 	{\
 		if (buf[i] < 32 || buf[i] > 126) \
 			flag =1;\
 	}\
-    for(i = 0; i < count; i++)\  
-    {\  
+    for(i = 0; i < count; i++)\
+    {\
     	if (!flag) \
-        	rt_kprintf("%c", buf[i]);\  
+        	rt_kprintf("%c", buf[i]);\
         else \
-			rt_kprintf("%02x ", buf[i]);\  
-    }\  
+			rt_kprintf("%02x ", buf[i]);\
+    }\
 }
 #if 0
 #define VAL_MDMCFG3	0x83
