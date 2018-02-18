@@ -21,6 +21,10 @@
 //#define RT_DEBUG_MEM 1
 #define RT_USING_OVERFLOW_CHECK
 
+#define RT_USING_SPI2
+#define RT_USING_W25QXX
+#define RT_USING_SPI
+
 /* Using Hook */
 #define RT_USING_HOOK
 #define RT_USING_LIBC 1
@@ -88,15 +92,15 @@
 
 #define RT_CAN_USING_HDR
 /* SECTION: device filesystem */
-/* #define RT_USING_DFS */
+#define RT_USING_DFS
 
 #define RT_USING_DFS_ELMFAT
 /* Reentrancy (thread safe) of the FatFs module.  */
 #define RT_DFS_ELM_REENTRANT
 /* Number of volumes (logical drives) to be used. */
 #define RT_DFS_ELM_DRIVES			2
-/* #define RT_DFS_ELM_USE_LFN			1 */
-/* #define RT_DFS_ELM_CODE_PAGE			936 */
+#define RT_DFS_ELM_USE_LFN			3
+#define RT_DFS_ELM_CODE_PAGE			437
 #define RT_DFS_ELM_MAX_LFN			255
 /* Maximum sector size to be handled. */
 #define RT_DFS_ELM_MAX_SECTOR_SIZE  512

@@ -35,6 +35,8 @@
 #include <rtgui/driver.h>
 #include <rtgui/calibration.h>
 #endif
+#include "spi_flash_w25qxx.h"
+#include "rt_stm32f10x_spi.h"
 
 #include "led.h"
 #include "cc1101.h"
@@ -110,6 +112,9 @@ void rt_init_thread_entry(void* parameter)
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)
 	/* mount sd card fat partition 1 as root directory */
+	rt_hw_spi_init();
+	w25qxx_init("sd0","spi11");
+
 	if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
 	{
 		rt_kprintf("File System initialized!\n");

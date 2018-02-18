@@ -7,6 +7,8 @@ CROSS_TOOL='keil'
 
 if os.getenv('RTT_CC'):
 	CROSS_TOOL = os.getenv('RTT_CC')
+if os.getenv('RTT_ROOT'):
+    RTT_ROOT = os.getenv('RTT_ROOT')
 
 #device options
 # STM32_TYPE = 

@@ -15,6 +15,7 @@ cc1101.c
 spi_gpio.c
 cJSON.c
 bsp_misc.c
+rt_stm32f10x_spi.c
 """)
 
 if GetDepend(['RT_USING_PIN']):
@@ -29,8 +30,8 @@ if GetDepend('RT_USING_LWIP'):
     src += ['dm9000a.c']
 
 # add Ethernet drivers.
-if GetDepend('RT_USING_DFS'):
-    src += ['sdcard.c']
+#if GetDepend('RT_USING_DFS'):
+#    src += ['sdcard.c']
 
 # add Ethernet drivers.
 if GetDepend('RT_USING_RTC'):
