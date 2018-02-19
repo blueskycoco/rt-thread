@@ -216,13 +216,14 @@ rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t *rcv, uint32_t *
 	uint8_t ch;
 	int i=0;
 	write_len = rt_device_write(dev_gprs, 0, (void *)cmd, cmd_len);
-	rt_kprintf("sending %s", cmd);
+	rt_kprintf("sending %s %d %d", cmd,write_len,cmd_len);
 	*rcv_len = 0;
 	if (write_len == cmd_len)
 	{
 		while (1) {
 			if (rt_device_read(dev_gprs, 0, &ch, 1) == 1)
 			{
+				rt_kprintf("ch %c\r\n",ch);
 				if (ch == '\n')
 				{
 					break;
@@ -762,8 +763,8 @@ int gprs_init(void)
 {
 	/*handle m26*/
 	//rt_thread_delay(1000);
-	//dev_gprs=rt_device_find("uart2");
-	dev_gprs=rt_device_find("uart3");
+	dev_gprs=rt_device_find("uart2");
+	//dev_gprs=rt_device_find("uart3");
 	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX) == RT_EOK)			
 	{
 		change_baud(115200);

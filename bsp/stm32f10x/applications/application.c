@@ -121,6 +121,7 @@ void rt_init_thread_entry(void* parameter)
 		rt_kprintf("w25 init failed\r\n");
 	else
 		rt_kprintf("w25 init ok\r\n");
+	
 
 	if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
 	{
@@ -178,7 +179,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_uint8_t buf[256]={0};
 	rt_uint8_t buf1[256]={0};	
 	//rt_thread_delay(1000);
-	return;
+	//return;
 	radio_init();
 
 	while (1) {
