@@ -113,14 +113,32 @@ void rt_init_thread_entry(void* parameter)
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)
 	/* mount sd card fat partition 1 as root directory */
 	rt_hw_spi_init();
-	w25qxx_init("sd0","spi11");
+	if (RT_EOK != w25qxx_init("sd0","spi11"))
+		rt_kprintf("w25 init failed\r\n");
+	else
+		rt_kprintf("w25 init ok\r\n");
 
 	if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
 	{
 		rt_kprintf("File System initialized!\n");
+		readwrite();
+		writespeed("/1.txt",102400,512);
+		readspeed("/1.txt",512);
+		seekdir_test("/");
+		list_dir("/");
 	}
 	else
-		rt_kprintf("File System initialzation failed!\n");
+	{
+		if (0 == dfs_mkfs("elm","sd0"))
+			rt_kprintf("mkfs sd0 ok\r\n");
+		else
+			rt_kprintf("mkfs sd0 failed\r\n");
+		if (dfs_mount("sd0", "/", "elm", 0, 0) ==0)
+			rt_kprintf("File System initialzation failed!\n");
+		else
+			rt_kprintf("File System initialized 2!\n");
+
+	}
 #endif  /* RT_USING_DFS */
 
 #ifdef RT_USING_RTGUI

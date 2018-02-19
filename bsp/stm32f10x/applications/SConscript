@@ -9,6 +9,11 @@ application.c
 startup.c
 gprs.c
 subPoint.c
+readwrite.c
+readspeed.c
+writespeed.c
+seekdir.c
+listdir.c
 """)
 
 if GetDepend('RT_USING_CAN'):

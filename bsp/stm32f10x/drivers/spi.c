@@ -2,7 +2,7 @@
 #include <stm32f10x.h>
 #include <stdint.h>
 #include "cc1101.h"
-#include "spi.h"
+#include "spi1.h"
 #define PIN_CS		GPIO_Pin_1
 #define PORT_CS		GPIOA
 #define PIN_GDO0	GPIO_Pin_2

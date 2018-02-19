@@ -1,6 +1,6 @@
 #include <rtthread.h>
 #include <stdint.h>
-#include "spi.h"
+#include "spi1.h"
 #include "cc1101_def.h"
 #include "cc1101.h"
 #define RF_XTAL 26000
