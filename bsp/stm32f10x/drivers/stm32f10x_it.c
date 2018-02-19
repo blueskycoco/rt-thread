@@ -166,13 +166,29 @@ void EXTI4_IRQHandler(void)
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line4))
 	{	 
-		cc1101_isr();	
+		if (GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_4) == RESET)
+			cc1101_isr();	
+		else
+			rt_kprintf("code button int\r\n");
 		EXTI_ClearITPendingBit(EXTI_Line4);
 	}
 	/* leave interrupt */
 	rt_interrupt_leave();
 }
 #endif
+void EXTI3_IRQHandler(void)
+{
+    extern void factory_isr(void);
+	/* enter interrupt */
+	rt_interrupt_enter();
+	if(EXTI_GetITStatus(EXTI_Line3))
+	{	
+		rt_kprintf("factory button int\r\n");
+		EXTI_ClearITPendingBit(EXTI_Line3);
+	}
+	/* leave interrupt */
+	rt_interrupt_leave();
+}
 
 #ifndef STM32F10X_CL
 /* CAN and USB IRQ for stm32 none connectivity line devices

@@ -50,13 +50,16 @@ static void led_thread_entry(void* parameter)
 	unsigned int count=0;
 
 	rt_hw_led_init();
+	button_init();
+	battery_init();
 	while (1)
 	{
 		/* led1 on */
 #ifndef RT_USING_FINSH
-	    //rt_kprintf("led on, count : %d\r\n",count);
+	   // rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
 		rt_hw_led_off(0);
+		buzzer_ctl(1);
 		rt_thread_delay( RT_TICK_PER_SECOND ); /* sleep 0.5 second and switch to other thread */
 		count++;
 
@@ -65,6 +68,7 @@ static void led_thread_entry(void* parameter)
 		//rt_kprintf("led off\r\n");
 #endif
 		rt_hw_led_on(0);
+		buzzer_ctl(0);
 		rt_thread_delay( RT_TICK_PER_SECOND );
 	}
 }
@@ -174,6 +178,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_uint8_t buf[256]={0};
 	rt_uint8_t buf1[256]={0};	
 	//rt_thread_delay(1000);
+	return;
 	radio_init();
 
 	while (1) {

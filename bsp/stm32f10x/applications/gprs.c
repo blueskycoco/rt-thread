@@ -8,6 +8,20 @@
 #define GPRS_POWER_PORT GPIOE
 #define GPRS_POWER_PIN	GPIO_Pin_14
 #define GPRS_POWER_RCC	RCC_APB2Periph_GPIOE
+
+#define G4_POWER_PORT GPIOC
+#define G4_POWER_PIN	GPIO_Pin_8
+#define G4_POWER_RCC	RCC_APB2Periph_GPIOC
+#define G4_STATUS_PORT 	GPIOA
+#define G4_STATUS_PIN	GPIO_Pin_10
+#define G4_STATUS_RCC	RCC_APB2Periph_GPIOA
+#define G4_RESET_PORT 	GPIOC
+#define G4_RESET_PIN	GPIO_Pin_9
+#define G4_RESET_RCC	RCC_APB2Periph_GPIOC
+#define G4_DTR_PORT 	GPIOA
+#define G4_DTR_PIN	GPIO_Pin_12
+#define G4_DTR_RCC	RCC_APB2Periph_GPIOA
+
 #define MAGIC_OK	"OK"
 struct rt_event gprs_event;
 static struct rt_mutex gprs_lock;
@@ -159,8 +173,11 @@ void gprs_rcv(void* parameter)
 void m26_restart(void)
 {
     GPIO_ResetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
+	if (GPIO_ReadOutputDataBit(G4_STATUS_PORT,G4_STATUS_PIN) == SET)
+		GPIO_ResetBits(G4_POWER_PORT, G4_POWER_PIN);
     rt_thread_delay(RT_TICK_PER_SECOND);
     GPIO_SetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
+	GPIO_SetBits(G4_POWER_PORT, G4_POWER_PIN);
     rt_thread_delay(RT_TICK_PER_SECOND*5);
 }
 void change_baud(int baud)
@@ -745,7 +762,8 @@ int gprs_init(void)
 {
 	/*handle m26*/
 	//rt_thread_delay(1000);
-	dev_gprs=rt_device_find("uart2");
+	//dev_gprs=rt_device_find("uart2");
+	dev_gprs=rt_device_find("uart3");
 	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX) == RT_EOK)			
 	{
 		change_baud(115200);
@@ -759,14 +777,31 @@ int gprs_init(void)
     	GPIO_InitTypeDef GPIO_InitStructure;
 
     	RCC_APB2PeriphClockCmd(GPRS_POWER_RCC,ENABLE);
+		RCC_APB2PeriphClockCmd(G4_POWER_RCC,ENABLE);
+		RCC_APB2PeriphClockCmd(G4_STATUS_RCC,ENABLE);
+		RCC_APB2PeriphClockCmd(G4_DTR_RCC,ENABLE);
     	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
     	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     	GPIO_InitStructure.GPIO_Pin   = GPRS_POWER_PIN;
     	GPIO_Init(GPRS_POWER_PORT, &GPIO_InitStructure);
+    	GPIO_InitStructure.GPIO_Pin   = G4_POWER_PIN;
+    	GPIO_Init(G4_POWER_PORT, &GPIO_InitStructure);
+		GPIO_InitStructure.GPIO_Pin   = G4_DTR_PIN;
+    	GPIO_Init(G4_DTR_PORT, &GPIO_InitStructure);
+		GPIO_SetBits(G4_DTR_PORT, G4_DTR_PIN);
+    	//GPIO_InitStructure.GPIO_Pin   = G4_RESET_PIN;
+    	//GPIO_Init(G4_RESET_PORT, &GPIO_InitStructure);
+		//GPIO_SetBits(G4_RESET_PORT, G4_RESET_PIN);
+		GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
+		GPIO_InitStructure.GPIO_Pin   = G4_STATUS_PIN;
+		GPIO_Init(G4_STATUS_PORT, &GPIO_InitStructure);
 
 		strcpy(server_addr[0], DEFAULT_SERVER);
 		strcpy(server_port[0], DEFAULT_PORT);
 		m26_restart();
+		//GPIO_ResetBits(G4_RESET_PORT, G4_RESET_PIN);
+		//rt_thread_delay(40);
+		//GPIO_SetBits(G4_RESET_PORT, G4_RESET_PIN);
 		auto_baud();
 		rt_device_set_rx_indicate(dev_gprs, gprs_rx_ind);
 		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,1524, 20, 10));
