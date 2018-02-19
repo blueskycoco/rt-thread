@@ -248,6 +248,20 @@ int auto_baud(void)
 	const uint8_t at[] 	= "AT\n";
 	uint8_t rcv[10] = {0};
 	uint32_t len,i=0;
+	int flag=0;
+	uint8_t ch;
+	/*while(1)
+	{
+		if (rt_device_read(dev_gprs, 0, &ch, 1)==1) {
+		if (ch=='R')
+			flag=1;
+		else if(ch=='D' && flag==1)
+			flag=2;
+		else if(ch=='Y' && flag==2)
+			break;
+		}
+	}
+	gprs_at_cmd(e0);*/
 	while (1) {
 		rt_kprintf("trying baud %d\r\n", baud);
     	change_baud(baud);	
@@ -255,7 +269,6 @@ int auto_baud(void)
     	if (ret == RT_EOK && len > 0) {
 			if (strstr((const char *)rcv, "OK") != NULL)
 			{
-				uint8_t ch;
 				while(rt_device_read(dev_gprs, 0, &ch, 1)==1);
 				break;
 			}
