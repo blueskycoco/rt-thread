@@ -126,11 +126,11 @@ void rt_init_thread_entry(void* parameter)
 	if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
 	{
 		rt_kprintf("File System initialized!\n");
-		readwrite();
-		writespeed("/1.txt",102400,512);
-		readspeed("/1.txt",512);
-		seekdir_test("/");
-		list_dir("/");
+		//readwrite();
+		//writespeed("/1.txt",102400,512);
+		//readspeed("/1.txt",512);
+		//seekdir_test("/");
+		//list_dir("/");
 	}
 	else
 	{
