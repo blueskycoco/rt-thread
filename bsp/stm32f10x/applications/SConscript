@@ -7,7 +7,7 @@ cwd = os.path.join(str(Dir('#')), 'applications')
 src = Split("""
 application.c
 startup.c
-gprs-ec20.c
+gprs.c
 subPoint.c
 readwrite.c
 readspeed.c

@@ -59,7 +59,7 @@ static void led_thread_entry(void* parameter)
 	   // rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
 		rt_hw_led_off(0);
-		buzzer_ctl(1);
+		//buzzer_ctl(1);
 		rt_thread_delay( RT_TICK_PER_SECOND ); /* sleep 0.5 second and switch to other thread */
 		count++;
 
@@ -179,7 +179,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_uint8_t buf[256]={0};
 	rt_uint8_t buf1[256]={0};	
 	//rt_thread_delay(1000);
-	//return;
+	return;
 	radio_init();
 
 	while (1) {
