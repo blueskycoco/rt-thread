@@ -69,6 +69,7 @@ static struct rt_mutex gprs_lock;
 #define STR_46002			"46002"
 #define STR_46003			"46003"
 #define STR_46004			"46004"
+#define STR_46006			"46006"
 #define STR_STAT_DEACT_OK 	"DEACT OK"
 #define STR_CONNECT_OK		"CONNECT OK"
 #define STR_CONNECT_OK_EC20		"+QIOPEN: 0,0"
@@ -581,7 +582,8 @@ void gprs_process(void* parameter)
 							have_str(last_data_ptr, STR_46004)) {
 							//rt_sprintf(qicsgp, "AT+QICSGP=1,\"%s\"\r\n", "CMNET"); m26
 							rt_sprintf(qicsgp, "AT+QICSGP=1,1,\"%s\",\"\",\"\",1\r\n", "CMNET");
-						} else if (have_str(last_data_ptr, STR_46001)){
+						} else if (have_str(last_data_ptr, STR_46001)||
+									have_str(last_data_ptr, STR_46006)){
 							//rt_sprintf(qicsgp, "AT+QICSGP=1,\"%s\"\r\n", "UNINET"); m26
 							rt_sprintf(qicsgp, "AT+QICSGP=1,1,\"%s\",\"\",\"\",1\r\n", "UNINET");
 						} else if (have_str(last_data_ptr, STR_46003)){
