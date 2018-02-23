@@ -642,7 +642,10 @@ void gprs_process(void* parameter)
 						if (have_str(last_data_ptr, STR_STAT_DEACT_OK) ||
 							have_str(last_data_ptr, STR_OK)) {
 							g_gprs_state = GPRS_STATE_CHECK_QISTAT;
+							if (g_type == 0)
 							gprs_at_cmd(qistat);
+							else
+								gprs_at_cmd(qistat_ec20);
 						} else if (have_str(last_data_ptr, STR_ERROR)){
 							g_gprs_state = GPRS_STATE_SET_QIDEACT;
 							gprs_at_cmd(qideact);

@@ -48,7 +48,10 @@ static struct rt_mutex gprs_lock;
 #define GPRS_STATE_DATA_PRE_WRITE	19
 #define GPRS_STATE_ATE0 21
 
+#define STR_CPIN			"+CPIN:"
 #define STR_CPIN_READY		"+CPIN: READY"
+#define STR_CGREG		"+CGREG: 0,"
+
 #define STR_CGREG_READY		"+CGREG: 0,1"
 #define STR_CGREG_READY1	"+CGREG: 0,5"
 #define STR_STAT_INIT		"IP INITIAL"
@@ -63,12 +66,13 @@ static struct rt_mutex gprs_lock;
 #define STR_CLOSED				"CLOSED"
 #define STR_BEGIN_WRITE		">"
 #define STR_ERROR			"ERROR"
+#define STR_4600			"4600"
 #define STR_46000			"46000"
 #define STR_46001			"46001"
 #define STR_46002			"46002"
 #define STR_46003			"46003"
 #define STR_46004			"46004"
-#define STR_46005			"46005"
+#define STR_46006			"46006"
 #define STR_STAT_DEACT_OK 	"DEACT OK"
 #define STR_CONNECT_OK		"CONNECT OK"
 #define STR_CLOSE_OK		"CLOSE OK"
@@ -78,6 +82,7 @@ static struct rt_mutex gprs_lock;
 #define STR_SOCKET_BUSSY	"SOCKET BUSY"
 #define STR_CONNECT_FAIL	"CONNECT FAIL"
 #define STR_CONNECT_OK_EC20		"+QIOPEN: 0,0"
+#define STR_CONNECT_FAIL_EC20		"+QIOPEN: 0,"
 
 //#define DEFAULT_SERVER		"106.3.45.71"
 //#define DEFAULT_SERVER		"101.132.177.116"
@@ -101,6 +106,8 @@ const uint8_t qisrvc[] 		= "AT+QISRVC=1\r\n";
 const uint8_t qimux[] 		= "AT+QIMUX=0\r\n";
 const uint8_t ask_qimux[] 	= "AT+QIMUX?\r\n";
 const uint8_t qideact[]		= "AT+QIDEACT\r\n";
+const uint8_t qideact_ec20[]		= "AT+QIDEACT=1\r\n";
+
 const uint8_t qindi[]		= "AT+QINDI=1\r\n";
 const uint8_t qird[]		= {"AT+QIRD=0,1,0,1500\r\n"};
 const uint8_t qisack[]	= "AT+QISACK\r\n";
@@ -164,7 +171,8 @@ void gprs_rcv(void* parameter)
 void m26_restart(void)
 {
 	/*use gpio to identify different module*/
-	if (g_type == 1) {
+	if (g_type == 1 && GPIO_ReadInputDataBit(G4_STATUS_PORT,G4_STATUS_PIN)==SET) {
+		rt_kprintf("power up g4\r\n");
 		GPIO_ResetBits(G4_POWER_PORT, G4_POWER_PIN);
 	}
 	if (g_type == 0) 
@@ -175,9 +183,6 @@ void m26_restart(void)
 	if (g_type == 1)
 	{		
 		GPIO_SetBits(G4_POWER_PORT, G4_POWER_PIN);
-		//GPIO_ResetBits(G4_RESET_PORT, G4_RESET_PIN);
-		//rt_thread_delay(RT_TICK_PER_SECOND);
-		//GPIO_SetBits(G4_RESET_PORT, G4_RESET_PIN);
 	}
 	
 }
@@ -362,14 +367,13 @@ void gprs_process(void* parameter)
 	//gprs_at_cmd("AT&W\r\n");
 	//rt_thread_delay(200);
 	//gprs_at_cmd(e0);
-	//if (g_type == 1)
-	//if (GPIO_ReadInputDataBit(G4_STATUS_PORT,G4_STATUS_PIN)==RESET)
-	//	gprs_at_cmd(qiat);
+	if (g_type == 1 && GPIO_ReadInputDataBit(G4_STATUS_PORT,G4_STATUS_PIN)==RESET)
+		gprs_at_cmd(qiat);
 	while (1) {
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[0], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 
 		if (r == RT_EOK && last_data_ptr != RT_NULL) {
-			if (data_size != 6 && strstr(last_data_ptr, "+QIRD:")==NULL)
+			//if (data_size != 6 && strstr(last_data_ptr, "+QIRD:")==NULL)
 			rt_kprintf("\r\n(<= %d %d %s)\r\n",g_gprs_state, data_size,last_data_ptr);
 			if (data_size >= 2) {
 			switch (g_gprs_state) {
@@ -381,25 +385,24 @@ void gprs_process(void* parameter)
 					if (have_str(last_data_ptr,STR_OK)) {
 							g_gprs_state = GPRS_STATE_CHECK_CPIN;
 							gprs_at_cmd(cpin);
-						} else {
-							g_gprs_state = GPRS_STATE_ATE0;
-							gprs_at_cmd(e0);
 						}
 						break;
 				case GPRS_STATE_CHECK_CPIN:
 						if (have_str(last_data_ptr,STR_CPIN_READY)) {
 							g_gprs_state = GPRS_STATE_CHECK_CGREG;
 							gprs_at_cmd(cgreg);
-						} else {
-							rt_thread_delay(100);
-							gprs_at_cmd(cpin);
+						} else if (have_str(last_data_ptr, STR_CPIN))
+							{
+								rt_thread_delay(100);
+								gprs_at_cmd(cpin);
 							if (cpin_count > 3)
 							{
 								m26_module_use = RT_FALSE;
 								return;
 							}
 							cpin_count ++;
-						}
+							}
+						
 						break;
 				case GPRS_STATE_CHECK_CGREG:
 						if (have_str(last_data_ptr, STR_CGREG_READY) ||
@@ -409,9 +412,9 @@ void gprs_process(void* parameter)
 								gprs_at_cmd(qistat);
 							else
 								gprs_at_cmd(qistat_ec20);
-						} else {
-							rt_thread_delay(100);
-							gprs_at_cmd(cgreg);
+						} else if(have_str(last_data_ptr, STR_CGREG)) {
+								rt_thread_delay(RT_TICK_PER_SECOND);
+								gprs_at_cmd(cgreg);
 						}
 						break;
 				case GPRS_STATE_CHECK_QISTAT:
@@ -437,14 +440,11 @@ void gprs_process(void* parameter)
 								rt_sprintf(qiopen, "AT+QIOPEN=\"TCP\",\"%s\",\"%s\"\r\n",
 											server_addr[server_index],server_port[server_index]);
 								gprs_at_cmd(qiopen);
-							} else
-								gprs_at_cmd(qistat);								
+							} 							
 						}else if (g_type == 1) {
 							if(have_str(last_data_ptr, STR_OK)) { //e20
 								g_gprs_state = GPRS_STATE_CHECK_CIMI;
 								gprs_at_cmd(cimi);
-							} else {
-								gprs_at_cmd(qistat_ec20);
 							}
 						}
 						break;
@@ -466,8 +466,6 @@ void gprs_process(void* parameter)
 						if (have_str(last_data_ptr, STR_OK)) {
 							g_gprs_state = GPRS_STATE_CHECK_CIMI;
 							gprs_at_cmd(cimi);
-						} else {
-							gprs_at_cmd(qindi); 						
 						}
 						break;								
 				case GPRS_STATE_SET_QIMUX:
@@ -475,12 +473,12 @@ void gprs_process(void* parameter)
 							have_str(last_data_ptr, STR_ERROR)) {
 							g_gprs_state = GPRS_STATE_SET_QINDI;
 							gprs_at_cmd(qindi);
-						} else {
-							gprs_at_cmd(qimux);							
 						}
 						break;		
 				case GPRS_STATE_CHECK_CIMI:
 						rt_memset(qicsgp, 0, 32);
+						rt_kprintf("cimi %s\r\n",last_data_ptr);
+						if (have_str(last_data_ptr, STR_4600)) {
 						if (have_str(last_data_ptr, STR_46000) ||
 							have_str(last_data_ptr, STR_46002) ||
 							have_str(last_data_ptr, STR_46004)) {
@@ -489,7 +487,7 @@ void gprs_process(void* parameter)
 							if (g_type == 1)
 								rt_sprintf(qicsgp, "AT+QICSGP=1,1,\"%s\",\"\",\"\",1\r\n", "CMNET");
 						} else if (have_str(last_data_ptr, STR_46001) ||
-									have_str(last_data_ptr, STR_46005)){
+									have_str(last_data_ptr, STR_46006)){
 							if (g_type == 0)
 								rt_sprintf(qicsgp, "AT+QICSGP=1,\"%s\"\r\n", "UNINET");
 							if (g_type == 1)
@@ -499,13 +497,15 @@ void gprs_process(void* parameter)
 								rt_sprintf(qicsgp, "AT+QICSGP=1,\"%s\"\r\n", "CTNET");
 							if (g_type == 1)
 								rt_sprintf(qicsgp, "AT+QICSGP=1,1,\"%s\",\"\",\"\",1\r\n", "CTNET");
-						} else
+						} else {
 							if (g_type == 0)
 								rt_sprintf(qicsgp, "AT+QICSGP=1,\"%s\"\r\n", "CMNET");
 							if (g_type ==1)
 								rt_sprintf(qicsgp, "AT+QICSGP=1,1,\"%s\",\"\",\"\",1\r\n", "CMNET");
+							}
 							g_gprs_state = GPRS_STATE_SET_QICSGP;
 							gprs_at_cmd(qicsgp);
+						}
 						break;						
 				case GPRS_STATE_SET_QICSGP:
 						if (have_str(last_data_ptr, STR_OK)) {
@@ -516,8 +516,6 @@ void gprs_process(void* parameter)
 								g_gprs_state = GPRS_STATE_SET_QIACT;
 								gprs_at_cmd(qiact_ec20);
 							}
-						} else {
-							gprs_at_cmd(qicsgp); 						
 						}
 						break;		
 				case GPRS_STATE_SET_QIREGAPP:
@@ -525,16 +523,12 @@ void gprs_process(void* parameter)
 							have_str(last_data_ptr, STR_ERROR)) {
 							g_gprs_state = GPRS_STATE_SET_QISRVC;
 							gprs_at_cmd(qisrvc);
-						} else {
-							gprs_at_cmd(qiregapp); 						
 						}
 						break;
 				case GPRS_STATE_SET_QISRVC:
 						if (have_str(last_data_ptr, STR_OK)) {
 							g_gprs_state = GPRS_STATE_SET_QIACT;
 							gprs_at_cmd(qiact);
-						} else {
-							gprs_at_cmd(qisrvc); 						
 						}
 						break;		
 				case GPRS_STATE_SET_QIACT:
@@ -550,17 +544,23 @@ void gprs_process(void* parameter)
 							gprs_at_cmd(qiopen);
 						} else {
 							/*check error condition*/
+							if (g_type == 0) {
 							g_gprs_state = GPRS_STATE_CHECK_QISTAT;
-							if (g_type == 0)
 							gprs_at_cmd(qistat);
+							}
 							else if(g_type == 1)
-								gprs_at_cmd(qistat_ec20);
+							{	g_gprs_state = GPRS_STATE_SET_QIDEACT;
+								gprs_at_cmd(qideact_ec20);
+							}
 						}
 						break;
 				case GPRS_STATE_SET_QIDEACT:
-						if (have_str(last_data_ptr, STR_STAT_DEACT_OK)) {
+						if (have_str(last_data_ptr, STR_OK)) {
 							g_gprs_state = GPRS_STATE_CHECK_QISTAT;
-							gprs_at_cmd(qistat);
+							if (g_type == 0)
+								gprs_at_cmd(qistat);
+							else
+								gprs_at_cmd(qistat_ec20);
 						} else if (have_str(last_data_ptr, STR_ERROR)){
 							g_gprs_state = GPRS_STATE_SET_QIDEACT;
 							gprs_at_cmd(qideact);
@@ -589,10 +589,11 @@ void gprs_process(void* parameter)
 								/*send data here */
 								rt_kprintf("connect to server ok\r\n");
 								gprs_at_cmd(qiat);
-							} else {
-								rt_thread_delay(100*3);
-								g_gprs_state = GPRS_STATE_CHECK_QISTAT;
-								gprs_at_cmd(qistat_ec20);
+							} else if (have_str(last_data_ptr, STR_CONNECT_FAIL_EC20) ||
+								have_str(last_data_ptr, STR_ERROR))
+							{
+								g_gprs_state = GPRS_STATE_SET_QIDEACT;
+								gprs_at_cmd(qideact_ec20);
 							}
 						}
 						break;
