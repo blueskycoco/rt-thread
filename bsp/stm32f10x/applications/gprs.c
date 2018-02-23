@@ -9,7 +9,7 @@
 #define GPRS_POWER_PIN	GPIO_Pin_14
 #define GPRS_POWER_RCC	RCC_APB2Periph_GPIOE
 
-#define G4_POWER_PORT GPIOC
+#define G4_POWER_PORT 	GPIOC
 #define G4_POWER_PIN	GPIO_Pin_8
 #define G4_POWER_RCC	RCC_APB2Periph_GPIOC
 #define G4_STATUS_PORT 	GPIOA
@@ -19,8 +19,8 @@
 #define G4_RESET_PIN	GPIO_Pin_9
 #define G4_RESET_RCC	RCC_APB2Periph_GPIOC
 #define G4_DTR_PORT 	GPIOA
-#define G4_DTR_PIN	GPIO_Pin_12
-#define G4_DTR_RCC	RCC_APB2Periph_GPIOA
+#define G4_DTR_PIN		GPIO_Pin_12
+#define G4_DTR_RCC		RCC_APB2Periph_GPIOA
 
 #define MAGIC_OK	"OK"
 struct rt_event gprs_event;
@@ -117,8 +117,6 @@ struct rt_data_queue *g_data_queue;
 uint8_t *server_buf = RT_NULL;
 uint32_t server_len = 0;
 uint32_t g_size = 0;
-rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t *rcv, uint32_t *rcv_len, uint32_t timeout);
-
 static rt_err_t gprs_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	//rt_kprintf("info_len %d\r\n",size);
@@ -133,19 +131,7 @@ void gprs_rcv(void* parameter)
 	uint8_t *buf = rt_malloc(1600);
 	while(1)	
 	{			
-		if (!m26_module_use) 
-			return;
 		rt_sem_take(&gprs_rx_sem, RT_WAITING_FOREVER);
-		#if 0
-		len = g_size;
-		uint8_t *buf = rt_malloc((len+1) * sizeof(uint8_t));
-		total_len  = rt_device_read(dev_gprs, 0, buf , len);
-		if (total_len  != len)
-			rt_kprintf("total_len %d\r\n", total_len);
-		//for (int i=0; i<total_len; i++)
-		//	rt_kprintf("%c", buf[i]);
-		#else
-		//total_len = 0;
 		while (1) {
 			len = rt_device_read(dev_gprs, 0, &(buf[total_len]) , 1600-total_len);
 			
@@ -157,7 +143,6 @@ void gprs_rcv(void* parameter)
 			else
 				break;			
 		}
-		#endif
 		//rt_kprintf("==>%s", buf);
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n') {
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
@@ -166,41 +151,15 @@ void gprs_rcv(void* parameter)
 			rt_data_queue_push(&g_data_queue[0], rcv, total_len, RT_WAITING_FOREVER);
 			total_len = 0;
 		}
-		else
-		{
-			//rt_kprintf("<%d> %s", total_len, buf);
-			//rt_free(buf);
-		}
 	}
 }
 
 void m26_restart(void)
 {
-	uint32_t len;
-	const uint8_t at[] 	= "AT\r\n";
-	uint8_t rcv[10] = {0};
-	uint8_t state_on =0;
-	rt_err_t ret = gprs_cmd(at, rt_strlen(at), rcv, &len, 200);
-	if (ret == RT_EOK && len > 0) {
-			rt_kprintf("rcv %s\r\n", rcv);
-				if (strstr((const char *)rcv, "OK") != NULL)
-					state_on = 1;
-		}
-	if (state_on) {		
-	    GPIO_ResetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
-	    rt_thread_delay(80);
-	    GPIO_SetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
-		rt_thread_delay(12*RT_TICK_PER_SECOND);
-		GPIO_ResetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
-	    rt_thread_delay(2*RT_TICK_PER_SECOND);
-		GPIO_SetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
-		rt_kprintf("power down -> power up\r\n");
-	} else {		
-		GPIO_ResetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
-	    rt_thread_delay(2*RT_TICK_PER_SECOND);
-		GPIO_SetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
-		rt_kprintf("just power up\r\n");
-	}
+	/*use gpio to identify different module*/	
+	GPIO_ResetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
+	rt_thread_delay(RT_TICK_PER_SECOND);
+	GPIO_SetBits(GPRS_POWER_PORT, GPRS_POWER_PIN);
 }
 void change_baud(int baud)
 {
@@ -231,107 +190,6 @@ static rt_size_t gprs_read_data(
 		
     } while (rt_sem_take(&gprs_rx_sem, timeout) == RT_EOK);
     return readlen;
-}
-rt_err_t gprs_cmd(const uint8_t *cmd, uint32_t cmd_len, uint8_t *rcv, uint32_t *rcv_len, uint32_t timeout)
-{
-	uint32_t write_len;
-	uint8_t ch;
-	int i=0;
-	write_len = rt_device_write(dev_gprs, 0, (void *)cmd, cmd_len);
-	//rt_kprintf("sending %s %d %d", cmd,write_len,cmd_len);
-	*rcv_len = 0;
-	if (write_len == cmd_len)
-	{
-		while (1) {
-			if (rt_device_read(dev_gprs, 0, &ch, 1) == 1)
-			{
-				//rt_kprintf("ch %c\r\n",ch);
-				if (ch == '\n')
-				{
-					break;
-				}
-				else
-					rcv[(*rcv_len)++] = ch;
-			}
-			else
-				i++;
-			rt_thread_delay(1);
-			if (i>100)
-				break;				
-		}
-	}
-	if (*rcv_len > 0)
-		return RT_EOK;
-	return RT_ERROR;
-}
-int auto_baud(void)
-{
-	int baud = 115200;
-	const uint8_t at[] 	= "AT\n";
-	uint8_t rcv[10] = {0};
-	uint32_t len,i=0;
-	int flag=0;
-	uint8_t ch;
-	/*while(1)
-	{
-		if (rt_device_read(dev_gprs, 0, &ch, 1)==1) {
-		if (ch=='R')
-			flag=1;
-		else if(ch=='D' && flag==1)
-			flag=2;
-		else if(ch=='Y' && flag==2)
-			break;
-		}
-	}
-	gprs_at_cmd(e0);*/
-	while (1) {
-		rt_kprintf("trying baud %d\r\n", baud);
-    	change_baud(baud);	
-    	rt_err_t ret = gprs_cmd(at, rt_strlen(at), rcv, &len, 200);
-    	if (ret == RT_EOK && len > 0) {
-			if (strstr((const char *)rcv, "OK") != NULL)
-			{
-				while(rt_device_read(dev_gprs, 0, &ch, 1)==1);
-				break;
-			}
-		}
-		i++;
-		if (i>8)
-			break;
-		if (baud == 75)
-		{
-			rt_kprintf("fuck!\r\n");
-			break;
-		}
-		else if (baud == 150)
-			baud = 75;
-		else if (baud == 300)
-			baud = 150;
-		else if (baud == 600)
-			baud = 300;
-		else if (baud == 1200)
-			baud = 600;
-		else if (baud == 2400)
-			baud = 1200;
-		else if (baud == 4800)
-			baud = 2400;
-		else if (baud == 9600)
-			baud = 4800;
-		else if (baud == 14400)
-			baud = 9600;
-		else if (baud == 19200)
-			baud = 14400;
-		else if (baud == 28800)
-			baud = 19200;
-		else if (baud == 38400)
-			baud = 28800;
-		else if (baud == 57600)
-			baud = 38400;
-		else if (baud == 115200)
-			baud = 115200;
-	}
-	rt_kprintf("baud is %d\r\n",baud);
-	return baud;
 }
 
 rt_bool_t have_str(const char *str, const char *magic)
