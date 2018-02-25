@@ -860,9 +860,9 @@ int gprs_init(void)
 {
 	/*handle m26*/
 	//rt_thread_delay(1000);
-	dev_gprs=rt_device_find("uart2"); //m26
-	//dev_gprs=rt_device_find("uart3"); //ec20
-	g_type = 0;/*0 is m26,1 is ec20, 2 is wire net, 3 is wifi*/
+	//dev_gprs=rt_device_find("uart2"); //m26
+	dev_gprs=rt_device_find("uart3"); //ec20
+	g_type = 1;/*0 is m26,1 is ec20, 2 is wire net, 3 is wifi*/
 	if (rt_device_open(dev_gprs, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX) == RT_EOK)			
 	{
 		change_baud(115200);
@@ -903,7 +903,7 @@ int gprs_init(void)
 		rt_thread_startup(rt_thread_create("thread_gprs",gprs_rcv, 0,1524, 20, 10));
 		rt_thread_startup(rt_thread_create("gprs_init",gprs_process, 0,2048, 20, 10));
 		rt_thread_startup(rt_thread_create("server",server_process, 0,2048, 20, 10));
-	rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,1024, 20, 10));
+	//rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,1024, 20, 10));
 
 	}
 	return 0;

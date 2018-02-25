@@ -17,6 +17,7 @@ cJSON.c
 bsp_misc.c
 rt_stm32f10x_spi.c
 button.c
+lcd.c
 """)
 
 if GetDepend(['RT_USING_PIN']):
