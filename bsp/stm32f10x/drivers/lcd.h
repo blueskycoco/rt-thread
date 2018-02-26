@@ -15,6 +15,7 @@
 /* seg7_8 信号强度图标，其中，p1=布放图标                                                           */
 /* seg9   p14=2G,p15=3G,p16=4G,p17=5G                                                              */
 /**************************************************************************************************/
+//#include "Global.h"
 
 #define MODE_COM                0
 #define MODE_DATA               1
@@ -120,27 +121,16 @@ typedef struct
   u8 ico_seg7_8;                                /*信号强度*/
   u8 ico_seg69;                                 /*各种图标,seg6和seg9=2G--5G*/
 } HTB_RAM;
+//-------------------------------------外部接口-----------------------------------------
+void SetErrorCode(u8 value);                            /*设置错误码*/
+void SetBatteryIco(u8 value);                           /*设置电池图标*/
+void SetWifiIco(u8 value);                              /*设置wifi图标*/
+void SetStateIco(u8 value,HTB_ICO_STATE ico_state);     /*状态图标*/
+void SetSignalIco(u8 value);                            /*信号强度*/
+void SetSimTypeIco(u8 value);                           /*2G-5G*/
+void HtbLcdClear();                                     /*清空所有图标*/
+void HtbLcdShow();                                      /*显示所有图标*/
+void GPIO_Lcd_Init();
 
-void SetFirstTo0(u8 value);
-void SetBatteryWifiIco(u8 value);
-void SetStateIco(u8 value);
-
-void HTB_SetNumberValue(u8 *num,u8 value);
-void HTB_SetStateIco(HTB_ICO ico,HTB_ICO_STATE value);
-void HTB_SetSignalIco(HTB_LEVEL value);/*信号强度*/
-void HTB_SetSimTypeIco(HTB_SIM value);/*2G-5G*/
-void HTB_SetWifiIco(HTB_LEVEL value);/*wifi*/
-void HTB_SetBatteryIco(HTB_LEVEL value);/*电池*/
-
-void GPIO_Lcd_Init(void);
-
-void HTB_Lcd_Clr();
-void HTB_Lcd_Init(void);
-void HTB_Write_Mode(u8 mode);
-void HTB_Write_Command(u8 command);
-void HTB_Write_Address(u8 data);
-void HTB_Write_8bitData(u8 data);
-void HTB_Write_H4bitData(u8 data);
-void HTB_Write_L4bitData(u8 data);
 #endif
 

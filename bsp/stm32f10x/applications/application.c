@@ -37,7 +37,8 @@
 #endif
 #include "spi_flash_w25qxx.h"
 #include "rt_stm32f10x_spi.h"
-
+#include "button.h"
+#include "lcd.h"
 #include "led.h"
 #include "cc1101.h"
 #include "string.h"
@@ -62,6 +63,7 @@ static void led_thread_entry(void* parameter)
 		rt_hw_led_off(0);
 		//buzzer_ctl(1);
 		rt_thread_delay( RT_TICK_PER_SECOND ); /* sleep 0.5 second and switch to other thread */
+		SetStateIco(count%7,0);
 		count++;
 
 		/* led1 off */
@@ -71,16 +73,18 @@ static void led_thread_entry(void* parameter)
 		rt_hw_led_on(0);
 		buzzer_ctl(0);
 		rt_thread_delay( RT_TICK_PER_SECOND );
-		rt_kprintf("SetFirstTo0 %d\r\n",count%10);
-		SetFirstTo0(count%10);//0 - 10
-		rt_kprintf("SetSignalIco %d\r\n",count%10);
+		//rt_kprintf("SetFirstTo0 %d\r\n",count%10);
+		SetErrorCode(count%99);//0 - 10
+		//rt_kprintf("SetSignalIco %d\r\n",count%10);
 		SetSignalIco(count%6);//
-		rt_kprintf("SetBatteryWifiIco %d\r\n",count%10);
-		SetBatteryWifiIco(count%5);
-		rt_kprintf("SetSimTypeIco %d\r\n",count%10);
-		SetSimTypeIco(count%10);
-		rt_kprintf("SetStateIco %d\r\n",count%10);
-		SetStateIco(count%5);
+		//rt_kprintf("SetBatteryWifiIco %d\r\n",count%10);
+		SetBatteryIco(count%5);
+		SetWifiIco(count%5);
+		//rt_kprintf("SetSimTypeIco %d\r\n",count%10);
+		SetSimTypeIco(count%5);
+		//rt_kprintf("SetStateIco %d\r\n",count%10);
+		SetStateIco(count%7,1);
+		
 	}
 }
 
