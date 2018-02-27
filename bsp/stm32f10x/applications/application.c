@@ -28,21 +28,29 @@
 #include <dfs_fs.h>
 #endif
 
-#ifdef RT_USING_RTGUI
-#include <rtgui/rtgui.h>
-#include <rtgui/rtgui_server.h>
-#include <rtgui/rtgui_system.h>
-#include <rtgui/driver.h>
-#include <rtgui/calibration.h>
-#endif
 #include "spi_flash_w25qxx.h"
 #include "rt_stm32f10x_spi.h"
 #include "button.h"
 #include "lcd.h"
 #include "led.h"
+#include "gprs.h"
 #include "cc1101.h"
 #include "string.h"
 #include "subPoint.h"
+#include "master.h"
+#define NO_ERROR				0x00000000
+#define ERROR_SPI_HW			0x00000001
+#define ERROR_SPI_MOUNT			0x00000002
+#define ERROR_CC1101_HW			0x00000004
+#define ERROR_PCIE1_HW			0x00000008
+#define ERROR_PCIE2_HW			0x00000010
+#define ERROR_PCIE_NULL			0x00000020
+#define ERROR_FILE_RW			0x00000040
+#define ERROR_FILESYSTEM_FORMAT 0x00000080
+#define ERROR_LOAD_PARAM		0x00000100
+rt_uint32_t err_code = NO_ERROR;
+rt_uint8_t  pcie_status = 0x00; /*0x01 pcie1, 0x02 pcie2 0x03 pcie1 & pcie2*/
+extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
 	static struct rt_thread led_thread;
@@ -51,19 +59,19 @@ static void led_thread_entry(void* parameter)
 	unsigned int count=0;
 
 	rt_hw_led_init();
-	button_init();
-	battery_init();
-	GPIO_Lcd_Init();
+	//button_init();
+	//battery_init();
+	//GPIO_Lcd_Init();
 	while (1)
 	{
 		/* led1 on */
 #ifndef RT_USING_FINSH
-	   // rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
+		// rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
 		rt_hw_led_off(0);
 		//buzzer_ctl(1);
 		rt_thread_delay( RT_TICK_PER_SECOND ); /* sleep 0.5 second and switch to other thread */
-		SetStateIco(count%7,0);
+		//SetStateIco(count%7,0);
 		count++;
 
 		/* led1 off */
@@ -71,55 +79,38 @@ static void led_thread_entry(void* parameter)
 		//rt_kprintf("led off\r\n");
 #endif
 		rt_hw_led_on(0);
-		buzzer_ctl(0);
+		//buzzer_ctl(0);
 		rt_thread_delay( RT_TICK_PER_SECOND );
 		//rt_kprintf("SetFirstTo0 %d\r\n",count%10);
-		SetErrorCode(count%99);//0 - 10
+		//SetErrorCode(count%99);//0 - 10
 		//rt_kprintf("SetSignalIco %d\r\n",count%10);
-		SetSignalIco(count%6);//
+		//SetSignalIco(count%6);//
 		//rt_kprintf("SetBatteryWifiIco %d\r\n",count%10);
-		SetBatteryIco(count%5);
-		SetWifiIco(count%5);
+		//SetBatteryIco(count%5);
+		//SetWifiIco(count%5);
 		//rt_kprintf("SetSimTypeIco %d\r\n",count%10);
-		SetSimTypeIco(count%5);
+		//SetSimTypeIco(count%5);
 		//rt_kprintf("SetStateIco %d\r\n",count%10);
-		SetStateIco(count%7,1);
-		
+		//SetStateIco(count%7,1);		
 	}
 }
 
-#ifdef RT_USING_RTGUI
-rt_bool_t cali_setup(void)
-{
-	rt_kprintf("cali setup entered\n");
-	return RT_FALSE;
-}
-
-void cali_store(struct calibration_data *data)
-{
-	rt_kprintf("cali finished (%d, %d), (%d, %d)\n",
-			data->min_x,
-			data->max_x,
-			data->min_y,
-			data->max_y);
-}
-#endif /* RT_USING_RTGUI */
 #define cc1101_hex_printf1(buf, count) \
 {\
-    int i;\
-    int flag=0; \
+	int i;\
+	int flag=0; \
 	for(i = 0; i < count; i++)\
 	{\
 		if (buf[i] < 32 || buf[i] > 126) \
-			flag =1;\
+		flag =1;\
 	}\
-    for(i = 0; i < count; i++)\
-    {\
-    	if (!flag) \
-        	rt_kprintf("%c", buf[i]);\
-        else \
-			rt_kprintf("%02x ", buf[i]);\
-    }\
+	for(i = 0; i < count; i++)\
+	{\
+		if (!flag) \
+		rt_kprintf("%c", buf[i]);\
+		else \
+		rt_kprintf("%02x ", buf[i]);\
+	}\
 }
 void rt_init_thread_entry(void* parameter)
 {
@@ -127,83 +118,140 @@ void rt_init_thread_entry(void* parameter)
 	/* initialization RT-Thread Components */
 	rt_components_init();
 #endif
+	GPIO_Lcd_Init();
+	button_init();
+	battery_init();
 
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)
 	/* mount sd card fat partition 1 as root directory */
 	rt_hw_spi_init();
 	if (RT_EOK != w25qxx_init("sd0","spi11"))
+	{
 		rt_kprintf("w25 init failed\r\n");
+		err_code |= ERROR_SPI_HW;
+		SetErrorCode(err_code);
+	}
 	else
+	{
 		rt_kprintf("w25 init ok\r\n");
-	
+		//if (0 == dfs_mkfs("elm","sd0"))
+		//	rt_kprintf("mkfs sd0 ok\r\n");
+		//else
+		//	rt_kprintf("mkfs sd0 failed\r\n");
 
-	if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
-	{
-		rt_kprintf("File System initialized!\n");
-		//readwrite();
-		//writespeed("/1.txt",102400,512);
-		//readspeed("/1.txt",512);
-		//seekdir_test("/");
-		//list_dir("/");
-	}
-	else
-	{
-		if (0 == dfs_mkfs("elm","sd0"))
-			rt_kprintf("mkfs sd0 ok\r\n");
+		if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
+		{
+			rt_kprintf("File System initialized!\n");
+			if (!readwrite())			
+			{
+				err_code |= ERROR_FILE_RW;
+				SetErrorCode(err_code);
+				if (0 == dfs_mkfs("elm","sd0"))
+					rt_kprintf("mkfs sd0 ok\r\n");
+				else
+				{
+					rt_kprintf("mkfs sd0 failed\r\n");
+					err_code |= ERROR_FILESYSTEM_FORMAT;
+					SetErrorCode(err_code);		
+				}
+			}
+		}
 		else
-			rt_kprintf("mkfs sd0 failed\r\n");
-		if (dfs_mount("sd0", "/", "elm", 0, 0) ==0)
-			rt_kprintf("File System initialzation failed!\n");
-		else
-			rt_kprintf("File System initialized 2!\n");
+		{
+			if (0 == dfs_mkfs("elm","sd0"))
+				rt_kprintf("mkfs sd0 ok\r\n");
+			else
+			{
+				rt_kprintf("mkfs sd0 failed\r\n");
+				err_code |= ERROR_FILESYSTEM_FORMAT;
+				SetErrorCode(err_code);
+			}
+			if (dfs_mount("sd0", "/", "elm", 0, 0) ==0)
+			{
+				rt_kprintf("File System initialzation failed!\n");
+				err_code |= ERROR_SPI_MOUNT;
+				SetErrorCode(err_code);
+			}
+			else
+			{
+				rt_kprintf("File System initialized 2!\n");
+			}
 
+		}
 	}
+	rt_kprintf("spi flash init done , err 0x%08x\r\n",err_code);
 #endif  /* RT_USING_DFS */
 
-#ifdef RT_USING_RTGUI
-	{
-		extern void rt_hw_lcd_init();
-		extern void rtgui_touch_hw_init(void);
-
-		rt_device_t lcd;
-
-		/* init lcd */
-		rt_hw_lcd_init();
-
-		/* init touch panel */
-		rtgui_touch_hw_init();
-
-		/* find lcd device */
-		lcd = rt_device_find("lcd");
-
-		/* set lcd device as rtgui graphic driver */
-		rtgui_graphic_set_device(lcd);
-
-#ifndef RT_USING_COMPONENTS_INIT
-		/* init rtgui system server */
-		rtgui_system_server_init();
-#endif
-
-		calibration_set_restore(cali_setup);
-		calibration_set_after(cali_store);
-		calibration_init();
-	}
-#endif /* #ifdef RT_USINGRTGUI */
 	unsigned int count=0,count1=256;
 	rt_uint8_t buf[256]={0};
 	rt_uint8_t buf1[256]={0};	
-	//rt_thread_delay(1000);
-	//return;
-	radio_init();
-
+	rt_uint8_t pcie_status = 0;
+	if (!radio_init())
+	{
+		err_code |= ERROR_CC1101_HW;
+		SetErrorCode(err_code);
+	}
+	rt_kprintf("cc1101 init done , err 0x%08x\r\n",err_code);
+	if (pcie_status |= check_pcie(0))
+		rt_kprintf("PCIE 1 insert %x\r\n", pcie_status);
+	if (pcie_status |= check_pcie(1))
+		rt_kprintf("PCIE 2 insert %x\r\n", pcie_status);
+	if (pcie_status == 0)
+	{
+		err_code |= ERROR_PCIE_NULL;
+		SetErrorCode(err_code);
+	}
+	rt_kprintf("pcie identify done , err 0x%08x\r\n",err_code);
+	if (!load_param()) {
+		rt_kprintf("load param failed\r\n");
+		err_code |= ERROR_LOAD_PARAM;
+		SetErrorCode(err_code);
+	}
+	buzzer_ctl(1);
+	rt_hw_led_off(CODE_LED);
+	rt_hw_led_off(ARM_LED);
+	rt_hw_led_off(WIRE_LED);
+	rt_hw_led_off(ALARM_LED);
+	rt_hw_led_off(WIRELESS_LED);
+	rt_hw_led_off(FAIL_LED);
+	rt_hw_led_off(NET_LED);
+	rt_thread_delay( RT_TICK_PER_SECOND );	
+	buzzer_ctl(0);
+	rt_hw_led_on(CODE_LED);
+	rt_hw_led_on(ARM_LED);
+	rt_hw_led_on(WIRE_LED);
+	rt_hw_led_on(ALARM_LED);
+	rt_hw_led_on(WIRELESS_LED);
+	rt_hw_led_on(FAIL_LED);
+	rt_hw_led_on(NET_LED);
+	rt_thread_delay( RT_TICK_PER_SECOND );		
+	buzzer_ctl(1);
+	rt_hw_led_off(CODE_LED);
+	rt_hw_led_off(ARM_LED);
+	rt_hw_led_off(WIRE_LED);
+	rt_hw_led_off(ALARM_LED);
+	rt_hw_led_off(WIRELESS_LED);
+	rt_hw_led_off(FAIL_LED);
+	rt_hw_led_off(NET_LED);
+	rt_thread_delay( RT_TICK_PER_SECOND );	
+	buzzer_ctl(0);
+	rt_hw_led_on(CODE_LED);
+	rt_hw_led_on(ARM_LED);
+	rt_hw_led_on(WIRE_LED);
+	rt_hw_led_on(ALARM_LED);
+	rt_hw_led_on(WIRELESS_LED);
+	rt_hw_led_on(FAIL_LED);
+	rt_hw_led_on(NET_LED);
+	//rt_thread_delay( RT_TICK_PER_SECOND );	
+	SetErrorCode(err_code);
 	while (1) {
 		rt_memset(buf,0,256);
 		rt_sprintf(buf,"led on , count : %d",count);
-		#if 0
+#if 0
 		cc1101_send_write(buf,strlen(buf));
 		count++;
-		#else
+#else
 		//cc1101_send_write(buf,strlen(buf));
 		//rt_hw_led_off(0);
 		wait_cc1101_sem();
@@ -216,7 +264,7 @@ void rt_init_thread_entry(void* parameter)
 			handleSub(buf1);			
 			count++;
 		}
-		#endif
+#endif
 		//rt_thread_delay(RT_TICK_PER_SECOND);
 	}
 }

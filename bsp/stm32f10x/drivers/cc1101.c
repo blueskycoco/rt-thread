@@ -624,6 +624,9 @@ char get_device_id(void) {
     if(ret_version == 0x04) {
       return DEV_CC1101;
     } 
+	if(ret_version == 0x14) {
+		return DEV_CC1101;
+	}
     if(ret_version == 0x07) {
       return DEV_CC1101;
     } 
@@ -656,7 +659,8 @@ int radio_init(void)
 	trxRfSpiInterfaceInit();	
 
 	trxSpiCmdStrobe(RF_SRES);
-	get_device_id();
+	if (DEV_CC1101 != get_device_id())
+		return 0;
 	rt_kprintf("rssi %d\r\n",radio_get_rssi());
 	rt_thread_delay(100);
 	preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);	
@@ -665,23 +669,19 @@ int radio_init(void)
 		writeByte = preferredSettings[i].data;
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);	
 	}
-	//paTable[0] = 0xC5;	
-	//trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, PATABLE, paTable, 1);
 
 	for(i = 0; i < preferredSettings_length; i++) {
 		uint8 readByte = 0;
 		trx8BitRegAccess(RADIO_READ_ACCESS, preferredSettings[i].addr, &readByte, 1);
 		if (readByte != preferredSettings[i].data)
+		{
 			rt_kprintf("rf reg set failed %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
+			return 0;
+		}
 	}
-	//radio_set_freq(433);
-	//set_rf_packet_length(TX_BUF_SIZE);
-	//radio_receive_on();
-	//radio_idle();
 	trxRfSpiInterruptInit();
 	cc1101_set_rx_mode();
-//	create_seed();
-	return 0;
+	return 1;
 }
 int radio_receive_on(void) {
 

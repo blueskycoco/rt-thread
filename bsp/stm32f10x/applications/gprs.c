@@ -4,6 +4,7 @@
 #include "led.h"
 #include "cc1101.h"
 #include <string.h>
+#include "gprs.h"
 #include "bsp_misc.h"
 #define GPRS_POWER_PORT GPIOE
 #define GPRS_POWER_PIN	GPIO_Pin_14
@@ -21,6 +22,15 @@
 #define G4_DTR_PORT 	GPIOA
 #define G4_DTR_PIN		GPIO_Pin_12
 #define G4_DTR_RCC		RCC_APB2Periph_GPIOA
+
+#define PCIE_1_IP		0x01
+#define PCIE_2_IP		0x02
+#define PCIE_1_EC20		0x04
+#define PCIE_2_EC20		0x08
+#define PCIE_1_M26		0x10
+#define PCIE_2_M26		0x20
+#define PCIE_1_NBIOT	0x40
+#define PCIE_2_NBIOT	0x80
 
 #define MAGIC_OK	"OK"
 struct rt_event gprs_event;
@@ -855,7 +865,28 @@ void server_process(void* parameter)
 		rt_free((void *)last_data_ptr);
 	}
 }
-
+rt_uint8_t check_pcie(rt_uint8_t num) {
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	if (num == 0) {
+		/*pcie1_cd pd11*/		
+		GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_11;
+		GPIO_Init(GPIOD, &GPIO_InitStructure);
+		if (GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_11) == SET)
+			return 0;
+		return PCIE_2_M26;
+		/*TODO: more check on IO*/
+	} else {
+		/*pcie2_cd pe15*/		
+		GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_15;
+		GPIO_Init(GPIOE, &GPIO_InitStructure);
+		if (GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_15) == SET)
+			return 0;
+		return PCIE_1_EC20;
+		/*TODO: more check on IO*/
+	}
+}
 int gprs_init(void)
 {
 	/*handle m26*/

@@ -16,7 +16,13 @@
 #define __LED_H__
 
 #include <rtthread.h>
-
+#define CODE_LED		0
+#define ARM_LED			1
+#define WIRE_LED 		2
+#define ALARM_LED 		3
+#define WIRELESS_LED 	4
+#define NET_LED			5
+#define FAIL_LED 		6
 void rt_hw_led_init(void);
 void rt_hw_led_on(rt_uint32_t led);
 void rt_hw_led_off(rt_uint32_t led);
