@@ -8,5 +8,7 @@
 #define PCIE_2_M26		0x20
 #define PCIE_1_NBIOT	0x40
 #define PCIE_2_NBIOT	0x80
-
+struct rt_data_queue *g_data_queue;
+rt_uint8_t g_type0 = 0;
+rt_uint8_t g_type1 = 0;
 #endif
