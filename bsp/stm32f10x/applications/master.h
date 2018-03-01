@@ -20,7 +20,7 @@ struct DomainAddress
 
 struct ReadOnlyProperty
 {
-	rt_uint8_t sn[12];
+	rt_uint8_t sn[6];
 	rt_uint32_t model;
 	rt_uint8_t CAPTCHA[6];	
 };
