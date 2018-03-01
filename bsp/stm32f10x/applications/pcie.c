@@ -84,7 +84,7 @@ void pcie1_sm(void* parameter)
 {
 	rt_size_t data_size;
 	const void *last_data_ptr = RT_NULL;
-	rt_kprintf("pcie1 sm %d\r\n", g_type1);
+	rt_kprintf("pcie1 sm %x\r\n", g_type1);
 	while (1) 
 	{
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[1], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
@@ -119,7 +119,7 @@ void pcie0_sm(void* parameter)
 {
 	rt_size_t data_size;
 	const void *last_data_ptr = RT_NULL;
-	rt_kprintf("pcie0 sm %d\r\n", g_type0);
+	rt_kprintf("pcie0 sm %x\r\n", g_type0);
 	while (1) 
 	{
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[0], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
@@ -192,7 +192,7 @@ void send_process(void* parameter)
 			//buf[len+2] = (crc >> 8) & 0xff;
 			//buf[len+3] = crc & 0xff;
 			//rt_kprintf("push ptr %p\r\n",buf);
-			rt_kprintf("push ptr %p\r\n",json);
+			//rt_kprintf("push ptr %p\r\n",json);
 			//rt_data_queue_push(&g_data_queue[1], buf, len+4, RT_WAITING_FOREVER);
 			rt_data_queue_push(&g_data_queue[2], json, rt_strlen(json), RT_WAITING_FOREVER);
 			gprs_wait_event(RT_WAITING_FOREVER);

@@ -219,7 +219,7 @@ void ec20_start(int index)
 
 void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 {
-	if (data_size != 6 && strstr(last_data_ptr, STR_QIURC)==NULL)
+	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL)
 		rt_kprintf("\r\n(EC20<= %d %d %s)\r\n",g_ec20_state, data_size,last_data_ptr);
 	if (data_size >= 2) {
 		switch (g_ec20_state) {

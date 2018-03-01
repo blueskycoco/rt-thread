@@ -51,6 +51,7 @@
 #define ERROR_LOAD_PARAM		0x00000100
 rt_uint32_t err_code = NO_ERROR;
 rt_uint8_t  pcie_status = 0x00; /*0x01 pcie1, 0x02 pcie2 0x03 pcie1 & pcie2*/
+extern struct rt_event g_info_event;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -122,6 +123,8 @@ void rt_init_thread_entry(void* parameter)
 	GPIO_Lcd_Init();
 	button_init();
 	battery_init();
+	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
+	rt_thread_startup(rt_thread_create("info",info_user, 0,512, 20, 10));
 
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)
@@ -259,18 +262,9 @@ void rt_init_thread_entry(void* parameter)
 	} else {
 		buzzer_ctl(1);
 	}
-
-
 	
 	while (1) {
 		rt_memset(buf,0,256);
-		rt_sprintf(buf,"led on , count : %d",count);
-#if 0
-		cc1101_send_write(buf,strlen(buf));
-		count++;
-#else
-		//cc1101_send_write(buf,strlen(buf));
-		//rt_hw_led_off(0);
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
@@ -281,8 +275,6 @@ void rt_init_thread_entry(void* parameter)
 			handleSub(buf1);			
 			count++;
 		}
-#endif
-		//rt_thread_delay(RT_TICK_PER_SECOND);
 	}
 }
 

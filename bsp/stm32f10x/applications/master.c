@@ -3,11 +3,13 @@
 #include <rtdevice.h>
 #include <dfs_posix.h>
 #include "master.h"
+#include "lcd.h"
 #define FQP_FILE	"/fqp.dat"
 #define MP_FILE		"/mp.dat"
 #define MAIN_STATION_PROTECT_ON 1
 #define MAIN_STATION_PROTECT_OFF 0
 #define DEFAULT_DOMAIN "kjfslkjflskdjfj"
+struct rt_event g_info_event;
 void dump_mp()
 {
 	int i;
@@ -149,4 +151,22 @@ int load_param()
 	}
 	close(fd);
 	return 1;
+}
+
+void info_user(void *param)
+{
+	rt_uint32_t ev;
+	
+	while (1) {
+		rt_event_recv( &(g_info_event), 0xffffffff, RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ); 
+		if (ev & INFO_EVENT_CODING) {
+			SetErrorCode(0x01);			
+		}
+		if (ev & INFO_EVENT_NORMAL) {
+			SetErrorCode(0x00);			
+		}
+		if (ev & INFO_EVENT_FACTORY_RESET) {
+			SetErrorCode(0x02);			
+		}
+	}
 }

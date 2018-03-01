@@ -1,5 +1,11 @@
 #ifndef _MASTER_H
 #define _MASTER_H
+
+#define INFO_EVENT_PCIE_NULL 				(1<<0)
+#define INFO_EVENT_CODING					(1<<1)
+#define INFO_EVENT_FACTORY_RESET			(1<<2)
+#define INFO_EVENT_NORMAL	 				(1<<3)
+
 struct IPAddress
 {
 	rt_uint8_t IP[4];
@@ -77,4 +83,5 @@ struct FangQuProperty
 struct FangQuProperty fqp;
 struct MachineProperty mp;
 int load_param();
+void info_user(void *param);
 #endif

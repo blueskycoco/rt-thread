@@ -25,7 +25,7 @@
 #include "stm32f10x_it.h"
 #include <board.h>
 #include <rtthread.h>
-
+#include "master.h"
 /** @addtogroup Template_Project
   * @{
   */
@@ -40,7 +40,7 @@
 /******************************************************************************/
 /*            Cortex-M3 Processor Exceptions Handlers                         */
 /******************************************************************************/
-
+extern	struct rt_event g_info_event;
 /**
   * @brief   This function handles NMI exception.
   * @param  None
@@ -159,14 +159,43 @@ void EXTI9_5_IRQHandler(void)
 	rt_interrupt_leave();
 }
 #else
+void ldelay()
+{
+	volatile long i,j;
+	for(i=0;i<100000;i++)
+		j=i;
+}
 void EXTI9_5_IRQHandler(void)
 {
+	rt_uint32_t i=0;
 	//extern void cc1101_isr(void);
+	rt_uint8_t g_main_state;
 	/* enter interrupt */
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line9))
 	{	 
 		rt_kprintf("code button int\r\n");
+		while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET)
+		{
+			i++;
+			ldelay();
+		}
+		if (i>100)
+		{
+			g_main_state = 2;			
+			rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
+		}
+		else if(i>20)
+		{
+			g_main_state = 1;			
+			rt_event_send(&(g_info_event), INFO_EVENT_CODING);
+		}
+		else
+		{
+			g_main_state = 0;			
+			rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
+		}
+		rt_kprintf("i is %d, state %d\r\n", i,g_main_state);
 		EXTI_ClearITPendingBit(EXTI_Line9);
 	}
 	/* leave interrupt */

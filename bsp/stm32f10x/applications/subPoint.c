@@ -10,28 +10,7 @@ rt_uint8_t stm32_id[] = {0xa1,0x18,0x01,0x02,0x12,0x34};
 rt_uint32_t g_addr[60] = {0x00};
 rt_uint8_t base_addr = 2;
 rt_uint8_t addr_cnt = 0;
-unsigned short CRC1(unsigned char *Data,unsigned char Data_length)
-{
-	unsigned int mid=0;
-	unsigned char times=0,Data_index=0;
-	unsigned short CRC_data=0xFFFF;
-	while(Data_length)
-	{
-		CRC_data=Data[Data_index]^CRC_data;
-		for(times=0;times<8;times++)
-		{
-			mid=CRC_data;
-			CRC_data=CRC_data>>1;
-			if(mid & 0x0001)
-			{
-				CRC_data=CRC_data^0xA001;
-			}
-		}
-		Data_index++;
-		Data_length--;
-	}
-	return CRC_data;
-}
+rt_uint8_t g_main_state = 0; /*0 normal , 1 code, 2 factory reset*/
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -114,7 +93,7 @@ void handleSub(rt_uint8_t *data)
 	}
 	
 	len = data[4];
-	unsigned short crc = CRC1(data, len+3);
+	unsigned short crc = CRC_check(data, len+3);
 	/*check crc*/
 	if (crc != (data[len+3] << 8 | data[len+4]))
 	{
@@ -159,7 +138,7 @@ void handleSub(rt_uint8_t *data)
 			resp[18] = cur_status;
 		}
 		resp[4]=16;
-		unsigned short crc = CRC1(resp,19);
+		unsigned short crc = CRC_check(resp,19);
 		resp[19]=(crc>>8) & 0xff;
 		resp[20]=(crc) & 0xff;
 		cc1101_send_write(resp,21);
