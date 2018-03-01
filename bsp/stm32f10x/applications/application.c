@@ -38,6 +38,7 @@
 #include "string.h"
 #include "subPoint.h"
 #include "master.h"
+#include "pcie.h"
 #define NO_ERROR				0x00000000
 #define ERROR_SPI_HW			0x00000001
 #define ERROR_SPI_MOUNT			0x00000002
@@ -193,16 +194,6 @@ void rt_init_thread_entry(void* parameter)
 		SetErrorCode(err_code);
 	}
 	rt_kprintf("cc1101 init done , err 0x%08x\r\n",err_code);
-	if (pcie_status |= check_pcie(0))
-		rt_kprintf("PCIE 1 insert %x\r\n", pcie_status);
-	if (pcie_status |= check_pcie(1))
-		rt_kprintf("PCIE 2 insert %x\r\n", pcie_status);
-	if (pcie_status == 0)
-	{
-		err_code |= ERROR_PCIE_NULL;
-		SetErrorCode(err_code);
-	}
-	rt_kprintf("pcie identify done , err 0x%08x\r\n",err_code);
 	if (!load_param()) {
 		rt_kprintf("load param failed\r\n");
 		err_code |= ERROR_LOAD_PARAM;
@@ -245,6 +236,32 @@ void rt_init_thread_entry(void* parameter)
 	rt_hw_led_on(NET_LED);
 	//rt_thread_delay( RT_TICK_PER_SECOND );	
 	SetErrorCode(err_code);
+	pcie_status |= check_pcie(0);
+	rt_kprintf("PCIE 1 insert %x\r\n", pcie_status);
+	pcie_status |= check_pcie(1);
+	rt_kprintf("PCIE 2 insert %x\r\n", pcie_status);
+	if (pcie_status == 0)
+	{
+		err_code |= ERROR_PCIE_NULL;
+		SetErrorCode(err_code);
+	}
+		rt_kprintf("pcie identify done , err 0x%08x\r\n",err_code);
+	if ((pcie_status & PCIE_2_M26) && (pcie_status & PCIE_1_EC20))
+	{
+		pcie_init(PCIE_1_EC20,PCIE_2_M26);
+		pcie_switch(PCIE_1_EC20);
+	} else if(pcie_status & PCIE_2_M26) {
+		pcie_init(0,PCIE_2_M26);
+		pcie_switch(PCIE_2_M26);
+	} else if(pcie_status & PCIE_1_EC20) {
+		pcie_init(PCIE_1_EC20,0);
+		pcie_switch(PCIE_1_EC20);
+	} else {
+		buzzer_ctl(1);
+	}
+
+
+	
 	while (1) {
 		rt_memset(buf,0,256);
 		rt_sprintf(buf,"led on , count : %d",count);

@@ -5,19 +5,15 @@
 #include <string.h>
 #include "m26.h"
 #include "ec20.h"
-#include "nb_iot.h"
-#include "ip_module.h"
+//#include "nb_iot.h"
+//#include "ip_module.h"
 #include "pcie.h"
 #include "bsp_misc.h"
-typedef struct _pcie_param {
-	rt_device_t dev;
-	struct rt_event event;
-	struct rt_mutex lock;
-	struct rt_semaphore sem;
-}pcie_param,*ppcie_param;
-ppcie_param g_pcie[2];
-rt_uint8_t pcie_init(rt_uint8_t type);
-rt_uint8_t pcie_switch(rt_uint8_t type);
+rt_uint8_t g_type0 = 0;
+rt_uint8_t g_type1 = 0;
+int g_index = 0;
+//rt_uint8_t pcie_init(rt_uint8_t type);
+//rt_uint8_t pcie_switch(rt_uint8_t type);
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&(g_pcie[0]->sem));
@@ -34,7 +30,7 @@ static void pcie1_rcv(void* parameter)
 	uint8_t *buf = rt_malloc(1600);
 	while(1)	
 	{			
-		rt_sem_take(&&(g_pcie[1]->sem), RT_WAITING_FOREVER);
+		rt_sem_take(&(g_pcie[1]->sem), RT_WAITING_FOREVER);
 		while (1) {
 			len = rt_device_read(g_pcie[1]->dev, 0, &(buf[total_len]) , 1600-total_len);
 
@@ -62,7 +58,7 @@ static void pcie0_rcv(void* parameter)
 	uint8_t *buf = rt_malloc(1600);
 	while(1)	
 	{			
-		rt_sem_take(&&(g_pcie[0]->sem), RT_WAITING_FOREVER);
+		rt_sem_take(&(g_pcie[0]->sem), RT_WAITING_FOREVER);
 		while (1) {
 			len = rt_device_read(g_pcie[0]->dev, 0, &(buf[total_len]) , 1600-total_len);
 
@@ -88,24 +84,25 @@ void pcie1_sm(void* parameter)
 {
 	rt_size_t data_size;
 	const void *last_data_ptr = RT_NULL;
+	rt_kprintf("pcie1 sm %d\r\n", g_type1);
 	while (1) 
 	{
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[1], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 		if (r == RT_EOK && last_data_ptr != RT_NULL) {
 			/*call different module handle function*/
-			switch (*(rt_uint8_t *)parameter) 
+			switch (g_type1) 
 			{
 				case PCIE_2_IP:
-					ip_module_proc(last_data_ptr, data_size);
+					//ip_module_proc(last_data_ptr, data_size);
 					break;
 				case PCIE_2_M26:
-					m26_proc(last_data_ptr, data_size);
+					m26_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_2_EC20:
-					ec20_proc(last_data_ptr, data_size);
+					//ec20_proc(last_data_ptr, data_size);
 					break;
 				case PCIE_2_NBIOT:
-					nb_iot_proc(last_data_ptr, data_size);
+					//nb_iot_proc(last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie1 unknown sm\r\n");
@@ -122,24 +119,25 @@ void pcie0_sm(void* parameter)
 {
 	rt_size_t data_size;
 	const void *last_data_ptr = RT_NULL;
+	rt_kprintf("pcie0 sm %d\r\n", g_type0);
 	while (1) 
 	{
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[0], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 		if (r == RT_EOK && last_data_ptr != RT_NULL) {
 			/*call different module handle function*/
-			switch (*(rt_uint8_t *)parameter) 
+			switch (g_type0) 
 			{
 				case PCIE_1_IP:
-					ip_module_proc(last_data_ptr, data_size);
+					//ip_module_proc(last_data_ptr, data_size);
 					break;
 				case PCIE_1_M26:
-					m26_proc(last_data_ptr, data_size);
+					m26_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_1_EC20:
 					ec20_proc(last_data_ptr, data_size);
 					break;
 				case PCIE_1_NBIOT:
-					nb_iot_proc(last_data_ptr, data_size);
+					//nb_iot_proc(last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie0 unknown sm\r\n");
@@ -165,13 +163,53 @@ void server_proc(void* parameter)
 		rt_free((void *)last_data_ptr);
 	}
 }
+rt_err_t gprs_wait_event(int timeout)
+{
+	rt_uint32_t ev;
+	return rt_event_recv( &(g_pcie[g_index]->event), GPRS_EVENT_0, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, timeout, &ev ); 
+}
+void send_process(void* parameter)
+{
+	int i=0;
+	while(1)	{		
+		char id[10] = {0};	
+		char data[10] = {0};
+		rt_thread_delay(500);
+		rt_sprintf(id, "id>%d", i);
+		rt_sprintf(data, "data>%d", i);
+		char *json = add_item(RT_NULL,id, data);
+		json = add_item(json,"id1", "data1");
+		json = add_item(json,"id2", "data2");
+		json = add_item(json,"id3", "data3");
+		if (json != RT_NULL) {		
+			int len = rt_strlen(json) + 2;
+			//uint8_t *buf = (uint8_t *)rt_malloc(len + 4);
+			//buf[0] = DATA_BEGIN0;buf[1] = DATA_BEGIN1;
+			//buf[2] = (len >> 8) & 0xff;
+			//buf[3] = len & 0xff;
+			//rt_memcpy(buf+4, json, rt_strlen(json));
+			//rt_uint16_t crc = CRC_check(buf, len+2);
+			//buf[len+2] = (crc >> 8) & 0xff;
+			//buf[len+3] = crc & 0xff;
+			//rt_kprintf("push ptr %p\r\n",buf);
+			rt_kprintf("push ptr %p\r\n",json);
+			//rt_data_queue_push(&g_data_queue[1], buf, len+4, RT_WAITING_FOREVER);
+			rt_data_queue_push(&g_data_queue[2], json, rt_strlen(json), RT_WAITING_FOREVER);
+			gprs_wait_event(RT_WAITING_FOREVER);
+			rt_free(json);
+			//rt_free(buf);
+			i++;
+		} else 
+			rt_kprintf("send process malloc failed\r\n");
+	}
+}
 
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 {
 	rt_uint8_t index;
 	g_type0 = type0;
 	g_type1 = type1;
-	g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
+	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {
 		g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));
 		g_pcie[0]->dev = rt_device_find("uart3"); //PCIE1	
@@ -201,14 +239,15 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	if (type0) {
 		rt_device_set_rx_indicate(g_pcie[0]->dev, pcie0_rx_ind);
 		rt_thread_startup(rt_thread_create("pcie0_rcv",pcie0_rcv, 0,1524, 20, 10));
-		rt_thread_startup(rt_thread_create("pcie0_sm", pcie0_sm,  (void *)&type0,2048, 20, 10));
+		rt_thread_startup(rt_thread_create("pcie0_sm", pcie0_sm,  0,2048, 20, 10));
 	}
 	if (type1) {
 		rt_device_set_rx_indicate(g_pcie[1]->dev, pcie1_rx_ind);
 		rt_thread_startup(rt_thread_create("pcie1_rcv",pcie1_rcv, 0,1524, 20, 10));
-		rt_thread_startup(rt_thread_create("pcie1_sm", pcie1_sm,  (void *)&type1,2048, 20, 10));
+		rt_thread_startup(rt_thread_create("pcie1_sm", pcie1_sm,  0,2048, 20, 10));
 	}
 	rt_thread_startup(rt_thread_create("server",server_proc, 0,2048, 20, 10));
+	//rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,1024, 20, 10));
 	return 1;
 }
 
@@ -217,7 +256,7 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 	switch (type) 
 	{
 		case PCIE_1_IP:
-			ip_module_start(0);
+			//ip_module_start(0);
 			break;
 		case PCIE_1_M26:
 			m26_start(0);
@@ -226,22 +265,45 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			ec20_start(0);
 			break;
 		case PCIE_1_NBIOT:
-			nb_iot_start(0);
+			//nb_iot_start(0);
 			break;
 		case PCIE_2_IP:
-			ip_module_start(1);
+			//ip_module_start(1);
 			break;
 		case PCIE_2_M26:
 			m26_start(1);
 			break;
 		case PCIE_2_EC20:
-			ec20_start(1);
+			//ec20_start(1);
 			break;
 		case PCIE_2_NBIOT:
-			nb_iot_start(1);
+			//nb_iot_start(1);
 			break;
 		default:
 			rt_kprintf("uninsert module on pcie\r\n");
 			break;
 	}	
 }
+rt_uint8_t check_pcie(rt_uint8_t num) {
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	if (num == 0) {
+		/*pcie1_cd pd11*/		
+		GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_11;
+		GPIO_Init(GPIOD, &GPIO_InitStructure);
+		if (GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_11) == SET)
+			return 0;
+		return PCIE_1_EC20;
+		/*TODO: more check on IO*/
+	} else {
+		/*pcie2_cd pe15*/		
+		GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_15;
+		GPIO_Init(GPIOE, &GPIO_InitStructure);
+		if (GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_15) == SET)
+			return 0;
+		return PCIE_2_M26;
+		/*TODO: more check on IO*/
+	}
+}
+

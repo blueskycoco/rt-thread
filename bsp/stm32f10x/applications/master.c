@@ -3,8 +3,6 @@
 #include <rtdevice.h>
 #include <dfs_posix.h>
 #include "master.h"
-struct FangQuProperty fqp;
-struct MachineProperty mp;
 #define FQP_FILE	"/fqp.dat"
 #define MP_FILE		"/mp.dat"
 #define MAIN_STATION_PROTECT_ON 1

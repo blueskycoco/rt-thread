@@ -74,5 +74,7 @@ struct FangQuProperty
 	rt_uint8_t	  PGM;
 	rt_uint8_t	  is_lamp;
 };
+struct FangQuProperty fqp;
+struct MachineProperty mp;
 int load_param();
 #endif

@@ -9,6 +9,15 @@
 #define PCIE_1_NBIOT	0x40
 #define PCIE_2_NBIOT	0x80
 struct rt_data_queue *g_data_queue;
-rt_uint8_t g_type0 = 0;
-rt_uint8_t g_type1 = 0;
+typedef struct _pcie_param {
+	rt_device_t dev;
+	struct rt_event event;
+	struct rt_mutex lock;
+	struct rt_semaphore sem;
+}pcie_param,*ppcie_param;
+ppcie_param g_pcie[2];
+#define GPRS_EVENT_0 (1<<0)
+rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1);
+rt_uint8_t pcie_switch(rt_uint8_t type);
+rt_uint8_t check_pcie(rt_uint8_t num);
 #endif

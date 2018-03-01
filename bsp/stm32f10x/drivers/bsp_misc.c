@@ -139,4 +139,17 @@ char *add_obj(char *old,char *id,char *pad)
 	rt_free(pad);
 	return out;
 }
+void gprs_at_cmd(rt_device_t dev, const char *cmd)
+{
+	if (strcmp(cmd, "AT\r\n") != 0)
+		rt_kprintf("=> %s",cmd);
+	rt_device_write(dev, 0, (void *)cmd, rt_strlen(cmd));
+}
+rt_bool_t have_str(const char *str, const char *magic)
+{
+	if (strstr(str, magic) != RT_NULL)
+		return RT_TRUE;
+
+	return RT_FALSE;
+}
 

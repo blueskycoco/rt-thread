@@ -7,10 +7,12 @@ cwd = os.path.join(str(Dir('#')), 'applications')
 src = Split("""
 application.c
 startup.c
-gprs.c
 subPoint.c
 readwrite.c
 master.c
+m26.c
+ec20.c
+pcie.c
 """)
 
 if GetDepend('RT_USING_CAN'):
