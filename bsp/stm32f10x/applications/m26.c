@@ -452,6 +452,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_m26_state = M26_STATE_DATA_PROCESSING;
 					/*send data here */
 					rt_kprintf("connect to server ok\r\n");
+					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 					gprs_at_cmd(g_dev_m26,qiat);
 				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
 					g_m26_state = M26_STATE_SET_QIDEACT;

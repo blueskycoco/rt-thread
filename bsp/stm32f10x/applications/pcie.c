@@ -8,6 +8,7 @@
 //#include "nb_iot.h"
 //#include "ip_module.h"
 #include "pcie.h"
+#include "master.h"
 #include "bsp_misc.h"
 rt_uint8_t g_type0 = 0;
 rt_uint8_t g_type1 = 0;
@@ -171,37 +172,34 @@ rt_err_t gprs_wait_event(int timeout)
 void send_process(void* parameter)
 {
 	int i=0;
-	while(1)	{		
-		char id[10] = {0};	
-		char data[10] = {0};
+	char login[40] = {0};
+	gprs_wait_event(RT_WAITING_FOREVER);
+	while(1)	{
 		rt_thread_delay(500);
-		rt_sprintf(id, "id>%d", i);
-		rt_sprintf(data, "data>%d", i);
-		char *json = add_item(RT_NULL,id, data);
-		json = add_item(json,"id1", "data1");
-		json = add_item(json,"id2", "data2");
-		json = add_item(json,"id3", "data3");
-		if (json != RT_NULL) {		
-			int len = rt_strlen(json) + 2;
-			//uint8_t *buf = (uint8_t *)rt_malloc(len + 4);
-			//buf[0] = DATA_BEGIN0;buf[1] = DATA_BEGIN1;
-			//buf[2] = (len >> 8) & 0xff;
-			//buf[3] = len & 0xff;
-			//rt_memcpy(buf+4, json, rt_strlen(json));
-			//rt_uint16_t crc = CRC_check(buf, len+2);
-			//buf[len+2] = (crc >> 8) & 0xff;
-			//buf[len+3] = crc & 0xff;
-			//rt_kprintf("push ptr %p\r\n",buf);
-			//rt_kprintf("push ptr %p\r\n",json);
-			//rt_data_queue_push(&g_data_queue[1], buf, len+4, RT_WAITING_FOREVER);
-			rt_data_queue_push(&g_data_queue[2], json, rt_strlen(json), RT_WAITING_FOREVER);
-			gprs_wait_event(RT_WAITING_FOREVER);
-			rt_free(json);
-			//rt_free(buf);
-			i++;
-		} else 
-			rt_kprintf("send process malloc failed\r\n");
-	}
+		login[0]=0xad;
+		login[1]=0x00;//len
+		login[2]=0x12;
+		login[3]=0x00;
+		login[4]=0x00;//login
+		login[5]=0x01;		
+		login[6]=0x00;//v
+		login[7]=0x00;
+		memcpy(login+8,mp.roProperty.sn,6);
+		login[14]=g_pcie[g_index]->csq;
+		login[15]=0x20|0x06;
+		memcpy(login+16,g_pcie[g_index]->qccid,10);
+		memcpy(login+26,g_pcie[g_index]->imei,8);
+		login[2]=36;
+		rt_uint16_t crc = CRC_check(login+1,33);
+		login[34]=(crc<<8)&0xff;
+		login[35]=crc&0xff;
+		for(i=0;i<36;i++)
+			rt_kprintf("login[%02d] = 0x%02x\r\n",i,login[i]);
+		
+		rt_data_queue_push(&g_data_queue[2], login, 36, RT_WAITING_FOREVER);
+		gprs_wait_event(RT_WAITING_FOREVER);		
+		}
+	
 }
 
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
@@ -247,7 +245,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		rt_thread_startup(rt_thread_create("pcie1_sm", pcie1_sm,  0,2048, 20, 10));
 	}
 	rt_thread_startup(rt_thread_create("server",server_proc, 0,2048, 20, 10));
-	//rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,1024, 20, 10));
+	rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,1024, 20, 10));
 	return 1;
 }
 
