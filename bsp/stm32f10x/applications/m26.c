@@ -29,9 +29,15 @@
 #define M26_STATE_DATA_ACK			18
 #define M26_STATE_DATA_PRE_WRITE	19
 #define M26_STATE_ATE0 				21
+#define M26_STATE_CSQ				22
+#define M26_STATE_LAC				23
+#define M26_STATE_ICCID				24
+#define M26_STATE_IMEI				25
 
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
+#define STR_CSQ						"+CSQ:"
+#define STR_CREG					"+CREG:"
 #define STR_CPIN_READY				"+CPIN: READY"
 #define STR_CGREG					"+CGREG: 0,"
 #define STR_CGREG_READY				"+CGREG: 0,1"
@@ -76,6 +82,11 @@
 #define qilport "AT+QILPORT?\r\n"
 #define e0 "ATE0\r\n"
 #define cgreg "AT+CGREG?\r\n"
+#define creg "AT+CREG=2\r\n"
+#define at_csq "AT+CSQ\r\n"
+#define at_qccid "AT+QCCID\r\n"
+#define gsn "AT+GSN\r\n"
+
 #define cimi "AT+CIMI\r\n"
 #define cpin "AT+CPIN?\r\n"
 #define qifgcnt "AT+QIFGCNT=0\r\n"
@@ -216,7 +227,9 @@ void m26_start(int index)
 
 void m26_proc(void *last_data_ptr, rt_size_t data_size)
 {
-	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL)
+	int i=0;
+	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
+	//if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL)
 		rt_kprintf("\r\n(M26<= %d %d %s)\r\n",g_m26_state, data_size,last_data_ptr);
 	if (data_size >= 2) {
 		switch (g_m26_state) {
@@ -244,13 +257,75 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_thread_delay(100);
 					gprs_at_cmd(g_dev_m26,cpin);
 				}
-
 				break;
+			case M26_STATE_CSQ:
+				if (have_str(last_data_ptr,STR_CSQ)) {
+					g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
+					rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
+					g_m26_state = M26_STATE_LAC;
+					gprs_at_cmd(g_dev_m26,creg);
+				} 
+				break;
+			case M26_STATE_LAC:
+				//if (have_str(last_data_ptr,STR_CREG)) {
+					g_m26_state = M26_STATE_ICCID;
+					gprs_at_cmd(g_dev_m26,at_qccid);
+				//} 
+				break;
+			case M26_STATE_ICCID:
+					i=2;
+					while(tmp[i]!='\r')
+					{
+						if (tmp[i]>='0' && tmp[i]<='9')
+							g_pcie[g_index]->qccid[i/2-1] = (tmp[i]-0x30)*16;
+						else if (tmp[i]>='a' && tmp[i]<='f')
+							g_pcie[g_index]->qccid[i/2-1] = (tmp[i]-'a'+10)*16;
+						else if (tmp[i]>='A' && tmp[i]<='F')
+							g_pcie[g_index]->qccid[i/2-1] = (tmp[i]-'A'+10)*16;
+
+						if (tmp[i+1]>='0' && tmp[i+1]<='9')
+							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+1]-0x30);
+						else if (tmp[i+1]>='a' && tmp[i+1]<='f')
+							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+1]-'a'+10);
+						else if (tmp[i+1]>='A' && tmp[i+1]<='F')
+							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+1]-'A'+10);
+						rt_kprintf("qccid[%d] = %02X\r\n",i/2,g_pcie[g_index]->qccid[i/2-1]);
+						i+=2;						
+					}					
+					g_m26_state = M26_STATE_IMEI;
+					gprs_at_cmd(g_dev_m26,gsn);
+					break;
+			case M26_STATE_IMEI:
+				g_pcie[g_index]->imei[0]=0x0;
+				i=2;//866159032379171
+				while(tmp[i]!='\r' && i<17)
+				{
+					if (tmp[i]>='0' && tmp[i]<='9')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i]-0x30);
+					else if (tmp[i]>='a' && tmp[i]<='f')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i]-'a'+10);
+					else if (tmp[i]>='A' && tmp[i]<='F')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i]-'A'+10);
+					rt_kprintf("imei[%d] = %02X\r\n",i/2,g_pcie[g_index]->imei[i/2-1]);
+					//i+=2;
+					if (tmp[i+1]>='0' && tmp[i+1]<='9')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+1]-0x30)*16;
+					else if (tmp[i+1]>='a' && tmp[i+1]<='f')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+1]-'a'+10)*16;
+					else if (tmp[i+1]>='A' && tmp[i+1]<='F')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+1]-'A'+10)*16;
+				
+					i+=2;						
+				}					
+					g_m26_state = M26_STATE_CHECK_QISTAT;
+					gprs_at_cmd(g_dev_m26,qistat);
+					break;
 			case M26_STATE_CHECK_CGREG:
 				if (have_str(last_data_ptr, STR_CGREG_READY) ||
 						have_str(last_data_ptr, STR_CGREG_READY1)) {
-					g_m26_state = M26_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_m26,qistat);
+					//g_m26_state = M26_STATE_CHECK_QISTAT;
+					g_m26_state = M26_STATE_CSQ;
+					gprs_at_cmd(g_dev_m26,at_csq);
 				} else if(have_str(last_data_ptr, STR_CGREG)) {
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_m26,cgreg);

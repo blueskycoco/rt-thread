@@ -4,10 +4,11 @@
 #include "cJSON.h"
 #include <rtthread.h>
 #include "bsp_misc.h"
-unsigned int CRC_check(unsigned char *Data,unsigned char Data_length)
+unsigned int CRC_check(unsigned char *Data,unsigned short Data_length)
 {
 	unsigned int mid=0;
-	unsigned char times=0,Data_index=0;
+	unsigned char times=0;
+	unsigned short Data_index=0;
 	unsigned int CRC=0xFFFF;
 	while(Data_length)
 	{

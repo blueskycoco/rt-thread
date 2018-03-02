@@ -14,6 +14,10 @@ typedef struct _pcie_param {
 	struct rt_event event;
 	struct rt_mutex lock;
 	struct rt_semaphore sem;
+	rt_uint8_t csq;
+	rt_uint32_t lac_ci;
+	rt_uint8_t qccid[10];
+	rt_uint8_t imei[8];	
 }pcie_param,*ppcie_param;
 ppcie_param g_pcie[2];
 #define GPRS_EVENT_0 (1<<0)

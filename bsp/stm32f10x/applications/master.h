@@ -61,13 +61,12 @@ struct FangQu
 	rt_uint8_t  	status;
 	rt_uint32_t 	slave_sn;
 	rt_uint8_t  	slave_type;
-	rt_uint8_t   		slave_model[4];
+	rt_uint32_t   		slave_model;
 	rt_uint32_t 	slave_batch;
 };
 
 struct FangQuProperty
-{
-   	struct FangQu    fangquList[140];
+{   	
 	rt_uint8_t   delay_in;
 	rt_uint8_t   delya_out;
 	rt_uint8_t   delay_bufang;
@@ -80,8 +79,10 @@ struct FangQuProperty
 	rt_uint8_t	  PGM;
 	rt_uint8_t	  is_lamp;
 };
+struct FangQu    fangquList[140];
 struct FangQuProperty fqp;
 struct MachineProperty mp;
 int load_param();
+void save_param(int type);
 void info_user(void *param);
 #endif

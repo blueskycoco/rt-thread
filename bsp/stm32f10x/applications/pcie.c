@@ -134,7 +134,7 @@ void pcie0_sm(void* parameter)
 					m26_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_1_EC20:
-					ec20_proc(last_data_ptr, data_size);
+					ec20_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_1_NBIOT:
 					//nb_iot_proc(last_data_ptr, data_size);

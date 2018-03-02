@@ -139,10 +139,7 @@ void rt_init_thread_entry(void* parameter)
 	else
 	{
 		rt_kprintf("w25 init ok\r\n");
-		//if (0 == dfs_mkfs("elm","sd0"))
-		//	rt_kprintf("mkfs sd0 ok\r\n");
-		//else
-		//	rt_kprintf("mkfs sd0 failed\r\n");
+		//dfs_mkfs("elm","sd0");
 
 		if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
 		{

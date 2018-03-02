@@ -169,7 +169,7 @@ void EXTI9_5_IRQHandler(void)
 {
 	rt_uint32_t i=0;
 	//extern void cc1101_isr(void);
-	rt_uint8_t g_main_state;
+	extern rt_uint8_t g_main_state;
 	/* enter interrupt */
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line9))
