@@ -118,7 +118,6 @@ void handle_m26_server_in(const void *last_data_ptr)
 	static rt_bool_t flag = RT_FALSE;
 	if (have_str(last_data_ptr, STR_TCP))
 	{	
-		rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
 		uint8_t *begin = (uint8_t *)strstr(last_data_ptr,STR_QIRD);
 		uint8_t *pos = RT_NULL;
 		if (begin == RT_NULL)
@@ -241,7 +240,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
-	//if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL)
+	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL)
 		rt_kprintf("\r\n(M26<= %d %d %s)\r\n",g_m26_state, data_size,last_data_ptr);
 	if (data_size >= 2) {
 		switch (g_m26_state) {
@@ -491,7 +490,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			case M26_STATE_DATA_PROCESSING:
 				if (have_str(last_data_ptr, STR_QIRDI)||
 						have_str(last_data_ptr, STR_QIURC)) {
-					/*server data in */
+					/*server data in */					
+					rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
 					g_m26_state = M26_STATE_DATA_READ;
 					gprs_at_cmd(g_dev_m26,qird);
 					server_len_m26 = 0;
