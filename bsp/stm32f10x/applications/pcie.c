@@ -151,16 +151,87 @@ void pcie0_sm(void* parameter)
 		}
 	}
 }
+/*ADAE0003000102ADAE0400010203ADAE050001020304ADAE*/
+rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
+{
+	int i=0;
+	int cnt=0;
+	rt_uint16_t packet_len[5];
+	rt_uint8_t index[5];
+	rt_uint16_t crc[5];
+	for (i=0; i<len; i++)
+	{
+		//rt_kprintf("data %x\r\n",data[i]);
+		if (data[i] == 0xAD && data[i+1] == 0xAC)
+		{
+			rt_kprintf("we got ADAC %d\r\n",i);
+			if (i+2 > len)
+			{
+				rt_kprintf("return 1 %d %d\r\n", i+2,len);
+				return 0;
+			}
+			packet_len[cnt] = (data[i+2]<<8)|data[i+3];
+			index[cnt]=i+4;
+			if (i+packet_len[cnt]-2 >len)
+			{
+				rt_kprintf("return 2 %d %d\r\n", i+packet_len[cnt]-2,len);
+				return 0;
+			}
+			crc[cnt]=(data[i+packet_len[cnt]-2]<<8)|data[i+packet_len[cnt]-1];
+			rt_kprintf("Found 0xAD 0xAC at %d, len %d, crc %x\r\n", index[cnt],packet_len[cnt],crc[cnt]);
+			if (crc[cnt] == CRC_check(data+i+2,packet_len[cnt]-4))
+			{
+				rt_kprintf("packet %d, CRC is match\r\n",index[cnt]);
+				handle_packet(data+index[cnt]);
+			} else {
+				rt_kprintf("packet %d, CRC not match %x %x\r\n", index[cnt],crc[cnt],CRC_check(data+i+2,packet_len[cnt]-4));
+			}
+			cnt++;
+		}
+	}
+	
+}
 void server_proc(void* parameter)
 {	
 	rt_size_t data_size;
 	const void *last_data_ptr = RT_NULL;
+	rt_uint8_t *tmp_buf = RT_NULL;
 	while (1) {
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[3], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 		rt_kprintf("<<%d ",data_size);
-		for (int i=0; i<data_size;i++)
-			rt_kprintf("%c", ((char *)last_data_ptr)[i]);
+		tmp_buf = (rt_uint8_t *)rt_malloc((data_size/2)*sizeof(rt_uint8_t));
+		for (int i=0; i<data_size;i=i+2)
+		{
+			if (((char *)last_data_ptr)[i] >= 'a' && ((char *)last_data_ptr)[i] <= 'z')
+			{
+				tmp_buf[i/2]=((char *)last_data_ptr)[i]-'a'+10;
+			}
+			else if (((char *)last_data_ptr)[i] >= 'A' && ((char *)last_data_ptr)[i] <= 'Z')
+			{
+				tmp_buf[i/2]=((char *)last_data_ptr)[i]-'A'+10;
+			}
+			else if (((char *)last_data_ptr)[i] >= '0' && ((char *)last_data_ptr)[i] <= '9')
+			{
+				tmp_buf[i/2]=((char *)last_data_ptr)[i]-'0';
+			}
+			
+			if (((char *)last_data_ptr)[i+1] >= 'a' && ((char *)last_data_ptr)[i+1] <= 'z')
+			{
+				tmp_buf[i/2]=(tmp_buf[i/2] << 4)|(((char *)last_data_ptr)[i+1]-'a'+10);
+			}
+			else if (((char *)last_data_ptr)[i+1] >= 'A' && ((char *)last_data_ptr)[i+1] <= 'Z')
+			{
+				tmp_buf[i/2]=(tmp_buf[i/2] << 4)|(((char *)last_data_ptr)[i+1]-'A'+10);
+			}
+			else if (((char *)last_data_ptr)[i+1] >= '0' && ((char *)last_data_ptr)[i+1] <= '9')
+			{
+				tmp_buf[i/2]=(tmp_buf[i/2] << 4)|(((char *)last_data_ptr)[i+1]-'0');
+			}
+			rt_kprintf("%x ", tmp_buf[i/2]);
+		}
 		rt_kprintf(">>\r\n");
+		handle_server((rt_uint8_t *)tmp_buf,data_size/2);
+		rt_free(tmp_buf);
 		rt_free((void *)last_data_ptr);
 	}
 }
@@ -172,32 +243,42 @@ rt_err_t gprs_wait_event(int timeout)
 void send_process(void* parameter)
 {
 	int i=0;
-	char login[40] = {0};
+	char login[45] = {0};
 	gprs_wait_event(RT_WAITING_FOREVER);
 	while(1)	{
 		rt_thread_delay(500);
+		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
 		login[0]=0xad;
-		login[1]=0x00;//len
-		login[2]=0x12;
-		login[3]=0x00;
-		login[4]=0x00;//login
-		login[5]=0x01;		
-		login[6]=0x00;//v
-		login[7]=0x00;
-		memcpy(login+8,mp.roProperty.sn,6);
-		login[14]=g_pcie[g_index]->csq;
-		login[15]=0x20|0x06;
-		memcpy(login+16,g_pcie[g_index]->qccid,10);
-		memcpy(login+26,g_pcie[g_index]->imei,8);
-		login[2]=36;
-		rt_uint16_t crc = CRC_check(login+1,33);
-		login[34]=(crc<<8)&0xff;
-		login[35]=crc&0xff;
-		for(i=0;i<36;i++)
+		login[1]=0xac;
+		login[2]=0x00;//len
+		login[3]=0x12;
+		login[4]=0x00;
+		login[5]=0x00;//login
+		login[6]=0x01;		
+		login[7]=0x00;//v
+		login[8]=0x00;
+		memcpy(login+9,mp.roProperty.sn,6);
+		login[15]=g_pcie[g_index]->csq;
+		login[16]=0x4d;
+		login[17]=0x4e;
+		login[18]=0x4f;
+		login[19]=0x50;
+		login[20]=0x51;
+		login[21]=0x52;
+		login[22]=0x20|0x06;
+		memcpy(login+23,g_pcie[g_index]->qccid,10);
+		memcpy(login+33,g_pcie[g_index]->imei,8);
+		login[3]=43;
+		rt_uint16_t crc = CRC_check(login+2,39);
+		rt_kprintf("crc is %x\r\n",crc);
+		login[41]=(crc>>8)&0xff;
+		login[42]=crc&0xff;
+		for(i=0;i<43;i++)
 			rt_kprintf("login[%02d] = 0x%02x\r\n",i,login[i]);
 		
-		rt_data_queue_push(&g_data_queue[2], login, 36, RT_WAITING_FOREVER);
-		gprs_wait_event(RT_WAITING_FOREVER);		
+		rt_data_queue_push(&g_data_queue[2], login, 43, RT_WAITING_FOREVER);
+		gprs_wait_event(RT_WAITING_FOREVER);	
+		rt_mutex_release(&(g_pcie[g_index]->lock));
 		}
 	
 }

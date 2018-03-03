@@ -233,6 +233,13 @@ int load_param()
 			rt_free(tmp_fangquList);
 			return 0;
 		}
+		
+		mp.roProperty.sn[5] = 0x45;;
+		mp.roProperty.sn[4] = 0x23;
+		mp.roProperty.sn[3] = 0x21;
+		mp.roProperty.sn[2] = 0x01;
+		mp.roProperty.sn[1] = 0x18;
+		mp.roProperty.sn[0] = 0xa1;
 		dump_fqp(tmp_fqp,tmp_fangquList);
 		memcpy(fangquList,tmp_fangquList,sizeof(struct FangQu)*140);
 		rt_free(tmp_fangquList);
@@ -306,4 +313,77 @@ void info_user(void *param)
 			SetErrorCode(0x02);			
 		}
 	}
+}
+void handle_login_ack(rt_uint8_t *cmd)
+{
+	rt_kprintf("login ack\r\n");
+	rt_kprintf("status %x\r\n",cmd[0]);
+	rt_kprintf("\r\nServer Time: %x%x%x%x%x%x%x\r\n",
+	cmd[1],cmd[2],cmd[3],
+	cmd[4],cmd[5],cmd[6],
+	cmd[7]);
+	rt_kprintf("len %d\r\n",cmd[8]);
+	if (cmd[8] != 0) {
+		rt_kprintf("new IP: ");
+		for (int i=9;i<cmd[8]+9;i++)
+			rt_kprintf("%c",cmd[i]);
+	}
+}
+void handle_heart_beat_ack(rt_uint8_t *cmd)
+{
+}
+void handle_t_logout_ack(rt_uint8_t *cmd)
+{
+}
+void handle_alarm_trap_ack(rt_uint8_t *cmd)
+{
+}
+void handle_get_address_ack(rt_uint8_t *cmd)
+{
+}
+
+rt_uint8_t handle_packet(rt_uint8_t *data)
+{
+	int i=0;
+	rt_uint8_t water_no = data[0];
+	rt_uint16_t packet_type = (data[1]<<8)|data[2];
+	rt_uint16_t protocl_v = (data[3]<<8)|data[4];
+	rt_uint8_t stm32_id[6];
+	memcpy(stm32_id, data+5,6);
+	rt_kprintf("water no %d\r\n", water_no);
+	rt_kprintf("pacet type %x\r\n", packet_type);
+	rt_kprintf("protol version %d\r\n", protocl_v);
+	rt_kprintf("sn %02x%02x%02x%02x%02x%02x\r\n",
+		stm32_id[0],stm32_id[1],stm32_id[2],
+		stm32_id[3],stm32_id[4],stm32_id[5]);
+	if (memcmp(stm32_id,mp.roProperty.sn,6) != 0)
+	{
+		rt_kprintf("packet not for us %02x%02x%02x%02x%02x%02x\r\n",
+			mp.roProperty.sn[0],mp.roProperty.sn[1],
+			mp.roProperty.sn[2],mp.roProperty.sn[3],
+			mp.roProperty.sn[4],mp.roProperty.sn[5]);
+		return 0;
+	}
+	switch (packet_type)
+	{
+		case LOGIN_ACK:
+			handle_login_ack(data+11);
+			break;
+		case HEART_BEAT_ACK:
+			handle_heart_beat_ack(data+11);
+			break;
+		case T_LOGOUT_ACK:
+			handle_t_logout_ack(data+11);
+			break;
+		case ALARM_TRAP_ACK:
+			handle_alarm_trap_ack(data+11);
+			break;
+		case GET_ADDRESS_ACK:
+			handle_get_address_ack(data+11);
+			break;
+		default:
+			rt_kprintf("unknown packet type\r\n");
+			break;
+	}
+	return 1;
 }

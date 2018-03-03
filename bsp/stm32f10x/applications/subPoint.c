@@ -6,6 +6,7 @@
 #include "subPoint.h"
 #include "master.h"
 #include "bsp_misc.h"
+#include "lcd.h"
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa
 rt_uint8_t cur_status = 0;//protect off 1 for on

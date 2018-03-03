@@ -82,7 +82,18 @@ struct FangQuProperty
 struct FangQu    fangquList[140];
 struct FangQuProperty fqp;
 struct MachineProperty mp;
+#define LOGING			0x0001
+#define HEART_BEAT		0x0002
+#define T_LOGOUT		0x0003
+#define ALARM_TRAP		0x0004
+#define GET_ADDRESS		0x0005
+#define LOGIN_ACK 		0x8001
+#define HEART_BEAT_ACK	0x8002
+#define T_LOGOUT_ACK	0x8003
+#define ALARM_TRAP_ACK	0x8004
+#define GET_ADDRESS_ACK	0x8005
 int load_param();
 void save_param(int type);
 void info_user(void *param);
+rt_uint8_t handle_packet(rt_uint8_t *data);
 #endif
