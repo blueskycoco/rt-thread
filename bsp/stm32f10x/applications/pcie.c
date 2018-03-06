@@ -81,11 +81,21 @@ static void pcie0_rcv(void* parameter)
 		}
 	}
 }
+#ifdef M26_INIT
+extern rt_device_t g_dev_m26;
+#endif
 void pcie1_sm(void* parameter)
 {
 	rt_size_t data_size;
 	const void *last_data_ptr = RT_NULL;
 	rt_kprintf("pcie1 sm %x\r\n", g_type1);
+	#ifdef M26_INIT
+	rt_thread_delay(1000);
+	gprs_at_cmd(g_dev_m26,"AT+IPR=115200;&W\r\n");
+	rt_thread_delay(200);
+	gprs_at_cmd(g_dev_m26,"AT&W\r\n");
+	rt_thread_delay(200);
+	#endif
 	while (1) 
 	{
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[1], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
@@ -240,46 +250,75 @@ rt_err_t gprs_wait_event(int timeout)
 	rt_uint32_t ev;
 	return rt_event_recv( &(g_pcie[g_index]->event), GPRS_EVENT_0, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, timeout, &ev ); 
 }
+int build_login(rt_uint8_t *cmd)
+{	
+	int i=0,ofs;
+	rt_uint8_t zero_array[10]={0};
+	cmd[0]=0xad;
+	cmd[1]=0xac;
+	cmd[2]=0x00;//len
+	cmd[3]=0x12;
+	cmd[4]=0x00;
+	cmd[5]=0x00;//login
+	cmd[6]=0x01;		
+	cmd[7]=0x00;//v
+	cmd[8]=0x00;
+	memcpy(cmd+9,mp.roProperty.sn,6);
+	cmd[15]=g_pcie[g_index]->csq;
+	cmd[16]=0x4d;
+	cmd[17]=0x4e;
+	cmd[18]=0x4f;
+	cmd[19]=0x50;
+	cmd[20]=0x51;
+	cmd[21]=0x52; 	
+	memcpy(cmd+22,g_pcie[g_index]->imei,8);
+	cmd[30] = 0;
+	ofs = 31;
+	if (g_index == 1 && g_type1 == PCIE_2_M26)
+		cmd[30] |= 0x20;
+	if (g_index == 0 && g_type1 == PCIE_1_EC20)
+		cmd[30] |= 0x10;
+	if (g_pcie[g_index]->lac_ci !=0 )
+	{
+		cmd[30] |= 0x08;
+		cmd[ofs++] = (g_pcie[g_index]->lac_ci>>24)&0xff;
+		cmd[ofs++] = (g_pcie[g_index]->lac_ci>>16)&0xff;
+		cmd[ofs++] = (g_pcie[g_index]->lac_ci>>8)&0xff;
+		cmd[ofs++] = (g_pcie[g_index]->lac_ci>>0)&0xff;
+	}
+	if (rt_memcmp(g_pcie[g_index]->qccid,zero_array,10) !=0 &&
+		rt_memcmp(g_pcie[g_index]->qccid,mp.qccid,10) !=0 )
+	{
+		rt_memcpy(mp.qccid, g_pcie[g_index]->qccid, 10);
+		save_param(0);
+		cmd[30] |= 0x04;
+		memcpy(cmd+ofs,g_pcie[g_index]->qccid,10);
+		ofs+=10;
+	}
+	rt_kprintf("\r\n<LOGIN Packet>\r\nofs is %d\r\n", ofs);
+	cmd[3]=ofs+2;
+	rt_uint16_t crc = CRC_check(cmd+2,ofs+8);
+	rt_kprintf("crc is %x\r\n",crc);
+	cmd[ofs++]=(crc>>8)&0xff;
+	cmd[ofs++]=crc&0xff;
+	for(i=0;i<ofs;i++)
+		rt_kprintf("cmd[%02d] = 0x%02x\r\n",i,cmd[i]);
+	return ofs;
+}
 void send_process(void* parameter)
 {
-	int i=0;
-	char login[45] = {0};
+	char login[47] = {0};
+	int send_len = 0;
+	//return;
 	gprs_wait_event(RT_WAITING_FOREVER);
-	while(1)	{
+	//while(1)	{
 		rt_thread_delay(500);
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
-		login[0]=0xad;
-		login[1]=0xac;
-		login[2]=0x00;//len
-		login[3]=0x12;
-		login[4]=0x00;
-		login[5]=0x00;//login
-		login[6]=0x01;		
-		login[7]=0x00;//v
-		login[8]=0x00;
-		memcpy(login+9,mp.roProperty.sn,6);
-		login[15]=g_pcie[g_index]->csq;
-		login[16]=0x4d;
-		login[17]=0x4e;
-		login[18]=0x4f;
-		login[19]=0x50;
-		login[20]=0x51;
-		login[21]=0x52;
-		login[22]=0x20|0x06;
-		memcpy(login+23,g_pcie[g_index]->qccid,10);
-		memcpy(login+33,g_pcie[g_index]->imei,8);
-		login[3]=43;
-		rt_uint16_t crc = CRC_check(login+2,39);
-		rt_kprintf("crc is %x\r\n",crc);
-		login[41]=(crc>>8)&0xff;
-		login[42]=crc&0xff;
-		for(i=0;i<43;i++)
-			rt_kprintf("login[%02d] = 0x%02x\r\n",i,login[i]);
-		
-		rt_data_queue_push(&g_data_queue[2], login, 43, RT_WAITING_FOREVER);
+		send_len = build_login(login);
+		rt_data_queue_push(&g_data_queue[2], login, send_len, RT_WAITING_FOREVER);
 		gprs_wait_event(RT_WAITING_FOREVER);	
 		rt_mutex_release(&(g_pcie[g_index]->lock));
-		}
+		//}
 	
 }
 
@@ -291,6 +330,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {
 		g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));
+		rt_memset(g_pcie[0],0,sizeof(pcie_param));
 		g_pcie[0]->dev = rt_device_find("uart3"); //PCIE1	
 		rt_device_open(g_pcie[0]->dev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX);
 		rt_event_init(&(g_pcie[0]->event), 	"pcie0_event", 	RT_IPC_FLAG_FIFO );
@@ -299,7 +339,8 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	}
 
 	if (type1) {
-		g_pcie[1] = (ppcie_param)rt_malloc(sizeof(pcie_param));
+		g_pcie[1] = (ppcie_param)rt_malloc(sizeof(pcie_param));		
+		rt_memset(g_pcie[1],0,sizeof(pcie_param));
 		g_pcie[1]->dev = rt_device_find("uart2"); //PCIE2
 		rt_device_open(g_pcie[1]->dev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX);	
 		rt_event_init(&(g_pcie[1]->event), 	"pcie1_event", 	RT_IPC_FLAG_FIFO );
@@ -326,7 +367,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		rt_thread_startup(rt_thread_create("pcie1_sm", pcie1_sm,  0,2048, 20, 10));
 	}
 	rt_thread_startup(rt_thread_create("server",server_proc, 0,2048, 20, 10));
-	rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,1024, 20, 10));
+	rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,2048, 20, 10));
 	return 1;
 }
 

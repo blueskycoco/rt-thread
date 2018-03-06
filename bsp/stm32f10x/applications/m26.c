@@ -33,6 +33,7 @@
 #define M26_STATE_LAC				23
 #define M26_STATE_ICCID				24
 #define M26_STATE_IMEI				25
+#define M26_STATE_LACR				26
 
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -82,7 +83,8 @@
 #define qilport "AT+QILPORT?\r\n"
 #define e0 "ATE0\r\n"
 #define cgreg "AT+CGREG?\r\n"
-#define creg "AT+CREG=2\r\n"
+#define cregs "AT+CREG=2\r\n"
+#define cregr "AT+CREG?\r\n"
 #define at_csq "AT+CSQ\r\n"
 #define at_qccid "AT+QCCID\r\n"
 #define gsn "AT+GSN\r\n"
@@ -274,20 +276,56 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
 					rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
 					g_m26_state = M26_STATE_LAC;
-					gprs_at_cmd(g_dev_m26,creg);
+					gprs_at_cmd(g_dev_m26,cregs);
 				} 
 				break;
 			case M26_STATE_LAC:
+				if (have_str(last_data_ptr,STR_OK)) {
+					g_m26_state = M26_STATE_LACR;
+					gprs_at_cmd(g_dev_m26,cregr);
+				} 
+				break;
+			case M26_STATE_LACR:
 				if (have_str(last_data_ptr,STR_CREG)) {
-						g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[12]-'0';
-						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[13]-'0';
-						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[14]-'0';
-						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[15]-'0';
-						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[19]-'0';
-						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[20]-'0';
-						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[21]-'0';
-						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[22]-'0';
-						rt_kprintf("LAC_CI %08x\r\n", g_pcie[g_index]->lac_ci);
+						if (((rt_uint8_t *)last_data_ptr)[14]>='A' && ((rt_uint8_t *)last_data_ptr)[14]<='F' )
+							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[14]-'A';
+						else
+							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[14]-'0';
+						
+						if (((rt_uint8_t *)last_data_ptr)[15]>='A' && ((rt_uint8_t *)last_data_ptr)[15]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'A';
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[16]>='A' && ((rt_uint8_t *)last_data_ptr)[16]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[16]-'A';
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[16]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[17]>='A' && ((rt_uint8_t *)last_data_ptr)[17]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[17]-'A';
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[17]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[21]>='A' && ((rt_uint8_t *)last_data_ptr)[21]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'A';
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[22]>='A' && ((rt_uint8_t *)last_data_ptr)[22]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'A';
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[23]>='A' && ((rt_uint8_t *)last_data_ptr)[23]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[23]-'A';
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[23]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[24]>='A' && ((rt_uint8_t *)last_data_ptr)[24]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[24]-'A';
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[24]-'0';
+						rt_kprintf("ORI %c%c%c%c%c%c%c%c LAC_CI %08x\r\n", 
+							((rt_uint8_t *)last_data_ptr)[14],((rt_uint8_t *)last_data_ptr)[15],
+							((rt_uint8_t *)last_data_ptr)[16],((rt_uint8_t *)last_data_ptr)[17],
+							((rt_uint8_t *)last_data_ptr)[21],((rt_uint8_t *)last_data_ptr)[22],
+							((rt_uint8_t *)last_data_ptr)[23],((rt_uint8_t *)last_data_ptr)[24],
+							g_pcie[g_index]->lac_ci);
 				} 
 				g_m26_state = M26_STATE_ICCID;
 				gprs_at_cmd(g_dev_m26,at_qccid);
@@ -510,14 +548,39 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_m26,qiat);
 					}
 				} else if (have_str(last_data_ptr,STR_CREG)) {
-							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[12]-'0';
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[13]-'0';
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[14]-'0';
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[15]-'0';
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[19]-'0';
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[20]-'0';
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[21]-'0';
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16+((rt_uint8_t *)last_data_ptr)[22]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[12]>='A' && ((rt_uint8_t *)last_data_ptr)[12]<='F' )
+						g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[12]-'A';
+					else
+						g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[12]-'0';
+					
+					if (((rt_uint8_t *)last_data_ptr)[13]>='A' && ((rt_uint8_t *)last_data_ptr)[13]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[13]-'A';
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[13]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[14]>='A' && ((rt_uint8_t *)last_data_ptr)[14]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[14]-'A';
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[14]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[15]>='A' && ((rt_uint8_t *)last_data_ptr)[15]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'A';
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[19]>='A' && ((rt_uint8_t *)last_data_ptr)[19]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[19]-'A';
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[19]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[20]>='A' && ((rt_uint8_t *)last_data_ptr)[20]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[20]-'A';
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[20]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[21]>='A' && ((rt_uint8_t *)last_data_ptr)[21]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'A';
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[22]>='A' && ((rt_uint8_t *)last_data_ptr)[22]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'A';
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'0';
 							rt_kprintf("LAC_CI %08x\r\n", g_pcie[g_index]->lac_ci);
 							gprs_at_cmd(g_dev_m26,qiat);
 					} 

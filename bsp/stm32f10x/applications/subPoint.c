@@ -146,12 +146,12 @@ void cmd_dump(rt_uint8_t *data)
 
 	rt_kprintf("STM32 Param\r\n");
 	rt_kprintf("sn %x%x%x%x%x%x\r\n", 
-		mp.roProperty.sn[0],
-		mp.roProperty.sn[1],
-		mp.roProperty.sn[2],
-		mp.roProperty.sn[3],
-		mp.roProperty.sn[4],
-		mp.roProperty.sn[5]
+		stm32_id[0],
+		stm32_id[1],
+		stm32_id[2],
+		stm32_id[3],
+		stm32_id[4],
+		stm32_id[5]
 		);
 	rt_kprintf("g_main_state %d\r\n",g_main_state);
 }

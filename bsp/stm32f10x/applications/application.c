@@ -196,6 +196,8 @@ void rt_init_thread_entry(void* parameter)
 	rt_kprintf("cc1101 init done , err 0x%08x\r\n",err_code);
 	if (!load_param()) {
 		rt_kprintf("load param failed\r\n");
+		dfs_mkfs("elm","sd0");
+		load_param();	
 		err_code |= ERROR_LOAD_PARAM;
 		SetErrorCode(err_code);
 	}

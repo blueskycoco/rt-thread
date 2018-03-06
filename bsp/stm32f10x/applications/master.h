@@ -48,7 +48,8 @@ struct MachineProperty
 	rt_uint16_t 			firmVersion;
 	rt_uint16_t 			firmCRC;
 	rt_uint16_t 			firmLength;
-	rt_uint8_t  			status;
+	rt_uint8_t  			status;	
+	rt_uint8_t 				qccid[10];
 };
 struct FangQu
 {

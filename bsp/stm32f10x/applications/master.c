@@ -75,6 +75,9 @@ void dump_mp(struct MachineProperty v)
 		v.updateDomainAddress.domain);
 	rt_kprintf("update domain port \t%d\r\n",
 		v.updateDomainAddress.port);
+	rt_kprintf("ccid \t\t\t");
+	for(i=0;i<10;i++)
+		rt_kprintf("%02x", v.qccid[i]);
 	rt_kprintf("\r\n\r\n");
 }
 void dump_fqp(struct FangQuProperty v1, struct FangQu *v2)
@@ -139,9 +142,9 @@ int load_param()
 	mp.status = MAIN_STATION_PROTECT_OFF;
 	rt_memset(&mp.roProperty.CAPTCHA ,0,6);
 	mp.roProperty.model = 0;
-	mp.roProperty.sn[5] = 0x34;;
-	mp.roProperty.sn[4] = 0x12;
-	mp.roProperty.sn[3] = 0x02;
+	mp.roProperty.sn[5] = 0x45;;
+	mp.roProperty.sn[4] = 0x23;
+	mp.roProperty.sn[3] = 0x21;
 	mp.roProperty.sn[2] = 0x01;
 	mp.roProperty.sn[1] = 0x18;
 	mp.roProperty.sn[0] = 0xa1;
@@ -204,7 +207,7 @@ int load_param()
 	}
 	close(fd);
 	dump_mp(mp);
-
+	
 	fd = open(FQP_FILE, O_RDONLY, 0);
 	if (fd > 0)
 	{		
@@ -234,12 +237,6 @@ int load_param()
 			return 0;
 		}
 		
-		mp.roProperty.sn[5] = 0x45;;
-		mp.roProperty.sn[4] = 0x23;
-		mp.roProperty.sn[3] = 0x21;
-		mp.roProperty.sn[2] = 0x01;
-		mp.roProperty.sn[1] = 0x18;
-		mp.roProperty.sn[0] = 0xa1;
 		dump_fqp(tmp_fqp,tmp_fangquList);
 		memcpy(fangquList,tmp_fangquList,sizeof(struct FangQu)*140);
 		rt_free(tmp_fangquList);
@@ -259,11 +256,17 @@ void save_param(int type)
 		fd = open(MP_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0);
 		crc = CRC_check((unsigned char *)&mp, sizeof(mp));
 		rt_kprintf("crc %x\r\n", crc);
-		write(fd, &crc, sizeof(rt_uint16_t));
+		length = write(fd, &crc, sizeof(rt_uint16_t));
+		if (length != sizeof(rt_uint16_t))
+		{
+			rt_kprintf("write crc data failed %d\n",length);
+			//close(fd);
+			//return ;
+		}
 		length = write(fd, &mp, sizeof(mp));
 		if (length != sizeof(mp))
 		{
-			rt_kprintf("write mp data failed\n");
+			rt_kprintf("write mp data failed %d\n",length);
 			close(fd);
 			return ;
 		}
@@ -278,7 +281,7 @@ void save_param(int type)
 		length = write(fd, &fqp, sizeof(fqp));
 		if (length != sizeof(fqp))
 		{
-			rt_kprintf("write mp data failed\n");
+			rt_kprintf("write mp data failed %d\n",length);
 			close(fd);
 			return ;
 		}
@@ -288,7 +291,7 @@ void save_param(int type)
 		length = write(fd, fangquList, sizeof(struct FangQu)*140);
 		if (length != sizeof(struct FangQu)*140)
 		{
-			rt_kprintf("write mp data failed\n");
+			rt_kprintf("write mp data failed %d\n",length);
 			close(fd);
 			return ;
 		}
