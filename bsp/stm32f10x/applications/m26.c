@@ -512,6 +512,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_kprintf("connect to server ok\r\n");
 					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 					gprs_at_cmd(g_dev_m26,qiat);
+					rt_hw_led_on(NET_LED);
 				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
 					g_m26_state = M26_STATE_SET_QIDEACT;
 					gprs_at_cmd(g_dev_m26,qideact);
@@ -587,6 +588,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					else {
 					g_m26_state = M26_STATE_CHECK_QISTAT;
 					gprs_at_cmd(g_dev_m26,qistat);
+					rt_hw_led_off(NET_LED);
 				}
 
 				break;

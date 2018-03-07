@@ -201,16 +201,11 @@ void rt_init_thread_entry(void* parameter)
 		err_code |= ERROR_LOAD_PARAM;
 		SetErrorCode(err_code);
 	}
-	buzzer_ctl(1);
-	rt_hw_led_off(CODE_LED);
-	rt_hw_led_off(ARM_LED);
-	rt_hw_led_off(WIRE_LED);
-	rt_hw_led_off(ALARM_LED);
-	rt_hw_led_off(WIRELESS_LED);
-	rt_hw_led_off(FAIL_LED);
-	rt_hw_led_off(NET_LED);
-	rt_thread_delay( RT_TICK_PER_SECOND );	
-	buzzer_ctl(0);
+	if (err_code == 0) {
+		buzzer_ctl(BUZZER_OK);
+	} else {
+		buzzer_ctl(BUZZER_ERROR);
+	}
 	rt_hw_led_on(CODE_LED);
 	rt_hw_led_on(ARM_LED);
 	rt_hw_led_on(WIRE_LED);
@@ -218,24 +213,21 @@ void rt_init_thread_entry(void* parameter)
 	rt_hw_led_on(WIRELESS_LED);
 	rt_hw_led_on(FAIL_LED);
 	rt_hw_led_on(NET_LED);
+	SetSignalIco(1);
+	SetSimTypeIco(1);
+	SetStateIco(1,1);
+	SetBatteryIco(5);
+	SetWifiIco(1);
+	rt_thread_delay(100);	
+	HtbLcdClear();
+	rt_hw_led_off(CODE_LED);
+	rt_hw_led_off(ARM_LED);
+	rt_hw_led_off(WIRE_LED);
+	rt_hw_led_off(ALARM_LED);
+	rt_hw_led_off(WIRELESS_LED);
+	rt_hw_led_off(FAIL_LED);
+	rt_hw_led_off(NET_LED);
 	rt_thread_delay( RT_TICK_PER_SECOND );		
-	buzzer_ctl(1);
-	rt_hw_led_off(CODE_LED);
-	rt_hw_led_off(ARM_LED);
-	rt_hw_led_off(WIRE_LED);
-	rt_hw_led_off(ALARM_LED);
-	rt_hw_led_off(WIRELESS_LED);
-	rt_hw_led_off(FAIL_LED);
-	rt_hw_led_off(NET_LED);
-	rt_thread_delay( RT_TICK_PER_SECOND );	
-	buzzer_ctl(0);
-	rt_hw_led_on(CODE_LED);
-	rt_hw_led_on(ARM_LED);
-	rt_hw_led_on(WIRE_LED);
-	rt_hw_led_on(ALARM_LED);
-	rt_hw_led_on(WIRELESS_LED);
-	rt_hw_led_on(FAIL_LED);
-	rt_hw_led_on(NET_LED);
 	//rt_thread_delay( RT_TICK_PER_SECOND );	
 	SetErrorCode(err_code);
 	pcie_status |= check_pcie(0);
@@ -259,6 +251,7 @@ void rt_init_thread_entry(void* parameter)
 		pcie_init(PCIE_1_EC20,0);
 		pcie_switch(PCIE_1_EC20);
 	} else {
+		/*play audio here*/
 		buzzer_ctl(1);
 	}
 	

@@ -76,39 +76,46 @@ char *cmd_dev_type(rt_uint8_t type)
 	}
 	return "UnKnown";
 }
-char get_addr(rt_uint32_t subId, struct FangQu *list)
+char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 {
 	int i;
-	for (i=0;i<140;i++)
+	for (i=0;i<len;i++)
 	{
 		if (subId == list[i].slave_sn)
 			return list[i].index;
 	}
 
-	if (i==140)
+	if (i==len)
 	{
 		i=0;
 		while(list[i].index != 0)
 			i++;
 	}
-	return i+2;
+	if (len == 50)
+		return i+2;
+	else
+		return i+51;
 }
-void save_fq(rt_uint32_t subId, struct FangQu *list)
+void save_fq(rt_uint32_t subId, rt_uint8_t type, struct FangQu *list, int len)
 {
 	int i;	
-	for (i=0;i<140;i++)
+	for (i=0;i<len;i++)
 	{
 		if (list[i].slave_sn== subId)
 		{
 			return;
 		}
 	}
-	for (i=0;i<140;i++)
+	for (i=0;i<len;i++)
 	{
 		if (list[i].index == 0)
 		{
-			list[i].index = i+2;
+			if (len == 50)
+				list[i].index = i+2;
+			else
+				list[i].index = i+51;
 			list[i].slave_sn = subId;
+			list[i].slave_type = type;
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
 				i,list[i].index,list[i].slave_sn);
 			save_param(1);
@@ -156,10 +163,10 @@ void cmd_dump(rt_uint8_t *data)
 	rt_kprintf("g_main_state %d\r\n",g_main_state);
 }
 
-int check_sub_id(rt_uint32_t sub_mid,struct FangQu *list)
+int check_sub_id(rt_uint32_t sub_mid,struct FangQu *list, int len)
 {
 	int i;
-	for (i=0; i<140; i++)
+	for (i=0; i<len; i++)
 	{
 		if (sub_mid == list[i].slave_sn)
 			return 1;
@@ -199,7 +206,7 @@ void handleSub(rt_uint8_t *data)
 		return ;
 	}
 	/*check sub id in fangqu list && non-coding mode*/
-	if (!check_sub_id(sub_id, fangquList)
+	if (!check_sub_id(sub_id, fangqu_wireless,WIRELESS_MAX)
 		&& g_main_state != 1) {
 		rt_kprintf("sub id not in list , and not codeing mode\r\n");
 		return ;
@@ -212,7 +219,7 @@ void handleSub(rt_uint8_t *data)
 		resp[15]=0x00;resp[16]=data[16]+0x01;resp[17]=data[17];
 		if (0 == (data[15]<<8|data[16]))
 		{	/*require cc1101 addr*/
-			resp[18] = get_addr(data[11]<<24|data[12]<<16|data[13]<<8|data[14],fangquList);
+			resp[18] = get_addr(data[11]<<24|data[12]<<16|data[13]<<8|data[14],fangqu_wireless,WIRELESS_MAX);
 		} else if (0x0010 == (data[15]<<8|data[16])) {
 			/*get cur status*/
 			resp[18] = cur_status;
@@ -221,7 +228,7 @@ void handleSub(rt_uint8_t *data)
 			resp[18] = 0x01;
 			//g_addr[addr_cnt] = data[11]<<24|data[12]<<16|data[13]<<8|data[14];			
 			//addr_cnt++;
-			save_fq(sub_id,fangquList);
+			save_fq(sub_id,dev_type, fangqu_wireless,WIRELESS_MAX);
 		} else if (0x0006 == (data[15]<<8|data[16])) {
 			/*send alarm to server*/
 			resp[18] = cur_status;
@@ -246,6 +253,6 @@ void handleSub(rt_uint8_t *data)
 			SetErrorCode(0x35);
 		}
 		if (g_main_state ==1)
-		save_fq(sub_id,fangquList);
+		save_fq(sub_id,dev_type, fangqu_wireless,WIRELESS_MAX);
 	}
 }

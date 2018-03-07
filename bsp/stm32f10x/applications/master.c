@@ -80,7 +80,7 @@ void dump_mp(struct MachineProperty v)
 		rt_kprintf("%02x", v.qccid[i]);
 	rt_kprintf("\r\n\r\n");
 }
-void dump_fqp(struct FangQuProperty v1, struct FangQu *v2)
+void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 {	
 	int i;
 	rt_kprintf("\r\n\r\nFangQu Param ......\r\n");
@@ -99,7 +99,7 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2)
 	rt_kprintf("is_check_DC %d\r\n",v1.is_check_DC);
 	rt_kprintf("PGM %d\r\n",v1.PGM);
 	rt_kprintf("is_lamp %d\r\n",v1.is_lamp);
-	for(i=0;i<140;i++)
+	for(i=0;i<WIRE_MAX;i++)
 	{
 		if(v2[i].index != 0) {
 			rt_kprintf("FangQu[%d]\r\n",
@@ -116,6 +116,24 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2)
 			rt_kprintf("slave_batch %d\r\n",v2[i].slave_batch);
 		}
 	}
+	
+	for(i=0;i<WIRELESS_MAX;i++)
+	{
+		if(v3[i].index != 0) {
+			rt_kprintf("FangQu[%d]\r\n",
+				v3[i].index);
+			rt_kprintf("type %d\r\n",v3[i].type);
+			rt_kprintf("operationType %d\r\n",v3[i].operationType);
+			rt_kprintf("voiceType %d\r\n",v3[i].voiceType);
+			rt_kprintf("alarmType %d\r\n",v3[i].alarmType);
+			rt_kprintf("isBypass %d\r\n",v3[i].isBypass);
+			rt_kprintf("status %d\r\n",v3[i].status);
+			rt_kprintf("slave_sn %08x\r\n",v3[i].slave_sn);
+			rt_kprintf("slave_type %d\r\n",v3[i].slave_type);
+			rt_kprintf("slave_model %d\r\n",v3[i].slave_model);
+			rt_kprintf("slave_batch %d\r\n",v3[i].slave_batch);
+		}
+	}
 }
 
 int load_param()
@@ -128,8 +146,9 @@ int load_param()
 	struct FangQu *tmp_fangquList;
 	//fangquList = (struct FangQu *)rt_malloc(140*sizeof(struct FangQu));
 	rt_memset(&fqp, 0, sizeof(fqp));
-	rt_memset(fangquList, 0, sizeof(struct FangQu)*140);
-	dump_fqp(fqp,fangquList);
+	rt_memset(fangqu_wire, 0, sizeof(struct FangQu)*WIRE_MAX);
+	rt_memset(fangqu_wireless, 0, sizeof(struct FangQu)*WIRELESS_MAX);
+	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	rt_memset(&mp, 0, sizeof(struct MachineProperty));
 	mp.socketAddressVersion= 0;
 	mp.socketDomainVersion= 0;
@@ -224,25 +243,40 @@ int load_param()
 		}
 		memcpy(&fqp,&tmp_fqp,sizeof(fqp));
 		
-		tmp_fangquList = (struct FangQu *)rt_malloc(140*sizeof(struct FangQu));
+		tmp_fangquList = (struct FangQu *)rt_malloc(WIRELESS_MAX*sizeof(struct FangQu));
 		read(fd, &crc, sizeof(rt_uint16_t));
-		length = read(fd, tmp_fangquList, sizeof(struct FangQu)*140);
-		tmp_crc = CRC_check((unsigned char *)tmp_fangquList, sizeof(struct FangQu)*140);
-		rt_kprintf("crc %x , tmp_crc %x\r\n", crc,tmp_crc);
-		if (length != sizeof(struct FangQu)*140|| tmp_crc!=crc)
+		length = read(fd, tmp_fangquList, sizeof(struct FangQu)*WIRELESS_MAX);
+		tmp_crc = CRC_check((unsigned char *)tmp_fangquList, sizeof(struct FangQu)*WIRELESS_MAX);
+		rt_kprintf("wireless crc %x , tmp_crc %x\r\n", crc,tmp_crc);
+		if (length != sizeof(struct FangQu)*WIRELESS_MAX|| tmp_crc!=crc)
 		{
-			rt_kprintf("check: read fq data failed\n");
+			rt_kprintf("check: wireless read fq data failed\n");
 			close(fd);
 			rt_free(tmp_fangquList);
 			return 0;
 		}
 		
-		dump_fqp(tmp_fqp,tmp_fangquList);
-		memcpy(fangquList,tmp_fangquList,sizeof(struct FangQu)*140);
+		//dump_fqp(tmp_fqp,tmp_fangquList);
+		memcpy(fangqu_wireless,tmp_fangquList,sizeof(struct FangQu)*WIRELESS_MAX);
+		
+		read(fd, &crc, sizeof(rt_uint16_t));
+		length = read(fd, tmp_fangquList, sizeof(struct FangQu)*WIRE_MAX);
+		tmp_crc = CRC_check((unsigned char *)tmp_fangquList, sizeof(struct FangQu)*WIRE_MAX);
+		rt_kprintf("wire crc %x , tmp_crc %x\r\n", crc,tmp_crc);
+		if (length != sizeof(struct FangQu)*WIRE_MAX|| tmp_crc!=crc)
+		{
+			rt_kprintf("check: wire read fq data failed\n");
+			close(fd);
+			rt_free(tmp_fangquList);
+			return 0;
+		}
+		
+		//dump_fqp(tmp_fqp,tmp_fangquList);
+		memcpy(fangqu_wire,tmp_fangquList,sizeof(struct FangQu)*WIRE_MAX);
 		rt_free(tmp_fangquList);
 		close(fd);
 	}
-	dump_fqp(fqp,fangquList);
+	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	return 1;
 }
 void save_param(int type)
@@ -285,17 +319,27 @@ void save_param(int type)
 			close(fd);
 			return ;
 		}
-		crc = CRC_check((unsigned char *)fangquList, sizeof(struct FangQu)*140);
+		crc = CRC_check((unsigned char *)fangqu_wireless, sizeof(struct FangQu)*WIRELESS_MAX);
 		rt_kprintf("crc %x\r\n", crc);
 		write(fd, &crc, sizeof(rt_uint16_t));
-		length = write(fd, fangquList, sizeof(struct FangQu)*140);
-		if (length != sizeof(struct FangQu)*140)
+		length = write(fd, fangqu_wireless, sizeof(struct FangQu)*WIRELESS_MAX);
+		if (length != sizeof(struct FangQu)*WIRELESS_MAX)
 		{
-			rt_kprintf("write mp data failed %d\n",length);
+			rt_kprintf("write wireless fq data failed %d\n",length);
 			close(fd);
 			return ;
 		}
-		dump_fqp(fqp,fangquList);
+		crc = CRC_check((unsigned char *)fangqu_wire, sizeof(struct FangQu)*WIRE_MAX);
+		rt_kprintf("crc %x\r\n", crc);
+		write(fd, &crc, sizeof(rt_uint16_t));
+		length = write(fd, fangqu_wire, sizeof(struct FangQu)*WIRE_MAX);
+		if (length != sizeof(struct FangQu)*WIRE_MAX)
+		{
+			rt_kprintf("write wire fq data failed %d\n",length);
+			close(fd);
+			return ;
+		}
+		dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	}
 	close(fd);
 	return;

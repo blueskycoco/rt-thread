@@ -113,9 +113,28 @@ void bell_ctl(int level)
 }
 void buzzer_ctl(int level)
 {
-	if (level)		
+	static rt_thread_t rt = RT_NULL;
+	if (level == BUZZER_OK)		
+	{
 		GPIO_SetBits(GPIOD, GPIO_Pin_6);
-	else
+		rt_thread_delay(40);
 		GPIO_ResetBits(GPIOD, GPIO_Pin_6);
+	} else if (level == BUZZER_ERROR) {	
+		GPIO_SetBits(GPIOD, GPIO_Pin_6);
+		rt_thread_delay(8);
+		GPIO_ResetBits(GPIOD, GPIO_Pin_6);
+		rt_thread_delay(8);
+		GPIO_SetBits(GPIOD, GPIO_Pin_6);
+		rt_thread_delay(8);
+		GPIO_ResetBits(GPIOD, GPIO_Pin_6);
+		rt_thread_delay(8);
+		GPIO_SetBits(GPIOD, GPIO_Pin_6);
+		rt_thread_delay(8);
+		GPIO_ResetBits(GPIOD, GPIO_Pin_6);
+	} else {
+		GPIO_SetBits(GPIOD, GPIO_Pin_6);
+		rt_thread_delay(10);
+		GPIO_ResetBits(GPIOD, GPIO_Pin_6);
+	}
 }
 

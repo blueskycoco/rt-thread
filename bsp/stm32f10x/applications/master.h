@@ -62,7 +62,7 @@ struct FangQu
 	rt_uint8_t  	status;
 	rt_uint32_t 	slave_sn;
 	rt_uint8_t  	slave_type;
-	rt_uint32_t   		slave_model;
+	rt_uint32_t   	slave_model;
 	rt_uint32_t 	slave_batch;
 };
 
@@ -80,7 +80,10 @@ struct FangQuProperty
 	rt_uint8_t	  PGM;
 	rt_uint8_t	  is_lamp;
 };
-struct FangQu    fangquList[140];
+#define WIRELESS_MAX	50
+#define WIRE_MAX		30
+struct FangQu    fangqu_wire[30];
+struct FangQu    fangqu_wireless[50];
 struct FangQuProperty fqp;
 struct MachineProperty mp;
 #define LOGING			0x0001
