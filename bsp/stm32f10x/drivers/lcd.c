@@ -4,7 +4,7 @@
 #include <rtdevice.h>
 
 #include "lcd.h"
-
+struct rt_mutex lcd_mtx;
 HTB_RAM htbRam;
 void ms_delay(int ms)
 {
@@ -356,6 +356,12 @@ void HTB_Lcd_Clr()
   for (int i=0; i<=16;i++)
    HTB_Write_8bitData(0x00);
   GPIO_SetBits(LCD_GPIOE,LCD_PIN_CS);    
+  
+  htbRam.ico_seg4_5=0x00;
+	htbRam.ico_seg69=0x00;
+	htbRam.ico_seg7_8=0x00;
+	htbRam.num_seg0_1=0x00;
+	htbRam.num_seg2_3=0x00;
 }
 
 /**
@@ -385,6 +391,7 @@ void SetErrorCode(u8 value)
 {
   u8 height=value/10;
   u8 low=value%10;
+  rt_mutex_take(&(lcd_mtx), RT_WAITING_FOREVER);
   HTB_SetNumberValue(&htbRam.num_seg0_1,height);
   GPIO_ResetBits(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
@@ -398,6 +405,7 @@ void SetErrorCode(u8 value)
   HTB_Write_Address(2);
   HTB_Write_8bitData(htbRam.num_seg2_3);
   GPIO_SetBits(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&(lcd_mtx));
 }
 /**
    * @brief 设置电池
@@ -408,12 +416,14 @@ void SetErrorCode(u8 value)
 void SetBatteryIco(u8 value)
 {
   u8 level=value%5;
+  rt_mutex_take(&(lcd_mtx), RT_WAITING_FOREVER);
   GPIO_ResetBits(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
   HTB_Write_Address(4);
   HTB_SetBatteryIco((HTB_LEVEL)level);
   HTB_Write_8bitData(htbRam.ico_seg4_5);
   GPIO_SetBits(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&(lcd_mtx));
 }
 /**
    * @brief 设置wifi信号
@@ -424,12 +434,14 @@ void SetBatteryIco(u8 value)
 void SetWifiIco(u8 value)
 {
   u8 level=value%5;
+  rt_mutex_take(&(lcd_mtx), RT_WAITING_FOREVER);
   GPIO_ResetBits(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
   HTB_Write_Address(4);
   HTB_SetWifiIco((HTB_LEVEL)level);
   HTB_Write_8bitData(htbRam.ico_seg4_5);
   GPIO_SetBits(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&(lcd_mtx));
 }
 /**
    * @brief 设置信号强度图标
@@ -440,12 +452,14 @@ void SetWifiIco(u8 value)
 void SetSignalIco(u8 value)
 {
   u8 level=value%6;
+  rt_mutex_take(&(lcd_mtx), RT_WAITING_FOREVER);
   GPIO_ResetBits(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
   HTB_Write_Address(7);
   HTB_SetSignalIco((HTB_LEVEL)level);
   HTB_Write_8bitData(htbRam.ico_seg7_8);
   GPIO_SetBits(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&(lcd_mtx));
 }
 /**
    * @brief 设置网络制式 2G 、3G等图标
@@ -460,6 +474,7 @@ void SetSignalIco(u8 value)
 void SetSimTypeIco(u8 value)
 {
   u8 level=value%5;
+  rt_mutex_take(&(lcd_mtx), RT_WAITING_FOREVER);
   GPIO_ResetBits(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
   HTB_Write_Address(9);
@@ -486,6 +501,7 @@ void SetSimTypeIco(u8 value)
   HTB_SetSimTypeIco(sim);
   HTB_Write_L4bitData(htbRam.ico_seg69);
   GPIO_SetBits(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&(lcd_mtx));
 }
 /**
    * @brief 设置状态图标
@@ -527,6 +543,8 @@ void SetStateIco(u8 value,HTB_ICO_STATE ico_state)
       sim=ICO_SIM;
       break;
   }
+  rt_mutex_take(&(lcd_mtx), RT_WAITING_FOREVER);
+
   HTB_SetStateIco(sim,ico_state);
   GPIO_ResetBits(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
@@ -558,6 +576,7 @@ void SetStateIco(u8 value,HTB_ICO_STATE ico_state)
       break;
   }
   GPIO_SetBits(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&(lcd_mtx));
 }
 
 void HTB_Lcd_Init()
@@ -593,6 +612,7 @@ void HTB_Lcd_Init()
 void GPIO_Lcd_Init()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
+	rt_mutex_init(&(lcd_mtx),	"lcd_lock",	RT_IPC_FLAG_FIFO);
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOE|RCC_APB2Periph_GPIOB,ENABLE);
 

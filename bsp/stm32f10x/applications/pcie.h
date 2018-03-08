@@ -16,6 +16,7 @@ typedef struct _pcie_param {
 	struct rt_semaphore sem;
 	rt_uint8_t csq;
 	rt_uint32_t lac_ci;
+	rt_uint32_t cpin_cnt;
 	rt_uint8_t qccid[10];
 	rt_uint8_t imei[8];	
 }pcie_param,*ppcie_param;

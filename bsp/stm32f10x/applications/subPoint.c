@@ -246,11 +246,15 @@ void handleSub(rt_uint8_t *data)
 		{
 			cur_status = 1;
 			SetErrorCode(0x34);
+			SetStateIco(0,1);
+			SetStateIco(1,0);
 		}
 		else if(command_type == 0x0004)
 		{
 			cur_status = 0;
 			SetErrorCode(0x35);
+			SetStateIco(1,1);
+			SetStateIco(0,0);
 		}
 		if (g_main_state ==1)
 		save_fq(sub_id,dev_type, fangqu_wireless,WIRELESS_MAX);

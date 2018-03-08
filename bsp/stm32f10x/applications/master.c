@@ -161,7 +161,7 @@ int load_param()
 	mp.status = MAIN_STATION_PROTECT_OFF;
 	rt_memset(&mp.roProperty.CAPTCHA ,0,6);
 	mp.roProperty.model = 0;
-	mp.roProperty.sn[5] = 0x45;;
+	mp.roProperty.sn[5] = 0x45;
 	mp.roProperty.sn[4] = 0x23;
 	mp.roProperty.sn[3] = 0x21;
 	mp.roProperty.sn[2] = 0x01;
@@ -173,14 +173,14 @@ int load_param()
 	mp.socketAddress[0].IP[3] = 116;
 	mp.socketAddress[0].port = 2011;
 	strcpy(mp.socketDomainAddress.domain,DEFAULT_DOMAIN);
-	mp.socketDomainAddress.port = 2011; 	
+	mp.socketDomainAddress.port = 2011;
 	mp.updateAddress.IP[0] = 101;
 	mp.updateAddress.IP[1] = 132;
 	mp.updateAddress.IP[2] = 177;
 	mp.updateAddress.IP[3] = 116;
 	mp.updateAddress.port = 2011;
 	strcpy(mp.updateDomainAddress.domain,DEFAULT_DOMAIN);
-	mp.updateDomainAddress.port = 2011; 
+	mp.updateDomainAddress.port = 2011;
 
 	fqp.alarm_voice=0;
 	//fqp.auto_bufang=0;
@@ -229,7 +229,7 @@ int load_param()
 	
 	fd = open(FQP_FILE, O_RDONLY, 0);
 	if (fd > 0)
-	{		
+	{
 		rt_kprintf("read fqp data\r\n");
 		read(fd, &crc, sizeof(rt_uint16_t));
 		length = read(fd, &tmp_fqp, sizeof(tmp_fqp));
@@ -351,13 +351,13 @@ void info_user(void *param)
 	while (1) {
 		rt_event_recv( &(g_info_event), 0xffffffff, RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ); 
 		if (ev & INFO_EVENT_CODING) {
-			SetErrorCode(0x01);			
+			SetErrorCode(0x01);
 		}
 		if (ev & INFO_EVENT_NORMAL) {
-			SetErrorCode(0x00);			
+			SetErrorCode(0x00);
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
-			SetErrorCode(0x02);			
+			SetErrorCode(0x02);
 		}
 	}
 }

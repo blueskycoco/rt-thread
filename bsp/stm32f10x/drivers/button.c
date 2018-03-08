@@ -113,7 +113,7 @@ void bell_ctl(int level)
 }
 void buzzer_ctl(int level)
 {
-	static rt_thread_t rt = RT_NULL;
+	return ;
 	if (level == BUZZER_OK)		
 	{
 		GPIO_SetBits(GPIOD, GPIO_Pin_6);

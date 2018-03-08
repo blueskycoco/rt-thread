@@ -83,17 +83,20 @@ static void led_thread_entry(void* parameter)
 		rt_hw_led_on(0);
 		//buzzer_ctl(0);
 		rt_thread_delay( RT_TICK_PER_SECOND );
-		//rt_kprintf("SetFirstTo0 %d\r\n",count%10);
-		//SetErrorCode(count%99);//0 - 10
-		//rt_kprintf("SetSignalIco %d\r\n",count%10);
-		//SetSignalIco(count%6);//
-		//rt_kprintf("SetBatteryWifiIco %d\r\n",count%10);
-		//SetBatteryIco(count%5);
-		//SetWifiIco(count%5);
-		//rt_kprintf("SetSimTypeIco %d\r\n",count%10);
-		//SetSimTypeIco(count%5);
-		//rt_kprintf("SetStateIco %d\r\n",count%10);
-		//SetStateIco(count%7,1);		
+		rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
+		show_battery(ADC_Get_aveg());
+		/*
+//		rt_kprintf("SetFirstTo0 %d\r\n",count%10);
+		SetErrorCode(count%99);//0 - 10
+//		rt_kprintf("SetSignalIco %d\r\n",count%10);
+		SetSignalIco(count%6);//
+//		rt_kprintf("SetBatteryWifiIco %d\r\n",count%10);
+		SetBatteryIco(count%5);
+		SetWifiIco(count%5);
+//		rt_kprintf("SetSimTypeIco %d\r\n",count%10);
+		SetSimTypeIco(count%5);
+//		rt_kprintf("SetStateIco %d\r\n",count%10);
+		SetStateIco(count%7,1);		*/
 	}
 }
 
@@ -206,6 +209,8 @@ void rt_init_thread_entry(void* parameter)
 	} else {
 		buzzer_ctl(BUZZER_ERROR);
 	}
+	Adc_Init();
+	rt_kprintf("Battery : %04x\r\n",ADC_Get_aveg());
 	rt_hw_led_on(CODE_LED);
 	rt_hw_led_on(ARM_LED);
 	rt_hw_led_on(WIRE_LED);
@@ -213,13 +218,22 @@ void rt_init_thread_entry(void* parameter)
 	rt_hw_led_on(WIRELESS_LED);
 	rt_hw_led_on(FAIL_LED);
 	rt_hw_led_on(NET_LED);
+	SetErrorCode(1);
 	SetSignalIco(1);
+	SetBatteryIco(4);
+	SetWifiIco(4);
 	SetSimTypeIco(1);
+	SetStateIco(0,1);
 	SetStateIco(1,1);
-	SetBatteryIco(5);
-	SetWifiIco(1);
-	rt_thread_delay(100);	
-	HtbLcdClear();
+	SetStateIco(2,1);
+	SetStateIco(3,1);
+	SetStateIco(4,1);
+	SetStateIco(5,1);
+	SetStateIco(6,1);
+	rt_thread_delay(200);	
+	HtbLcdClear();	
+	SetStateIco(1,1);
+	SetStateIco(0,0);
 	rt_hw_led_off(CODE_LED);
 	rt_hw_led_off(ARM_LED);
 	rt_hw_led_off(WIRE_LED);
@@ -238,21 +252,33 @@ void rt_init_thread_entry(void* parameter)
 	{
 		err_code |= ERROR_PCIE_NULL;
 		SetErrorCode(err_code);
+		SetStateIco(3,1);
 	}
 		rt_kprintf("pcie identify done , err 0x%08x\r\n",err_code);
 	if ((pcie_status & PCIE_2_M26) && (pcie_status & PCIE_1_EC20))
 	{
+		SetSimTypeIco(3);
 		pcie_init(PCIE_1_EC20,PCIE_2_M26);
 		pcie_switch(PCIE_1_EC20);
+		SetStateIco(6,1);
+		SetStateIco(5,0);
 	} else if(pcie_status & PCIE_2_M26) {
+		SetSimTypeIco(1);
 		pcie_init(0,PCIE_2_M26);
 		pcie_switch(PCIE_2_M26);
+		SetStateIco(6,1);
+		SetStateIco(5,0);
 	} else if(pcie_status & PCIE_1_EC20) {
+		SetSimTypeIco(3);
 		pcie_init(PCIE_1_EC20,0);
 		pcie_switch(PCIE_1_EC20);
+		SetStateIco(6,1);
+		SetStateIco(5,0);
 	} else {
 		/*play audio here*/
 		buzzer_ctl(1);
+		SetSimTypeIco(0);
+		SetStateIco(3,1);
 	}
 	
 	while (1) {

@@ -137,7 +137,7 @@ void handle_m26_server_in(const void *last_data_ptr)
 			if(strlen(pos)<server_len_m26)
 			{
 				g_m26_state = M26_STATE_DATA_PROCESSING;
-				gprs_at_cmd(g_dev_m26,qiat);
+				gprs_at_cmd(g_dev_m26,at_csq);
 				rt_mutex_release(&(g_pcie[g_index]->lock));
 				return;
 			}
@@ -159,7 +159,7 @@ void handle_m26_server_in(const void *last_data_ptr)
 					gprs_at_cmd(g_dev_m26,qistat);
 				} else {
 					g_m26_state = M26_STATE_DATA_PROCESSING;
-					gprs_at_cmd(g_dev_m26,qiat);
+					gprs_at_cmd(g_dev_m26,at_csq);
 				}
 				if (!have_str(last_data_ptr, STR_QIRDI))
 					g_data_in_m26 = RT_FALSE;
@@ -187,7 +187,7 @@ void handle_m26_server_in(const void *last_data_ptr)
 				gprs_at_cmd(g_dev_m26,qistat);
 			} else {
 				g_m26_state = M26_STATE_DATA_PROCESSING;
-				gprs_at_cmd(g_dev_m26,qiat);		
+				gprs_at_cmd(g_dev_m26,at_csq);		
 			}
 			if (!have_str(last_data_ptr, STR_QIRDI))
 				g_data_in_m26 = RT_FALSE;
@@ -242,7 +242,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
-	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL)
+	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL && 
+		!have_str(last_data_ptr,STR_CSQ))
 		rt_kprintf("\r\n(M26<= %d %d %s)\r\n",g_m26_state, data_size,last_data_ptr);
 	if (data_size >= 2) {
 		switch (g_m26_state) {
@@ -254,6 +255,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case M26_STATE_ATE0:
 				if (have_str(last_data_ptr,STR_OK)) {
+					g_pcie[g_index]->cpin_cnt=0;
 					g_m26_state = M26_STATE_CHECK_CPIN;
 					gprs_at_cmd(g_dev_m26,cpin);
 				} else {
@@ -263,18 +265,33 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case M26_STATE_CHECK_CPIN:
 				if (have_str(last_data_ptr,STR_CPIN_READY)) {
+					g_pcie[g_index]->cpin_cnt=0;
 					g_m26_state = M26_STATE_CHECK_CGREG;
 					gprs_at_cmd(g_dev_m26,cgreg);
-				} else if (have_str(last_data_ptr, STR_CPIN))
+				} 
+				else/* if (have_str(last_data_ptr, STR_CPIN))*/
 				{
+					g_pcie[g_index]->cpin_cnt++;
+					if (g_pcie[g_index]->cpin_cnt>10)
+					{/*power off this module , power on another module*/
+						SetStateIco(3,1);
+						if (g_index==0)
+							SetErrorCode(0x08);
+						else
+							SetErrorCode(0x09);
+					}
 					rt_thread_delay(100);
 					gprs_at_cmd(g_dev_m26,cpin);
 				}
 				break;
 			case M26_STATE_CSQ:
 				if (have_str(last_data_ptr,STR_CSQ)) {
-					g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
+					if (tmp[9] == 0x2c)
+						g_pcie[g_index]->csq = tmp[8]-0x30;
+					else
+						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
 					rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
+					show_signal(g_pcie[g_index]->csq);
 					g_m26_state = M26_STATE_LAC;
 					gprs_at_cmd(g_dev_m26,cregs);
 				} 
@@ -511,7 +528,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					/*send data here */
 					rt_kprintf("connect to server ok\r\n");
 					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
-					gprs_at_cmd(g_dev_m26,qiat);
+					gprs_at_cmd(g_dev_m26,at_csq);
 					rt_hw_led_on(NET_LED);
 				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
 					g_m26_state = M26_STATE_SET_QIDEACT;
@@ -535,7 +552,14 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_m26,qird);
 					server_len_m26 = 0;
 					g_data_in_m26 = RT_TRUE;
-				} else if (have_str(last_data_ptr, STR_OK)){
+				//} else if (have_str(last_data_ptr, STR_OK)){
+				} else if (have_str(last_data_ptr,STR_CSQ)) {
+					if (tmp[9] == 0x2c)
+						g_pcie[g_index]->csq = tmp[8]-0x30;
+					else
+						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
+					//rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
+					show_signal(g_pcie[g_index]->csq);
 					/*check have data to send */
 					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_m26,&send_size_m26) == RT_EOK)
 					{	
@@ -546,7 +570,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_m26_state = M26_STATE_DATA_PRE_WRITE;
 					} else {								
 						rt_thread_delay(100);
-						gprs_at_cmd(g_dev_m26,qiat);
+						gprs_at_cmd(g_dev_m26,at_csq);
 					}
 				} else if (have_str(last_data_ptr,STR_CREG)) {
 					if (((rt_uint8_t *)last_data_ptr)[12]>='A' && ((rt_uint8_t *)last_data_ptr)[12]<='F' )
@@ -583,13 +607,13 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					else
 						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'0';
 							rt_kprintf("LAC_CI %08x\r\n", g_pcie[g_index]->lac_ci);
-							gprs_at_cmd(g_dev_m26,qiat);
+							gprs_at_cmd(g_dev_m26,at_csq);
 					} 
-					else {
+					/*else {
 					g_m26_state = M26_STATE_CHECK_QISTAT;
 					gprs_at_cmd(g_dev_m26,qistat);
 					rt_hw_led_off(NET_LED);
-				}
+					}*/
 
 				break;
 			case M26_STATE_DATA_READ:
@@ -619,7 +643,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					//g_m26_state = M26_STATE_DATA_ACK;
 					//gprs_at_cmd(g_dev_m26,(qisack);
 					g_m26_state = M26_STATE_DATA_PROCESSING;
-					gprs_at_cmd(g_dev_m26,qiat);
+					gprs_at_cmd(g_dev_m26,at_csq);
 				} else {
 					if (!have_str(last_data_ptr, STR_QIRDI) && 
 							!have_str(last_data_ptr, STR_QIURC)) {
@@ -639,7 +663,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_m26,qird);
 						server_len_m26 = 0;
 					} else {
-						gprs_at_cmd(g_dev_m26,qiat);
+						gprs_at_cmd(g_dev_m26,at_csq);
 					}
 				} else if (have_str(last_data_ptr, STR_QIRDI))
 					g_data_in_m26 = RT_TRUE;
