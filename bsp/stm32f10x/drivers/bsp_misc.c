@@ -5,6 +5,7 @@
 #include <rtthread.h>
 #include "stm32f10x.h"
 #include "bsp_misc.h"
+extern rt_uint8_t g_main_state;
 unsigned int CRC_check(unsigned char *Data,unsigned short Data_length)
 {
 	unsigned int mid=0;
@@ -250,5 +251,7 @@ void led_blink(int times)
 		rt_thread_delay(RT_TICK_PER_SECOND);
 		rt_hw_led_off(0);
 		rt_thread_delay(RT_TICK_PER_SECOND);
+		if (g_main_state==1)
+			rt_hw_led_on(0);
 	}
 }
