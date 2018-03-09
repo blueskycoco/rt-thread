@@ -172,13 +172,13 @@ void show_signal(int csq)
 void show_battery(int v)
 {
 	int level = 4;
-	if (v>1200)
+	if (v>1180)
 		level=4;
-	else if (v>1170)
+	else if (v>1070)
 		level=3;
-	else if (v>1120)
+	else if (v>960)
 		level=2;
-	else if (v>1050)
+	else if (v>850)
 		level=1;
 	else
 		level=5;
@@ -241,4 +241,14 @@ rt_uint16_t ADC_Get_aveg(void)
 	} 
 	return (ad_sum / 10);
 }
-
+void led_blink(int times)
+{
+	int i=0;
+	for (i=0;i<times;i++)
+	{
+		rt_hw_led_on(0);
+		rt_thread_delay(RT_TICK_PER_SECOND);
+		rt_hw_led_off(0);
+		rt_thread_delay(RT_TICK_PER_SECOND);
+	}
+}

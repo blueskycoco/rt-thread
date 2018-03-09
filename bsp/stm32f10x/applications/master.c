@@ -11,6 +11,9 @@
 #define MAIN_STATION_PROTECT_OFF 0
 #define DEFAULT_DOMAIN "kjfslkjflskdjfj"
 struct rt_event g_info_event;
+extern rt_uint8_t cur_status;
+rt_uint32_t g_coding_cnt=0;
+extern rt_uint8_t g_main_state;
 void dump_mp(struct MachineProperty v)
 {
 	int i;
@@ -339,7 +342,7 @@ void save_param(int type)
 			close(fd);
 			return ;
 		}
-		dump_fqp(fqp,fangqu_wire,fangqu_wireless);
+		dump_fqp(fqp,fangqu_wire,fangqu_wireless);		
 	}
 	close(fd);
 	return;
@@ -351,13 +354,27 @@ void info_user(void *param)
 	while (1) {
 		rt_event_recv( &(g_info_event), 0xffffffff, RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ); 
 		if (ev & INFO_EVENT_CODING) {
-			SetErrorCode(0x01);
+			if (cur_status == 1) {
+				/*need protection off first
+				  *play audio here
+				  */
+				g_main_state = 0;
+			} else {
+				SetErrorCode(0x01);
+				led_blink(1);
+				g_coding_cnt = 0;
+			}
 		}
 		if (ev & INFO_EVENT_NORMAL) {
 			SetErrorCode(0x00);
+			rt_hw_led_off(0);
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
 			SetErrorCode(0x02);
+			led_blink(3);
+			dfs_mkfs("elm","sd0");
+			//__set_FAULTMASK();
+			NVIC_SystemReset();
 		}
 	}
 }

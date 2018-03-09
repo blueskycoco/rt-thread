@@ -331,7 +331,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	if (type0) {
 		g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));
 		rt_memset(g_pcie[0],0,sizeof(pcie_param));
-		g_pcie[0]->dev = rt_device_find("uart3"); //PCIE1	
+		g_pcie[0]->dev = rt_device_find("uart3"); //PCIE1
 		rt_device_open(g_pcie[0]->dev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX);
 		rt_event_init(&(g_pcie[0]->event), 	"pcie0_event", 	RT_IPC_FLAG_FIFO );
 		rt_mutex_init(&(g_pcie[0]->lock), 	"pcie0_lock", 	RT_IPC_FLAG_FIFO);
@@ -339,10 +339,10 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	}
 
 	if (type1) {
-		g_pcie[1] = (ppcie_param)rt_malloc(sizeof(pcie_param));		
+		g_pcie[1] = (ppcie_param)rt_malloc(sizeof(pcie_param));
 		rt_memset(g_pcie[1],0,sizeof(pcie_param));
 		g_pcie[1]->dev = rt_device_find("uart2"); //PCIE2
-		rt_device_open(g_pcie[1]->dev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX);	
+		rt_device_open(g_pcie[1]->dev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX);
 		rt_event_init(&(g_pcie[1]->event), 	"pcie1_event", 	RT_IPC_FLAG_FIFO );
 		rt_mutex_init(&(g_pcie[1]->lock), 	"pcie1_lock", 	RT_IPC_FLAG_FIFO);
 		rt_sem_init(&(g_pcie[1]->sem), 		"pcie1_sem", 	0, 0);

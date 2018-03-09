@@ -52,6 +52,8 @@
 rt_uint32_t err_code = NO_ERROR;
 rt_uint8_t  pcie_status = 0x00; /*0x01 pcie1, 0x02 pcie2 0x03 pcie1 & pcie2*/
 extern struct rt_event g_info_event;
+extern rt_uint8_t g_main_state;
+extern rt_uint32_t g_coding_cnt;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -70,8 +72,16 @@ static void led_thread_entry(void* parameter)
 #ifndef RT_USING_FINSH
 		// rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
-		rt_hw_led_off(0);
+		//rt_hw_led_off(0);
 		//buzzer_ctl(1);
+		if (g_main_state==1) {
+			g_coding_cnt++;
+			if (g_coding_cnt>60) {
+				g_main_state = 0;
+				/*play audio here*/
+				rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
+			}
+		}
 		rt_thread_delay( RT_TICK_PER_SECOND ); /* sleep 0.5 second and switch to other thread */
 		//SetStateIco(count%7,0);
 		count++;
@@ -80,10 +90,10 @@ static void led_thread_entry(void* parameter)
 #ifndef RT_USING_FINSH
 		//rt_kprintf("led off\r\n");
 #endif
-		rt_hw_led_on(0);
+		//rt_hw_led_on(0);
 		//buzzer_ctl(0);
 		rt_thread_delay( RT_TICK_PER_SECOND );
-		rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
+		//rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
 		show_battery(ADC_Get_aveg());
 		/*
 //		rt_kprintf("SetFirstTo0 %d\r\n",count%10);
@@ -127,7 +137,7 @@ void rt_init_thread_entry(void* parameter)
 	button_init();
 	battery_init();
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
-	rt_thread_startup(rt_thread_create("info",info_user, 0,512, 20, 10));
+	rt_thread_startup(rt_thread_create("info",info_user, 0,1024, 20, 10));
 
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)

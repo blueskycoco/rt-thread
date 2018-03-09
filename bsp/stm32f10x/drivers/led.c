@@ -101,7 +101,7 @@ void rt_hw_led_on(rt_uint32_t n)
     switch (n)
     {
     case 0:
-        GPIO_SetBits(led1_gpio, led1_pin);
+        GPIO_ResetBits(led1_gpio, led1_pin);
         break;
 		
     case ARM_LED:
@@ -138,7 +138,7 @@ void rt_hw_led_off(rt_uint32_t n)
     switch (n)
     {
     case 0:
-        GPIO_ResetBits(led1_gpio, led1_pin);
+        GPIO_SetBits(led1_gpio, led1_pin);
         break;
 		
 	case ARM_LED:

@@ -404,9 +404,9 @@ uint8_t cc1101_rcv_packet(uint8_t *rxBuffer, uint8_t *length)
 					for(i=0;i<len;i++)
 					rt_kprintf("%c",rxBuffer[i]);
 					rt_kprintf("\n");
-					rt_hw_led_on(0);
-					rt_thread_delay(25);
-					rt_hw_led_off(0);
+					//rt_hw_led_on(0);
+					//rt_thread_delay(25);
+					//rt_hw_led_off(0);
 				}
 				else
 				{

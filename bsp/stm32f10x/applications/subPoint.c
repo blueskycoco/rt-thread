@@ -23,7 +23,7 @@ rt_uint32_t g_addr[60] = {0x00};
 rt_uint8_t base_addr = 2;
 rt_uint8_t addr_cnt = 0;
 rt_uint8_t g_main_state = 0; /*0 normal , 1 code, 2 factory reset*/
-
+extern rt_uint32_t g_coding_cnt;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -99,10 +99,13 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 void save_fq(rt_uint32_t subId, rt_uint8_t type, struct FangQu *list, int len)
 {
 	int i;	
+	g_coding_cnt =0;
 	for (i=0;i<len;i++)
 	{
 		if (list[i].slave_sn== subId)
 		{
+			SetErrorCode(i);
+			/*play audio here*/
 			return;
 		}
 	}
@@ -119,9 +122,12 @@ void save_fq(rt_uint32_t subId, rt_uint8_t type, struct FangQu *list, int len)
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
 				i,list[i].index,list[i].slave_sn);
 			save_param(1);
+			SetErrorCode(i);
+			/*play audio here*/
 			return;
 		}
 	}
+	/*play wrong audio here*/
 }
 void cmd_dump(rt_uint8_t *data)
 {
