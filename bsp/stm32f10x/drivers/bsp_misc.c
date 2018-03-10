@@ -251,7 +251,7 @@ void led_blink(int times)
 		rt_thread_delay(RT_TICK_PER_SECOND);
 		rt_hw_led_off(0);
 		rt_thread_delay(RT_TICK_PER_SECOND);
-		if (g_main_state==1)
+		if (g_main_state==2)
 			rt_hw_led_on(0);
 	}
 }

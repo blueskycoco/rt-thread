@@ -15,7 +15,8 @@ rt_uint8_t stm32_zero[6] = {0};
 rt_uint32_t sub_id = {0}; 
 rt_uint16_t command_type = 0;
 rt_uint8_t sub_cmd_type = 0;
-rt_uint8_t model = 0;
+rt_uint16_t dev_model = 0;
+rt_uint32_t dev_time = 0;
 rt_uint8_t dev_type = 0;
 rt_uint16_t battery = 0;
 rt_uint8_t in_fq = 0;
@@ -24,6 +25,8 @@ rt_uint8_t base_addr = 2;
 rt_uint8_t addr_cnt = 0;
 rt_uint8_t g_main_state = 0; /*0 normal , 1 code, 2 factory reset*/
 extern rt_uint32_t g_coding_cnt;
+extern struct rt_event g_info_event;
+extern rt_uint8_t g_num;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -68,9 +71,15 @@ char *cmd_dev_type(rt_uint8_t type)
 {
 	switch (type) {
 		case 0x01:
-			return "Wire";
-		case 0x02:
-			return "Wireless";
+			return "Wireless Remoter";
+		case 0x42:
+			return "Wireless Infrar";
+		case 0x43:
+			return "Wireless Door";
+		case 0x22:
+			return "Wire Infrar";
+		case 0x23:
+			return "Wire Door";
 		default:
 			return "UnKnown";
 	}
@@ -96,15 +105,22 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 	else
 		return i+51;
 }
-void save_fq(rt_uint32_t subId, rt_uint8_t type, struct FangQu *list, int len)
+void save_fq(struct FangQu *list, int len)
 {
 	int i;	
 	g_coding_cnt =0;
 	for (i=0;i<len;i++)
 	{
-		if (list[i].slave_sn== subId)
+		rt_kprintf("salve sn %d, sub id %d\r\n",
+			list[i].slave_sn,sub_id);
+		if (list[i].slave_sn== sub_id)
 		{
-			SetErrorCode(i);
+			if (len!=50)
+				in_fq = i+51;//SetErrorCode(i+51);
+			else
+				in_fq = i+2;//SetErrorCode(i+2);
+			g_num = in_fq;
+			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 			/*play audio here*/
 			return;
 		}
@@ -117,12 +133,20 @@ void save_fq(rt_uint32_t subId, rt_uint8_t type, struct FangQu *list, int len)
 				list[i].index = i+2;
 			else
 				list[i].index = i+51;
-			list[i].slave_sn = subId;
-			list[i].slave_type = type;
+			list[i].slave_sn = sub_id;
+			list[i].slave_type = dev_type;
+			list[i].slave_model = dev_model;
+			list[i].slave_batch = dev_time&0x00ffffff;
+			in_fq=list[i].index;
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
 				i,list[i].index,list[i].slave_sn);
 			save_param(1);
-			SetErrorCode(i);
+			//if (len!=50)
+			//	SetErrorCode(i+51);
+			//else
+			//	SetErrorCode(i+2);
+			g_num = in_fq;
+			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 			/*play audio here*/
 			return;
 		}
@@ -138,33 +162,53 @@ void cmd_dump(rt_uint8_t *data)
 	rt_kprintf("<== \r\nSTM32 ID :\t%x%x%x%x%x%x\r\n", data[5],data[6],data[7],data[8],data[9],data[10]);
 	rt_kprintf("Sub ID :\t%x%x%x%x\r\n", data[11],data[12],data[13],data[14]);
 	rt_kprintf("CMD Type :\t%s\r\n",cmd_type(command_type));
-	if (0x0000 != (data[15]<<8|data[16]) && 0x0014 != (data[15]<<8|data[16]))
+	if (0x0002 != command_type && 0x0004 != command_type &&
+		0x000e != command_type) /*from remoter or coding request ,dump dev_type, model, time*/
 	{
-		sub_cmd_type = data[17];
-		dev_type = data[18];
-		rt_kprintf("CMD SubType :\t%s\r\n",cmd_sub_type(data[17]));
-		rt_kprintf("Dev Type :\t%s\r\n",cmd_dev_type(data[18]));
+		if (0x0000 == command_type)
+		{
+			dev_type = data[17];
+			battery = data[18]<<8|data[19];
+		}
+		else if(0x0014 == command_type)
+		{
+			dev_type = data[19];
+			dev_model = (data[20]<<8)|data[21];
+			dev_time = (data[22]<<16)|(data[23]<<8)|data[24];
+			battery = data[25]<<8|data[26];
+			rt_kprintf("Dev Model :\t%x\r\n", dev_model);
+			rt_kprintf("Dev build time :%x\r\n", dev_time);
+		}
+		else
+		{
+			dev_type = data[18];
+			sub_cmd_type = data[17];			
+			battery = data[19]<<8|data[20];
+			rt_kprintf("CMD SubType :\t%s\r\n",cmd_sub_type(data[17]));
+		}
+		rt_kprintf("Dev Type :\t%s\r\n",cmd_dev_type(dev_type));
 	}
 	else
 	{
 		dev_type = data[17];
-		model = data[18];
-		rt_kprintf("Dev Type :\t%s\r\n",cmd_dev_type(data[17]));
-		rt_kprintf("Dev Model :\t%x\r\n", data[18]);
+		dev_model = (data[18]<<8)|data[19];
+		dev_time = (data[20]<<16)|(data[21]<<8)|data[22];
+		battery = data[23]<<8|data[24];
+		rt_kprintf("Dev Type :\t%s\r\n",cmd_dev_type(dev_type));
+		rt_kprintf("Dev Model :\t%x\r\n", dev_model);
+		rt_kprintf("Dev build time :%x\r\n", dev_time);
 	}
-	battery = data[19]<<8|data[20];
 	in_fq = data[1];
-	rt_kprintf("Battery :\t%d\r\n",data[19]<<8|data[20]);
+	rt_kprintf("Battery :\t%d\r\n",battery);
 	rt_kprintf("Protect Zone :\t%x\r\n", data[1]);
 
-	rt_kprintf("STM32 Param\r\n");
-	rt_kprintf("sn %x%x%x%x%x%x\r\n", 
-		stm32_id[0],
-		stm32_id[1],
-		stm32_id[2],
-		stm32_id[3],
-		stm32_id[4],
-		stm32_id[5]
+	rt_kprintf("STM32 Param sn: %x%x%x%x%x%x\r\n", 
+		mp.roProperty.sn[0],
+		mp.roProperty.sn[1],
+		mp.roProperty.sn[2],
+		mp.roProperty.sn[3],
+		mp.roProperty.sn[4],
+		mp.roProperty.sn[5]
 		);
 	rt_kprintf("g_main_state %d\r\n",g_main_state);
 }
@@ -217,30 +261,37 @@ void handleSub(rt_uint8_t *data)
 		rt_kprintf("sub id not in list , and not codeing mode\r\n");
 		return ;
 	}
-	if (data[18] != 0x01) {
+	if (dev_type != 0x01) {
 		resp[0] = data[1];
 		resp[1] = data[0];
 		rt_memcpy(resp+2, data+2,13);
-		rt_memcpy(resp+5, stm32_id, 6);
+		rt_memcpy(resp+5, mp.roProperty.sn, 6);
 		resp[15]=0x00;resp[16]=data[16]+0x01;resp[17]=data[17];
-		if (0 == (data[15]<<8|data[16]))
+		if (0 == command_type)
 		{	/*require cc1101 addr*/
 			resp[18] = get_addr(data[11]<<24|data[12]<<16|data[13]<<8|data[14],fangqu_wireless,WIRELESS_MAX);
-		} else if (0x0010 == (data[15]<<8|data[16])) {
+		} else if (0x0010 == command_type) {
 			/*get cur status*/
 			resp[18] = cur_status;
-		} else if (0x0014 == (data[15]<<8|data[16])) {
+		} else if (0x0014 == command_type) {
 			/*configrm coding*/
 			resp[18] = 0x01;
 			//g_addr[addr_cnt] = data[11]<<24|data[12]<<16|data[13]<<8|data[14];			
 			//addr_cnt++;
-			save_fq(sub_id,dev_type, fangqu_wireless,WIRELESS_MAX);
-		} else if (0x0006 == (data[15]<<8|data[16])) {
+			if (g_main_state ==1)
+				save_fq(fangqu_wireless,WIRELESS_MAX);
+		} else if (0x0006 == command_type) {
 			/*send alarm to server*/
 			resp[18] = cur_status;
-		} else if (0x000c == (data[15]<<8|data[16])) {
+			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+			g_num = in_fq;
+			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
+		} else if (0x000c == command_type) {
 			/*send low power alarm to server*/
 			resp[18] = cur_status;
+			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+			g_num = in_fq;
+			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		}
 		resp[4]=16;
 		unsigned short crc = CRC_check(resp,19);
@@ -251,18 +302,16 @@ void handleSub(rt_uint8_t *data)
 		if (command_type == 0x0002)
 		{
 			cur_status = 1;
-			SetErrorCode(0x34);
-			SetStateIco(0,1);
-			SetStateIco(1,0);
+			rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 		}
 		else if(command_type == 0x0004)
 		{
 			cur_status = 0;
-			SetErrorCode(0x35);
-			SetStateIco(1,1);
-			SetStateIco(0,0);
+			rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_OFF);
 		}
+		g_num = in_fq;
+		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		if (g_main_state ==1)
-		save_fq(sub_id,dev_type, fangqu_wireless,WIRELESS_MAX);
+		save_fq(fangqu_wireless,WIRELESS_MAX);
 	}
 }

@@ -29,6 +29,11 @@
 #define EC20_STATE_DATA_ACK			18
 #define EC20_STATE_DATA_PRE_WRITE	19
 #define EC20_STATE_ATE0 				21
+#define EC20_STATE_CSQ				22
+#define EC20_STATE_LAC				23
+#define EC20_STATE_ICCID			24
+#define EC20_STATE_IMEI				25
+#define EC20_STATE_LACR				26
 
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -64,9 +69,16 @@
 #define STR_SOCKET_BUSSY			"SOCKET BUSY"
 #define STR_CONNECT_OK			"+QIOPEN: 0,0"
 #define STR_CONNECT_FAIL		"+QIOPEN: 0,"
-
+#define STR_CSQ						"+CSQ:"
+#define STR_CREG					"+CREG:"
+#define STR_QCCID				"+QCCID: "
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
+#define cregs "AT+CREG=2\r\n"
+#define cregr "AT+CREG?\r\n"
+#define at_csq "AT+CSQ\r\n"
+#define at_qccid "AT+QCCID\r\n"
+#define gsn "AT+GSN\r\n"
 
 #define qistat 		"AT+QISTATE=0,1\r\n"
 #define qiclose "AT+QICLOSE\r\n"
@@ -136,7 +148,7 @@ void handle_ec20_server_in(const void *last_data_ptr)
 						gprs_at_cmd(g_dev_ec20,qistat);
 					} else {
 						g_ec20_state = EC20_STATE_DATA_PROCESSING;
-						gprs_at_cmd(g_dev_ec20,qiat);
+						gprs_at_cmd(g_dev_ec20,at_csq);
 					}
 					if (!have_str(last_data_ptr, STR_QIRDI))
 						g_data_in_ec20 = RT_FALSE;
@@ -167,7 +179,7 @@ void handle_ec20_server_in(const void *last_data_ptr)
 					gprs_at_cmd(g_dev_ec20,qistat);
 				} else {
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
-					gprs_at_cmd(g_dev_ec20,qiat);		
+					gprs_at_cmd(g_dev_ec20,at_csq);		
 				}
 				if (!have_str(last_data_ptr, STR_QIRDI))
 					g_data_in_ec20 = RT_FALSE;
@@ -219,7 +231,10 @@ void ec20_start(int index)
 
 void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 {
-	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL)
+	int i=0;
+	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
+	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL&& 
+		!have_str(last_data_ptr,STR_CSQ))
 		rt_kprintf("\r\n(EC20<= %d %d %s)\r\n",g_ec20_state, data_size,last_data_ptr);
 	if (data_size >= 2) {
 		switch (g_ec20_state) {
@@ -242,18 +257,152 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr,STR_CPIN_READY)) {
 					g_ec20_state = EC20_STATE_CHECK_CGREG;
 					gprs_at_cmd(g_dev_ec20,cgreg);
-				} else if (have_str(last_data_ptr, STR_CPIN))
-				{
+				} else/* if (have_str(last_data_ptr, STR_CPIN))*/
+				{					
+					g_pcie[g_index]->cpin_cnt++;
+					if (g_pcie[g_index]->cpin_cnt>10)
+					{/*power off this module , power on another module*/
+						SetStateIco(3,1);
+						if (g_index==0)
+							SetErrorCode(0x08);
+						else
+							SetErrorCode(0x09);
+					}
 					rt_thread_delay(100);
 					gprs_at_cmd(g_dev_ec20,cpin);
+					
 				}
 
 				break;
+			case EC20_STATE_CSQ:
+				if (have_str(last_data_ptr,STR_CSQ)) {
+					if (tmp[9] == 0x2c)
+						g_pcie[g_index]->csq = tmp[8]-0x30;
+					else
+						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
+					rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
+					show_signal(g_pcie[g_index]->csq);
+					g_ec20_state = EC20_STATE_LAC;
+					gprs_at_cmd(g_dev_ec20,cregs);
+				} 
+				break;
+			case EC20_STATE_LAC:
+				if (have_str(last_data_ptr,STR_OK)) {
+					g_ec20_state = EC20_STATE_LACR;
+					gprs_at_cmd(g_dev_ec20,cregr);
+				} 
+				break;
+			case EC20_STATE_LACR:
+				if (have_str(last_data_ptr,STR_CREG)) {
+						i=0;
+						while(tmp[i]!='"' && i<strlen(tmp))
+							i++;
+						if (((rt_uint8_t *)last_data_ptr)[i+1]>='A' && ((rt_uint8_t *)last_data_ptr)[i+1]<='F' )
+							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[i+1]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[i+1]-'0';
+						
+						if (((rt_uint8_t *)last_data_ptr)[i+2]>='A' && ((rt_uint8_t *)last_data_ptr)[i+2]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+2]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+2]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+3]>='A' && ((rt_uint8_t *)last_data_ptr)[i+3]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+3]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+3]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+4]>='A' && ((rt_uint8_t *)last_data_ptr)[i+4]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+4]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+4]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+8]>='A' && ((rt_uint8_t *)last_data_ptr)[i+8]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+8]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+8]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+9]>='A' && ((rt_uint8_t *)last_data_ptr)[i+9]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+9]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+9]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+10]>='A' && ((rt_uint8_t *)last_data_ptr)[i+10]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+10]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+10]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+11]>='A' && ((rt_uint8_t *)last_data_ptr)[i+11]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+11]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+11]-'0';
+						rt_kprintf("ORI %c%c%c%c%c%c%c%c LAC_CI %08x\r\n", 
+							((rt_uint8_t *)last_data_ptr)[i+1],((rt_uint8_t *)last_data_ptr)[i+2],
+							((rt_uint8_t *)last_data_ptr)[i+3],((rt_uint8_t *)last_data_ptr)[i+4],
+							((rt_uint8_t *)last_data_ptr)[i+8],((rt_uint8_t *)last_data_ptr)[i+9],
+							((rt_uint8_t *)last_data_ptr)[i+10],((rt_uint8_t *)last_data_ptr)[i+11],
+							g_pcie[g_index]->lac_ci);
+				} 
+				g_ec20_state = EC20_STATE_ICCID;
+				gprs_at_cmd(g_dev_ec20,at_qccid);
+				break;
+			case EC20_STATE_ICCID:
+				if (have_str(last_data_ptr,STR_QCCID)) {
+					rt_uint8_t *tmp1 = strstr(last_data_ptr,STR_QCCID);
+					i=8;
+					while(tmp1[i]!='\r')
+					{
+						if (tmp1[i]>='0' && tmp1[i]<='9')
+							g_pcie[g_index]->qccid[i/2-4] = (tmp1[i]-0x30)*16;
+						else if (tmp1[i]>='a' && tmp1[i]<='f')
+							g_pcie[g_index]->qccid[i/2-4] = (tmp1[i]-'a'+10)*16;
+						else if (tmp1[i]>='A' && tmp1[i]<='F')
+							g_pcie[g_index]->qccid[i/2-4] = (tmp1[i]-'A'+10)*16;
+			
+						if (tmp1[i+1]>='0' && tmp1[i+1]<='9')
+							g_pcie[g_index]->qccid[i/2-4] += (tmp1[i+1]-0x30);
+						else if (tmp1[i+1]>='a' && tmp1[i+1]<='f')
+							g_pcie[g_index]->qccid[i/2-4] += (tmp1[i+1]-'a'+10);
+						else if (tmp1[i+1]>='A' && tmp1[i+1]<='F')
+							g_pcie[g_index]->qccid[i/2-4] += (tmp1[i+1]-'A'+10);
+						rt_kprintf("qccid[%d] = %02X\r\n",i/2-4,g_pcie[g_index]->qccid[i/2-4]);
+						i+=2;						
+					}					
+					
+					g_ec20_state = EC20_STATE_IMEI;
+					gprs_at_cmd(g_dev_ec20,gsn);
+				}
+					break;
+			case EC20_STATE_IMEI:
+				if (have_str(last_data_ptr,"86")) {
+				g_pcie[g_index]->imei[0]=0x0;
+				i=0;
+				i=2;//866159032379171
+				while(tmp[i]!='\r' && i<17)
+				{
+					if (tmp[i]>='0' && tmp[i]<='9')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i]-0x30);
+					else if (tmp[i]>='a' && tmp[i]<='f')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i]-'a'+10);
+					else if (tmp[i]>='A' && tmp[i]<='F')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i]-'A'+10);
+					rt_kprintf("imei[%d] = %02X\r\n",i/2,g_pcie[g_index]->imei[i/2-1]);
+					//i+=2;
+					if (tmp[i+1]>='0' && tmp[i+1]<='9')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+1]-0x30)*16;
+					else if (tmp[i+1]>='a' && tmp[i+1]<='f')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+1]-'a'+10)*16;
+					else if (tmp[i+1]>='A' && tmp[i+1]<='F')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+1]-'A'+10)*16;
+				
+					i+=2;						
+				}					
+				
+					g_ec20_state = EC20_STATE_CHECK_QISTAT;
+					gprs_at_cmd(g_dev_ec20,qistat);
+				}
+					break;
+			
 			case EC20_STATE_CHECK_CGREG:
 				if (have_str(last_data_ptr, STR_CGREG_READY) ||
 						have_str(last_data_ptr, STR_CGREG_READY1)) {
-					g_ec20_state = EC20_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_ec20,qistat);
+					//g_ec20_state = EC20_STATE_CHECK_QISTAT;
+					g_ec20_state = EC20_STATE_CSQ;
+					gprs_at_cmd(g_dev_ec20,at_csq);
 				} else/* if(have_str(last_data_ptr, STR_CGREG))*/ {
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_ec20,cgreg);
@@ -363,7 +512,9 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
 					/*send data here */
 					rt_kprintf("connect to server ok\r\n");
-					gprs_at_cmd(g_dev_ec20,qiat);
+					rt_event_send(&(g_pcie[g_index]->event), EC20_EVENT_0);
+					gprs_at_cmd(g_dev_ec20,at_csq);
+					rt_hw_led_on(NET_LED);
 				} else if (have_str(last_data_ptr, STR_ERROR) ||
 					have_str(last_data_ptr, STR_CONNECT_FAIL)){
 					g_ec20_state = EC20_STATE_SET_QIDEACT;
@@ -377,18 +528,69 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_ec20,qird);
 					server_len_ec20 = 0;
 					g_data_in_ec20 = RT_TRUE;
-				} else if (have_str(last_data_ptr, STR_OK)){
+				} else if (have_str(last_data_ptr,STR_CSQ)) {
+					if (tmp[9] == 0x2c)
+						g_pcie[g_index]->csq = tmp[8]-0x30;
+					else
+						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
+					//rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
+					show_signal(g_pcie[g_index]->csq);
 					/*check have data to send */
 					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_ec20,&send_size_ec20) == RT_EOK)
 					{	
 						rt_data_queue_pop(&g_data_queue[2], (const void **)&send_data_ptr_ec20, &send_size_ec20, RT_WAITING_FOREVER);
 						rt_kprintf("should send data %d\r\n", send_size_ec20);
-						rt_sprintf(qisend_ec20, "AT+QISEND=%d\r\n", send_size_ec20);
+						rt_sprintf(qisend_ec20, "AT+QISEND=0,%d\r\n", send_size_ec20);
 						gprs_at_cmd(g_dev_ec20,qisend_ec20);
 						g_ec20_state = EC20_STATE_DATA_PRE_WRITE;
-					} else {								
+					}else if (have_str(last_data_ptr,STR_CREG)) {
+						i=0;
+						while(tmp[i]!='"' && i<strlen(tmp))
+							i++;
+						if (((rt_uint8_t *)last_data_ptr)[i+1]>='A' && ((rt_uint8_t *)last_data_ptr)[i+1]<='F' )
+							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[i+1]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[i+1]-'0';
+						
+						if (((rt_uint8_t *)last_data_ptr)[i+2]>='A' && ((rt_uint8_t *)last_data_ptr)[i+2]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+2]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+2]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+3]>='A' && ((rt_uint8_t *)last_data_ptr)[i+3]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+3]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+3]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+4]>='A' && ((rt_uint8_t *)last_data_ptr)[i+4]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+4]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+4]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+8]>='A' && ((rt_uint8_t *)last_data_ptr)[i+8]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+8]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+8]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+9]>='A' && ((rt_uint8_t *)last_data_ptr)[i+9]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+9]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+9]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+10]>='A' && ((rt_uint8_t *)last_data_ptr)[i+10]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+10]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+10]-'0';
+						if (((rt_uint8_t *)last_data_ptr)[i+11]>='A' && ((rt_uint8_t *)last_data_ptr)[i+11]<='F' )
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+11]-'A'+10;
+						else
+							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[i+11]-'0';
+						rt_kprintf("ORI %c%c%c%c%c%c%c%c LAC_CI %08x\r\n", 
+							((rt_uint8_t *)last_data_ptr)[i+1],((rt_uint8_t *)last_data_ptr)[i+2],
+							((rt_uint8_t *)last_data_ptr)[i+3],((rt_uint8_t *)last_data_ptr)[i+4],
+							((rt_uint8_t *)last_data_ptr)[i+8],((rt_uint8_t *)last_data_ptr)[i+9],
+							((rt_uint8_t *)last_data_ptr)[i+10],((rt_uint8_t *)last_data_ptr)[i+11],
+							g_pcie[g_index]->lac_ci);
+							gprs_at_cmd(g_dev_ec20,at_csq);
+					} 
+					else {								
 						rt_thread_delay(100);
-						gprs_at_cmd(g_dev_ec20,qiat);
+						gprs_at_cmd(g_dev_ec20,at_csq);
 					}
 
 				} else {
@@ -418,7 +620,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 			case EC20_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_SEND_OK)) {
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
-					gprs_at_cmd(g_dev_ec20,qiat);
+					gprs_at_cmd(g_dev_ec20,at_csq);
 				} else {
 					if (!have_str(last_data_ptr, STR_QIURC)) {
 						g_ec20_state = EC20_STATE_CHECK_QISTAT;

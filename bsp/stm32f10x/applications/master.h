@@ -5,6 +5,19 @@
 #define INFO_EVENT_CODING					(1<<1)
 #define INFO_EVENT_FACTORY_RESET			(1<<2)
 #define INFO_EVENT_NORMAL	 				(1<<3)
+#define INFO_EVENT_ALARM	 				(1<<4)
+#define INFO_EVENT_PROTECT_ON 				(1<<5)
+#define INFO_EVENT_PROTECT_OFF 				(1<<6)
+#define INFO_EVENT_STM32_ERROR 				(1<<7)
+#define INFO_EVENT_USE_GPRS	 				(1<<8)
+#define INFO_EVENT_USE_WIRE	 				(1<<9)
+#define INFO_EVENT_WIFI_SIGNAL 				(1<<10)
+#define INFO_EVENT_POWER_SWITCH				(1<<11)
+#define INFO_EVENT_USE_XG	 				(1<<12)
+#define INFO_EVENT_GPRS_SIGNAL 				(1<<13)
+#define INFO_EVENT_SHOW_NUM	 				(1<<14)
+#define INFO_EVENT_BATTERY_LEVEL			(1<<15)
+
 
 struct IPAddress
 {
@@ -62,7 +75,7 @@ struct FangQu
 	rt_uint8_t  	status;
 	rt_uint32_t 	slave_sn;
 	rt_uint8_t  	slave_type;
-	rt_uint32_t   	slave_model;
+	rt_uint16_t   	slave_model;
 	rt_uint32_t 	slave_batch;
 };
 

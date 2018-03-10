@@ -4,6 +4,7 @@
 #include <dfs_posix.h>
 #include "master.h"
 #include "lcd.h"
+#include "led.h"
 #include "bsp_misc.h"
 #define FQP_FILE	"/fqp.dat"
 #define MP_FILE		"/mp.dat"
@@ -14,6 +15,8 @@ struct rt_event g_info_event;
 extern rt_uint8_t cur_status;
 rt_uint32_t g_coding_cnt=0;
 extern rt_uint8_t g_main_state;
+extern rt_uint8_t in_fq;
+rt_uint8_t g_num=0;
 void dump_mp(struct MachineProperty v)
 {
 	int i;
@@ -360,8 +363,8 @@ void info_user(void *param)
 				  */
 				g_main_state = 0;
 			} else {
-				SetErrorCode(0x01);
-				led_blink(1);
+				//SetErrorCode(0x01);
+				//led_blink(1);
 				g_coding_cnt = 0;
 			}
 		}
@@ -370,11 +373,25 @@ void info_user(void *param)
 			rt_hw_led_off(0);
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
-			SetErrorCode(0x02);
+			//SetErrorCode(0x02);
 			led_blink(3);
 			dfs_mkfs("elm","sd0");
 			//__set_FAULTMASK();
 			NVIC_SystemReset();
+		}
+		if (ev & INFO_EVENT_PROTECT_ON) {
+			SetStateIco(0,1);
+			SetStateIco(1,0);
+		}
+		if (ev & INFO_EVENT_PROTECT_OFF) {
+			SetStateIco(1,1);
+			SetStateIco(0,0);
+		}
+		if (ev & INFO_EVENT_ALARM) {
+			SetStateIco(2,1);
+		}
+		if (ev & INFO_EVENT_SHOW_NUM) {
+			SetErrorCode(g_num);
 		}
 	}
 }

@@ -72,9 +72,9 @@ static void led_thread_entry(void* parameter)
 #ifndef RT_USING_FINSH
 		// rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
-		//rt_hw_led_off(0);
 		//buzzer_ctl(1);
 		if (g_main_state==1) {
+			rt_hw_led_off(0);
 			g_coding_cnt++;
 			if (g_coding_cnt>60) {
 				g_main_state = 0;
@@ -90,7 +90,8 @@ static void led_thread_entry(void* parameter)
 #ifndef RT_USING_FINSH
 		//rt_kprintf("led off\r\n");
 #endif
-		//rt_hw_led_on(0);
+		if (g_main_state ==1)
+		rt_hw_led_on(0);
 		//buzzer_ctl(0);
 		rt_thread_delay( RT_TICK_PER_SECOND );
 		//rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
