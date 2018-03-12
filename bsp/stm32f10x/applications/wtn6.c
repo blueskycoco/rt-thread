@@ -83,7 +83,7 @@ static void Stop_Playing(void)
 void delay_us(int us)
 {
 	volatile long cnt = 0;
-	while (cnt < us * 1000)
+	while (cnt < us * 10000)
 		cnt++;
 }
 /*

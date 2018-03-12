@@ -7,8 +7,8 @@
 //#define CLK    PBin(1)			//时钟
 //#define DATA   PBin(2)			//数据
 
-#define BUSY   GPIO_Pin_3			//芯片状态输出pa15
-#define CLK    GPIO_Pin_15			//时钟pb5
+#define BUSY   GPIO_Pin_3			//芯片状态输出pb3
+#define CLK    GPIO_Pin_15			//时钟pa15
 #define DATA   GPIO_Pin_4			//数据pb4
 
 #define BUSY_PORT GPIOB
