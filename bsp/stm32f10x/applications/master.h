@@ -17,7 +17,8 @@
 #define INFO_EVENT_GPRS_SIGNAL 				(1<<13)
 #define INFO_EVENT_SHOW_NUM	 				(1<<14)
 #define INFO_EVENT_BATTERY_LEVEL			(1<<15)
-
+#define INFO_EVENT_SAVE_FANGQU				(1<<16)
+#define INFO_EVENT_SAVE_MAIN				(1<<17)
 
 struct IPAddress
 {
@@ -93,6 +94,7 @@ struct FangQuProperty
 	rt_uint8_t	  PGM;
 	rt_uint8_t	  is_lamp;
 };
+
 #define WIRELESS_MAX	50
 #define WIRE_MAX		30
 struct FangQu    fangqu_wire[30];

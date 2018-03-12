@@ -140,7 +140,8 @@ void save_fq(struct FangQu *list, int len)
 			in_fq=list[i].index;
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
 				i,list[i].index,list[i].slave_sn);
-			save_param(1);
+			//save_param(1);
+			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 			//if (len!=50)
 			//	SetErrorCode(i+51);
 			//else
@@ -159,8 +160,8 @@ void cmd_dump(rt_uint8_t *data)
 	memcpy(stm32_id, data+5, 6);
 	sub_id= data[11]<<24|data[12]<<16|data[13]<<8|data[14];
 	command_type = data[15]<<8|data[16];
-	rt_kprintf("<== \r\nSTM32 ID :\t%x%x%x%x%x%x\r\n", data[5],data[6],data[7],data[8],data[9],data[10]);
-	rt_kprintf("Sub ID :\t%x%x%x%x\r\n", data[11],data[12],data[13],data[14]);
+	rt_kprintf("<== \r\nSTM32 ID :\t%02x%02x%02x%02x%02x%02x\r\n", data[5],data[6],data[7],data[8],data[9],data[10]);
+	rt_kprintf("Sub ID :\t%02x%02x%02x%02x\r\n", data[11],data[12],data[13],data[14]);
 	rt_kprintf("CMD Type :\t%s\r\n",cmd_type(command_type));
 	if (0x0002 != command_type && 0x0004 != command_type &&
 		0x000e != command_type) /*from remoter or coding request ,dump dev_type, model, time*/
@@ -176,8 +177,8 @@ void cmd_dump(rt_uint8_t *data)
 			dev_model = (data[20]<<8)|data[21];
 			dev_time = (data[22]<<16)|(data[23]<<8)|data[24];
 			battery = data[25]<<8|data[26];
-			rt_kprintf("Dev Model :\t%x\r\n", dev_model);
-			rt_kprintf("Dev build time :%x\r\n", dev_time);
+			rt_kprintf("Dev Model :\t%04x\r\n", dev_model);
+			rt_kprintf("Dev build time :%06x\r\n", dev_time);
 		}
 		else
 		{
@@ -195,14 +196,14 @@ void cmd_dump(rt_uint8_t *data)
 		dev_time = (data[20]<<16)|(data[21]<<8)|data[22];
 		battery = data[23]<<8|data[24];
 		rt_kprintf("Dev Type :\t%s\r\n",cmd_dev_type(dev_type));
-		rt_kprintf("Dev Model :\t%x\r\n", dev_model);
-		rt_kprintf("Dev build time :%x\r\n", dev_time);
+		rt_kprintf("Dev Model :\t%04x\r\n", dev_model);
+		rt_kprintf("Dev build time :%06x\r\n", dev_time);
 	}
 	in_fq = data[1];
 	rt_kprintf("Battery :\t%d\r\n",battery);
-	rt_kprintf("Protect Zone :\t%x\r\n", data[1]);
+	rt_kprintf("Protect Zone :\t%02x\r\n", data[1]);
 
-	rt_kprintf("STM32 Param sn: %x%x%x%x%x%x\r\n", 
+	rt_kprintf("STM32 Param sn: %02x%02x%02x%02x%02x%02x\r\n", 
 		mp.roProperty.sn[0],
 		mp.roProperty.sn[1],
 		mp.roProperty.sn[2],

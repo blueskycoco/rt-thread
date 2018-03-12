@@ -13,6 +13,7 @@ master.c
 m26.c
 ec20.c
 pcie.c
+wtn6.c
 """)
 
 if GetDepend('RT_USING_CAN'):

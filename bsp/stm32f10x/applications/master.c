@@ -6,6 +6,7 @@
 #include "lcd.h"
 #include "led.h"
 #include "bsp_misc.h"
+#include "wtn6.h"
 #define FQP_FILE	"/fqp.dat"
 #define MP_FILE		"/mp.dat"
 #define MAIN_STATION_PROTECT_ON 1
@@ -353,7 +354,7 @@ void save_param(int type)
 void info_user(void *param)
 {
 	rt_uint32_t ev;
-	
+	rt_uint8_t v;
 	while (1) {
 		rt_event_recv( &(g_info_event), 0xffffffff, RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ); 
 		if (ev & INFO_EVENT_CODING) {
@@ -361,37 +362,81 @@ void info_user(void *param)
 				/*need protection off first
 				  *play audio here
 				  */
+				Wtn6_Play(VOICE_DUIMASB,ONCE);
 				g_main_state = 0;
 			} else {
 				//SetErrorCode(0x01);
 				//led_blink(1);
+				Wtn6_Play(VOICE_DUIMAMS,ONCE);
 				g_coding_cnt = 0;
 			}
 		}
 		if (ev & INFO_EVENT_NORMAL) {
 			SetErrorCode(0x00);
 			rt_hw_led_off(0);
+			Wtn6_Play(VOICE_TUICHUDM,ONCE);
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
 			//SetErrorCode(0x02);
 			led_blink(3);
 			dfs_mkfs("elm","sd0");
 			//__set_FAULTMASK();
+			Wtn6_Play(VOICE_HUIFU,ONCE);
 			NVIC_SystemReset();
 		}
 		if (ev & INFO_EVENT_PROTECT_ON) {
 			SetStateIco(0,1);
 			SetStateIco(1,0);
+			rt_hw_led_on(ARM_LED);			
+			v = fqp.is_lamp & 0x0f;
+			Wtn6_Play(VOICE_BUFANG,ONCE);
+			rt_kprintf("protect on is_lamp %x\r\n", fqp.is_lamp);
+			if (v == 0x00)
+			{
+				GPIO_ResetBits(GPIOB, GPIO_Pin_7);
+			} else if (v == 0x04 || v == 0x01 || v == 0x02) {
+				GPIO_SetBits(GPIOB, GPIO_Pin_7);
+			}
+			if (fqp.is_alarm_voice)
+			{
+				GPIO_SetBits(GPIOC, GPIO_Pin_13);
+				rt_thread_delay(100);
+				GPIO_ResetBits(GPIOC, GPIO_Pin_13);
+			}
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
 			SetStateIco(1,1);
 			SetStateIco(0,0);
+			rt_hw_led_off(ARM_LED);	
+			Wtn6_Play(VOICE_CHEFANG,ONCE);
+			rt_kprintf("protect off is_lamp %x\r\n", fqp.is_lamp);
+			v = fqp.is_lamp & 0x0f;
+			if (v == 0x00 || v == 0x02 ||v == 0x03)
+			{
+				GPIO_ResetBits(GPIOB, GPIO_Pin_7);
+			} else if (v == 0x04) {
+				GPIO_SetBits(GPIOB, GPIO_Pin_7);
+			}
+			if (fqp.is_alarm_voice)
+			{
+				GPIO_SetBits(GPIOC, GPIO_Pin_13);
+				rt_thread_delay(100);
+				GPIO_ResetBits(GPIOC, GPIO_Pin_13);
+			}
+		
 		}
 		if (ev & INFO_EVENT_ALARM) {
 			SetStateIco(2,1);
 		}
 		if (ev & INFO_EVENT_SHOW_NUM) {
 			SetErrorCode(g_num);
+		}
+		if (ev & INFO_EVENT_SAVE_FANGQU) {
+			Wtn6_Play(VOICE_DUIMA,ONCE);
+			save_param(1);
+		}
+		if (ev & INFO_EVENT_SAVE_MAIN) {
+			save_param(0);
 		}
 	}
 }

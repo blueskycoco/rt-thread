@@ -24,6 +24,8 @@ void button_init(void)
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_7;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOD, GPIO_PinSource3);
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource9);

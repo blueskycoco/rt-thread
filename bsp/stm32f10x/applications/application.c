@@ -39,6 +39,7 @@
 #include "subPoint.h"
 #include "master.h"
 #include "pcie.h"
+#include "wtn6.h"
 #define NO_ERROR				0x00000000
 #define ERROR_SPI_HW			0x00000001
 #define ERROR_SPI_MOUNT			0x00000002
@@ -54,6 +55,7 @@ rt_uint8_t  pcie_status = 0x00; /*0x01 pcie1, 0x02 pcie2 0x03 pcie1 & pcie2*/
 extern struct rt_event g_info_event;
 extern rt_uint8_t g_main_state;
 extern rt_uint32_t g_coding_cnt;
+extern rt_uint8_t cur_status;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -76,13 +78,21 @@ static void led_thread_entry(void* parameter)
 		if (g_main_state==1) {
 			rt_hw_led_off(0);
 			g_coding_cnt++;
-			if (g_coding_cnt>60) {
+			if (g_coding_cnt>120) {
 				g_main_state = 0;
 				/*play audio here*/
 				rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
 			}
 		}
-		rt_thread_delay( RT_TICK_PER_SECOND ); /* sleep 0.5 second and switch to other thread */
+		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03)) ||
+			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)))
+		{
+			if (count %2)
+				GPIO_SetBits(GPIOB, GPIO_Pin_7);
+			else
+				GPIO_ResetBits(GPIOB, GPIO_Pin_7);
+		}
+		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 		//SetStateIco(count%7,0);
 		count++;
 
@@ -93,7 +103,7 @@ static void led_thread_entry(void* parameter)
 		if (g_main_state ==1)
 		rt_hw_led_on(0);
 		//buzzer_ctl(0);
-		rt_thread_delay( RT_TICK_PER_SECOND );
+		rt_thread_delay( RT_TICK_PER_SECOND/2 );
 		//rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
 		show_battery(ADC_Get_aveg());
 		/*
@@ -134,11 +144,13 @@ void rt_init_thread_entry(void* parameter)
 	/* initialization RT-Thread Components */
 	rt_components_init();
 #endif
+	Wtn6_Init();
 	GPIO_Lcd_Init();
 	button_init();
 	battery_init();
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
-	rt_thread_startup(rt_thread_create("info",info_user, 0,1024, 20, 10));
+	rt_thread_startup(rt_thread_create("7info",info_user, 0,1024, 20, 10));
+	Wtn6_Play(VOICE_WELCOME,ONCE);
 
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)
@@ -199,7 +211,6 @@ void rt_init_thread_entry(void* parameter)
 #endif  /* RT_USING_DFS */
 
 	unsigned int count=0,count1=256;
-	rt_uint8_t buf[256]={0};
 	rt_uint8_t buf1[256]={0};	
 	rt_uint8_t pcie_status = 0;
 	if (!radio_init())
@@ -293,7 +304,6 @@ void rt_init_thread_entry(void* parameter)
 	}
 	
 	while (1) {
-		rt_memset(buf,0,256);
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
@@ -315,7 +325,7 @@ int rt_application_init(void)
 
 	/* init led thread */
 	result = rt_thread_init(&led_thread,
-			"led",
+			"9led",
 			led_thread_entry,
 			RT_NULL,
 			(rt_uint8_t*)&led_stack[0],
@@ -328,11 +338,11 @@ int rt_application_init(void)
 	}
 
 #if (RT_THREAD_PRIORITY_MAX == 32)
-	init_thread = rt_thread_create("init",
+	init_thread = rt_thread_create("8init",
 			rt_init_thread_entry, RT_NULL,
 			2048, 8, 25);
 #else
-	init_thread = rt_thread_create("init",
+	init_thread = rt_thread_create("8init",
 			rt_init_thread_entry, RT_NULL,
 			2048, 80, 25);
 #endif

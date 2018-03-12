@@ -13,6 +13,7 @@
 rt_uint8_t g_type0 = 0;
 rt_uint8_t g_type1 = 0;
 int g_index = 0;
+extern struct rt_event g_info_event;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
@@ -290,7 +291,8 @@ int build_login(rt_uint8_t *cmd)
 		rt_memcmp(g_pcie[g_index]->qccid,mp.qccid,10) !=0 )
 	{
 		rt_memcpy(mp.qccid, g_pcie[g_index]->qccid, 10);
-		save_param(0);
+		//save_param(0);
+		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 		cmd[30] |= 0x04;
 		memcpy(cmd+ofs,g_pcie[g_index]->qccid,10);
 		ofs+=10;
@@ -358,16 +360,16 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 
 	if (type0) {
 		rt_device_set_rx_indicate(g_pcie[0]->dev, pcie0_rx_ind);
-		rt_thread_startup(rt_thread_create("pcie0_rcv",pcie0_rcv, 0,1524, 20, 10));
-		rt_thread_startup(rt_thread_create("pcie0_sm", pcie0_sm,  0,2048, 20, 10));
+		rt_thread_startup(rt_thread_create("1pcie0",pcie0_rcv, 0,1524, 20, 10));
+		rt_thread_startup(rt_thread_create("2pcie0", pcie0_sm,  0,2048, 20, 10));
 	}
 	if (type1) {
 		rt_device_set_rx_indicate(g_pcie[1]->dev, pcie1_rx_ind);
-		rt_thread_startup(rt_thread_create("pcie1_rcv",pcie1_rcv, 0,1524, 20, 10));
-		rt_thread_startup(rt_thread_create("pcie1_sm", pcie1_sm,  0,2048, 20, 10));
+		rt_thread_startup(rt_thread_create("3pcie1",pcie1_rcv, 0,1524, 20, 10));
+		rt_thread_startup(rt_thread_create("4pcie1", pcie1_sm,  0,2048, 20, 10));
 	}
-	rt_thread_startup(rt_thread_create("server",server_proc, 0,2048, 20, 10));
-	rt_thread_startup(rt_thread_create("gprs_send",send_process, 0,2048, 20, 10));
+	rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 20, 10));
+	rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
 	return 1;
 }
 
