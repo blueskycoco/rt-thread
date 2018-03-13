@@ -150,8 +150,7 @@ void rt_init_thread_entry(void* parameter)
 	battery_init();
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_thread_startup(rt_thread_create("7info",info_user, 0,1024, 20, 10));
-	//Wtn6_Play(VOICE_WELCOME,ONCE);
-	Wtn6_Play(VOICE_BUFANG,ONCE);
+	Wtn6_Play(VOICE_WELCOME,ONCE);
 
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)

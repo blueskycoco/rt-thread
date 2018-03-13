@@ -57,13 +57,13 @@ void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne)
 void Wtn6_Play(Wtn6_VoiceTypeDef voice,Wtn6_PlayTypeDef PlayType)
 {
 	Stop_Playing();
-	delay_ms(5);
-	//rt_thread_delay(1);
+	//delay_ms(5);
+	rt_thread_delay(1);
 	Send_Command(voice);
 	if(PlayType==LOOP)
 	{
-		delay_ms(5); 
-		//rt_thread_delay(1);
+		//delay_ms(5); 
+		rt_thread_delay(1);
 		Set_Loop();
 	}
 }
@@ -101,11 +101,11 @@ static void Send_Command(u8 command)
 {
 	u8 index=0;
 	GPIO_SetBits(CLK_PORT,CLK);
-	delay_ms(5);
-	//rt_thread_delay(1);
+	//delay_ms(5);
+	rt_thread_delay(1);
 	GPIO_ResetBits(CLK_PORT,CLK);
-	delay_ms(5);
-	//rt_thread_delay(1);
+	//delay_ms(5);
+	rt_thread_delay(1);
 	for(index=0;index<8;index++)
 	{
 		GPIO_ResetBits(CLK_PORT,CLK);//À­µÍÊ±ÖÓ

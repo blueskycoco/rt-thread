@@ -300,12 +300,12 @@ void handleSub(rt_uint8_t *data)
 		resp[20]=(crc) & 0xff;
 		cc1101_send_write(resp,21);
 	}else {
-		if (command_type == 0x0002)
+		if (command_type == 0x0002 && !cur_status)
 		{
 			cur_status = 1;
 			rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 		}
-		else if(command_type == 0x0004)
+		else if(command_type == 0x0004 && cur_status)
 		{
 			cur_status = 0;
 			rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_OFF);
