@@ -1,5 +1,17 @@
 #include "wtn6.h"
 //#include "delay.h"
+static void delay_ms(unsigned long ms)
+{
+    unsigned long len;
+    for (;ms > 0; ms --)
+        for (len = 0; len < 100; len++ );
+}
+static void delay_us(unsigned long ms)
+{
+    unsigned long len;
+    for (;ms > 0; ms --)
+        for (len = 0; len < 4; len++ );
+}
 
 /*
 *外部接口，初始化IO接口
@@ -10,9 +22,9 @@
 void Wtn6_Init(void)
 {
 	GPIO_InitTypeDef  GPIO_InitStructure;
- 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_GPIOB, ENABLE);
+ 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_GPIOB|RCC_APB2Periph_AFIO, ENABLE);
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_Disable, ENABLE);
-  GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable , ENABLE);
+	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable , ENABLE);
 	GPIO_InitStructure.GPIO_Pin = BUSY;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_Init(BUSY_PORT, &GPIO_InitStructure);
@@ -45,13 +57,13 @@ void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne)
 void Wtn6_Play(Wtn6_VoiceTypeDef voice,Wtn6_PlayTypeDef PlayType)
 {
 	Stop_Playing();
-	//delay_ms(5);
-	rt_thread_delay(1);
+	delay_ms(5);
+	//rt_thread_delay(1);
 	Send_Command(voice);
 	if(PlayType==LOOP)
 	{
-		//delay_ms(5); 
-		rt_thread_delay(1);
+		delay_ms(5); 
+		//rt_thread_delay(1);
 		Set_Loop();
 	}
 }
@@ -81,12 +93,6 @@ static void Stop_Playing(void)
 		Send_Command(CMD_Stop);
 	}
 }
-void delay_us(int us)
-{
-	volatile long cnt = 0;
-	while (cnt < us * 10000)
-		cnt++;
-}
 /*
 *内部接口，向芯片发送命令数据
 *command:语音地址以及命令代码
@@ -95,11 +101,11 @@ static void Send_Command(u8 command)
 {
 	u8 index=0;
 	GPIO_SetBits(CLK_PORT,CLK);
-	//delay_ms(5);
-	rt_thread_delay(1);
+	delay_ms(5);
+	//rt_thread_delay(1);
 	GPIO_ResetBits(CLK_PORT,CLK);
-	//delay_ms(5);
-	rt_thread_delay(1);
+	delay_ms(5);
+	//rt_thread_delay(1);
 	for(index=0;index<8;index++)
 	{
 		GPIO_ResetBits(CLK_PORT,CLK);//拉低时钟
