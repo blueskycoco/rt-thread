@@ -68,12 +68,13 @@ struct MachineProperty
 struct FangQu
 {
 	rt_uint8_t  	index;
-	rt_uint8_t  	type;
-	rt_uint8_t  	operationType;
-	rt_uint8_t  	voiceType;
-	rt_uint8_t  	alarmType;
+	rt_uint8_t  	type;//wire 1, wireless 2 
+	rt_uint8_t  	operationType; //0 now, 1 delay ,2 24 hour
+	rt_uint8_t  	voiceType;// 0 audio , 1 no audio
+	rt_uint8_t  	alarmType;//0,1,2,3,4
 	rt_uint8_t  	isBypass;
-	rt_uint8_t  	status;
+	rt_uint8_t  	status;//0 unprotect , 1 protect
+	rt_uint8_t  	slave_delay;	//0 normal , 1 delay T mins
 	rt_uint32_t 	slave_sn;
 	rt_uint8_t  	slave_type;
 	rt_uint16_t   	slave_model;

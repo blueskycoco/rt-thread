@@ -57,6 +57,12 @@
 #define FAIL_LED_rcc                RCC_APB2Periph_GPIOE
 #define FAIL_LED_gpio               GPIOE
 #define FAIL_LED_pin                (GPIO_Pin_6)
+
+#define AUX_LED_rcc                RCC_APB2Periph_GPIOA
+#define AUX_LED_gpio               GPIOA
+#define AUX_LED_pin1                (GPIO_Pin_7)
+#define AUX_LED_pin2                (GPIO_Pin_6)
+
 #else
 #define led1_rcc                    RCC_APB2Periph_GPIOD
 #define led1_gpio                   GPIOD
@@ -69,7 +75,7 @@ void rt_hw_led_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
 
-    RCC_APB2PeriphClockCmd(led1_rcc|RCC_APB2Periph_GPIOE,ENABLE);
+    RCC_APB2PeriphClockCmd(led1_rcc|RCC_APB2Periph_GPIOE|RCC_APB2Periph_GPIOA,ENABLE);
 
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -94,6 +100,11 @@ void rt_hw_led_init(void)
 
 	GPIO_InitStructure.GPIO_Pin   = FAIL_LED_pin;
     GPIO_Init(FAIL_LED_gpio, &GPIO_InitStructure);
+	
+	GPIO_InitStructure.GPIO_Pin   = AUX_LED_pin1;
+    GPIO_Init(AUX_LED_gpio, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin   = AUX_LED_pin2;
+    GPIO_Init(AUX_LED_gpio, &GPIO_InitStructure);
 }
 
 void rt_hw_led_on(rt_uint32_t n)
@@ -127,7 +138,18 @@ void rt_hw_led_on(rt_uint32_t n)
 	case FAIL_LED:
 		GPIO_SetBits(FAIL_LED_gpio, FAIL_LED_pin);
 		break;
-
+	case AUX_LED0:
+		GPIO_SetBits(AUX_LED_gpio, AUX_LED_pin1);
+		GPIO_ResetBits(AUX_LED_gpio, AUX_LED_pin2);
+		break;	
+	case AUX_LED1:
+		GPIO_SetBits(AUX_LED_gpio, AUX_LED_pin2);
+		GPIO_ResetBits(AUX_LED_gpio, AUX_LED_pin1);
+		break;
+	case AUX_LED2:
+		GPIO_SetBits(AUX_LED_gpio, AUX_LED_pin1);
+		GPIO_SetBits(AUX_LED_gpio, AUX_LED_pin2);
+		break;
     default:
         break;
     }

@@ -21,12 +21,14 @@ rt_uint8_t dev_type = 0;
 rt_uint16_t battery = 0;
 rt_uint8_t in_fq = 0;
 rt_uint32_t g_addr[60] = {0x00};
+rt_uint8_t g_index_sub = 0;
 rt_uint8_t base_addr = 2;
 rt_uint8_t addr_cnt = 0;
 rt_uint8_t g_main_state = 0; /*0 normal , 1 code, 2 factory reset*/
 extern rt_uint32_t g_coding_cnt;
 extern struct rt_event g_info_event;
 extern rt_uint8_t g_num;
+rt_uint8_t s1=0;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -137,6 +139,24 @@ void save_fq(struct FangQu *list, int len)
 			list[i].slave_type = dev_type;
 			list[i].slave_model = dev_model;
 			list[i].slave_batch = dev_time&0x00ffffff;
+			list[i].type =2;
+			list[i].voiceType =1;
+			if (sub_id == 0x0a) {
+				list[i].alarmType = 0x00;
+				list[i].operationType= 0x00;
+			} else if (sub_id == 0x0b) {
+				list[i].alarmType = 0x00;
+				list[i].operationType= 0x00;
+			} else if (sub_id == 0x0c) {
+				list[i].alarmType = 0x02;
+				list[i].operationType= 0x02;
+			} else if (sub_id == 0x0d) {
+				list[i].alarmType = 0x02;
+				list[i].operationType= 0x02;
+			} else if (sub_id == 0x0e) {
+				list[i].alarmType = 0x00;
+				list[i].operationType= 0x01;
+			}
 			in_fq=list[i].index;
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
 				i,list[i].index,list[i].slave_sn);
@@ -220,7 +240,10 @@ int check_sub_id(rt_uint32_t sub_mid,struct FangQu *list, int len)
 	for (i=0; i<len; i++)
 	{
 		if (sub_mid == list[i].slave_sn)
+		{
+			g_index_sub = i;
 			return 1;
+		}
 	}
 	return 0;
 }
@@ -284,9 +307,13 @@ void handleSub(rt_uint8_t *data)
 		} else if (0x0006 == command_type) {
 			/*send alarm to server*/
 			resp[18] = cur_status;
-			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
-			g_num = in_fq;
-			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
+			if (sub_cmd_type == 2 || cur_status || fangqu_wireless[g_index_sub].operationType==2) {
+				g_num = in_fq;
+				if (sub_cmd_type == 2)
+					s1=1;
+				rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+				rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);					
+			}
 		} else if (0x000c == command_type) {
 			/*send low power alarm to server*/
 			resp[18] = cur_status;

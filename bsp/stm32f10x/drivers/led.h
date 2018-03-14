@@ -23,6 +23,9 @@
 #define WIRELESS_LED 	4
 #define NET_LED			5
 #define FAIL_LED 		6
+#define AUX_LED0 		7
+#define AUX_LED1 		8
+#define AUX_LED2 		9
 void rt_hw_led_init(void);
 void rt_hw_led_on(rt_uint32_t led);
 void rt_hw_led_off(rt_uint32_t led);

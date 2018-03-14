@@ -56,6 +56,10 @@ extern struct rt_event g_info_event;
 extern rt_uint8_t g_main_state;
 extern rt_uint32_t g_coding_cnt;
 extern rt_uint8_t cur_status;
+extern rt_uint8_t s1;
+extern rt_uint8_t g_alarm_voice;
+extern rt_uint8_t g_delay_in;
+
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -85,12 +89,32 @@ static void led_thread_entry(void* parameter)
 			}
 		}
 		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03)) ||
-			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)))
+			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) ||s1)
 		{
 			if (count %2)
-				GPIO_SetBits(GPIOB, GPIO_Pin_7);
-			else
-				GPIO_ResetBits(GPIOB, GPIO_Pin_7);
+				rt_hw_led_on(AUX_LED0);
+			else if (count %3)
+				rt_hw_led_on(AUX_LED1);
+		}
+		if (g_alarm_voice >0 )
+			g_alarm_voice -=1;
+		else
+			bell_ctl(0);
+		if (!cur_status) {
+			if (g_delay_in > 0)
+			{
+				g_delay_in = 0;
+				g_alarm_voice =0;				
+			}
+		} else {
+			if (g_delay_in > 10)
+				g_delay_in -= 1;
+			else if (g_delay_in >0 && g_delay_in < 10){
+				Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
+				g_delay_in -= 1;
+			} else if (g_delay_in == 0 && g_alarm_voice >0) {
+				Wtn6_Play(VOICE_ALARM1,ONCE);
+			}
 		}
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 		//SetStateIco(count%7,0);
@@ -301,6 +325,11 @@ void rt_init_thread_entry(void* parameter)
 		buzzer_ctl(1);
 		SetSimTypeIco(0);
 		SetStateIco(3,1);
+		Wtn6_Play(VOICE_ZHUJIGZ,ONCE);
+		rt_thread_delay(150);
+		Wtn6_Play(VOICE_ZHUJIGZ,ONCE);
+		rt_thread_delay(150);
+		Wtn6_Play(VOICE_ZHUJIGZ,ONCE);
 	}
 	
 	while (1) {

@@ -18,6 +18,8 @@ rt_uint32_t g_coding_cnt=0;
 extern rt_uint8_t g_main_state;
 extern rt_uint8_t in_fq;
 rt_uint8_t g_num=0;
+rt_uint8_t g_alarm_voice=0;
+rt_uint8_t g_delay_in=0;
 void dump_mp(struct MachineProperty v)
 {
 	int i;
@@ -249,7 +251,6 @@ int load_param()
 			return 0;
 		}
 		memcpy(&fqp,&tmp_fqp,sizeof(fqp));
-		
 		tmp_fangquList = (struct FangQu *)rt_malloc(WIRELESS_MAX*sizeof(struct FangQu));
 		read(fd, &crc, sizeof(rt_uint16_t));
 		length = read(fd, tmp_fangquList, sizeof(struct FangQu)*WIRELESS_MAX);
@@ -283,6 +284,10 @@ int load_param()
 		rt_free(tmp_fangquList);
 		close(fd);
 	}
+	
+	fqp.delay_in=60;
+	fqp.alarm_voice=90;
+	fqp.is_alarm_voice =1;
 	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	return 1;
 }
@@ -407,7 +412,9 @@ void info_user(void *param)
 		if (ev & INFO_EVENT_PROTECT_OFF) {
 			SetStateIco(1,1);
 			SetStateIco(0,0);
+			SetStateIco(2,0);
 			rt_hw_led_off(ARM_LED);	
+			rt_hw_led_off(ALARM_LED);	
 			Wtn6_Play(VOICE_CHEFANG,ONCE);
 			rt_kprintf("protect off is_lamp %x\r\n", fqp.is_lamp);
 			v = fqp.is_lamp & 0x0f;
@@ -427,6 +434,16 @@ void info_user(void *param)
 		}
 		if (ev & INFO_EVENT_ALARM) {
 			SetStateIco(2,1);
+			rt_hw_led_on(ALARM_LED);
+			rt_kprintf("is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d\r\n",
+				fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice);
+				if (fqp.is_alarm_voice)
+					bell_ctl(1);
+				if (fqp.delay_in && g_delay_in == 0) {
+					g_alarm_voice = fqp.alarm_voice;
+					g_delay_in = fqp.delay_in;
+					Wtn6_Play(VOICE_ALARM2,LOOP);
+				}
 		}
 		if (ev & INFO_EVENT_SHOW_NUM) {
 			SetErrorCode(g_num);

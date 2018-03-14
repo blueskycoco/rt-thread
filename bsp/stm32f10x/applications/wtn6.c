@@ -78,7 +78,7 @@ static void Set_Loop(void)
 /*
 *内部接口，查询芯片是否正在播放中
 */
-static u8 Is_Playing(void)
+u8 Is_Playing(void)
 {
 	return GPIO_ReadInputDataBit(BUSY_PORT,BUSY);
 	//return BUSY;

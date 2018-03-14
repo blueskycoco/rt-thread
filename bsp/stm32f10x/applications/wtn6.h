@@ -78,7 +78,7 @@ extern void Wtn6_Play(Wtn6_VoiceTypeDef voice,Wtn6_PlayTypeDef PlayType);
 
 /*内部接口*/
 static void Set_Loop(void);
-static u8 Is_Playing(void);
+u8 Is_Playing(void);
 static void Stop_Playing(void);
 static void Send_Command(u8 command);
 #endif
