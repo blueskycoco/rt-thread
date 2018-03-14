@@ -200,7 +200,7 @@ int load_param()
 	fqp.is_alarm_voice=0;
 	fqp.is_check_AC=0;
 	fqp.is_check_DC=0;
-	fqp.is_lamp=0;
+	fqp.is_lamp=1;
 	fqp.PGM=0;
 	//int fd = -1;
 	int fd = open(MP_FILE, O_RDONLY, 0);
@@ -284,7 +284,7 @@ int load_param()
 		rt_free(tmp_fangquList);
 		close(fd);
 	}
-	
+	fqp.is_lamp=1;
 	fqp.delay_in=60;
 	fqp.alarm_voice=90;
 	fqp.is_alarm_voice =1;
