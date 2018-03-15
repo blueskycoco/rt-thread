@@ -7,6 +7,6 @@ void button_init(void);
 rt_uint16_t get_bat(void);
 void battery_init();
 void buzzer_ctl(int level);
-
+rt_uint8_t check_ac();
 void bell_ctl(int level);
 #endif

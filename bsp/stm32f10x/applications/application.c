@@ -61,6 +61,7 @@ extern rt_uint8_t g_alarm_voice;
 extern rt_uint8_t g_delay_in;
 extern rt_uint8_t g_index_sub;
 extern rt_uint8_t g_mute;
+rt_uint8_t g_ac=0;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -68,7 +69,7 @@ ALIGN(RT_ALIGN_SIZE)
 static void led_thread_entry(void* parameter)
 {
 	unsigned int count=0;
-
+	rt_uint8_t ac=0;
 	rt_hw_led_init();
 	//button_init();
 	//battery_init();
@@ -80,6 +81,17 @@ static void led_thread_entry(void* parameter)
 		// rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
 		//buzzer_ctl(1);
+		ac=check_ac();
+		if (ac && !g_ac)
+		{
+			g_ac = 1;
+			Wtn6_Play(VOICE_HUIFU,ONCE);
+			SetStateIco(4,1);
+		} else if (!ac && g_ac){
+			g_ac = 0;
+			Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
+			SetStateIco(4,0);
+		}
 		if (g_main_state==1) {
 			rt_hw_led_off(0);
 			g_coding_cnt++;
@@ -298,6 +310,8 @@ void rt_init_thread_entry(void* parameter)
 	HtbLcdClear();	
 	SetStateIco(1,1);
 	SetStateIco(0,0);
+	if (check_ac())
+		SetStateIco(4,1);	
 	rt_hw_led_off(CODE_LED);
 	rt_hw_led_off(ARM_LED);
 	rt_hw_led_off(WIRE_LED);
