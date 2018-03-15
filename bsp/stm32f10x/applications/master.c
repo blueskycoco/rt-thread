@@ -439,7 +439,10 @@ void info_user(void *param)
 			rt_kprintf("is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d\r\n",
 				fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice);
 				if (fqp.is_alarm_voice)
+				{
+					g_alarm_voice = fqp.alarm_voice;
 					bell_ctl(1);
+				}
 				if ((fangqu_wireless[g_index_sub].operationType==1) && fqp.delay_in && g_delay_in == 0) {
 					g_alarm_voice = fqp.alarm_voice;
 					g_delay_in = fqp.delay_in;

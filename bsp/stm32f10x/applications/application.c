@@ -99,9 +99,14 @@ static void led_thread_entry(void* parameter)
 				rt_hw_led_on(AUX_LED1);
 		}
 		if (g_alarm_voice >0 )
+		{
 			g_alarm_voice -=1;
-		else
-			bell_ctl(0);
+			if (g_alarm_voice == 1) {		
+			bell_ctl(0);		
+			Stop_Playing();
+			}
+		}
+		
 		if (!g_mute) {
 		if (!cur_status) {
 			if (g_delay_in > 0)
@@ -115,16 +120,19 @@ static void led_thread_entry(void* parameter)
 				g_delay_in -= 1;
 			else if (g_delay_in >0 && g_delay_in <= 10){
 				rt_kprintf("last count %d\r\n",g_delay_in);
-				Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
+				if (g_delay_in == 10)
+					Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
 				g_delay_in -= 1;
 			} else if (g_delay_in == 0 && g_alarm_voice >0) {
 				rt_kprintf("play end %d\r\n",g_alarm_voice);
-				Wtn6_Play(VOICE_ALARM1,ONCE);
+				if (g_alarm_voice == (fqp.alarm_voice - fqp.delay_in-1))
+					Wtn6_Play(VOICE_ALARM1,LOOP);
 			}
 		}
 		} else {
 			g_delay_in = 0;
 			g_alarm_voice =0;				
+			Stop_Playing();
 		}
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 		//SetStateIco(count%7,0);

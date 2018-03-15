@@ -1,5 +1,6 @@
 #include "wtn6.h"
 //#include "delay.h"
+unsigned char play_status = 0;
 static void delay_ms(unsigned long ms)
 {
     unsigned long len;
@@ -66,6 +67,7 @@ void Wtn6_Play(Wtn6_VoiceTypeDef voice,Wtn6_PlayTypeDef PlayType)
 		rt_thread_delay(1);
 		Set_Loop();
 	}
+	play_status =1;
 }
 
 /*
@@ -88,10 +90,13 @@ u8 Is_Playing(void)
 */
 void Stop_Playing(void)
 {
+	if (play_status == 0)
+		return;
 	//if(Is_Playing())
 	{
 		Send_Command(CMD_Stop);
 	}
+	play_status = 0;
 }
 /*
 *内部接口，向芯片发送命令数据
