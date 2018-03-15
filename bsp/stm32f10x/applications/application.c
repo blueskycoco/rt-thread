@@ -59,7 +59,8 @@ extern rt_uint8_t cur_status;
 extern rt_uint8_t s1;
 extern rt_uint8_t g_alarm_voice;
 extern rt_uint8_t g_delay_in;
-
+extern rt_uint8_t g_index_sub;
+extern rt_uint8_t g_mute;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -89,7 +90,8 @@ static void led_thread_entry(void* parameter)
 			}
 		}
 		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03)) ||
-			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) ||s1)
+			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) || s1 
+			|| fangqu_wireless[g_index_sub].alarmType == 2)
 		{
 			if (count %2)
 				rt_hw_led_on(AUX_LED0);
@@ -100,6 +102,7 @@ static void led_thread_entry(void* parameter)
 			g_alarm_voice -=1;
 		else
 			bell_ctl(0);
+		if (!g_mute) {
 		if (!cur_status) {
 			if (g_delay_in > 0)
 			{
@@ -107,14 +110,21 @@ static void led_thread_entry(void* parameter)
 				g_alarm_voice =0;				
 			}
 		} else {
+			rt_kprintf("delay in %d\r\n", g_delay_in);
 			if (g_delay_in > 10)
 				g_delay_in -= 1;
-			else if (g_delay_in >0 && g_delay_in < 10){
+			else if (g_delay_in >0 && g_delay_in <= 10){
+				rt_kprintf("last count %d\r\n",g_delay_in);
 				Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
 				g_delay_in -= 1;
 			} else if (g_delay_in == 0 && g_alarm_voice >0) {
+				rt_kprintf("play end %d\r\n",g_alarm_voice);
 				Wtn6_Play(VOICE_ALARM1,ONCE);
 			}
+		}
+		} else {
+			g_delay_in = 0;
+			g_alarm_voice =0;				
 		}
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 		//SetStateIco(count%7,0);

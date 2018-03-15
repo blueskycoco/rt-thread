@@ -29,6 +29,7 @@ extern rt_uint32_t g_coding_cnt;
 extern struct rt_event g_info_event;
 extern rt_uint8_t g_num;
 rt_uint8_t s1=0;
+rt_uint8_t g_mute=0;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -156,6 +157,9 @@ void save_fq(struct FangQu *list, int len)
 			} else if (sub_id == 0x0e) {
 				list[i].alarmType = 0x00;
 				list[i].operationType= 0x01;
+			} else if (sub_id == 0x02) {
+				list[i].alarmType = 0x02;
+				list[i].operationType= 0x02;
 			}
 			in_fq=list[i].index;
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
@@ -307,6 +311,7 @@ void handleSub(rt_uint8_t *data)
 		} else if (0x0006 == command_type) {
 			/*send alarm to server*/
 			resp[18] = cur_status;
+			g_mute=0;
 			if (sub_cmd_type == 2 || cur_status || fangqu_wireless[g_index_sub].operationType==2) {
 				g_num = in_fq;
 				if (sub_cmd_type == 2)
@@ -317,6 +322,7 @@ void handleSub(rt_uint8_t *data)
 		} else if (0x000c == command_type) {
 			/*send low power alarm to server*/
 			resp[18] = cur_status;
+			g_mute=0;
 			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
 			g_num = in_fq;
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
@@ -336,6 +342,13 @@ void handleSub(rt_uint8_t *data)
 		{
 			cur_status = 0;
 			rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_OFF);
+		} else if (command_type == 0x0006) {
+			g_mute=0;
+			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+		} else if (command_type == 0x000e) {
+			g_mute=1;
+			rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
+			rt_kprintf("got mute\r\n");
 		}
 		g_num = in_fq;
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);

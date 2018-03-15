@@ -19,7 +19,7 @@
 #define INFO_EVENT_BATTERY_LEVEL			(1<<15)
 #define INFO_EVENT_SAVE_FANGQU				(1<<16)
 #define INFO_EVENT_SAVE_MAIN				(1<<17)
-
+#define INFO_EVENT_MUTE						(1<<18)
 struct IPAddress
 {
 	rt_uint8_t IP[4];

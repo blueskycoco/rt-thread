@@ -86,9 +86,9 @@ u8 Is_Playing(void)
 /*
 *内部接口，停止正在播放的语音
 */
-static void Stop_Playing(void)
+void Stop_Playing(void)
 {
-	if(Is_Playing())
+	//if(Is_Playing())
 	{
 		Send_Command(CMD_Stop);
 	}

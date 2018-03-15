@@ -20,6 +20,7 @@ extern rt_uint8_t in_fq;
 rt_uint8_t g_num=0;
 rt_uint8_t g_alarm_voice=0;
 rt_uint8_t g_delay_in=0;
+extern rt_uint8_t g_index_sub;
 void dump_mp(struct MachineProperty v)
 {
 	int i;
@@ -285,8 +286,8 @@ int load_param()
 		close(fd);
 	}
 	fqp.is_lamp=1;
-	fqp.delay_in=60;
-	fqp.alarm_voice=90;
+	fqp.delay_in=20;
+	fqp.alarm_voice=30;
 	fqp.is_alarm_voice =1;
 	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	return 1;
@@ -439,7 +440,7 @@ void info_user(void *param)
 				fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice);
 				if (fqp.is_alarm_voice)
 					bell_ctl(1);
-				if (fqp.delay_in && g_delay_in == 0) {
+				if ((fangqu_wireless[g_index_sub].operationType==1) && fqp.delay_in && g_delay_in == 0) {
 					g_alarm_voice = fqp.alarm_voice;
 					g_delay_in = fqp.delay_in;
 					Wtn6_Play(VOICE_ALARM2,LOOP);
@@ -454,6 +455,11 @@ void info_user(void *param)
 		}
 		if (ev & INFO_EVENT_SAVE_MAIN) {
 			save_param(0);
+		}
+		if (ev & INFO_EVENT_MUTE) {
+			rt_kprintf("do mute\r\n");
+			Stop_Playing();
+			bell_ctl(0);
 		}
 	}
 }
