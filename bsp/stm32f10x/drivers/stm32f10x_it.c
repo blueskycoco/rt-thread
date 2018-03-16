@@ -181,18 +181,15 @@ void EXTI9_5_IRQHandler(void)
 			ldelay();
 		}
 		if (i>100)
-		{
-			g_main_state = 2;			
+		{			
 			rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
 		}
 		else if(i>20)
-		{
-			g_main_state = 1;			
+		{	
 			rt_event_send(&(g_info_event), INFO_EVENT_CODING);
 		}
-		else
-		{
-			g_main_state = 0;			
+		else if(i>5)
+		{		
 			rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
 		}
 		rt_kprintf("i is %d, state %d\r\n", i,g_main_state);

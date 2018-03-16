@@ -373,6 +373,7 @@ void info_user(void *param)
 			} else {
 				//SetErrorCode(0x01);
 				//led_blink(1);
+				g_main_state = 1;		
 				Wtn6_Play(VOICE_DUIMAMS,ONCE);
 				g_coding_cnt = 0;
 			}
@@ -380,10 +381,14 @@ void info_user(void *param)
 		if (ev & INFO_EVENT_NORMAL) {
 			SetErrorCode(0x00);
 			rt_hw_led_off(0);
+			if (g_main_state == 1) {
 			Wtn6_Play(VOICE_TUICHUDM,ONCE);
+			g_main_state = 0;	
+			}
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
 			//SetErrorCode(0x02);
+			g_main_state = 2;
 			led_blink(3);
 			dfs_mkfs("elm","sd0");
 			//__set_FAULTMASK();
