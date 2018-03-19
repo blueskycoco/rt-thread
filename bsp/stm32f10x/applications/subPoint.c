@@ -386,6 +386,13 @@ void handleSub(rt_uint8_t *data)
 		resp[20]=(crc) & 0xff;
 		cc1101_send_write(resp,21);
 	}else {
+		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
+		if (g_main_state ==1)
+		{
+			save_fq(fangqu_wireless,WIRELESS_MAX);
+			rt_thread_delay(100);
+		}
+		
 		if (command_type == 0x0002 && !cur_status)
 		{
 			cur_status = 1;
@@ -404,10 +411,6 @@ void handleSub(rt_uint8_t *data)
 			g_mute=1;
 			rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
 			rt_kprintf("got mute\r\n");
-		}
-		
-		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
-		if (g_main_state ==1)
-			save_fq(fangqu_wireless,WIRELESS_MAX);
+		}		
 	}
 }

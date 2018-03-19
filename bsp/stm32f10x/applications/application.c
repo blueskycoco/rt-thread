@@ -158,8 +158,9 @@ static void led_thread_entry(void* parameter)
 					if (g_delay_out == 10)
 					{
 						Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
-						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 					}
+					if (g_delay_out == 1)
+						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 					g_delay_out -=1;
 				}
 			}

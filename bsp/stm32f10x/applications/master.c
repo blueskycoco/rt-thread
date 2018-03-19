@@ -82,6 +82,7 @@ void info_user(void *param)
 			SetStateIco(1,0);
 			rt_hw_led_on(ARM_LED);						
 			Wtn6_Play(VOICE_BUFANG,ONCE);
+			rt_kprintf("bufang ok\r\n");
 			handle_led(TYPE_PROTECT_ON);
 			
 			if (fqp.is_alarm_voice)
@@ -133,6 +134,7 @@ void info_user(void *param)
 		}
 		if (ev & INFO_EVENT_SAVE_FANGQU) {
 			Wtn6_Play(VOICE_DUIMA,ONCE);
+			rt_kprintf("duima ok\r\n");
 			save_param(1);
 		}
 		if (ev & INFO_EVENT_SAVE_MAIN) {
