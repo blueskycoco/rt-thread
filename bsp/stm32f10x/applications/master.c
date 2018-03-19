@@ -387,11 +387,9 @@ void info_user(void *param)
 			}
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
-			//SetErrorCode(0x02);
 			g_main_state = 2;
 			led_blink(3);
 			dfs_mkfs("elm","sd0");
-			//__set_FAULTMASK();
 			Wtn6_Play(VOICE_HUIFU,ONCE);
 			NVIC_SystemReset();
 		}

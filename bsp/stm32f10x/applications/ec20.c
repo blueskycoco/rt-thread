@@ -539,6 +539,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_ec20,&send_size_ec20) == RT_EOK)
 					{	
 						rt_data_queue_pop(&g_data_queue[2], (const void **)&send_data_ptr_ec20, &send_size_ec20, RT_WAITING_FOREVER);
+						rt_hw_led_off(NET_LED);
 						rt_kprintf("should send data %d\r\n", send_size_ec20);
 						rt_sprintf(qisend_ec20, "AT+QISEND=0,%d\r\n", send_size_ec20);
 						gprs_at_cmd(g_dev_ec20,qisend_ec20);
@@ -620,6 +621,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 			case EC20_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_SEND_OK)) {
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
+					rt_hw_led_on(NET_LED);
 					gprs_at_cmd(g_dev_ec20,at_csq);
 				} else {
 					if (!have_str(last_data_ptr, STR_QIURC)) {

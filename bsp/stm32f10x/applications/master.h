@@ -67,33 +67,34 @@ struct MachineProperty
 };
 struct FangQu
 {
-	rt_uint8_t  	index;
-	rt_uint8_t  	type;//wire 1, wireless 2 
-	rt_uint8_t  	operationType; //0 now, 1 delay ,2 24 hour
-	rt_uint8_t  	voiceType;// 0 audio , 1 no audio
-	rt_uint8_t  	alarmType;//0,1,2,3,4
-	rt_uint8_t  	isBypass;
-	rt_uint8_t  	status;//0 unprotect , 1 protect
+	rt_uint8_t  	index;			//fq index
+	rt_uint8_t  	type;			//wire 1, wireless 2 ro
+	
+	rt_uint8_t  	operationType; 	//0 now, 1 delay ,2 24 hour
+	rt_uint8_t  	voiceType;		// 0 audio , 1 no audio
+	rt_uint8_t  	alarmType;		//0,1,2,3,4
+	rt_uint8_t  	isBypass;		//0 noBypass ,1 Bypass
+	rt_uint8_t		isStay;			//0 nostay ,1 stay protect off
+	rt_uint8_t  	status;			//0 unprotect , 1 protect
 	rt_uint8_t  	slave_delay;	//0 normal , 1 delay T mins
-	rt_uint32_t 	slave_sn;
-	rt_uint8_t  	slave_type;
-	rt_uint16_t   	slave_model;
-	rt_uint32_t 	slave_batch;
+	
+	rt_uint32_t 	slave_sn;		//ro
+	rt_uint8_t  	slave_type;		//ro
+	rt_uint16_t   	slave_model;	//ro
+	rt_uint32_t 	slave_batch;	//ro
 };
 
 struct FangQuProperty
 {   	
-	rt_uint8_t   delay_in;
-	rt_uint8_t   delya_out;
-	rt_uint8_t   delay_bufang;
-	rt_uint16_t  auto_bufang[3];
-	rt_uint16_t  auto_chefang[3];
-	rt_uint8_t	  alarm_voice;
-	rt_uint8_t	  is_alarm_voice;
-	rt_uint8_t   is_check_AC;
-	rt_uint8_t   is_check_DC;
-	rt_uint8_t	  PGM;
-	rt_uint8_t	  is_lamp;
+	rt_uint8_t   	delay_in;
+	rt_uint8_t   	delya_out;
+	rt_uint16_t  	auto_bufang[2];
+	rt_uint16_t  	auto_chefang[2];
+	rt_uint8_t	  	alarm_voice;	//play alarm time
+	rt_uint8_t	  	is_alarm_voice;	//open or not alarm voice
+	rt_uint8_t   	is_check_AC;
+	rt_uint8_t   	is_check_DC;
+	rt_uint8_t	  	PGM[4];
 };
 
 #define WIRELESS_MAX	50

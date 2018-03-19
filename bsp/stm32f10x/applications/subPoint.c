@@ -336,11 +336,13 @@ void handleSub(rt_uint8_t *data)
 		if (command_type == 0x0002 && !cur_status)
 		{
 			cur_status = 1;
+			//handle_protect_on();
 			rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 		}
 		else if(command_type == 0x0004 && cur_status)
 		{
 			cur_status = 0;
+			//handle_protect_on();
 			rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_OFF);
 		} else if (command_type == 0x0006) {
 			g_mute=0;
