@@ -40,6 +40,7 @@
 #include "master.h"
 #include "pcie.h"
 #include "wtn6.h"
+#include "prop.h"
 #define NO_ERROR				0x00000000
 #define ERROR_SPI_HW			0x00000001
 #define ERROR_SPI_MOUNT			0x00000002
@@ -59,6 +60,7 @@ extern rt_uint8_t cur_status;
 extern rt_uint8_t s1;
 extern rt_uint8_t g_alarm_voice;
 extern rt_uint8_t g_delay_in;
+extern rt_uint8_t g_delay_out;
 extern rt_uint8_t g_index_sub;
 extern rt_uint8_t g_mute;
 rt_uint8_t g_ac=0;
@@ -137,12 +139,32 @@ static void led_thread_entry(void* parameter)
 				g_delay_in -= 1;
 			} else if (g_delay_in == 0 && g_alarm_voice >0) {
 				rt_kprintf("play end %d\r\n",g_alarm_voice);
-				if (g_alarm_voice == (fqp.alarm_voice - fqp.delay_in-1))
+				if (g_alarm_voice == (fqp.alarm_voice_time - fqp.delay_in-1))
 					Wtn6_Play(VOICE_ALARM1,LOOP);
 			}
 		}
 		} else {
 			g_delay_in = 0;
+			g_alarm_voice =0;				
+			Stop_Playing();
+		}
+
+		if (!g_mute) {
+			if (cur_status) {
+				if (g_delay_out > 10)
+					g_delay_out -= 1;
+				else if (g_delay_out >0 && g_delay_out <= 10){				
+					rt_kprintf("out last count %d\r\n",g_delay_out);
+					if (g_delay_out == 10)
+					{
+						Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
+						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
+					}
+					g_delay_out -=1;
+				}
+			}
+		} else {
+			g_delay_out = 0;
 			g_alarm_voice =0;				
 			Stop_Playing();
 		}

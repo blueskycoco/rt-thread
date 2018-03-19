@@ -7,6 +7,7 @@
 #include "pcie.h"
 #include "bsp_misc.h"
 #include "master.h"
+#include "prop.h"
 #define M26_EVENT_0 				(1<<0)
 #define M26_STATE_INIT				0
 #define M26_STATE_CHECK_CPIN		1

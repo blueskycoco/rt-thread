@@ -5,31 +5,31 @@
 #include "cc1101.h"
 #include "subPoint.h"
 #include "master.h"
+#include "prop.h"
 #include "bsp_misc.h"
 #include "lcd.h"
-#define MSG_HEAD0		0x6c
-#define MSG_HEAD1		0xaa
-rt_uint8_t cur_status = 0;//protect off 1 for on
-rt_uint8_t stm32_id[6] = {0xa1,0x18,0x01,0x02,0x12,0x34};
-rt_uint8_t stm32_zero[6] = {0};
-rt_uint32_t sub_id = {0}; 
-rt_uint16_t command_type = 0;
-rt_uint8_t sub_cmd_type = 0;
-rt_uint16_t dev_model = 0;
-rt_uint32_t dev_time = 0;
-rt_uint8_t dev_type = 0;
-rt_uint16_t battery = 0;
-rt_uint8_t in_fq = 0;
-rt_uint32_t g_addr[60] = {0x00};
-rt_uint8_t g_index_sub = 0;
-rt_uint8_t base_addr = 2;
-rt_uint8_t addr_cnt = 0;
-rt_uint8_t g_main_state = 0; /*0 normal , 1 code, 2 factory reset*/
-extern rt_uint32_t g_coding_cnt;
-extern struct rt_event g_info_event;
-extern rt_uint8_t g_num;
-rt_uint8_t s1=0;
-rt_uint8_t g_mute=0;
+
+#define 	MSG_HEAD0		0x6c
+#define 	MSG_HEAD1		0xaa
+
+rt_uint8_t 	cur_status 		= 0;//protect off 1 for on
+rt_uint8_t 	stm32_id[6] 	= {0xa1,0x18,0x01,0x02,0x12,0x34};
+rt_uint8_t 	stm32_zero[6] 	= {0};
+rt_uint32_t sub_id 			= {0}; 
+rt_uint16_t command_type 	= 0;
+rt_uint8_t 	sub_cmd_type 	= 0;
+rt_uint16_t dev_model 		= 0;
+rt_uint32_t dev_time 		= 0;
+rt_uint8_t 	dev_type 		= 0;
+rt_uint16_t battery 		= 0;
+rt_uint8_t 	g_index_sub 	= 0;
+rt_uint8_t 	g_main_state 	= 0; /*0 normal , 1 code, 2 factory reset*/
+rt_uint8_t 	s1				= 0;
+rt_uint8_t 	g_mute			= 0;
+extern 		rt_uint32_t 	g_coding_cnt;
+extern 		struct rt_event g_info_event;
+extern 		rt_uint8_t 		g_num;
+
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -46,10 +46,8 @@ char *cmd_type(rt_uint16_t type)
 		case 0x000e:
 			return "Remoter Mute";
 		case 0x0002:
-			//cur_status = 1;
 			return "Remoter Protect ON";
 		case 0x0004:
-			//cur_status = 0;
 			return "Remoter Protect OFF";
 //		case 0x0006:
 //			return "Remoter Alarm";			
@@ -58,6 +56,7 @@ char *cmd_type(rt_uint16_t type)
 	}
 	return "UnKnown";
 }
+
 char *cmd_sub_type(rt_uint8_t type)
 {
 	switch (type) {
@@ -70,6 +69,7 @@ char *cmd_sub_type(rt_uint8_t type)
 	}
 	return "UnKnown";
 }
+
 char *cmd_dev_type(rt_uint8_t type)
 {
 	switch (type) {
@@ -88,6 +88,7 @@ char *cmd_dev_type(rt_uint8_t type)
 	}
 	return "UnKnown";
 }
+
 char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 {
 	int i;
@@ -103,26 +104,27 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 		while(list[i].index != 0)
 			i++;
 	}
-	if (len == 50)
+	if (len == WIRELESS_MAX)
 		return i+2;
 	else
-		return i+51;
+		return i+WIRELESS_MAX+1;
 }
+
 void save_fq(struct FangQu *list, int len)
 {
 	int i;	
 	g_coding_cnt =0;
 	for (i=0;i<len;i++)
 	{
-		rt_kprintf("salve sn %d, sub id %d\r\n",
+		rt_kprintf("slave sn %d, sub id %d\r\n",
 			list[i].slave_sn,sub_id);
 		if (list[i].slave_sn== sub_id)
 		{
-			if (len!=50)
-				in_fq = i+51;//SetErrorCode(i+51);
+			if (len!=WIRELESS_MAX)
+				g_num = i+WIRELESS_MAX+1;
 			else
-				in_fq = i+2;//SetErrorCode(i+2);
-			g_num = in_fq;
+				g_num = i+2;
+			
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 			/*play audio here*/
 			return;
@@ -132,47 +134,50 @@ void save_fq(struct FangQu *list, int len)
 	{
 		if (list[i].index == 0)
 		{
-			if (len == 50)
+			if (len == WIRELESS_MAX) {
 				list[i].index = i+2;
-			else
-				list[i].index = i+51;
+				list[i].type =TYPE_WIRELESS;
+			} else {
+				list[i].index = i+WIRELESS_MAX+1;
+				list[i].type =TYPE_WIRE;
+			}
 			list[i].slave_sn = sub_id;
 			list[i].slave_type = dev_type;
 			list[i].slave_model = dev_model;
 			list[i].slave_batch = dev_time&0x00ffffff;
-			list[i].type =2;
-			list[i].voiceType =1;
+			list[i].voiceType =TYPE_VOICE_Y;
+			list[i].operationType= TYPE_NOW;
+			list[i].alarmType= TYPE_ALARM_00;
+			list[i].slave_delay = TYPE_SLAVE_MODE_DELAY;
+			list[i].status= TYPE_PROTECT_OFF;
+			list[i].isStay= TYPE_STAY_N;
+			list[i].isBypass= TYPE_BYPASS_N;
+			/*test code*/
 			if (sub_id == 0x0a) {
-				list[i].alarmType = 0x00;
-				list[i].operationType= 0x00;
+				list[i].alarmType = TYPE_ALARM_00;
+				list[i].operationType= TYPE_NOW;
 			} else if (sub_id == 0x0b) {
-				list[i].alarmType = 0x00;
-				list[i].operationType= 0x00;
+				list[i].alarmType = TYPE_ALARM_00;
+				list[i].operationType= TYPE_NOW;
 			} else if (sub_id == 0x0c) {
-				list[i].alarmType = 0x02;
-				list[i].operationType= 0x02;
+				list[i].alarmType = TYPE_ALARM_02;
+				list[i].operationType= TYPE_24;
 			} else if (sub_id == 0x0d) {
-				list[i].alarmType = 0x02;
-				list[i].operationType= 0x02;
+				list[i].alarmType = TYPE_ALARM_02;
+				list[i].operationType= TYPE_24;
 			} else if (sub_id == 0x0e) {
-				list[i].alarmType = 0x00;
-				list[i].operationType= 0x01;
+				list[i].alarmType = TYPE_ALARM_00;
+				list[i].operationType= TYPE_DELAY;
 			} else if (sub_id == 0x02) {
-				list[i].alarmType = 0x02;
-				list[i].operationType= 0x02;
+				list[i].alarmType = TYPE_ALARM_02;
+				list[i].operationType= TYPE_24;
 			}
-			in_fq=list[i].index;
+			/*test code*/
+			g_num=list[i].index;
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
 				i,list[i].index,list[i].slave_sn);
-			//save_param(1);
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
-			//if (len!=50)
-			//	SetErrorCode(i+51);
-			//else
-			//	SetErrorCode(i+2);
-			g_num = in_fq;
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
-			/*play audio here*/
 			return;
 		}
 	}
@@ -223,7 +228,7 @@ void cmd_dump(rt_uint8_t *data)
 		rt_kprintf("Dev Model :\t%04x\r\n", dev_model);
 		rt_kprintf("Dev build time :%06x\r\n", dev_time);
 	}
-	in_fq = data[1];
+	g_num = data[1];
 	rt_kprintf("Battery :\t%d\r\n",battery);
 	rt_kprintf("Protect Zone :\t%02x\r\n", data[1]);
 
@@ -250,6 +255,56 @@ int check_sub_id(rt_uint32_t sub_mid,struct FangQu *list, int len)
 		}
 	}
 	return 0;
+}
+rt_uint8_t check_delay_fq(struct FangQu *list, int len)
+{
+		int i;
+		for (i=0; i<len; i++)
+		{
+			if (list[i].index !=0 && list[i].operationType == TYPE_DELAY)
+			{				
+				return 1;
+			}
+		}
+		return 0;
+}
+void set_fq_on(struct FangQu *list, int len)
+{		
+	int i;
+	for (i=0; i<len; i++)
+	{
+		if (list[i].index !=0 && (list[i].isStay == TYPE_STAY_N || list[i].operationType == TYPE_24))
+		{
+			list[i].status = TYPE_PROTECT_ON;
+		}
+	}
+	return 0;
+}
+void set_fq_off(struct FangQu *list, int len)
+{		
+	int i;
+	for (i=0; i<len; i++)
+	{
+		if (list[i].index !=0 && list[i].operationType != TYPE_24)
+		{
+			list[i].status = TYPE_PROTECT_OFF;
+		}
+	}
+	return 0;
+}
+void handle_protect_on()
+{
+	rt_uint8_t flag = 0;
+	flag = check_delay_fq(fangqu_wire,WIRE_MAX);
+	if (!flag)
+		flag = check_delay_fq(fangqu_wireless,WIRELESS_MAX);
+
+	set_fq_on(fangqu_wire,WIRE_MAX);
+	set_fq_on(fangqu_wireless,WIRELESS_MAX);
+	if (flag)
+		rt_event_send(&(g_info_event), INFO_EVENT_DELAY_PROTECT_ON);
+	else
+		rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 }
 void handleSub(rt_uint8_t *data)
 {
@@ -304,8 +359,6 @@ void handleSub(rt_uint8_t *data)
 		} else if (0x0014 == command_type) {
 			/*configrm coding*/
 			resp[18] = 0x01;
-			//g_addr[addr_cnt] = data[11]<<24|data[12]<<16|data[13]<<8|data[14];			
-			//addr_cnt++;
 			if (g_main_state ==1)
 				save_fq(fangqu_wireless,WIRELESS_MAX);
 		} else if (0x0006 == command_type) {
@@ -313,7 +366,7 @@ void handleSub(rt_uint8_t *data)
 			resp[18] = cur_status;
 			g_mute=0;
 			if (sub_cmd_type == 2 || cur_status || fangqu_wireless[g_index_sub].operationType==2) {
-				g_num = in_fq;
+				
 				if (sub_cmd_type == 2)
 					s1=1;
 				rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
@@ -324,7 +377,7 @@ void handleSub(rt_uint8_t *data)
 			resp[18] = cur_status;
 			g_mute=0;
 			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
-			g_num = in_fq;
+			
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		}
 		resp[4]=16;
@@ -336,8 +389,8 @@ void handleSub(rt_uint8_t *data)
 		if (command_type == 0x0002 && !cur_status)
 		{
 			cur_status = 1;
-			//handle_protect_on();
-			rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
+			handle_protect_on();
+			//rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 		}
 		else if(command_type == 0x0004 && cur_status)
 		{
@@ -352,9 +405,9 @@ void handleSub(rt_uint8_t *data)
 			rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
 			rt_kprintf("got mute\r\n");
 		}
-		g_num = in_fq;
+		
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		if (g_main_state ==1)
-		save_fq(fangqu_wireless,WIRELESS_MAX);
+			save_fq(fangqu_wireless,WIRELESS_MAX);
 	}
 }

@@ -10,6 +10,7 @@
 #include "pcie.h"
 #include "master.h"
 #include "bsp_misc.h"
+#include "prop.h"
 rt_uint8_t g_type0 = 0;
 rt_uint8_t g_type1 = 0;
 int g_index = 0;

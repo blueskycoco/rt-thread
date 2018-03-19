@@ -7,6 +7,7 @@
 #include "pcie.h"
 #include "bsp_misc.h"
 #include "master.h"
+#include "prop.h"
 #define EC20_EVENT_0 				(1<<0)
 #define EC20_STATE_INIT				0
 #define EC20_STATE_CHECK_CPIN		1
