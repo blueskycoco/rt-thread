@@ -365,6 +365,8 @@ void handleSub(rt_uint8_t *data)
 			/*send alarm to server*/
 			resp[18] = cur_status;
 			g_mute=0;
+			if (g_main_state)
+				return;
 			if (sub_cmd_type == 2 || cur_status || fangqu_wireless[g_index_sub].operationType==2) {
 				
 				if (sub_cmd_type == 2)
@@ -376,8 +378,9 @@ void handleSub(rt_uint8_t *data)
 			/*send low power alarm to server*/
 			resp[18] = cur_status;
 			g_mute=0;
-			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
-			
+			if (g_main_state)
+				return;
+			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);			
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		}
 		resp[4]=16;
@@ -387,10 +390,10 @@ void handleSub(rt_uint8_t *data)
 		cc1101_send_write(resp,21);
 	}else {
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
-		if (g_main_state ==1)
+		if (g_main_state == 1)
 		{
 			save_fq(fangqu_wireless,WIRELESS_MAX);
-			rt_thread_delay(100);
+			return ;
 		}
 		
 		if (command_type == 0x0002 && !cur_status)
