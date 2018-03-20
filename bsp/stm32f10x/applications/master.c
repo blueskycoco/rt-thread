@@ -101,6 +101,7 @@ void info_user(void *param)
 			Wtn6_Play(VOICE_YANSHIBF,LOOP);
 			g_delay_out = fqp.delya_out;
 			g_alarm_voice = fqp.alarm_voice_time;
+			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
 			SetStateIco(1,1);

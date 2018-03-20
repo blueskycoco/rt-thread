@@ -156,7 +156,7 @@ void save_fq(struct FangQu *list, int len)
 			/*test code*/
 			if (sub_id == 0x0a) {
 				list[i].alarmType = TYPE_ALARM_00;
-				list[i].operationType= TYPE_NOW;
+				list[i].operationType= TYPE_DELAY;
 			} else if (sub_id == 0x0b) {
 				list[i].alarmType = TYPE_ALARM_00;
 				list[i].operationType= TYPE_NOW;
@@ -392,6 +392,7 @@ void handleSub(rt_uint8_t *data)
 			}
 		} else if (0x000c == command_type) {
 			/*send low power alarm to server*/
+			g_mute=0;
 			resp[18] = fangqu_wireless[g_index_sub].status;//cur_status;
 			g_mute=0;
 			if (!g_main_state) {
@@ -411,7 +412,7 @@ void handleSub(rt_uint8_t *data)
 			save_fq(fangqu_wireless,WIRELESS_MAX);
 			return ;
 		}
-		
+		g_mute=0;
 		if (command_type == 0x0002 && !cur_status)
 		{
 			cur_status = 1;

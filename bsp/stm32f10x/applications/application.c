@@ -168,6 +168,8 @@ static void led_thread_entry(void* parameter)
 				}
 			}
 		} else {
+			if (g_delay_out || g_alarm_voice)
+				rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 			g_delay_out = 0;
 			g_alarm_voice =0;				
 			Stop_Playing();
