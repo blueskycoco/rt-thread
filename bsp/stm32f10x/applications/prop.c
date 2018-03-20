@@ -83,6 +83,7 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 {	
 	int i;
 	rt_kprintf("\r\n\r\n<<FangQu Param>>\r\n");
+	rt_kprintf("status \t%d\r\n",v1.status);
 	rt_kprintf("alarm_voice \t%d\r\n",v1.alarm_voice_time);
 	rt_kprintf("delay_in \t%d\r\n",v1.delay_in);
 	rt_kprintf("delya_out \t%d\r\n",v1.delya_out);
@@ -110,9 +111,9 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 			rt_kprintf("isStay \t%d\r\n",v2[i].isStay);
 			rt_kprintf("status \t%d\r\n",v2[i].status);
 			rt_kprintf("slave_delay \t%d\r\n",v2[i].slave_delay);
-			rt_kprintf("slave_type \t%d\r\n",v2[i].slave_type);
-			rt_kprintf("slave_model \t%d\r\n",v2[i].slave_model);
-			rt_kprintf("slave_batch \t%d\r\n",v2[i].slave_batch);
+			rt_kprintf("slave_type \t%x\r\n",v2[i].slave_type);
+			rt_kprintf("slave_model \t%x\r\n",v2[i].slave_model);
+			rt_kprintf("slave_batch \t%x\r\n",v2[i].slave_batch);
 			rt_kprintf("slave_sn \t%08x\r\n",v2[i].slave_sn);
 		}
 	}
@@ -131,9 +132,9 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 			rt_kprintf("isStay \t%d\r\n",v3[i].isStay);
 			rt_kprintf("status \t%d\r\n",v3[i].status);
 			rt_kprintf("slave_delay \t%d\r\n",v3[i].slave_delay);
-			rt_kprintf("slave_type \t%d\r\n",v3[i].slave_type);
-			rt_kprintf("slave_model \t%d\r\n",v3[i].slave_model);
-			rt_kprintf("slave_batch \t%d\r\n",v3[i].slave_batch);
+			rt_kprintf("slave_type \t%x\r\n",v3[i].slave_type);
+			rt_kprintf("slave_model \t%x\r\n",v3[i].slave_model);
+			rt_kprintf("slave_batch \t%x\r\n",v3[i].slave_batch);
 			rt_kprintf("slave_sn \t%08x\r\n",v3[i].slave_sn);
 		}
 	}
@@ -196,9 +197,10 @@ int load_param()
 	fqp.is_alarm_voice=DEFAULT_ALARM_VOICE;
 	fqp.is_check_AC=DEFAULT_CHECK_AC;
 	fqp.is_check_DC=DEFAULT_CHECK_DC;
-	fqp.is_lamp = 0x01;
+	fqp.is_lamp = 0x04;
 	fqp.PGM0=0;
 	fqp.PGM1=1;
+	fqp.status=0;
 
 	int fd = open(MP_FILE, O_RDONLY, 0);
 	if (fd < 0)

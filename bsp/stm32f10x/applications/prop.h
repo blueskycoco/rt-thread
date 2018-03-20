@@ -66,6 +66,7 @@ struct FangQu
 
 struct FangQuProperty
 {   	
+	rt_uint8_t		status;
 	rt_uint8_t   	delay_in;
 	rt_uint8_t   	delya_out;
 	rt_uint16_t  	auto_bufang[2];

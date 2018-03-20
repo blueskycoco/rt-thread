@@ -8,7 +8,7 @@
 #include "prop.h"
 #include "bsp_misc.h"
 #include "lcd.h"
-
+#include "wtn6.h"
 #define 	MSG_HEAD0		0x6c
 #define 	MSG_HEAD1		0xaa
 
@@ -26,6 +26,7 @@ rt_uint8_t 	g_index_sub 	= 0;
 rt_uint8_t 	g_main_state 	= 0; /*0 normal , 1 code, 2 factory reset*/
 rt_uint8_t 	s1				= 0;
 rt_uint8_t 	g_mute			= 0;
+rt_uint8_t g_alarmType		= 0;
 extern 		rt_uint32_t 	g_coding_cnt;
 extern 		struct rt_event g_info_event;
 extern 		rt_uint8_t 		g_num;
@@ -175,7 +176,9 @@ void save_fq(struct FangQu *list, int len)
 			/*test code*/
 			g_num=list[i].index;
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
-				i,list[i].index,list[i].slave_sn);
+				i,list[i].index,list[i].slave_sn);			
+			Wtn6_Play(VOICE_DUIMA,ONCE);
+			rt_kprintf("duima ok\r\n");
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 			return;
@@ -273,24 +276,29 @@ void set_fq_on(struct FangQu *list, int len)
 	int i;
 	for (i=0; i<len; i++)
 	{
-		if (list[i].index !=0 && (list[i].isStay == TYPE_STAY_N || list[i].operationType == TYPE_24))
+		if (list[i].index != 0 && (list[i].isStay == TYPE_STAY_N || list[i].operationType == TYPE_24))
 		{
 			list[i].status = TYPE_PROTECT_ON;
 		}
 	}
-	return 0;
+	return ;
 }
 void set_fq_off(struct FangQu *list, int len)
 {		
 	int i;
 	for (i=0; i<len; i++)
 	{
-		if (list[i].index !=0 && list[i].operationType != TYPE_24)
+		if (list[i].index != 0 && list[i].operationType != TYPE_24)
 		{
 			list[i].status = TYPE_PROTECT_OFF;
+			if (list[i].isBypass == TYPE_BYPASS_Y)
+			{
+				list[i].isBypass = TYPE_BYPASS_N;
+				/*TODO send bypass restore event to server*/
+			}
 		}
 	}
-	return 0;
+	return ;
 }
 void handle_protect_on()
 {
@@ -298,13 +306,20 @@ void handle_protect_on()
 	flag = check_delay_fq(fangqu_wire,WIRE_MAX);
 	if (!flag)
 		flag = check_delay_fq(fangqu_wireless,WIRELESS_MAX);
-
+	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	set_fq_on(fangqu_wire,WIRE_MAX);
 	set_fq_on(fangqu_wireless,WIRELESS_MAX);
 	if (flag)
 		rt_event_send(&(g_info_event), INFO_EVENT_DELAY_PROTECT_ON);
 	else
 		rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
+}
+void handle_protect_off()
+{	
+	set_fq_off(fangqu_wire,WIRE_MAX);
+	set_fq_off(fangqu_wireless,WIRELESS_MAX);
+	rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_OFF);
+	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 }
 void handleSub(rt_uint8_t *data)
 {
@@ -355,7 +370,7 @@ void handleSub(rt_uint8_t *data)
 			resp[18] = get_addr(data[11]<<24|data[12]<<16|data[13]<<8|data[14],fangqu_wireless,WIRELESS_MAX);
 		} else if (0x0010 == command_type) {
 			/*get cur status*/
-			resp[18] = cur_status;
+			resp[18] = fangqu_wireless[g_index_sub].status;//cur_status;
 		} else if (0x0014 == command_type) {
 			/*configrm coding*/
 			resp[18] = 0x01;
@@ -363,32 +378,33 @@ void handleSub(rt_uint8_t *data)
 				save_fq(fangqu_wireless,WIRELESS_MAX);
 		} else if (0x0006 == command_type) {
 			/*send alarm to server*/
-			resp[18] = cur_status;
+			resp[18] = fangqu_wireless[g_index_sub].status;//cur_status;
 			g_mute=0;
-			if (g_main_state)
-				return;
-			if (sub_cmd_type == 2 || cur_status || fangqu_wireless[g_index_sub].operationType==2) {
-				
-				if (sub_cmd_type == 2)
-					s1=1;
-				rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
-				rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);					
+			if (!g_main_state) {				
+				if (sub_cmd_type == 2 || cur_status || fangqu_wireless[g_index_sub].operationType==2) {
+					if (fangqu_wireless[g_index_sub].alarmType == 2)
+						g_alarmType = 2;
+					if (sub_cmd_type == 2)
+						s1=1;
+					rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+					rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);					
+				}
 			}
 		} else if (0x000c == command_type) {
 			/*send low power alarm to server*/
-			resp[18] = cur_status;
+			resp[18] = fangqu_wireless[g_index_sub].status;//cur_status;
 			g_mute=0;
-			if (g_main_state)
-				return;
-			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);			
-			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
+			if (!g_main_state) {
+				rt_event_send(&(g_info_event), INFO_EVENT_ALARM);			
+				rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
+			}
 		}
 		resp[4]=16;
 		unsigned short crc = CRC_check(resp,19);
 		resp[19]=(crc>>8) & 0xff;
 		resp[20]=(crc) & 0xff;
 		cc1101_send_write(resp,21);
-	}else {
+	} else {
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		if (g_main_state == 1)
 		{
@@ -399,16 +415,19 @@ void handleSub(rt_uint8_t *data)
 		if (command_type == 0x0002 && !cur_status)
 		{
 			cur_status = 1;
+			fqp.status=cur_status;
 			handle_protect_on();
-			//rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 		}
 		else if(command_type == 0x0004 && cur_status)
 		{
 			cur_status = 0;
-			//handle_protect_on();
-			rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_OFF);
+			g_alarmType =0;
+			fqp.status=cur_status;
+			s1=0;
+			handle_protect_off();
 		} else if (command_type == 0x0006) {
 			g_mute=0;
+			g_alarmType =2;
 			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
 		} else if (command_type == 0x000e) {
 			g_mute=1;

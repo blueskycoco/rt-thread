@@ -63,6 +63,7 @@ extern rt_uint8_t g_delay_in;
 extern rt_uint8_t g_delay_out;
 extern rt_uint8_t g_index_sub;
 extern rt_uint8_t g_mute;
+extern rt_uint8_t g_alarmType;
 rt_uint8_t g_ac=0;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
@@ -105,8 +106,10 @@ static void led_thread_entry(void* parameter)
 		}
 		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03)) ||
 			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) || s1 
-			|| fangqu_wireless[g_index_sub].alarmType == 2)
+			|| g_alarmType == 2)
 		{
+			rt_kprintf("protect %d, lamp %d, alarmType %d, s1 %d\r\n",
+				cur_status,fqp.is_lamp,g_alarmType,s1);
 			if (count %2)
 				rt_hw_led_on(AUX_LED0);
 			else if (count %3)
@@ -331,12 +334,21 @@ void rt_init_thread_entry(void* parameter)
 	SetStateIco(6,1);
 	rt_thread_delay(200);	
 	HtbLcdClear();	
-	SetStateIco(1,1);
-	SetStateIco(0,0);
+	cur_status = fqp.status;
+	if (fqp.status) {
+		SetStateIco(0,1);
+		SetStateIco(1,0);
+		rt_hw_led_on(ARM_LED);	
+		rt_hw_led_on(AUX_LED0);
+	}else{
+		SetStateIco(1,1);
+		SetStateIco(0,0);
+		rt_hw_led_off(ARM_LED);
+		rt_hw_led_on(AUX_LED1);
+	}
 	if (check_ac())
 		SetStateIco(4,1);	
-	rt_hw_led_off(CODE_LED);
-	rt_hw_led_off(ARM_LED);
+	rt_hw_led_off(CODE_LED);	
 	rt_hw_led_off(WIRE_LED);
 	rt_hw_led_off(ALARM_LED);
 	rt_hw_led_off(WIRELESS_LED);

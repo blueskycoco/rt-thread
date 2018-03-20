@@ -8,6 +8,7 @@
 #include "bsp_misc.h"
 #include "wtn6.h"
 #include "master.h"
+#include "button.h"
 struct rt_event g_info_event;
 extern rt_uint8_t cur_status;
 rt_uint8_t g_num=0;
@@ -28,15 +29,19 @@ void handle_led(int type)
 			GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 		} else if (v == 0x04 || v == 0x01 || v == 0x02) {
 			GPIO_SetBits(GPIOB, GPIO_Pin_7);
+			if (v==0x04)
+			rt_hw_led_on(AUX_LED0);
 		}
 
 	} else if (type == TYPE_PROTECT_OFF) {
+		rt_kprintf("protect off is_lamp %x\r\n", fqp.is_lamp);
 		v = fqp.is_lamp & 0x0f;
 		if (v == 0x00 || v == 0x02 ||v == 0x03)
 		{
 			GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 		} else if (v == 0x04) {
 			GPIO_SetBits(GPIOB, GPIO_Pin_7);
+			rt_hw_led_on(AUX_LED1);
 		}
 
 	} else {
@@ -105,7 +110,6 @@ void info_user(void *param)
 			rt_hw_led_off(ALARM_LED);	
 			Wtn6_Play(VOICE_CHEFANG,ONCE);
 			handle_led(TYPE_PROTECT_OFF);
-			rt_kprintf("protect off is_lamp %x\r\n", fqp.is_lamp);
 			if (fqp.is_alarm_voice)
 			{
 				GPIO_SetBits(GPIOC, GPIO_Pin_13);
@@ -133,8 +137,6 @@ void info_user(void *param)
 			SetErrorCode(g_num);
 		}
 		if (ev & INFO_EVENT_SAVE_FANGQU) {
-			Wtn6_Play(VOICE_DUIMA,ONCE);
-			rt_kprintf("duima ok\r\n");
 			save_param(1);
 		}
 		if (ev & INFO_EVENT_SAVE_MAIN) {
