@@ -153,7 +153,6 @@ static void led_thread_entry(void* parameter)
 		}
 
 		if (!g_mute) {
-			if (cur_status) {
 				if (g_delay_out > 10)
 					g_delay_out -= 1;
 				else if (g_delay_out >0 && g_delay_out <= 10){				
@@ -166,7 +165,6 @@ static void led_thread_entry(void* parameter)
 						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 					g_delay_out -=1;
 				}
-			}
 		} else {
 			if (g_delay_out || g_alarm_voice)
 				rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
@@ -231,7 +229,7 @@ void rt_init_thread_entry(void* parameter)
 	button_init();
 	battery_init();
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
-	rt_thread_startup(rt_thread_create("7info",info_user, 0,1024, 20, 10));
+	rt_thread_startup(rt_thread_create("7info",info_user, 0,2048, 20, 10));
 	Wtn6_Play(VOICE_WELCOME,ONCE);
 
 	/* Filesystem Initialization */

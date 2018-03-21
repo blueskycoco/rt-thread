@@ -9,6 +9,7 @@
 #include "wtn6.h"
 #include "master.h"
 #include "button.h"
+#include "subPoint.h"
 struct rt_event g_info_event;
 extern rt_uint8_t cur_status;
 rt_uint8_t g_num=0;
@@ -18,6 +19,9 @@ rt_uint8_t g_delay_out=0;
 extern rt_uint8_t g_index_sub;
 rt_uint8_t g_alarm_voice=0;
 extern rt_uint8_t g_main_state;
+extern rt_uint8_t g_alarmType;
+extern rt_uint8_t s1;
+
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -85,7 +89,8 @@ void info_user(void *param)
 		if (ev & INFO_EVENT_PROTECT_ON) {
 			SetStateIco(0,1);
 			SetStateIco(1,0);
-			rt_hw_led_on(ARM_LED);						
+			rt_hw_led_on(ARM_LED);
+			cur_status = 1;						
 			Wtn6_Play(VOICE_BUFANG,ONCE);
 			rt_kprintf("bufang ok\r\n");
 			handle_led(TYPE_PROTECT_ON);
@@ -96,6 +101,11 @@ void info_user(void *param)
 				rt_thread_delay(100);
 				GPIO_ResetBits(GPIOC, GPIO_Pin_13);
 			}
+			
+			fqp.status=cur_status;
+			set_fq_on(fangqu_wire,WIRE_MAX);
+			set_fq_on(fangqu_wireless,WIRELESS_MAX);			
+			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
 			Wtn6_Play(VOICE_YANSHIBF,LOOP);
@@ -128,7 +138,7 @@ void info_user(void *param)
 					g_alarm_voice = fqp.alarm_voice_time;
 					bell_ctl(1);
 				}
-				if ((fangqu_wireless[g_index_sub].operationType==1) && fqp.delay_in && g_delay_in == 0) {
+				if (s1 !=0 && g_alarmType !=2 && (fangqu_wireless[g_index_sub].operationType==1) && fqp.delay_in && g_delay_in == 0) {
 					g_alarm_voice = fqp.alarm_voice_time;
 					g_delay_in = fqp.delay_in;
 					Wtn6_Play(VOICE_ALARM2,LOOP);

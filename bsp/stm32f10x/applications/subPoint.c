@@ -3,12 +3,12 @@
 #include <rtdevice.h>
 #include <string.h>
 #include "cc1101.h"
-#include "subPoint.h"
 #include "master.h"
 #include "prop.h"
 #include "bsp_misc.h"
 #include "lcd.h"
 #include "wtn6.h"
+#include "subPoint.h"
 #define 	MSG_HEAD0		0x6c
 #define 	MSG_HEAD1		0xaa
 
@@ -30,7 +30,9 @@ rt_uint8_t g_alarmType		= 0;
 extern 		rt_uint32_t 	g_coding_cnt;
 extern 		struct rt_event g_info_event;
 extern 		rt_uint8_t 		g_num;
-
+extern 		rt_uint8_t 		g_delay_out;
+extern rt_uint8_t g_alarm_voice;
+extern rt_uint8_t g_delay_in;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -306,13 +308,15 @@ void handle_protect_on()
 	flag = check_delay_fq(fangqu_wire,WIRE_MAX);
 	if (!flag)
 		flag = check_delay_fq(fangqu_wireless,WIRELESS_MAX);
-	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
-	set_fq_on(fangqu_wire,WIRE_MAX);
-	set_fq_on(fangqu_wireless,WIRELESS_MAX);
 	if (flag)
+	{
 		rt_event_send(&(g_info_event), INFO_EVENT_DELAY_PROTECT_ON);
+	}
 	else
+	{
+		cur_status = 1;		
 		rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
+	}
 }
 void handle_protect_off()
 {	
@@ -380,12 +384,14 @@ void handleSub(rt_uint8_t *data)
 			/*send alarm to server*/
 			resp[18] = fangqu_wireless[g_index_sub].status;//cur_status;
 			g_mute=0;
+			rt_kprintf("have alarm %d %d %d %d\r\n",
+				g_main_state, sub_cmd_type,cur_status,fangqu_wireless[g_index_sub].operationType);
 			if (!g_main_state) {				
 				if (sub_cmd_type == 2 || cur_status || fangqu_wireless[g_index_sub].operationType==2) {
 					if (fangqu_wireless[g_index_sub].alarmType == 2)
-						g_alarmType = 2;
+						g_alarmType = 2;//24 hour
 					if (sub_cmd_type == 2)
-						s1=1;
+						s1=1;//protect switch
 					rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
 					rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);					
 				}
@@ -413,16 +419,17 @@ void handleSub(rt_uint8_t *data)
 			return ;
 		}
 		g_mute=0;
-		if (command_type == 0x0002 && !cur_status)
+		if (command_type == 0x0002 && !cur_status && g_delay_out==0)
 		{
-			cur_status = 1;
-			fqp.status=cur_status;
 			handle_protect_on();
 		}
-		else if(command_type == 0x0004 && cur_status)
+		else if(command_type == 0x0004 && (cur_status || (!cur_status && g_delay_out!=0)))
 		{
 			cur_status = 0;
 			g_alarmType =0;
+			g_delay_out = 0;
+			g_alarm_voice = 0;
+			g_delay_in = 0;
 			fqp.status=cur_status;
 			s1=0;
 			handle_protect_off();
