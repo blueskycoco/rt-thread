@@ -21,7 +21,7 @@ rt_uint8_t g_alarm_voice=0;
 extern rt_uint8_t g_main_state;
 extern rt_uint8_t g_alarmType;
 extern rt_uint8_t s1;
-
+extern rt_uint8_t g_flag;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -128,22 +128,84 @@ void info_user(void *param)
 				GPIO_ResetBits(GPIOC, GPIO_Pin_13);
 			}		
 		}
+
 		if (ev & INFO_EVENT_ALARM) {
 			SetStateIco(2,1);
 			rt_hw_led_on(ALARM_LED);
-			rt_kprintf("is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d\r\n",
-				fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice_time);
-				if (fqp.is_alarm_voice)
-				{
-					g_alarm_voice = fqp.alarm_voice_time;
-					bell_ctl(1);
+			rt_kprintf("is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d, voiceType %d\r\n",
+				fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice_time,fangqu_wireless[g_index_sub].voiceType);
+			/*handle alarm voice*/
+				if (s1==1) {
+					if (fqp.is_alarm_voice) {
+						bell_ctl(1);
+						rt_thread_delay(100);
+					}
+				} else {
+
+					if (fangqu_wireless[g_index_sub].voiceType == 0 && fqp.is_alarm_voice && fqp.alarm_voice_time>0)
+					{
+						if ( fangqu_wireless[g_index_sub].operationType==0 || g_alarmType == 2)
+							g_alarm_voice = fqp.alarm_voice_time;
+						
+						if (fangqu_wireless[g_index_sub].operationType != 1)
+							bell_ctl(1);
+					}
 				}
+			/*handle audio*/
+			if (fangqu_wireless[g_index_sub].voiceType == 0) {
+					if (s1 == 0 && fangqu_wireless[g_index_sub].operationType !=2) { //non-emergency
+						rt_kprintf("non-emergency audio play\r\n");
+						if (fangqu_wireless[g_index_sub].operationType == 1 && fqp.delay_in > 0) { //delay mode
+							//g_alarm_voice = fqp.alarm_voice_time;
+							rt_kprintf("non-emergency audio delay mode\r\n");
+							g_flag=0;
+							g_delay_in = fqp.delay_in;
+							Wtn6_Play(VOICE_ALARM2,LOOP);
+						} else {
+							rt_kprintf("non-emergency audio normal mode\r\n");
+							g_alarm_voice = fqp.alarm_voice_time;
+							Wtn6_Play(VOICE_ALARM2,LOOP);
+						}
+					} else {
+						rt_kprintf("emergency audio play\r\n");
+						if (s1 == 1) { //s1 switch
+							rt_kprintf("s1 audio\r\n");
+							Wtn6_Play(VOICE_CHEFANG,ONCE);
+						} else {
+							rt_kprintf("non-s1 audio \r\n");
+							g_alarm_voice = fqp.alarm_voice_time;
+							rt_uint8_t action = ONCE;
+							if (g_alarm_voice >0)
+								action = LOOP;
+							else
+								action = ONCE;
+							if (g_alarmType == 0) {//normal		
+								rt_kprintf("normal\r\n");
+								Wtn6_Play(VOICE_ZHUJIGZ,action);
+							} else if (g_alarmType == 1) {//fire
+								rt_kprintf("fire\r\n");
+								Wtn6_Play(VOICE_YANSHIBF,action);
+							} else if (g_alarmType == 2) {//emergency
+								rt_kprintf("emergency\r\n");
+								Wtn6_Play(VOICE_TUICHUDM,action);
+							} else if (g_alarmType == 3) {//medical
+								rt_kprintf("medical\r\n");
+								Wtn6_Play(VOICE_SHANCHU,action);
+							} else if (g_alarmType == 4) {
+								rt_kprintf("4 \r\n");
+								Wtn6_Play(VOICE_JIAOLIUDD,action);
+							}
+						}
+					}
+			}
+				/*
 				if (s1 !=0 && g_alarmType !=2 && (fangqu_wireless[g_index_sub].operationType==1) && fqp.delay_in && g_delay_in == 0) {
 					g_alarm_voice = fqp.alarm_voice_time;
 					g_delay_in = fqp.delay_in;
 					Wtn6_Play(VOICE_ALARM2,LOOP);
-				}
+				}*/
 		}
+		
 		if (ev & INFO_EVENT_SHOW_NUM) {
 			SetErrorCode(g_num);
 		}

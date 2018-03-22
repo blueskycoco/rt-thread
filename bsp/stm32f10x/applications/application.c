@@ -65,6 +65,7 @@ extern rt_uint8_t g_index_sub;
 extern rt_uint8_t g_mute;
 extern rt_uint8_t g_alarmType;
 rt_uint8_t g_ac=0;
+rt_uint8_t g_flag=0;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -84,6 +85,7 @@ static void led_thread_entry(void* parameter)
 		// rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
 		//buzzer_ctl(1);
+		/*ac dc*/
 		ac=check_ac();
 		if (ac && !g_ac)
 		{
@@ -95,6 +97,7 @@ static void led_thread_entry(void* parameter)
 			Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
 			SetStateIco(4,0);
 		}
+		/*2 mins exit coding mode*/
 		if (g_main_state==1) {
 			rt_hw_led_off(0);
 			g_coding_cnt++;
@@ -104,6 +107,7 @@ static void led_thread_entry(void* parameter)
 				rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
 			}
 		}
+		/*export led*/
 		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03)) ||
 			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) || s1 
 			|| g_alarmType == 2)
@@ -115,21 +119,23 @@ static void led_thread_entry(void* parameter)
 			else if (count %3)
 				rt_hw_led_on(AUX_LED1);
 		}
+		/*bell ctl*/
 		if (g_alarm_voice >0 )
 		{
+			rt_kprintf("alarm voice %d\r\n",g_alarm_voice);
 			g_alarm_voice -=1;
 			if (g_alarm_voice == 1) {		
 			bell_ctl(0);		
 			Stop_Playing();
 			}
 		}
-		
+		/*delay alarm*/
 		if (!g_mute) {
 		if (!cur_status) {
 			if (g_delay_in > 0)
 			{
 				g_delay_in = 0;
-				g_alarm_voice =0;				
+				//g_alarm_voice =0;				
 			}
 		} else {
 			rt_kprintf("delay in %d\r\n", g_delay_in);
@@ -140,10 +146,17 @@ static void led_thread_entry(void* parameter)
 				if (g_delay_in == 10)
 					Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
 				g_delay_in -= 1;
-			} else if (g_delay_in == 0 && g_alarm_voice >0) {
-				rt_kprintf("play end %d\r\n",g_alarm_voice);
-				if (g_alarm_voice == (fqp.alarm_voice_time - fqp.delay_in-1))
-					Wtn6_Play(VOICE_ALARM1,LOOP);
+			} else if (g_delay_in == 0 && g_flag == 0/* && g_alarm_voice >0*/) {
+				//rt_kprintf("play end %d\r\n",g_alarm_voice);
+				//if (g_alarm_voice == (fqp.alarm_voice_time - fqp.delay_in-1))
+				//	Wtn6_Play(VOICE_ALARM1,LOOP);
+				g_flag = 1;
+				if (fangqu_wireless[g_index_sub].operationType == 1 && fqp.is_alarm_voice &&
+					fangqu_wireless[g_index_sub].voiceType == 0) {
+					rt_kprintf("open delay fq bell\r\n");
+					bell_ctl(1);				
+					g_alarm_voice = fqp.alarm_voice_time;
+				}
 			}
 		}
 		} else {
@@ -151,7 +164,7 @@ static void led_thread_entry(void* parameter)
 			g_alarm_voice =0;				
 			Stop_Playing();
 		}
-
+		/*delay protect on*/
 		if (!g_mute) {
 				if (g_delay_out > 10)
 					g_delay_out -= 1;

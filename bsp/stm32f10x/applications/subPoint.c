@@ -325,6 +325,26 @@ void handle_protect_off()
 	rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_OFF);
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 }
+void handle_alarm()
+{
+	g_alarmType = fangqu_wireless[g_index_sub].alarmType;
+	if (sub_cmd_type == 2 /*s1 alarm*/
+		|| fangqu_wireless[g_index_sub].operationType==2 /*24 hour*/
+		) {
+		/*emergency alarm*/
+		if (sub_cmd_type == 2)
+			s1=1;				//protect switch		
+		rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);				
+	} else {
+		/*normal alarm*/
+		if (cur_status) {				
+			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);										
+		}
+	}
+
+}
 void handleSub(rt_uint8_t *data)
 {
 	rt_uint8_t resp[32] = {0};
@@ -386,7 +406,9 @@ void handleSub(rt_uint8_t *data)
 			g_mute=0;
 			rt_kprintf("have alarm %d %d %d %d\r\n",
 				g_main_state, sub_cmd_type,cur_status,fangqu_wireless[g_index_sub].operationType);
-			if (!g_main_state) {				
+			if (!g_main_state) {
+				handle_alarm();
+				/*
 				if (sub_cmd_type == 2 || cur_status || fangqu_wireless[g_index_sub].operationType==2) {
 					if (fangqu_wireless[g_index_sub].alarmType == 2)
 						g_alarmType = 2;//24 hour
@@ -394,7 +416,7 @@ void handleSub(rt_uint8_t *data)
 						s1=1;//protect switch
 					rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
 					rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);					
-				}
+				}*/
 			}
 		} else if (0x000c == command_type) {
 			/*send low power alarm to server*/
@@ -437,6 +459,7 @@ void handleSub(rt_uint8_t *data)
 			g_mute=0;
 			g_alarmType =2;
 			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		} else if (command_type == 0x000e) {
 			g_mute=1;
 			rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
