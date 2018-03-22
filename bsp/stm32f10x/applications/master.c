@@ -160,7 +160,7 @@ void info_user(void *param)
 							rt_kprintf("non-emergency audio delay mode\r\n");
 							g_flag=0;
 							g_delay_in = fqp.delay_in;
-							Wtn6_Play(VOICE_ALARM1,LOOP);
+							Wtn6_Play(VOICE_ALARM2,LOOP);
 						} else {
 							rt_kprintf("non-emergency audio normal mode\r\n");
 							g_alarm_voice = fqp.alarm_voice_time;

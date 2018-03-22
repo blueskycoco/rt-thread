@@ -206,9 +206,9 @@ static void led_thread_entry(void* parameter)
 		{
 			rt_kprintf("protect %d, lamp %d, alarmType %d, s1 %d\r\n",
 				cur_status,fqp.is_lamp,g_alarmType,s1);
-			if (count %2)
+			if (count %3)
 				rt_hw_led_on(AUX_LED0);
-			else if (count %3)
+			else if (count %2)
 				rt_hw_led_on(AUX_LED1);
 		}
 		}
