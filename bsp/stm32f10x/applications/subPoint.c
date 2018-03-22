@@ -157,23 +157,28 @@ void save_fq(struct FangQu *list, int len)
 			list[i].isBypass= TYPE_BYPASS_N;
 			/*test code*/
 			if (sub_id == 0x0a) {
-				list[i].alarmType = TYPE_ALARM_00;
-				list[i].operationType= TYPE_DELAY;
+				list[i].alarmType = TYPE_ALARM_02;
+				list[i].operationType= TYPE_24;
+				list[i].voiceType= 1;
 			} else if (sub_id == 0x0b) {
 				list[i].alarmType = TYPE_ALARM_00;
 				list[i].operationType= TYPE_NOW;
 			} else if (sub_id == 0x0c) {
-				list[i].alarmType = TYPE_ALARM_02;
-				list[i].operationType= TYPE_24;
-			} else if (sub_id == 0x0d) {
-				list[i].alarmType = TYPE_ALARM_02;
-				list[i].operationType= TYPE_24;
-			} else if (sub_id == 0x0e) {
 				list[i].alarmType = TYPE_ALARM_00;
 				list[i].operationType= TYPE_DELAY;
+				list[i].voiceType= 0;
+			} else if (sub_id == 0x0d) {
+				list[i].alarmType = TYPE_ALARM_00;
+				list[i].operationType= TYPE_DELAY;
+				list[i].voiceType= 1;
+			} else if (sub_id == 0x0e) {
+				list[i].alarmType = TYPE_ALARM_00;
+				list[i].operationType= TYPE_NOW;
+				list[i].voiceType= 0;
 			} else if (sub_id == 0x02) {
 				list[i].alarmType = TYPE_ALARM_02;
 				list[i].operationType= TYPE_24;
+				list[i].voiceType= 0;
 			}
 			/*test code*/
 			g_num=list[i].index;

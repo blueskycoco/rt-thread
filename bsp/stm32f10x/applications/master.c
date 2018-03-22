@@ -160,11 +160,11 @@ void info_user(void *param)
 							rt_kprintf("non-emergency audio delay mode\r\n");
 							g_flag=0;
 							g_delay_in = fqp.delay_in;
-							Wtn6_Play(VOICE_ALARM2,LOOP);
+							Wtn6_Play(VOICE_ALARM1,LOOP);
 						} else {
 							rt_kprintf("non-emergency audio normal mode\r\n");
 							g_alarm_voice = fqp.alarm_voice_time;
-							Wtn6_Play(VOICE_ALARM2,LOOP);
+							Wtn6_Play(VOICE_ALARM1,LOOP);
 						}
 					} else {
 						rt_kprintf("emergency audio play\r\n");
@@ -181,7 +181,7 @@ void info_user(void *param)
 								action = ONCE;
 							if (g_alarmType == 0) {//normal		
 								rt_kprintf("normal\r\n");
-								Wtn6_Play(VOICE_ZHUJIGZ,action);
+								Wtn6_Play(VOICE_ALARM1,action);
 							} else if (g_alarmType == 1) {//fire
 								rt_kprintf("fire\r\n");
 								Wtn6_Play(VOICE_YANSHIBF,action);

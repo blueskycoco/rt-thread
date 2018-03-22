@@ -104,11 +104,12 @@ static void led_thread_entry(void* parameter)
 			if (g_coding_cnt>120) {
 				g_main_state = 0;
 				/*play audio here*/
+				Wtn6_Play(VOICE_TUICHUDM,ONCE);
 				rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
 			}
 		}
 		/*export led*/
-		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03)) ||
+		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03||(fqp.is_lamp & 0x0f) == 0x04)) ||
 			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) || s1 
 			|| g_alarmType == 2)
 		{
@@ -155,6 +156,7 @@ static void led_thread_entry(void* parameter)
 					fangqu_wireless[g_index_sub].voiceType == 0) {
 					rt_kprintf("open delay fq bell\r\n");
 					bell_ctl(1);				
+					Wtn6_Play(VOICE_ALARM1,LOOP);
 					g_alarm_voice = fqp.alarm_voice_time;
 				}
 			}
@@ -196,6 +198,21 @@ static void led_thread_entry(void* parameter)
 		if (g_main_state ==1)
 		rt_hw_led_on(0);
 		//buzzer_ctl(0);
+
+		if (s1 || g_alarm_voice || g_delay_in) {
+		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03||(fqp.is_lamp & 0x0f) == 0x04)) ||
+			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) || s1 
+			|| g_alarmType == 2)
+		{
+			rt_kprintf("protect %d, lamp %d, alarmType %d, s1 %d\r\n",
+				cur_status,fqp.is_lamp,g_alarmType,s1);
+			if (count %2)
+				rt_hw_led_on(AUX_LED0);
+			else if (count %3)
+				rt_hw_led_on(AUX_LED1);
+		}
+		}
+		
 		rt_thread_delay( RT_TICK_PER_SECOND/2 );
 		//rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
 		show_battery(ADC_Get_aveg());
