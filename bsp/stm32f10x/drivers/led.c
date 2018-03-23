@@ -186,6 +186,12 @@ void rt_hw_led_off(rt_uint32_t n)
 	case FAIL_LED:
 		GPIO_ResetBits(FAIL_LED_gpio, FAIL_LED_pin);
 		break;
+		
+	case AUX_LED0:
+	case AUX_LED1:
+	case AUX_LED2:
+		GPIO_ResetBits(AUX_LED_gpio, AUX_LED_pin2);
+		GPIO_ResetBits(AUX_LED_gpio, AUX_LED_pin1);
     default:
         break;
     }

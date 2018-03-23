@@ -66,6 +66,7 @@ extern rt_uint8_t g_mute;
 extern rt_uint8_t g_alarmType;
 rt_uint8_t g_ac=0;
 rt_uint8_t g_flag=0;
+extern rt_uint8_t alarm_led;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -109,16 +110,45 @@ static void led_thread_entry(void* parameter)
 			}
 		}
 		/*export led*/
-		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03||(fqp.is_lamp & 0x0f) == 0x04)) ||
+		/*if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03||(fqp.is_lamp & 0x0f) == 0x04)) ||
 			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) || s1 
-			|| g_alarmType == 2)
+			|| g_alarmType == 2 || alarm_led)
 		{
 			rt_kprintf("protect %d, lamp %d, alarmType %d, s1 %d\r\n",
 				cur_status,fqp.is_lamp,g_alarmType,s1);
-			if (count %2)
+			if (alarm_led) {
 				rt_hw_led_on(AUX_LED0);
-			else if (count %3)
+			} else {	
+			if ((fqp.is_lamp & 0x0f) == 0x03 && cur_status || !cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) {
+					if (count %2)
+						rt_hw_led_on(AUX_LED0);
+					else if (count %3)
+						rt_hw_led_on(AUX_LED1);
+				} else if (!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)){
+					rt_hw_led_on(AUX_LED0);				
+				}
+			}
+		}*/
+		if (fqp.is_lamp != 0 && g_ac) {
+		if (alarm_led) {
+			rt_hw_led_on(AUX_LED0);
+		} else {
+			if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03) ||
+				(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)))) {
+				if (count %2)
+					rt_hw_led_on(AUX_LED0);
+				else if (count %3)
+					rt_hw_led_on(AUX_LED1);
+			} else if (!cur_status && (fqp.is_lamp & 0x0f) == 0x04) {
 				rt_hw_led_on(AUX_LED1);
+			} else if (!cur_status && ((fqp.is_lamp & 0x0f) == 0x02 || (fqp.is_lamp & 0x0f) == 0x03)) {
+				rt_hw_led_off(AUX_LED1);
+			} else if (cur_status && (fqp.is_lamp & 0x0f) != 0x0) {
+				rt_hw_led_on(AUX_LED0);
+			}
+		}
+		} else {
+			rt_hw_led_off(AUX_LED1);
 		}
 		/*bell ctl*/
 		if (g_alarm_voice >0 )
@@ -198,36 +228,21 @@ static void led_thread_entry(void* parameter)
 		if (g_main_state ==1)
 		rt_hw_led_on(0);
 		//buzzer_ctl(0);
-
-		if (s1 || g_alarm_voice || g_delay_in) {
-		if ((cur_status && ((fqp.is_lamp & 0x0f) == 0x03||(fqp.is_lamp & 0x0f) == 0x04)) ||
-			(!cur_status && ((fqp.is_lamp & 0x0f) == 0x01)) || s1 
-			|| g_alarmType == 2)
-		{
-			rt_kprintf("protect %d, lamp %d, alarmType %d, s1 %d\r\n",
-				cur_status,fqp.is_lamp,g_alarmType,s1);
-			if (count %3)
-				rt_hw_led_on(AUX_LED0);
-			else if (count %2)
-				rt_hw_led_on(AUX_LED1);
-		}
-		}
+		if (alarm_led) {			
+			if (fqp.is_lamp != 0 && g_ac) {
+			for (int j=0;j<4;j++) {			
+					rt_hw_led_on(AUX_LED0);
+					rt_thread_delay( RT_TICK_PER_SECOND/8 );
+					rt_hw_led_off(AUX_LED0);
+					rt_thread_delay( RT_TICK_PER_SECOND/8 );			
+			}
+			}
+		} else {
 		
 		rt_thread_delay( RT_TICK_PER_SECOND/2 );
+		}
 		//rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
-		show_battery(ADC_Get_aveg());
-		/*
-//		rt_kprintf("SetFirstTo0 %d\r\n",count%10);
-		SetErrorCode(count%99);//0 - 10
-//		rt_kprintf("SetSignalIco %d\r\n",count%10);
-		SetSignalIco(count%6);//
-//		rt_kprintf("SetBatteryWifiIco %d\r\n",count%10);
-		SetBatteryIco(count%5);
-		SetWifiIco(count%5);
-//		rt_kprintf("SetSimTypeIco %d\r\n",count%10);
-		SetSimTypeIco(count%5);
-//		rt_kprintf("SetStateIco %d\r\n",count%10);
-		SetStateIco(count%7,1);		*/
+		show_battery(ADC_Get_aveg());		
 	}
 }
 

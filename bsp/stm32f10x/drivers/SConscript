@@ -37,7 +37,7 @@ if GetDepend('RT_USING_LWIP'):
 
 # add Ethernet drivers.
 if GetDepend('RT_USING_RTC'):
-    src += ['rtc.c']
+    src += ['stm32f1_rtc.c']
 
 # add Ethernet drivers.
 if GetDepend('RT_USING_RTGUI'):

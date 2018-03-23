@@ -22,6 +22,8 @@ extern rt_uint8_t g_main_state;
 extern rt_uint8_t g_alarmType;
 extern rt_uint8_t s1;
 extern rt_uint8_t g_flag;
+rt_uint8_t alarm_led = 0;
+
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -114,6 +116,7 @@ void info_user(void *param)
 			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
+			alarm_led=0;
 			SetStateIco(1,1);
 			SetStateIco(0,0);
 			SetStateIco(2,0);
@@ -130,6 +133,7 @@ void info_user(void *param)
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
+			alarm_led =1;
 			SetStateIco(2,1);
 			rt_hw_led_on(ALARM_LED);
 			rt_kprintf("is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d, voiceType %d\r\n",

@@ -33,6 +33,7 @@ extern 		rt_uint8_t 		g_num;
 extern 		rt_uint8_t 		g_delay_out;
 extern rt_uint8_t g_alarm_voice;
 extern rt_uint8_t g_delay_in;
+
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {

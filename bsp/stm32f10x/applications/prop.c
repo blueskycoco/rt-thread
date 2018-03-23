@@ -285,6 +285,7 @@ int load_param()
 	fqp.delay_in=20;
 	fqp.alarm_voice_time=30;
 	fqp.is_alarm_voice =1;
+	fqp.is_lamp = 0x04;
 	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	return 1;
 }

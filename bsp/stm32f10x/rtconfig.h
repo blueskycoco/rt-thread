@@ -200,5 +200,6 @@
 /* #define RT_USING_NANOPB */
 
 #define RT_USING_CPU_FFS
-
+#define RT_USING_RTC
+#define RT_USING_ALARM
 #endif
