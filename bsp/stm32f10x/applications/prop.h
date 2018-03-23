@@ -69,8 +69,8 @@ struct FangQuProperty
 	rt_uint8_t		status;
 	rt_uint8_t   	delay_in;
 	rt_uint8_t   	delya_out;
-	rt_uint16_t  	auto_bufang[2];
-	rt_uint16_t  	auto_chefang[2];
+	rt_uint32_t  	auto_bufang;
+	rt_uint32_t  	auto_chefang;
 	rt_uint8_t	  	alarm_voice_time;	//play alarm time
 	rt_uint8_t	  	is_alarm_voice;	//open or not alarm voice
 	rt_uint8_t   	is_check_AC;

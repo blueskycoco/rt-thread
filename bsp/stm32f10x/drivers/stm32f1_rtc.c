@@ -17,7 +17,8 @@
 #include <rtthread.h>
 #include <stm32f10x.h>
 #include "stm32f1_rtc.h"
-
+struct rt_semaphore alarm_sem;
+rt_time_t cur_alarm_time = 0;
 static struct rt_device rtc;
 static rt_err_t rt_rtc_open(rt_device_t dev, rt_uint16_t oflag)
 {
@@ -37,6 +38,8 @@ static rt_size_t rt_rtc_read(rt_device_t dev, rt_off_t pos, void* buffer, rt_siz
 static rt_err_t rt_rtc_control(rt_device_t dev, int cmd, void *args)
 {
     rt_time_t *time;
+	struct tm *to;
+	struct rt_rtc_wkalarm *wkalarm;
     RT_ASSERT(dev != RT_NULL);
 
     switch (cmd)
@@ -69,11 +72,35 @@ static rt_err_t rt_rtc_control(rt_device_t dev, int cmd, void *args)
         BKP_WriteBackupRegister(BKP_DR1, 0xA5A5);
     }
     break;
-    }
+	
+    case RT_DEVICE_CTRL_RTC_SET_ALARM:
+    {
+        time = (rt_time_t *)args;
 
+        /* Enable PWR and BKP clocks */
+        RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
+
+        /* Allow access to BKP Domain */
+        PWR_BackupAccessCmd(ENABLE);
+
+        /* Wait until last write operation on RTC registers has finished */
+        RTC_WaitForLastTask();
+
+		RTC_ClearFlag(RTC_FLAG_SEC);
+		while(RTC_GetFlagStatus(RTC_FLAG_SEC) == RESET);
+		
+        /* Change the current alarm */
+		RTC_SetAlarm(*time);
+
+        /* Wait until last write operation on RTC registers has finished */
+        RTC_WaitForLastTask();
+
+        BKP_WriteBackupRegister(BKP_DR1, 0xA5A5);
+    }
+    break;
+    }
     return RT_EOK;
 }
-
 /*******************************************************************************
 * Function Name  : RTC_Configuration
 * Description    : Configures the RTC.
@@ -143,7 +170,26 @@ void rt_hw_rtc_init(void)
         /* Wait for RTC registers synchronization */
         RTC_WaitForSynchro();
     }
-
+	
+	NVIC_InitTypeDef  NVIC_InitStructure;
+	EXTI_InitTypeDef  EXTI_InitStructure;
+	#if 1
+	RTC_ClearFlag(RTC_FLAG_ALR);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
+	EXTI_ClearITPendingBit(EXTI_Line17);
+	EXTI_InitStructure.EXTI_Line = EXTI_Line17;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+	NVIC_InitStructure.NVIC_IRQChannel = RTCAlarm_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0f;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0f;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+	RTC_ITConfig(RTC_IT_ALR, ENABLE);
+	#endif
     /* register rtc device */
     rtc.init 	= RT_NULL;
     rtc.open 	= rt_rtc_open;
@@ -154,10 +200,35 @@ void rt_hw_rtc_init(void)
 
     /* no private */
     rtc.user_data = RT_NULL;
+	rt_sem_init(&(alarm_sem),		"alarm_se",	0, 0);
 
     rt_device_register(&rtc, "rtc", RT_DEVICE_FLAG_RDWR);
 
     return;
 }
 
+void RTCAlarm_IRQHandler(void)
+{
+	if(RTC_GetITStatus(RTC_IT_ALR) != RESET)
+	{
+		/* Clear EXTI line17 pending bit */
+		EXTI_ClearITPendingBit(EXTI_Line17);
 
+		/* Check if the Wake-Up flag is set */
+		if(PWR_GetFlagStatus(PWR_FLAG_WU) != RESET)
+		{
+			/* Clear Wake Up flag */
+			PWR_ClearFlag(PWR_FLAG_WU);
+			//SYSCLKConfig_STOP();
+		}
+
+		/* Wait until last write operation on RTC registers has finished */
+		RTC_WaitForLastTask();   
+		/* Clear RTC Alarm interrupt pending bit */
+		RTC_ClearITPendingBit(RTC_IT_ALR);
+		/* Wait until last write operation on RTC registers has finished */
+		RTC_WaitForLastTask();
+		cur_alarm_time = RTC_GetCounter();
+		rt_sem_release(&(alarm_sem));
+	}
+}

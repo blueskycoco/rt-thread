@@ -16,5 +16,5 @@
 #define __STM32F1_RTC_H__
 
 void rt_hw_rtc_init(void);
-
+void rtc_set_alarm(rt_uint32_t t);
 #endif

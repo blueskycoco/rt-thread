@@ -87,10 +87,8 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 	rt_kprintf("alarm_voice \t%d\r\n",v1.alarm_voice_time);
 	rt_kprintf("delay_in \t%d\r\n",v1.delay_in);
 	rt_kprintf("delya_out \t%d\r\n",v1.delya_out);
-	rt_kprintf("auto_bufang \t%x%x\r\n",v1.auto_bufang[0],
-		v1.auto_bufang[1]);
-	rt_kprintf("auto_chefang \t%x%x\r\n",v1.auto_chefang[0],
-		v1.auto_chefang[1]);
+	rt_kprintf("auto_bufang \t%08x\r\n",v1.auto_bufang);
+	rt_kprintf("auto_chefang \t%08x\r\n",v1.auto_chefang);
 	rt_kprintf("is_alarm_voice \t%d\r\n",v1.is_alarm_voice);
 	rt_kprintf("is_check_AC \t%d\r\n",v1.is_check_AC);
 	rt_kprintf("is_check_DC \t%d\r\n",v1.is_check_DC);
@@ -188,10 +186,8 @@ int load_param()
 	mp.updateDomainAddress.port = 2011;
 
 	fqp.alarm_voice_time=DEFAULT_VOICE_TIME;
-	fqp.auto_bufang[0]=0;
-	fqp.auto_bufang[1]=0;
-	fqp.auto_chefang[0]=0;
-	fqp.auto_chefang[1]=0;
+	fqp.auto_bufang=0;
+	fqp.auto_chefang=0;
 	fqp.delay_in=DEFAULT_DELAY_IN;
 	fqp.delya_out=DEFAULT_DELAY_OUT;
 	fqp.is_alarm_voice=DEFAULT_ALARM_VOICE;

@@ -114,6 +114,7 @@ FlagStatus RTC_GetFlagStatus(uint16_t RTC_FLAG);
 void RTC_ClearFlag(uint16_t RTC_FLAG);
 ITStatus RTC_GetITStatus(uint16_t RTC_IT);
 void RTC_ClearITPendingBit(uint16_t RTC_IT);
+uint32_t RTC_GetAlarm(void);
 
 #ifdef __cplusplus
 }

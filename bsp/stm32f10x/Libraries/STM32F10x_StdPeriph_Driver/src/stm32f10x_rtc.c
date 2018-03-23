@@ -136,6 +136,12 @@ uint32_t RTC_GetCounter(void)
   tmp = RTC->CNTL;
   return (((uint32_t)RTC->CNTH << 16 ) | tmp) ;
 }
+uint32_t RTC_GetAlarm(void)
+{
+  uint16_t tmp = 0;
+  tmp = RTC->PRLL;
+  return (((uint32_t)RTC->PRLH << 16 ) | tmp) ;
+}
 
 /**
   * @brief  Sets the RTC counter value.

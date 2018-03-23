@@ -67,10 +67,80 @@ extern rt_uint8_t g_alarmType;
 rt_uint8_t g_ac=0;
 rt_uint8_t g_flag=0;
 extern rt_uint8_t alarm_led;
+extern struct rt_semaphore alarm_sem;
+extern rt_time_t cur_alarm_time;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
 	static struct rt_thread led_thread;
+static void led_thread_entry1(void* parameter)
+{
+	time_t now;	
+	#if 1
+	set_alarm(17,32,20);
+	#endif
+	rt_hw_led_init();
+	while (1) {
+		rt_thread_delay( RT_TICK_PER_SECOND/2 );
+		rt_hw_led_on(AUX_LED0);
+		rt_thread_delay( RT_TICK_PER_SECOND/2 );
+		rt_hw_led_off(AUX_LED0);
+		time(&now);
+		rt_kprintf("led %s\r\n",ctime(&now));
+		//alarm_time->tm_sec += 10;
+		//alarm_time->tm_sec %= 60;
+		//rtc_set_alarm(mktime(alarm_time));
+	}
+}
+static void alarm_thread(void *parameter)
+{
+	struct tm *to;
+	rt_uint8_t h,m,s;
+	set_date(2018,3,23);
+	set_time(18,2,0);
+	set_alarm(18,2,10);
+	fqp.auto_bufang = ((18<<16) | (2<<8) | 10);
+	fqp.auto_chefang = ((18<<16) | (2<<8) | 10);
+	while(1) {
+		rt_sem_take(&(alarm_sem), RT_WAITING_FOREVER);
+		to = localtime(&cur_alarm_time);
+		rt_kprintf("cur alarm time %d hour %d, min %d, sec %d, auto_bufang %d\r\n",cur_alarm_time,to->tm_hour,to->tm_min,to->tm_sec,fqp.auto_bufang);
+		h = (fqp.auto_bufang >> 16) & 0xff;
+		m = (fqp.auto_bufang >> 8)&0xff;
+		s = fqp.auto_bufang & 0xff;
+		if (to->tm_hour == h && to->tm_min == m && to->tm_sec == s)
+		{
+			handle_protect_on();	
+			
+			s += 43;
+			if (s>60) {
+				s %= 60;
+				m++;
+				if (m>60) {
+					m%=60;
+					h++;
+				}
+			}
+			fqp.auto_bufang = ((h<<16) | (m<<8) | s);
+			set_alarm2(cur_alarm_time+20);
+		}
+		else
+		{
+			handle_protect_off();
+			s += 20;
+			if (s>=60) {
+				s %= 60;
+				m++;
+				if (m>=60) {
+					m%=60;
+					h++;
+				}
+			}
+			fqp.auto_chefang = ((h<<16) | (m<<8) | s);
+			set_alarm2(cur_alarm_time+43);
+		}
+	}
+}
 static void led_thread_entry(void* parameter)
 {
 	unsigned int count=0;
@@ -476,7 +546,8 @@ int rt_application_init(void)
 	if (result == RT_EOK)
 	{
 		rt_thread_startup(&led_thread);
-	}
+	}	
+	rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
 
 #if (RT_THREAD_PRIORITY_MAX == 32)
 	init_thread = rt_thread_create("8init",
@@ -490,6 +561,7 @@ int rt_application_init(void)
 
 	if (init_thread != RT_NULL)
 		rt_thread_startup(init_thread);
+
 
 	return 0;
 }

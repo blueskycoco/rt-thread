@@ -117,7 +117,89 @@ rt_err_t set_date(rt_uint32_t year, rt_uint32_t month, rt_uint32_t day)
 
     return ret;
 }
+rt_time_t time2ts(rt_uint8_t hour, rt_uint8_t minute, rt_uint8_t second)
+{
+	time_t now;
+    struct tm *p_tm;
+    struct tm tm_new;
+    rt_device_t device;
+    rt_err_t ret = -RT_ERROR;
 
+    /* get current time */
+    now = time(RT_NULL);
+
+    /* lock scheduler. */
+    rt_enter_critical();
+    /* converts calendar time time into local time. */
+    p_tm = localtime(&now);
+    /* copy the statically located variable */
+    memcpy(&tm_new, p_tm, sizeof(struct tm));
+    /* unlock scheduler. */
+    rt_exit_critical();
+
+    /* update time. */
+    tm_new.tm_hour = hour;
+    tm_new.tm_min  = minute;
+    tm_new.tm_sec  = second;
+
+    /* converts the local time in time to calendar time. */
+    now = mktime(&tm_new);
+	return now;
+}
+rt_err_t set_alarm(rt_uint32_t hour, rt_uint32_t minute, rt_uint32_t second)
+{
+    time_t now;
+    struct tm *p_tm;
+    struct tm tm_new;
+    rt_device_t device;
+    rt_err_t ret = -RT_ERROR;
+
+    /* get current time */
+    now = time(RT_NULL);
+
+    /* lock scheduler. */
+    rt_enter_critical();
+    /* converts calendar time time into local time. */
+    p_tm = localtime(&now);
+    /* copy the statically located variable */
+    memcpy(&tm_new, p_tm, sizeof(struct tm));
+    /* unlock scheduler. */
+    rt_exit_critical();
+
+    /* update time. */
+    tm_new.tm_hour = hour;
+    tm_new.tm_min  = minute;
+    tm_new.tm_sec  = second;
+
+    /* converts the local time in time to calendar time. */
+    now = mktime(&tm_new);
+
+    device = rt_device_find("rtc");
+    if (device == RT_NULL)
+    {
+        return -RT_ERROR;
+    }
+
+    /* update to RTC device. */
+    ret = rt_device_control(device, RT_DEVICE_CTRL_RTC_SET_ALARM, &now);
+
+    return ret;
+}
+rt_err_t set_alarm2(rt_time_t t)
+{
+    rt_device_t device;
+    rt_err_t ret = -RT_ERROR;
+    device = rt_device_find("rtc");
+    if (device == RT_NULL)
+    {
+        return -RT_ERROR;
+    }
+
+    /* update to RTC device. */
+    ret = rt_device_control(device, RT_DEVICE_CTRL_RTC_SET_ALARM, &t);
+
+    return ret;
+}
 /** \brief set system time(date not modify).
  *
  * \param rt_uint32_t hour   e.g: 0~23.
