@@ -23,6 +23,8 @@ extern rt_uint8_t g_alarmType;
 extern rt_uint8_t s1;
 extern rt_uint8_t g_flag;
 rt_uint8_t alarm_led = 0;
+rt_uint16_t pgm0_cnt=0;
+rt_uint16_t pgm1_cnt=0;
 
 void handle_led(int type)
 {
@@ -51,6 +53,31 @@ void handle_led(int type)
 		}
 
 	} else {
+	}
+}
+void pgm_ctl(int type)
+{
+	if (type != 2 && type != 4) {
+		if (fqp.PGM0 == type || fqp.PGM1 == type) {
+			if (fqp.PGM0==type)
+			rt_hw_led_on(PGM3_LED);
+			if (fqp.PGM1==type)
+			rt_hw_led_on(PGM4_LED);
+			rt_thread_delay(100);
+			if (fqp.PGM0==type)
+			rt_hw_led_off(PGM3_LED);
+			if (fqp.PGM1==type)
+			rt_hw_led_off(PGM4_LED);
+		} 
+	}else {
+		if (fqp.PGM0 == type) {
+			rt_hw_led_on(PGM3_LED);
+			pgm0_cnt = 300;
+		}
+		if (fqp.PGM1 == type) {
+			rt_hw_led_on(PGM4_LED);
+			pgm1_cnt = 300;
+		}
 	}
 }
 void info_user(void *param)
@@ -96,7 +123,7 @@ void info_user(void *param)
 			Wtn6_Play(VOICE_BUFANG,ONCE);
 			rt_kprintf("bufang ok\r\n");
 			handle_led(TYPE_PROTECT_ON);
-			
+			pgm_ctl(5);
 			if (fqp.is_alarm_voice)
 			{
 				GPIO_SetBits(GPIOC, GPIO_Pin_13);
@@ -124,6 +151,9 @@ void info_user(void *param)
 			rt_hw_led_off(ALARM_LED);	
 			Wtn6_Play(VOICE_CHEFANG,ONCE);
 			handle_led(TYPE_PROTECT_OFF);
+			pgm_ctl(6);
+			rt_hw_led_off(PGM3_LED);
+			rt_hw_led_off(PGM4_LED);
 			if (fqp.is_alarm_voice)
 			{
 				GPIO_SetBits(GPIOC, GPIO_Pin_13);
@@ -138,6 +168,8 @@ void info_user(void *param)
 			rt_hw_led_on(ALARM_LED);
 			rt_kprintf("is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d, voiceType %d\r\n",
 				fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice_time,fangqu_wireless[g_index_sub].voiceType);
+			pgm_ctl(1);
+			pgm_ctl(2);
 			/*handle alarm voice*/
 				if (s1==1) {
 					if (fqp.is_alarm_voice) {

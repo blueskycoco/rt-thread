@@ -64,6 +64,8 @@ extern rt_uint8_t g_delay_out;
 extern rt_uint8_t g_index_sub;
 extern rt_uint8_t g_mute;
 extern rt_uint8_t g_alarmType;
+extern rt_uint16_t pgm0_cnt;
+extern rt_uint16_t pgm1_cnt;
 rt_uint8_t g_ac=0;
 rt_uint8_t g_flag=0;
 extern rt_uint8_t alarm_led;
@@ -95,49 +97,32 @@ static void led_thread_entry1(void* parameter)
 static void alarm_thread(void *parameter)
 {
 	struct tm *to;
-	rt_uint8_t h,m,s;
-	set_date(2018,3,23);
-	set_time(18,2,0);
-	set_alarm(18,2,10);
-	fqp.auto_bufang = ((18<<16) | (2<<8) | 10);
-	fqp.auto_chefang = ((18<<16) | (2<<8) | 10);
+	set_date(2018,3,24);
+	set_time(9,6,0);
+	set_alarm(9,6,30);
+	fqp.auto_bufang = RTC_GetAlarm();
+	fqp.auto_chefang = RTC_GetAlarm();
+	rt_kprintf("init auto bu/chefang %d %d\r\n", fqp.auto_bufang,fqp.auto_chefang);
 	while(1) {
 		rt_sem_take(&(alarm_sem), RT_WAITING_FOREVER);
 		to = localtime(&cur_alarm_time);
 		rt_kprintf("cur alarm time %d hour %d, min %d, sec %d, auto_bufang %d\r\n",cur_alarm_time,to->tm_hour,to->tm_min,to->tm_sec,fqp.auto_bufang);
-		h = (fqp.auto_bufang >> 16) & 0xff;
-		m = (fqp.auto_bufang >> 8)&0xff;
-		s = fqp.auto_bufang & 0xff;
-		if (to->tm_hour == h && to->tm_min == m && to->tm_sec == s)
+		if (cur_alarm_time == fqp.auto_bufang)
 		{
-			handle_protect_on();	
-			
-			s += 43;
-			if (s>60) {
-				s %= 60;
-				m++;
-				if (m>60) {
-					m%=60;
-					h++;
-				}
-			}
-			fqp.auto_bufang = ((h<<16) | (m<<8) | s);
-			set_alarm2(cur_alarm_time+20);
+			if (!cur_status&& g_delay_out==0)
+				handle_protect_on();	
+			set_alarm2(cur_alarm_time+5*60);
+			fqp.auto_chefang = RTC_GetAlarm();
 		}
 		else
 		{
-			handle_protect_off();
-			s += 20;
-			if (s>=60) {
-				s %= 60;
-				m++;
-				if (m>=60) {
-					m%=60;
-					h++;
-				}
+			if (cur_status|| (!cur_status && g_delay_out!=0))
+			{
+				cur_status=0;
+				handle_protect_off();			
 			}
-			fqp.auto_chefang = ((h<<16) | (m<<8) | s);
-			set_alarm2(cur_alarm_time+43);
+			set_alarm2(cur_alarm_time+6*60);
+			fqp.auto_bufang = RTC_GetAlarm();
 		}
 	}
 }
@@ -228,6 +213,23 @@ static void led_thread_entry(void* parameter)
 			if (g_alarm_voice == 1) {		
 			bell_ctl(0);		
 			Stop_Playing();
+			}
+		}
+		/*pgm ctl*/
+		if (pgm0_cnt >0 || pgm1_cnt >0)
+		{
+			rt_kprintf("pgm3 %d,pgm4 %d\r\n",pgm0_cnt,pgm1_cnt);
+			if (pgm0_cnt>0) {
+				pgm0_cnt -=1;
+				if (pgm0_cnt == 1) {		
+					rt_hw_led_off(PGM3_LED);
+				}
+			}
+			if (pgm1_cnt>0) {
+				pgm1_cnt -=1;
+				if (pgm1_cnt == 1) {		
+					rt_hw_led_off(PGM4_LED);
+				}
 			}
 		}
 		/*delay alarm*/
@@ -345,7 +347,6 @@ void rt_init_thread_entry(void* parameter)
 	battery_init();
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_thread_startup(rt_thread_create("7info",info_user, 0,2048, 20, 10));
-	Wtn6_Play(VOICE_WELCOME,ONCE);
 
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)
@@ -469,8 +470,9 @@ void rt_init_thread_entry(void* parameter)
 	rt_hw_led_off(WIRELESS_LED);
 	rt_hw_led_off(FAIL_LED);
 	rt_hw_led_off(NET_LED);
-	rt_thread_delay( RT_TICK_PER_SECOND );		
-	//rt_thread_delay( RT_TICK_PER_SECOND );	
+	rt_thread_delay( RT_TICK_PER_SECOND );			
+	Wtn6_Play(VOICE_WELCOME,ONCE);
+	rt_thread_delay( RT_TICK_PER_SECOND );	
 	SetErrorCode(err_code);
 	pcie_status |= check_pcie(0);
 	rt_kprintf("PCIE 1 insert %x\r\n", pcie_status);
@@ -514,6 +516,7 @@ void rt_init_thread_entry(void* parameter)
 		Wtn6_Play(VOICE_ZHUJIGZ,ONCE);
 	}
 	
+	rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
 	while (1) {
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);
@@ -547,7 +550,6 @@ int rt_application_init(void)
 	{
 		rt_thread_startup(&led_thread);
 	}	
-	rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
 
 #if (RT_THREAD_PRIORITY_MAX == 32)
 	init_thread = rt_thread_create("8init",

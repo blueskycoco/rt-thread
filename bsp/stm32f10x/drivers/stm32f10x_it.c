@@ -186,12 +186,15 @@ void EXTI9_5_IRQHandler(void)
 		}
 		else if(i>20)
 		{	
-			rt_event_send(&(g_info_event), INFO_EVENT_CODING);
+			if (g_main_state==0)
+				rt_event_send(&(g_info_event), INFO_EVENT_CODING);
+			else					
+				rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
 		}
-		else if(i>5)
+		/*else if(i>5)
 		{		
 			rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
-		}
+		}*/
 		rt_kprintf("i is %d, state %d\r\n", i,g_main_state);
 		EXTI_ClearITPendingBit(EXTI_Line9);
 	}

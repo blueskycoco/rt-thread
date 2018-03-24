@@ -139,8 +139,8 @@ uint32_t RTC_GetCounter(void)
 uint32_t RTC_GetAlarm(void)
 {
   uint16_t tmp = 0;
-  tmp = RTC->PRLL;
-  return (((uint32_t)RTC->PRLH << 16 ) | tmp) ;
+  tmp = RTC->ALRL;
+  return (((uint32_t)RTC->ALRH << 16 ) | tmp) ;
 }
 
 /**

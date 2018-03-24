@@ -63,6 +63,14 @@
 #define AUX_LED_pin1                (GPIO_Pin_7)
 #define AUX_LED_pin2                (GPIO_Pin_6)
 
+#define PGM3_LED_rcc                 RCC_APB2Periph_GPIOA
+#define PGM3_LED_gpio                GPIOA
+#define PGM3_LED_pin                 (GPIO_Pin_5)
+
+#define PGM4_LED_rcc                 RCC_APB2Periph_GPIOA
+#define PGM4_LED_gpio                GPIOA
+#define PGM4_LED_pin                 (GPIO_Pin_4)
+
 #else
 #define led1_rcc                    RCC_APB2Periph_GPIOD
 #define led1_gpio                   GPIOD
@@ -105,6 +113,15 @@ void rt_hw_led_init(void)
     GPIO_Init(AUX_LED_gpio, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin   = AUX_LED_pin2;
     GPIO_Init(AUX_LED_gpio, &GPIO_InitStructure);
+	
+	GPIO_InitStructure.GPIO_Pin   = PGM3_LED_pin;
+    GPIO_Init(PGM3_LED_gpio, &GPIO_InitStructure);
+	
+	GPIO_InitStructure.GPIO_Pin   = PGM4_LED_pin;
+    GPIO_Init(PGM4_LED_gpio, &GPIO_InitStructure);
+	
+	GPIO_ResetBits(PGM3_LED_gpio, PGM3_LED_pin);	
+	GPIO_ResetBits(PGM4_LED_gpio, PGM4_LED_pin);
 }
 
 void rt_hw_led_on(rt_uint32_t n)
@@ -150,6 +167,12 @@ void rt_hw_led_on(rt_uint32_t n)
 		GPIO_SetBits(AUX_LED_gpio, AUX_LED_pin1);
 		GPIO_SetBits(AUX_LED_gpio, AUX_LED_pin2);
 		break;
+	case PGM3_LED:
+		GPIO_SetBits(PGM3_LED_gpio, PGM3_LED_pin);
+		break;
+	case PGM4_LED:
+		GPIO_SetBits(PGM4_LED_gpio, PGM4_LED_pin);
+		break;		
     default:
         break;
     }
@@ -192,6 +215,14 @@ void rt_hw_led_off(rt_uint32_t n)
 	case AUX_LED2:
 		GPIO_ResetBits(AUX_LED_gpio, AUX_LED_pin2);
 		GPIO_ResetBits(AUX_LED_gpio, AUX_LED_pin1);
+		break;
+	
+	case PGM3_LED:
+		GPIO_ResetBits(PGM3_LED_gpio, PGM3_LED_pin);
+		break;
+	case PGM4_LED:
+		GPIO_ResetBits(PGM4_LED_gpio, PGM4_LED_pin);
+		break;		
     default:
         break;
     }
