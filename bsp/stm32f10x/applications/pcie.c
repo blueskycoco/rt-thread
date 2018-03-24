@@ -14,7 +14,13 @@
 rt_uint8_t g_type0 = 0;
 rt_uint8_t g_type1 = 0;
 int g_index = 0;
+rt_uint8_t flow_cnt = 0;
 extern struct rt_event g_info_event;
+extern rt_uint16_t g_bat;
+extern rt_uint8_t g_ac;
+extern rt_uint8_t 	cur_status;
+rt_uint8_t g_net_state = NET_STATE_UNKNOWN;
+extern rt_uint8_t heart_time;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
@@ -252,77 +258,117 @@ rt_err_t gprs_wait_event(int timeout)
 	rt_uint32_t ev;
 	return rt_event_recv( &(g_pcie[g_index]->event), GPRS_EVENT_0, RT_EVENT_FLAG_AND | RT_EVENT_FLAG_CLEAR, timeout, &ev ); 
 }
-int build_login(rt_uint8_t *cmd)
+int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 {	
 	int i=0,ofs;
+	static rt_uint8_t heart_type = 0;
 	rt_uint8_t zero_array[10]={0};
+	flow_cnt++;
 	cmd[0]=0xad;
 	cmd[1]=0xac;
 	cmd[2]=0x00;//len
 	cmd[3]=0x12;
-	cmd[4]=0x00;
-	cmd[5]=0x00;//login
-	cmd[6]=0x01;		
-	cmd[7]=0x00;//v
-	cmd[8]=0x00;
+	cmd[4]=flow_cnt;
+	cmd[7]=(PROTL_V>>8) & 0xff;//v
+	cmd[8]=PROTL_V&0xff;
 	memcpy(cmd+9,mp.roProperty.sn,6);
-	cmd[15]=g_pcie[g_index]->csq;
-	cmd[16]=0x4d;
-	cmd[17]=0x4e;
-	cmd[18]=0x4f;
-	cmd[19]=0x50;
-	cmd[20]=0x51;
-	cmd[21]=0x52; 	
-	memcpy(cmd+22,g_pcie[g_index]->imei,8);
-	cmd[30] = 0;
-	ofs = 31;
-	if (g_index == 1 && g_type1 == PCIE_2_M26)
-		cmd[30] |= 0x20;
-	if (g_index == 0 && g_type1 == PCIE_1_EC20)
-		cmd[30] |= 0x10;
-	if (g_pcie[g_index]->lac_ci !=0 )
-	{
-		cmd[30] |= 0x08;
-		cmd[ofs++] = (g_pcie[g_index]->lac_ci>>24)&0xff;
-		cmd[ofs++] = (g_pcie[g_index]->lac_ci>>16)&0xff;
-		cmd[ofs++] = (g_pcie[g_index]->lac_ci>>8)&0xff;
-		cmd[ofs++] = (g_pcie[g_index]->lac_ci>>0)&0xff;
+	if (type == CMD_LOGIN) {
+		rt_kprintf("\r\n<CMD LOGIN Packet>\r\n");
+		cmd[5]=(CMD_LOGIN >> 8) & 0xff;//login
+		cmd[6]=CMD_LOGIN&0xff;		
+		cmd[15]=g_pcie[g_index]->csq;
+		cmd[16]='W';
+		cmd[17]='E';
+		cmd[18]='A';
+		cmd[19]='D';
+		cmd[20]='F';
+		cmd[21]='E'; 	
+		memcpy(cmd+22,g_pcie[g_index]->imei,8);
+		cmd[30] = 0;
+		ofs = 31;
+		if (g_index == 1 && g_type1 == PCIE_2_M26)
+			cmd[30] |= 0x20;
+		if (g_index == 0 && g_type1 == PCIE_1_EC20)
+			cmd[30] |= 0x10;
+		if (g_pcie[g_index]->lac_ci !=0 )
+		{
+			cmd[30] |= 0x08;
+			cmd[ofs++] = (g_pcie[g_index]->lac_ci>>24)&0xff;
+			cmd[ofs++] = (g_pcie[g_index]->lac_ci>>16)&0xff;
+			cmd[ofs++] = (g_pcie[g_index]->lac_ci>>8)&0xff;
+			cmd[ofs++] = (g_pcie[g_index]->lac_ci>>0)&0xff;
+		}
+		if (rt_memcmp(g_pcie[g_index]->qccid,zero_array,10) !=0 &&
+			rt_memcmp(g_pcie[g_index]->qccid,mp.qccid,10) !=0 )
+		{
+			rt_memcpy(mp.qccid, g_pcie[g_index]->qccid, 10);
+			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+			cmd[30] |= 0x04;
+			memcpy(cmd+ofs,g_pcie[g_index]->qccid,10);
+			ofs+=10;
+		}
+	} else if(type == CMD_HEART) {			
+		rt_kprintf("\r\n<CMD HEART Packet>\r\n");
+		cmd[5]=(CMD_HEART >> 8) & 0xff;//heart
+		cmd[6]=CMD_HEART&0xff;		
+		if (cur_status)
+			cmd[15] = 0x20;
+		else
+			cmd[15] = 0x10;
+		if (g_ac)
+			cmd[15] |= 0x01; 
+		cmd[16]=g_pcie[g_index]->csq;
+		cmd[17] = g_bat % 256;
+		if (heart_type == 0) {
+			cmd[18] = 0x01;
+			cmd[19] = 0x00;
+			cmd[20] = 0x01;
+			heart_type = 1;
+		} else if (heart_type == 1) {
+			cmd[18] = 0x02;
+			cmd[19] = 0x00;
+			cmd[20] = 0x01;
+			heart_type = 2;
+		} else if (heart_type == 2) {
+			cmd[18] = 0x03;
+			cmd[19] = 0x00;
+			cmd[20] = 0x01;
+			heart_type = 0;
+		}
+		ofs = 21;
 	}
-	if (rt_memcmp(g_pcie[g_index]->qccid,zero_array,10) !=0 &&
-		rt_memcmp(g_pcie[g_index]->qccid,mp.qccid,10) !=0 )
-	{
-		rt_memcpy(mp.qccid, g_pcie[g_index]->qccid, 10);
-		//save_param(0);
-		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
-		cmd[30] |= 0x04;
-		memcpy(cmd+ofs,g_pcie[g_index]->qccid,10);
-		ofs+=10;
-	}
-	rt_kprintf("\r\n<LOGIN Packet>\r\nofs is %d\r\n", ofs);
+	rt_kprintf("ofs is %d\r\n", ofs);
 	cmd[3]=ofs+2;
-	rt_uint16_t crc = CRC_check(cmd+2,ofs+8);
+	rt_uint16_t crc = CRC_check(cmd+2,ofs-2);
 	rt_kprintf("crc is %x\r\n",crc);
 	cmd[ofs++]=(crc>>8)&0xff;
 	cmd[ofs++]=crc&0xff;
 	for(i=0;i<ofs;i++)
 		rt_kprintf("cmd[%02d] = 0x%02x\r\n",i,cmd[i]);
+	
+	if (flow_cnt == 255)
+		flow_cnt=0;
 	return ofs;
 }
 void send_process(void* parameter)
 {
-	char login[47] = {0};
+	char cmd[47] = {0};
 	int send_len = 0;
-	//return;
-	gprs_wait_event(RT_WAITING_FOREVER);
-	//while(1)	{
-		rt_thread_delay(500);
+	
+	while(1)	{
+		gprs_wait_event(RT_WAITING_FOREVER);
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
-		send_len = build_login(login);
-		rt_data_queue_push(&g_data_queue[2], login, send_len, RT_WAITING_FOREVER);
+		if (g_net_state == NET_STATE_INIT) {
+			send_len = build_cmd(cmd,CMD_LOGIN);
+			g_net_state = NET_STATE_LOGIN;
+			heart_time = 0;
+		} else if (g_net_state == NET_STATE_LOGED) {
+			send_len = build_cmd(cmd,CMD_HEART);
+		}
+		rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_WAITING_FOREVER);
 		gprs_wait_event(RT_WAITING_FOREVER);	
 		rt_mutex_release(&(g_pcie[g_index]->lock));
-		//}
-	
+	}	
 }
 
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)

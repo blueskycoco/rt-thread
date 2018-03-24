@@ -66,8 +66,12 @@ extern rt_uint8_t g_mute;
 extern rt_uint8_t g_alarmType;
 extern rt_uint16_t pgm0_cnt;
 extern rt_uint16_t pgm1_cnt;
+extern rt_uint8_t g_net_state;
+extern int g_index;
+rt_uint16_t g_bat = 0;
 rt_uint8_t g_ac=0;
 rt_uint8_t g_flag=0;
+rt_uint8_t heart_time = 0;
 extern rt_uint8_t alarm_led;
 extern struct rt_semaphore alarm_sem;
 extern rt_time_t cur_alarm_time;
@@ -141,6 +145,17 @@ static void led_thread_entry(void* parameter)
 		// rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
 		//buzzer_ctl(1);
+		/*heart cnt*/
+		heart_time++;
+		if (heart_time == 60) {
+			if (g_net_state == NET_STATE_LOGED)
+				rt_event_send(&(g_pcie[g_index]->event), 1);
+			else if (g_net_state == NET_STATE_LOGIN) {
+				g_net_state = NET_STATE_INIT;
+				rt_event_send(&(g_pcie[g_index]->event), 1);
+			}
+			heart_time = 0;
+		}
 		/*ac dc*/
 		ac=check_ac();
 		if (ac && !g_ac)
@@ -314,7 +329,8 @@ static void led_thread_entry(void* parameter)
 		rt_thread_delay( RT_TICK_PER_SECOND/2 );
 		}
 		//rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
-		show_battery(ADC_Get_aveg());		
+		g_bat = ADC_Get_aveg();
+		show_battery(g_bat);		
 	}
 }
 
@@ -516,7 +532,7 @@ void rt_init_thread_entry(void* parameter)
 		Wtn6_Play(VOICE_ZHUJIGZ,ONCE);
 	}
 	
-	rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
+	//rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
 	while (1) {
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);

@@ -50,7 +50,7 @@
 #define STR_QIMUX_0					"+QIMUX: 0"
 #define STR_OK						"OK"
 #define STR_QIRD					"+QIRD:"
-#define STR_QIURC					"+QIURC:"
+#define STR_QIURC					"+QIURC: \"recv"
 #define STR_TCP						"TCP,"
 #define STR_CLOSED					"CLOSED"
 #define STR_BEGIN_WRITE				">"
@@ -113,19 +113,32 @@ uint32_t server_len_ec20 = 0;
 uint8_t *server_buf_ec20 = RT_NULL;
 void *send_data_ptr_ec20 = RT_NULL;
 rt_size_t send_size_ec20;
-void handle_ec20_server_in(const void *last_data_ptr)
+extern rt_uint8_t g_net_state;
+rt_uint8_t match_bin(char *ptr1,int len1, char *ptr2,rt_size_t len2)
+{
+	int i,j;
+	for (i=0;i<len1;i++)
+		for (j=0;j<len2;j++)	
+		if (ptr1[i] == ptr2[j])
+		{
+				
+		}	
+}
+void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 {
 		static rt_bool_t flag = RT_FALSE;
+		int i;
 		if (have_str(last_data_ptr, STR_OK) && !have_str(last_data_ptr, STR_QIRD) && !flag)
 			return ;
-		
+		for (i=0;i<len;i++)
+			rt_kprintf("%02x ",((char *)last_data_ptr)[i]);
 		if (have_str(last_data_ptr, STR_QIRD))
 		{	
 			uint8_t *pos = (uint8_t *)strstr(last_data_ptr,STR_QIRD);
 			
 			if (pos != RT_NULL) {
 				int i = 7;
-				rt_kprintf("\r\n<>%c%c%c%c%c%c%c%c%c%c%c%c<>\r\n",pos[0],pos[1],pos[2],pos[3],pos[4],pos[5],pos[6],pos[7],
+				rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",pos[0],pos[1],pos[2],pos[3],pos[4],pos[5],pos[6],pos[7],
 					pos[8],pos[9],pos[10],pos[11]);
 				while (pos[i] != '\r' && pos[i+1] != '\n' && i<strlen(pos))
 				{
@@ -414,6 +427,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					g_ec20_state = EC20_STATE_CHECK_CIMI;
 					gprs_at_cmd(g_dev_ec20,cimi);
 				}
+				g_net_state = NET_STATE_UNKNOWN;
 				break;
 			case EC20_STATE_SET_QICLOSE:
 				if (have_str(last_data_ptr, STR_CLOSE_OK)) {
@@ -513,6 +527,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
 					/*send data here */
 					rt_kprintf("connect to server ok\r\n");
+					g_net_state = NET_STATE_INIT;
 					rt_event_send(&(g_pcie[g_index]->event), EC20_EVENT_0);
 					gprs_at_cmd(g_dev_ec20,at_csq);
 					rt_hw_led_on(NET_LED);
@@ -603,12 +618,12 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 
 				break;
 			case EC20_STATE_DATA_READ:
-				handle_ec20_server_in(last_data_ptr);
+				handle_ec20_server_in(last_data_ptr,data_size);
 				break;
 			case EC20_STATE_DATA_PRE_WRITE:
 				if (have_str(last_data_ptr, STR_BEGIN_WRITE)) {
 					g_ec20_state = EC20_STATE_DATA_WRITE;
-					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_ec20, send_size_ec20);	
+					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_ec20, send_size_ec20);
 					rt_event_send(&(g_pcie[g_index]->event), EC20_EVENT_0);
 				}
 				else if(have_str(last_data_ptr, STR_ERROR))

@@ -10,6 +10,7 @@
 #include "master.h"
 #include "button.h"
 #include "subPoint.h"
+#include "pcie.h"
 struct rt_event g_info_event;
 extern rt_uint8_t cur_status;
 rt_uint8_t g_num=0;
@@ -22,6 +23,7 @@ extern rt_uint8_t g_main_state;
 extern rt_uint8_t g_alarmType;
 extern rt_uint8_t s1;
 extern rt_uint8_t g_flag;
+extern rt_uint8_t g_net_state;
 rt_uint8_t alarm_led = 0;
 rt_uint16_t pgm0_cnt=0;
 rt_uint16_t pgm1_cnt=0;
@@ -272,6 +274,7 @@ void handle_login_ack(rt_uint8_t *cmd)
 		for (int i=9;i<cmd[8]+9;i++)
 			rt_kprintf("%c",cmd[i]);
 	}
+	g_net_state = NET_STATE_LOGED;
 }
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
