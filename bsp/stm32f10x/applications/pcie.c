@@ -217,6 +217,7 @@ void server_proc(void* parameter)
 	while (1) {
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[3], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 		rt_kprintf("<<%d ",data_size);
+		#if 0
 		tmp_buf = (rt_uint8_t *)rt_malloc((data_size/2)*sizeof(rt_uint8_t));
 		for (int i=0; i<data_size;i=i+2)
 		{
@@ -250,6 +251,11 @@ void server_proc(void* parameter)
 		rt_kprintf(">>\r\n");
 		handle_server((rt_uint8_t *)tmp_buf,data_size/2);
 		rt_free(tmp_buf);
+		#else
+		for (int i=0;i<data_size;i++)
+			rt_kprintf("%02x ", ((char *)last_data_ptr)[i]);
+		handle_server((rt_uint8_t *)last_data_ptr,data_size);
+		#endif
 		rt_free((void *)last_data_ptr);
 	}
 }

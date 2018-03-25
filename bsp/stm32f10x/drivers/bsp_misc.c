@@ -255,3 +255,20 @@ void led_blink(int times)
 			rt_hw_led_on(0);
 	}
 }
+rt_int32_t match_bin(rt_uint8_t *ptr1,int len1, rt_uint8_t *ptr2,rt_size_t len2)
+{
+	int i,j;
+	for (i=0;i<len1;i++)
+		if (ptr1[i] == ptr2[0] && ((i+len2) < len1))
+		{				
+			for (j=1;j<len2;j++)
+			{
+				if (ptr1[i+j] != ptr2[j])
+					break;
+			}
+			if (j==len2)
+				return i;
+		}
+	return -1;
+}
+
