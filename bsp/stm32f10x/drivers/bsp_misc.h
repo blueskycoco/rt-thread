@@ -8,4 +8,6 @@ void Adc_Init();
 void show_battery(int v);
 void led_blink(int times);
 rt_int32_t match_bin(rt_uint8_t *ptr1,int len1, rt_uint8_t *ptr2,rt_size_t len2);
+void adjust_time(rt_uint8_t *server_time);
+void update_ip_list(rt_uint8_t *ip, rt_uint8_t len);
 #endif

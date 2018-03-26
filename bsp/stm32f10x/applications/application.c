@@ -443,7 +443,11 @@ void rt_init_thread_entry(void* parameter)
 	} else {
 		buzzer_ctl(BUZZER_ERROR);
 	}
-	Adc_Init();
+	Adc_Init();	
+	set_date(2018,3,26);
+	set_time(11,55,0);
+	rt_time_t cur_time = time(RT_NULL);
+	rt_kprintf("Curr Time: %08x %d %s\r\n",cur_time, sizeof(cur_time),ctime(&cur_time));
 	rt_kprintf("Battery : %04x\r\n",ADC_Get_aveg());
 	rt_hw_led_on(CODE_LED);
 	rt_hw_led_on(ARM_LED);

@@ -117,7 +117,7 @@ rt_err_t set_date(rt_uint32_t year, rt_uint32_t month, rt_uint32_t day)
 
     return ret;
 }
-rt_time_t time2ts(rt_uint8_t hour, rt_uint8_t minute, rt_uint8_t second)
+rt_time_t time2ts(rt_uint16_t year,rt_uint8_t month, rt_uint8_t day, rt_uint8_t hour, rt_uint8_t minute, rt_uint8_t second)
 {
 	time_t now;
     struct tm *p_tm;
@@ -141,6 +141,9 @@ rt_time_t time2ts(rt_uint8_t hour, rt_uint8_t minute, rt_uint8_t second)
     tm_new.tm_hour = hour;
     tm_new.tm_min  = minute;
     tm_new.tm_sec  = second;
+    tm_new.tm_year = year - 1900;
+    tm_new.tm_mon  = month - 1; /* tm_mon: 0~11 */
+    tm_new.tm_mday = day;
 
     /* converts the local time in time to calendar time. */
     now = mktime(&tm_new);

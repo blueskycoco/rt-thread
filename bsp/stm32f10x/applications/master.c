@@ -27,7 +27,6 @@ extern rt_uint8_t g_net_state;
 rt_uint8_t alarm_led = 0;
 rt_uint16_t pgm0_cnt=0;
 rt_uint16_t pgm1_cnt=0;
-
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -263,21 +262,47 @@ void info_user(void *param)
 void handle_login_ack(rt_uint8_t *cmd)
 {
 	rt_kprintf("login ack\r\n");
-	rt_kprintf("status %x\r\n",cmd[0]);
-	rt_kprintf("\r\nServer Time: %02x%02x%02x%02x%02x%02x%02x\r\n",
-	cmd[1],cmd[2],cmd[3],
+	rt_kprintf("status \t\t%x\r\n",cmd[0]);
+	rt_kprintf("\r\nServer Time: \t%04d-%02d-%02d %02d:%02d:%02d\r\n",
+	(cmd[1]<<8)|cmd[2],cmd[3],
 	cmd[4],cmd[5],cmd[6],
 	cmd[7]);
-	rt_kprintf("len %d\r\n",cmd[8]);
+	adjust_time(cmd+1);
+	rt_kprintf("len \t\t%d\r\n",cmd[8]);
 	if (cmd[8] != 0) {
-		rt_kprintf("new IP: ");
+		rt_kprintf("new IP: \t");
 		for (int i=9;i<cmd[8]+9;i++)
 			rt_kprintf("%c",cmd[i]);
+		/*reconnect with new ip*/
+		update_ip_list(cmd+9,cmd[8]);
+		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+	} else {
+		g_net_state = NET_STATE_LOGED;
 	}
-	g_net_state = NET_STATE_LOGED;
 }
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
+	rt_kprintf("heart ack\r\n");
+	rt_kprintf("Server Time: \t%04d-%02d-%02d %02d:%02d:%02d\r\n",
+	(cmd[0]<<8)|cmd[1],cmd[2],
+	cmd[3],cmd[4],cmd[5],
+	cmd[6]);
+	adjust_time(cmd);
+	rt_kprintf("type \t\t%d\r\n",cmd[7]);
+	if (cmd[7] != 0) {
+		rt_uint16_t v = (cmd[8]<<8)|cmd[9];
+		switch (cmd[7]) {
+			case 0x01:			
+				rt_kprintf("new APP version: \t%d",v);
+				break;
+			case 0x02:			
+				rt_kprintf("new SokcetIP version: \t%d",v);
+				break;
+			case 0x03:			
+				rt_kprintf("new UpdateIP version: \t%d",v);
+				break;
+		}
+	}
 }
 void handle_t_logout_ack(rt_uint8_t *cmd)
 {
@@ -297,15 +322,15 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 	rt_uint16_t protocl_v = (data[3]<<8)|data[4];
 	rt_uint8_t stm32_id[6];
 	memcpy(stm32_id, data+5,6);
-	rt_kprintf("water no %d\r\n", water_no);
-	rt_kprintf("pacet type %x\r\n", packet_type);
-	rt_kprintf("protol version %d\r\n", protocl_v);
-	rt_kprintf("sn %02x%02x%02x%02x%02x%02x\r\n",
+	rt_kprintf("=================================================>\r\nwater no \t%d\r\n", water_no);
+	rt_kprintf("pacet type \t%x\r\n", packet_type);
+	rt_kprintf("protol version \t%d\r\n", protocl_v);
+	rt_kprintf("sn \t\t%02x%02x%02x%02x%02x%02x\r\n",
 		stm32_id[0],stm32_id[1],stm32_id[2],
 		stm32_id[3],stm32_id[4],stm32_id[5]);
 	if (memcmp(stm32_id,mp.roProperty.sn,6) != 0)
 	{
-		rt_kprintf("packet not for us %02x%02x%02x%02x%02x%02x\r\n",
+		rt_kprintf("packet not for us \t%02x%02x%02x%02x%02x%02x\r\n",
 			mp.roProperty.sn[0],mp.roProperty.sn[1],
 			mp.roProperty.sn[2],mp.roProperty.sn[3],
 			mp.roProperty.sn[4],mp.roProperty.sn[5]);
@@ -332,5 +357,6 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 			rt_kprintf("unknown packet type\r\n");
 			break;
 	}
+	rt_kprintf("<=================================================\r\n");
 	return 1;
 }

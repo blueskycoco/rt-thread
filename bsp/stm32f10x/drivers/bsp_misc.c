@@ -5,7 +5,10 @@
 #include <rtthread.h>
 #include "stm32f10x.h"
 #include "bsp_misc.h"
+#include "prop.h"
 extern rt_uint8_t g_main_state;
+extern rt_uint32_t g_server_addr_bak;
+extern rt_uint32_t g_server_port_bak;
 unsigned int CRC_check(unsigned char *Data,unsigned short Data_length)
 {
 	unsigned int mid=0;
@@ -271,4 +274,64 @@ rt_int32_t match_bin(rt_uint8_t *ptr1,int len1, rt_uint8_t *ptr2,rt_size_t len2)
 		}
 	return -1;
 }
-
+void adjust_time(rt_uint8_t *server_time)
+{
+	rt_time_t local_time,server_ts;
+	struct tm *to;
+	time(&local_time);
+	server_ts = time2ts((server_time[0]<<8)|server_time[1],server_time[2],
+		server_time[3],server_time[4],server_time[5],server_time[6]);
+	if (abs(local_time-server_ts) >= 30) {		
+		rt_kprintf("local time %d, server time %d\r\n", local_time, server_ts);
+		rt_device_t device = rt_device_find("rtc");
+		if (device == RT_NULL)
+		{
+			rt_kprintf("can not find rtc device\r\n");
+			return ;
+		}		
+		rt_device_control(device, RT_DEVICE_CTRL_RTC_SET_TIME, &server_ts);
+		time(&local_time);
+		rt_kprintf("new time %s\r\n",ctime(&local_time));
+	}
+}
+void strip2hex(char *str,struct IPAddress *ip)
+{
+	int i,j=0,inx=0,count=0;
+	char tmpBuf[6]={0};
+	for(i=0;i<=strlen(str);i++)
+	{ 
+		if (str[i] != '.' && str[i] != ':') { 
+			memcpy(&tmpBuf[i-inx], &str[i], 1); 
+		} 
+		else { 
+			inx = i + 1; 
+			ip->IP[j++] = strtol(tmpBuf, NULL, 10);
+			memset(tmpBuf, 0, sizeof(tmpBuf)); 
+			count++; 
+		}
+		if(count==4)
+		{
+			ip->port = strtol(tmpBuf, NULL, 10); 
+		}
+	}
+//	rt_kprintf("%d.%d.%d.%d:%04d\n",ip->IP[0],ip->IP[1],ip->IP[2],ip->IP[3],ip->port);
+}
+void update_ip_list(rt_uint8_t *ip, rt_uint8_t len)
+{
+	rt_uint8_t i = MAX_IP_LIST-1;
+	rt_uint8_t newip[25]={0};
+	rt_uint8_t *local_ip = (rt_uint8_t *)rt_malloc(len+1);
+	local_ip[len]='\0';
+	rt_memcpy(local_ip,ip,len);
+	for (i=MAX_IP_LIST-1; i>0; i--)
+	{
+		rt_memcpy(&(mp.socketAddress[i]),&(mp.socketAddress[i-1]),sizeof(struct IPAddress));
+	}
+	strip2hex(local_ip,&(mp.socketAddress[0]));
+	rt_free(local_ip);	
+	g_server_addr_bak = (mp.socketAddress[0].IP[0] << 24)|
+					(mp.socketAddress[0].IP[1] << 16)|
+					(mp.socketAddress[0].IP[2] <<  8)|
+					(mp.socketAddress[0].IP[3] <<  0);
+	g_server_port_bak = mp.socketAddress[0].port;
+}

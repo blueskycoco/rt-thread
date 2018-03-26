@@ -182,24 +182,24 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 		//rt_kprintf("data %x\r\n",data[i]);
 		if (data[i] == 0xAD && data[i+1] == 0xAC)
 		{
-			rt_kprintf("we got ADAC %d\r\n",i);
+			//rt_kprintf("we got ADAC %d\r\n",i);
 			if (i+2 > len)
 			{
-				rt_kprintf("return 1 %d %d\r\n", i+2,len);
+				//rt_kprintf("return 1 %d %d\r\n", i+2,len);
 				return 0;
 			}
 			packet_len[cnt] = (data[i+2]<<8)|data[i+3];
 			index[cnt]=i+4;
 			if (i+packet_len[cnt]-2 >len)
 			{
-				rt_kprintf("return 2 %d %d\r\n", i+packet_len[cnt]-2,len);
+				//rt_kprintf("return 2 %d %d\r\n", i+packet_len[cnt]-2,len);
 				return 0;
 			}
 			crc[cnt]=(data[i+packet_len[cnt]-2]<<8)|data[i+packet_len[cnt]-1];
-			rt_kprintf("Found 0xAD 0xAC at %d, len %d, crc %x\r\n", index[cnt],packet_len[cnt],crc[cnt]);
+			//rt_kprintf("Found 0xAD 0xAC at %d, len %d, crc %x\r\n", index[cnt],packet_len[cnt],crc[cnt]);
 			if (crc[cnt] == CRC_check(data+i+2,packet_len[cnt]-4))
 			{
-				rt_kprintf("packet %d, CRC is match\r\n",index[cnt]);
+				//rt_kprintf("packet %d, CRC is match\r\n",index[cnt]);
 				handle_packet(data+index[cnt]);
 			} else {
 				rt_kprintf("packet %d, CRC not match %x %x\r\n", index[cnt],crc[cnt],CRC_check(data+i+2,packet_len[cnt]-4));
@@ -254,6 +254,7 @@ void server_proc(void* parameter)
 		#else
 		for (int i=0;i<data_size;i++)
 			rt_kprintf("%02x ", ((char *)last_data_ptr)[i]);
+		rt_kprintf(">>\r\n");
 		handle_server((rt_uint8_t *)last_data_ptr,data_size);
 		#endif
 		rt_free((void *)last_data_ptr);

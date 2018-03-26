@@ -114,6 +114,12 @@ uint8_t *server_buf_ec20 = RT_NULL;
 void *send_data_ptr_ec20 = RT_NULL;
 rt_size_t send_size_ec20;
 extern rt_uint8_t g_net_state;
+rt_uint32_t g_server_addr;
+rt_uint32_t g_server_addr_bak;
+rt_uint16_t g_server_port;
+rt_uint16_t g_server_port_bak;
+
+rt_uint8_t g_ip_index=0;
 void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 {
 		static rt_bool_t flag = RT_FALSE;
@@ -123,23 +129,23 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 			(match_bin(last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
 			!flag)
 			return ;
-		for (i=0;i<len;i++)
-			rt_kprintf("%02x ",((char *)last_data_ptr)[i]);
+		//for (i=0;i<len;i++)
+			//rt_kprintf("%02x ",((char *)last_data_ptr)[i]);
 		if ((ofs = match_bin(last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)))!=-1)
 		{	
 			uint8_t *pos = (uint8_t *)last_data_ptr;
-			rt_kprintf("ofs is %d\r\n",ofs);
+			//rt_kprintf("ofs is %d\r\n",ofs);
 			//if (pos != RT_NULL) {
 				int i = 7+ofs;
-				rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
-					pos[ofs],pos[ofs+1],pos[ofs+2],pos[ofs+3],pos[ofs+4],pos[ofs+5],pos[ofs+6],pos[ofs+7],
-					pos[ofs+8],pos[ofs+9],pos[ofs+10],pos[ofs+11]);
+			//	rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
+			//		pos[ofs],pos[ofs+1],pos[ofs+2],pos[ofs+3],pos[ofs+4],pos[ofs+5],pos[ofs+6],pos[ofs+7],
+			//		pos[ofs+8],pos[ofs+9],pos[ofs+10],pos[ofs+11]);
 				while (pos[i] != '\r' && pos[i+1] != '\n' && i<len)
 				{
 					server_len_ec20 = server_len_ec20*10 + pos[i] - '0';
 					i++;
 				}
-				rt_kprintf("server len %d\r\n", server_len_ec20);
+				//rt_kprintf("server len %d\r\n", server_len_ec20);
 				server_buf_ec20 = (uint8_t *)rt_malloc(server_len_ec20 * sizeof(uint8_t));
 				rt_memset(server_buf_ec20,0,server_len_ec20);
 				//server_len_ec20 = 0;
@@ -437,9 +443,9 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					g_ec20_state = EC20_STATE_SET_QIOPEN;
 					rt_memset(qiopen_ec20, 0, 64);
 					rt_sprintf(qiopen_ec20, "AT+QIOPEN=1,0,\"TCP\",\"%d.%d.%d.%d\",%d,0,0\r\n",
-							mp.socketAddress[0].IP[0],mp.socketAddress[0].IP[1],
-							mp.socketAddress[0].IP[2],mp.socketAddress[0].IP[3],
-							mp.socketAddress[0].port);
+							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+							mp.socketAddress[g_ip_index].port);
 					gprs_at_cmd(g_dev_ec20,qiopen_ec20);
 				}
 				else
@@ -506,9 +512,9 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					g_ec20_state = EC20_STATE_SET_QIOPEN;
 					rt_memset(qiopen_ec20, 0, 64);					
 					rt_sprintf(qiopen_ec20, "AT+QIOPEN=1,0,\"TCP\",\"%d.%d.%d.%d\",%d,0,0\r\n",
-							mp.socketAddress[0].IP[0],mp.socketAddress[0].IP[1],
-							mp.socketAddress[0].IP[2],mp.socketAddress[0].IP[3],
-							mp.socketAddress[0].port);
+							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+							mp.socketAddress[g_ip_index].port);
 					gprs_at_cmd(g_dev_ec20,qiopen_ec20);
 				} else {
 					/*check error condition*/
@@ -528,7 +534,14 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 			case EC20_STATE_SET_QIOPEN:
 				if (have_str(last_data_ptr, STR_CONNECT_OK)) {
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
-					/*send data here */
+					/*send data here */					
+					g_server_addr = (mp.socketAddress[g_ip_index].IP[0] << 24)|
+									(mp.socketAddress[g_ip_index].IP[1] << 16)|
+									(mp.socketAddress[g_ip_index].IP[2] <<  8)|
+									(mp.socketAddress[g_ip_index].IP[3] <<  0);
+					g_server_port = mp.socketAddress[g_ip_index].port;
+					g_server_addr_bak = g_server_addr;
+					g_server_port_bak = g_server_port;
 					rt_kprintf("connect to server ok\r\n");
 					g_net_state = NET_STATE_INIT;
 					rt_event_send(&(g_pcie[g_index]->event), EC20_EVENT_0);
@@ -538,6 +551,12 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					have_str(last_data_ptr, STR_CONNECT_FAIL)){
 					g_ec20_state = EC20_STATE_SET_QIDEACT;
 					gprs_at_cmd(g_dev_ec20,qideact);
+					if (g_ip_index+1<MAX_IP_LIST && !(mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
+						mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
+						mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
+						mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
+						mp.socketAddress[g_ip_index+1].port !=0))
+						g_ip_index++;
 				}
 				break;
 			case EC20_STATE_DATA_PROCESSING:
@@ -554,6 +573,12 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
 					//rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
+					//rt_kprintf("server addr %08x:%04x, bak %08x:04x\r\n", g_server_addr,g_server_port,g_server_addr_bak,g_server_port_bak);
+					if (g_server_addr != g_server_addr_bak || g_server_port != g_server_port_bak) {
+						g_ip_index=0;
+						g_ec20_state = EC20_STATE_CHECK_QISTAT;
+						gprs_at_cmd(g_dev_ec20,qistat);
+					}
 					/*check have data to send */
 					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_ec20,&send_size_ec20) == RT_EOK)
 					{	
@@ -615,8 +640,8 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 
 				} else {
 
-					//g_ec20_state = EC20_STATE_CHECK_QISTAT;
-					//gprs_at_cmd(g_dev_ec20,qistat);
+					g_ec20_state = EC20_STATE_CHECK_QISTAT;
+					gprs_at_cmd(g_dev_ec20,qistat);
 				}
 
 				break;

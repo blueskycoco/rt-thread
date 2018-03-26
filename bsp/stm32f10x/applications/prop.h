@@ -1,5 +1,6 @@
 #ifndef _PROP_H
 #define _PROP_H
+#define MAX_IP_LIST 10
 struct IPAddress
 {
 	rt_uint8_t IP[4];
@@ -28,7 +29,7 @@ struct EventLog
 struct MachineProperty
 {
    	struct ReadOnlyProperty 	roProperty;
-	struct IPAddress			socketAddress[10];
+	struct IPAddress			socketAddress[MAX_IP_LIST];
 	struct DomainAddress   	socketDomainAddress;
 	struct IPAddress			updateAddress;
 	struct DomainAddress   	updateDomainAddress;
