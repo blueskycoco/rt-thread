@@ -264,7 +264,7 @@ void handle_login_ack(rt_uint8_t *cmd)
 {
 	rt_kprintf("login ack\r\n");
 	rt_kprintf("status %x\r\n",cmd[0]);
-	rt_kprintf("\r\nServer Time: %x%x%x%x%x%x%x\r\n",
+	rt_kprintf("\r\nServer Time: %02x%02x%02x%02x%02x%02x%02x\r\n",
 	cmd[1],cmd[2],cmd[3],
 	cmd[4],cmd[5],cmd[6],
 	cmd[7]);

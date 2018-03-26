@@ -128,27 +128,36 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 		if ((ofs = match_bin(last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)))!=-1)
 		{	
 			uint8_t *pos = (uint8_t *)last_data_ptr;
-			
+			rt_kprintf("ofs is %d\r\n",ofs);
 			//if (pos != RT_NULL) {
-				int i = 7;
+				int i = 7+ofs;
 				rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
 					pos[ofs],pos[ofs+1],pos[ofs+2],pos[ofs+3],pos[ofs+4],pos[ofs+5],pos[ofs+6],pos[ofs+7],
 					pos[ofs+8],pos[ofs+9],pos[ofs+10],pos[ofs+11]);
-				while (pos[ofs+i] != '\r' && pos[ofs+i+1] != '\n' && i<len)
+				while (pos[i] != '\r' && pos[i+1] != '\n' && i<len)
 				{
 					server_len_ec20 = server_len_ec20*10 + pos[i] - '0';
 					i++;
 				}
+				rt_kprintf("server len %d\r\n", server_len_ec20);
 				server_buf_ec20 = (uint8_t *)rt_malloc(server_len_ec20 * sizeof(uint8_t));
 				rt_memset(server_buf_ec20,0,server_len_ec20);
-				server_len_ec20 = 0;
+				//server_len_ec20 = 0;
 				i+=2;
-				while(i<strlen(pos) && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
+				if (i+server_len_ec20 < len)
+					rt_memcpy(server_buf_ec20,pos+i,server_len_ec20);
+				else
+				{
+					server_len_ec20 = i+server_len_ec20-len;
+					rt_memcpy(server_buf_ec20,pos+i,server_len_ec20);
+				}
+				/*while(i<len && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
 				{
 	
 					server_buf_ec20[server_len_ec20++] = pos[i++];
-				}
-				if (strstr(pos, "OK")!=RT_NULL)
+					rt_kprintf("<%02x>\r\n", server_buf_ec20[server_len_ec20-1]);
+				}*/
+				if (match_bin(pos, len, "OK",rt_strlen("OK"))!=-1)
 				{
 					rt_data_queue_push(&g_data_queue[3], server_buf_ec20, server_len_ec20, RT_WAITING_FOREVER);
 					if (server_len_ec20 == 1500) {
