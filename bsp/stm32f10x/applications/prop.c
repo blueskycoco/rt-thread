@@ -217,7 +217,7 @@ int load_param()
 		rt_kprintf("read mp data\r\n");
 		read(fd, &crc, sizeof(rt_uint16_t));
 		length = read(fd, &tmp_mp, sizeof(tmp_mp));
-		dump_mp(tmp_mp);
+		//dump_mp(tmp_mp);
 		tmp_crc = CRC_check((unsigned char *)&tmp_mp, sizeof(tmp_mp));
 		rt_kprintf("mp crc %x , tmp_crc %x\r\n", crc,tmp_crc);
 		if (length != sizeof(tmp_mp) || tmp_crc != crc)

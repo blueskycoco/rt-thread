@@ -22,16 +22,20 @@
 #define INFO_EVENT_MUTE						(1<<18)
 #define INFO_EVENT_DELAY_PROTECT_ON 		(1<<19)
 
-#define LOGING			0x0001
-#define HEART_BEAT		0x0002
-#define T_LOGOUT		0x0003
-#define ALARM_TRAP		0x0004
-#define GET_ADDRESS		0x0005
 #define LOGIN_ACK 		0x8001
 #define HEART_BEAT_ACK	0x8002
 #define T_LOGOUT_ACK	0x8003
 #define ALARM_TRAP_ACK	0x8004
-#define GET_ADDRESS_ACK	0x8005
+#define FQ_OP_ACK		0x8005
+#define MAIN_OP_ACK		0x8006
+#define GET_ADDRESS_ACK	0x8007
+#define CMD_PROC_SUB	0x0701
+#define CMD_PROC_MAIN	0x0702
+#define CMD_SET_SUB		0x0703
+#define CMD_SET_MAIN	0x0704
+#define CMD_ASK_SUB		0x0711
+#define CMD_ASK_MAIN	0x0712
+
 void info_user(void *param);
 rt_uint8_t handle_packet(rt_uint8_t *data);
 #endif

@@ -490,7 +490,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_hw_led_off(WIRELESS_LED);
 	rt_hw_led_off(FAIL_LED);
 	rt_hw_led_off(NET_LED);
-	rt_thread_delay( RT_TICK_PER_SECOND );			
+	//rt_thread_delay( RT_TICK_PER_SECOND );			
 	Wtn6_Play(VOICE_WELCOME,ONCE);
 	rt_thread_delay( RT_TICK_PER_SECOND );	
 	SetErrorCode(err_code);

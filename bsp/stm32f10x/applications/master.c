@@ -261,9 +261,9 @@ void info_user(void *param)
 }
 void handle_login_ack(rt_uint8_t *cmd)
 {
-	rt_kprintf("login ack\r\n");
+	rt_kprintf("ack_type \tlogin ack\r\n");
 	rt_kprintf("status \t\t%x\r\n",cmd[0]);
-	rt_kprintf("\r\nServer Time: \t%04d-%02d-%02d %02d:%02d:%02d\r\n",
+	rt_kprintf("Server Time \t%04d-%02d-%02d %02d:%02d:%02d\r\n",
 	(cmd[1]<<8)|cmd[2],cmd[3],
 	cmd[4],cmd[5],cmd[6],
 	cmd[7]);
@@ -282,8 +282,8 @@ void handle_login_ack(rt_uint8_t *cmd)
 }
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
-	rt_kprintf("heart ack\r\n");
-	rt_kprintf("Server Time: \t%04d-%02d-%02d %02d:%02d:%02d\r\n",
+	rt_kprintf("ack_type \theart ack\r\n");
+	rt_kprintf("Server Time \t%04d-%02d-%02d %02d:%02d:%02d\r\n",
 	(cmd[0]<<8)|cmd[1],cmd[2],
 	cmd[3],cmd[4],cmd[5],
 	cmd[6]);
@@ -304,11 +304,10 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 		}
 	}
 }
-void handle_t_logout_ack(rt_uint8_t *cmd)
+void handle_t_common_ack(rt_uint8_t *cmd)
 {
-}
-void handle_alarm_trap_ack(rt_uint8_t *cmd)
-{
+	rt_kprintf("ack_type \tcommon ack\r\n");
+	rt_kprintf("status \t\r\n",cmd[0]);
 }
 void handle_get_address_ack(rt_uint8_t *cmd)
 {
@@ -345,13 +344,31 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 			handle_heart_beat_ack(data+11);
 			break;
 		case T_LOGOUT_ACK:
-			handle_t_logout_ack(data+11);
-			break;
 		case ALARM_TRAP_ACK:
-			handle_alarm_trap_ack(data+11);
+		case FQ_OP_ACK:
+		case MAIN_OP_ACK:
+			handle_t_common_ack(data+11);
 			break;
 		case GET_ADDRESS_ACK:
 			handle_get_address_ack(data+11);
+			break;
+		case CMD_PROC_SUB:
+			handle_proc_sub(data+11);
+			break;
+		case CMD_PROC_MAIN:
+			handle_proc_main(data+11);
+			break;
+		case CMD_SET_SUB:
+			handle_set_sub(data+11);
+			break;
+		case CMD_SET_MAIN:
+			handle_set_main(data+11);
+			break;		
+		case CMD_ASK_SUB:
+			handle_ask_sub(data+11);
+			break;
+		case CMD_ASK_MAIN:
+			handle_ask_main(data+11);
 			break;
 		default:
 			rt_kprintf("unknown packet type\r\n");

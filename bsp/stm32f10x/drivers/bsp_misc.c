@@ -282,7 +282,7 @@ void adjust_time(rt_uint8_t *server_time)
 	server_ts = time2ts((server_time[0]<<8)|server_time[1],server_time[2],
 		server_time[3],server_time[4],server_time[5],server_time[6]);
 	if (abs(local_time-server_ts) >= 30) {		
-		rt_kprintf("local time %d, server time %d\r\n", local_time, server_ts);
+		rt_kprintf("local time \t%d \r\nserver time \t%d\r\n", local_time, server_ts);
 		rt_device_t device = rt_device_find("rtc");
 		if (device == RT_NULL)
 		{
@@ -291,7 +291,7 @@ void adjust_time(rt_uint8_t *server_time)
 		}		
 		rt_device_control(device, RT_DEVICE_CTRL_RTC_SET_TIME, &server_ts);
 		time(&local_time);
-		rt_kprintf("new time %s\r\n",ctime(&local_time));
+		rt_kprintf("new time \t%s\r\n",ctime(&local_time));
 	}
 }
 void strip2hex(char *str,struct IPAddress *ip)

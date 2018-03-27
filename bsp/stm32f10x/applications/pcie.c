@@ -21,6 +21,7 @@ extern rt_uint8_t g_ac;
 extern rt_uint8_t 	cur_status;
 rt_uint8_t g_net_state = NET_STATE_UNKNOWN;
 extern rt_uint8_t heart_time;
+rt_uint8_t g_exit_reason=0;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
@@ -270,6 +271,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 	int i=0,ofs;
 	static rt_uint8_t heart_type = 0;
 	rt_uint8_t zero_array[10]={0};
+	rt_time_t cur_time;		
+	time(&cur_time);
 	flow_cnt++;
 	cmd[0]=0xad;
 	cmd[1]=0xac;
@@ -343,6 +346,73 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			heart_type = 0;
 		}
 		ofs = 21;
+	}else if(type == CMD_EXIT) {
+		rt_kprintf("\r\n<CMD EXIT Packet>\r\n");
+		cmd[5]=(CMD_EXIT >> 8) & 0xff;//exit
+		cmd[6]=CMD_EXIT&0xff;		
+		cmd[15] = g_exit_reason;
+		ofs= 16;
+	} else if(type == CMD_ALARM) {		
+		rt_kprintf("\r\n<CMD ALARM Packet>\r\n");
+		cmd[5]=(CMD_ALARM >> 8) & 0xff;//alarm
+		cmd[6]=CMD_ALARM&0xff;		
+		cmd[15] = (g_alarm_reason >> 8) & 0xff;
+		cmd[16] = (g_alarm_reason) & 0xff;
+		cmd[17] = (cur_time >> 24) & 0xff;
+		cmd[18] = (cur_time >> 16) & 0xff;
+		cmd[19] = (cur_time >>  8) & 0xff;
+		cmd[20] = (cur_time >>  0) & 0xff;
+		cmd[21] = g_alarm_fq;
+		ofs= 22;
+	} else if (type == CMD_MAIN_EVENT) {
+		rt_kprintf("\r\n<CMD MAIN EVENT Packet>\r\n");
+		cmd[5]=(CMD_MAIN_EVENT >> 8) & 0xff;//main event
+		cmd[6]=CMD_MAIN_EVENT&0xff;
+		cmd[15] = (g_main_event_code >> 8) & 0xff;
+		cmd[16] = (g_main_event_code) & 0xff;
+		cmd[17] = (cur_time >> 24) & 0xff;
+		cmd[18] = (cur_time >> 16) & 0xff;
+		cmd[19] = (cur_time >>  8) & 0xff;
+		cmd[20] = (cur_time >>  0) & 0xff;
+		cmd[21] = g_operate_platform;
+		memcpy(cmd+22,g_operater,6);
+		ofs = 28;
+	} else if (type == CMD_SUB_EVENT) {
+		rt_kprintf("\r\n<CMD SUB EVENT Packet>\r\n");
+		cmd[5]=(CMD_SUB_EVENT >> 8) & 0xff;//main event
+		cmd[6]=CMD_SUB_EVENT&0xff;
+		cmd[15] = (g_sub_event_code >> 8) & 0xff;
+		cmd[16] = (g_sub_event_code) & 0xff;
+		cmd[17] = (cur_time >> 24) & 0xff;
+		cmd[18] = (cur_time >> 16) & 0xff;
+		cmd[19] = (cur_time >>  8) & 0xff;
+		cmd[20] = (cur_time >>  0) & 0xff;		
+		cmd[21] = g_fq_len;
+		ofs = 22;
+		if (cmd[21] == 1)
+		{
+			cmd[ofs++] = g_fq_event[0];
+		} else {
+			memcpy(cmd+ofs,g_fq_event,8);
+			ofs+=8;
+		}
+		cmd[ofs++] = g_operate_platform;
+		memcpy(cmd+ofs,g_operater,6);
+		ofs += 6;
+	} else if (type == CMD_ASK_ADDR) {
+		rt_kprintf("\r\n<CMD ASK ADDR Packet>\r\n");
+		cmd[5] = (CMD_ASK_ADDR >> 8) & 0xff;//ask addr
+		cmd[6] = CMD_ASK_ADDR&0xff;
+		cmd[15]= g_addr_type;
+		ofs = 16;
+	} else if (type == CMD_ASK_SUB_ACK) {
+		rt_kprintf("\r\n<CMD ASK SUB ADDR Packet>\r\n");
+		cmd[5] = (CMD_ASK_SUB_ACK >> 8) & 0xff;//ask addr
+		cmd[6] = CMD_ASK_SUB_ACK&0xff;
+		cmd[15]= fqp.delya_out;
+		cmd[16]= fqp.delya_in;
+		cmd[17]=0;
+		/*store fq list*/
 	}
 	rt_kprintf("ofs is %d\r\n", ofs);
 	cmd[3]=ofs+2;
@@ -359,7 +429,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 }
 void send_process(void* parameter)
 {
-	char cmd[47] = {0};
+	char cmd[400] = {0};
 	int send_len = 0;
 	
 	while(1)	{
