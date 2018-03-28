@@ -312,6 +312,58 @@ void handle_t_common_ack(rt_uint8_t *cmd)
 void handle_get_address_ack(rt_uint8_t *cmd)
 {
 }
+void handle_ask_sub(rt_uint8_t *cmd)
+{
+	rt_kprintf("cmd_type \task sub\r\n");
+	rt_kprintf("operate platform \t%\r\n", cmd[0]);
+	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+		cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
+	g_operate_platform = cmd[0];
+	memcpy(g_operater,cmd+1,6);
+	/*build sub infor*/
+}
+void handle_ask_main(rt_uint8_t *cmd)
+{
+	rt_kprintf("cmd_type \task main\r\n");
+	rt_kprintf("operate platform \t%\r\n", cmd[0]);
+	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+		cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
+	g_operate_platform = cmd[0];
+	memcpy(g_operater,cmd+1,6);
+	/*build main infor*/
+}
+void handle_proc_main(rt_uint8_t *cmd)
+{
+	rt_kprintf("cmd_type \tproc main\r\n");
+	rt_kprintf("proc code \t%d\r\n", cmd[0]);
+	rt_kprintf("operate platform \t%\r\n", cmd[1]);
+	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+		cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
+	g_operate_platform = cmd[1];
+	memcpy(g_operater,cmd+2,6);
+	/*build proc main ack*/
+
+	/*execute cmd*/
+}
+void handle_proc_sub(rt_uint8_t *cmd)
+{
+	rt_kprintf("cmd_type \tproc sub\r\n");
+	rt_kprintf("proc code \t%d\r\n", cmd[0]);
+	rt_kprintf("fq len \t%d\r\n", cmd[1]);
+	if (cmd[1] == 1)
+		rt_kprintf("proc fq \t%d\r\n", cmd[2]);
+	else
+		rt_kprintf("proc fq \t%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
+		cmd[3],cmd[4],cmd[5],cmd[6],cmd[7],cmd[8],cmd[9],cmd[10]);
+	rt_kprintf("operate platform \t%\r\n", cmd[11]);
+	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+		cmd[12],cmd[13],cmd[14],cmd[15],cmd[16],cmd[17]);
+	g_operate_platform = cmd[11];
+	memcpy(g_operater,cmd+12,6);
+	/*execute cmd*/
+	
+	/*build proc sub ack*/
+}
 
 rt_uint8_t handle_packet(rt_uint8_t *data)
 {

@@ -413,6 +413,14 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[16]= fqp.delya_in;
 		cmd[17]=0;
 		/*store fq list*/
+	} else if (type == CMD_ASK_MAIN_ACK) {
+		rt_kprintf("\r\n<CMD ASK MAIN ADDR Packet>\r\n");
+		cmd[5] = (CMD_ASK_MAIN_ACK >> 8) & 0xff;//ask addr
+		cmd[6] = CMD_ASK_MAIN_ACK&0xff;
+	//	cmd[15]= fqp.delya_out;
+	//	cmd[16]= fqp.delya_in;
+		cmd[17]=0;
+		/*store fq list*/
 	}
 	rt_kprintf("ofs is %d\r\n", ofs);
 	cmd[3]=ofs+2;
