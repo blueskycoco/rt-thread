@@ -22,6 +22,15 @@ extern rt_uint8_t 	cur_status;
 rt_uint8_t g_net_state = NET_STATE_UNKNOWN;
 extern rt_uint8_t heart_time;
 rt_uint8_t g_exit_reason=0;
+rt_uint16_t g_alarm_reason;
+rt_uint8_t g_alarm_fq;
+rt_uint16_t g_main_event_code;
+rt_uint8_t g_operate_platform;
+rt_uint8_t g_operater[6];
+rt_uint16_t g_sub_event_code;
+rt_uint8_t g_fq_len;
+rt_uint8_t g_fq_event[8];
+rt_uint8_t g_addr_type;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
