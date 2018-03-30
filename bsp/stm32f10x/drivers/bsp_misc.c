@@ -279,8 +279,13 @@ void adjust_time(rt_uint8_t *server_time)
 	rt_time_t local_time,server_ts;
 	struct tm *to;
 	time(&local_time);
+	#if 0
 	server_ts = time2ts((server_time[0]<<8)|server_time[1],server_time[2],
 		server_time[3],server_time[4],server_time[5],server_time[6]);
+	
+	#else
+	server_ts = (server_time[0] << 24) | (server_time[1] << 16) | (server_time[2] << 8) | (server_time[3] << 0);
+	#endif
 	if (abs(local_time-server_ts) >= 30) {		
 		rt_kprintf("local time \t%d \r\nserver time \t%d\r\n", local_time, server_ts);
 		rt_device_t device = rt_device_find("rtc");

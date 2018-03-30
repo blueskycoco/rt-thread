@@ -195,14 +195,14 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 			//rt_kprintf("we got ADAC %d\r\n",i);
 			if (i+2 > len)
 			{
-				//rt_kprintf("return 1 %d %d\r\n", i+2,len);
+				rt_kprintf("return 1 %d %d\r\n", i+2,len);
 				return 0;
 			}
 			packet_len[cnt] = (data[i+2]<<8)|data[i+3];
 			index[cnt]=i+4;
 			if (i+packet_len[cnt]-2 >len)
 			{
-				//rt_kprintf("return 2 %d %d\r\n", i+packet_len[cnt]-2,len);
+				rt_kprintf("return 2 %d %d\r\n", i+packet_len[cnt]-2,len);
 				return 0;
 			}
 			crc[cnt]=(data[i+packet_len[cnt]-2]<<8)|data[i+packet_len[cnt]-1];
@@ -419,7 +419,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[5] = (CMD_ASK_SUB_ACK >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_ASK_SUB_ACK&0xff;
 		cmd[15]= fqp.delya_out;
-		cmd[16]= fqp.delya_in;
+		cmd[16]= fqp.delay_in;
 		cmd[17]=0;
 		/*store fq list*/
 	} else if (type == CMD_ASK_MAIN_ACK) {
@@ -446,7 +446,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 }
 void send_process(void* parameter)
 {
-	char cmd[400] = {0};
+	char cmd[40] = {0};
 	int send_len = 0;
 	
 	while(1)	{
@@ -464,7 +464,18 @@ void send_process(void* parameter)
 		rt_mutex_release(&(g_pcie[g_index]->lock));
 	}	
 }
-
+void upload_server(rt_uint16_t cmdType)
+{
+	char cmd[400] = {0};
+	//if (g_net_state != NET_STATE_LOGED)
+	//	return;
+	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
+	int send_len = build_cmd(cmd,cmdType);
+	rt_kprintf("send cmd %d to server\r\n",cmdType);
+	rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_WAITING_FOREVER);
+	gprs_wait_event(RT_WAITING_FOREVER);	
+	rt_mutex_release(&(g_pcie[g_index]->lock));
+}
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 {
 	rt_uint8_t index;

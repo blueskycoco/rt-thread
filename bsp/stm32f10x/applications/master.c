@@ -27,6 +27,17 @@ extern rt_uint8_t g_net_state;
 rt_uint8_t alarm_led = 0;
 rt_uint16_t pgm0_cnt=0;
 rt_uint16_t pgm1_cnt=0;
+extern rt_uint8_t g_exit_reason;
+extern rt_uint16_t g_alarm_reason;
+extern rt_uint8_t g_alarm_fq;
+extern rt_uint16_t g_main_event_code;
+extern rt_uint8_t g_operate_platform;
+extern rt_uint8_t g_operater[6];
+extern rt_uint16_t g_sub_event_code;
+extern rt_uint8_t g_fq_len;
+extern rt_uint8_t g_fq_event[8];
+extern rt_uint8_t g_addr_type;
+
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -164,6 +175,7 @@ void info_user(void *param)
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
+			g_alarm_reason = 0x1001;
 			alarm_led =1;
 			SetStateIco(2,1);
 			rt_hw_led_on(ALARM_LED);
@@ -173,6 +185,7 @@ void info_user(void *param)
 			pgm_ctl(2);
 			/*handle alarm voice*/
 				if (s1==1) {
+					g_alarm_reason = 0x1002;
 					if (fqp.is_alarm_voice) {
 						bell_ctl(1);
 						rt_thread_delay(100);
@@ -205,6 +218,7 @@ void info_user(void *param)
 						}
 					} else {
 						rt_kprintf("emergency audio play\r\n");
+						g_alarm_reason = 0x1003;
 						if (s1 == 1) { //s1 switch
 							rt_kprintf("s1 audio\r\n");
 							Wtn6_Play(VOICE_CHEFANG,ONCE);
@@ -241,6 +255,8 @@ void info_user(void *param)
 					g_delay_in = fqp.delay_in;
 					Wtn6_Play(VOICE_ALARM2,LOOP);
 				}*/
+				g_alarm_fq = fangqu_wireless[g_index_sub].index;
+				upload_server(CMD_ALARM);
 		}
 		
 		if (ev & INFO_EVENT_SHOW_NUM) {
@@ -263,18 +279,15 @@ void handle_login_ack(rt_uint8_t *cmd)
 {
 	rt_kprintf("ack_type \tlogin ack\r\n");
 	rt_kprintf("status \t\t%x\r\n",cmd[0]);
-	rt_kprintf("Server Time \t%04d-%02d-%02d %02d:%02d:%02d\r\n",
-	(cmd[1]<<8)|cmd[2],cmd[3],
-	cmd[4],cmd[5],cmd[6],
-	cmd[7]);
+	rt_kprintf("Server Time \t%08x\r\n",cmd[1]<<24|cmd[2]<<16|cmd[3]<<8|cmd[4]<<0);
 	adjust_time(cmd+1);
-	rt_kprintf("len \t\t%d\r\n",cmd[8]);
-	if (cmd[8] != 0) {
+	rt_kprintf("len \t\t%d\r\n",cmd[5]);
+	if (cmd[5] != 0) {
 		rt_kprintf("new IP: \t");
-		for (int i=9;i<cmd[8]+9;i++)
+		for (int i=6;i<cmd[8]+6;i++)
 			rt_kprintf("%c",cmd[i]);
 		/*reconnect with new ip*/
-		update_ip_list(cmd+9,cmd[8]);
+		update_ip_list(cmd+6,cmd[5]);
 		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 	} else {
 		g_net_state = NET_STATE_LOGED;
@@ -283,14 +296,11 @@ void handle_login_ack(rt_uint8_t *cmd)
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
 	rt_kprintf("ack_type \theart ack\r\n");
-	rt_kprintf("Server Time \t%04d-%02d-%02d %02d:%02d:%02d\r\n",
-	(cmd[0]<<8)|cmd[1],cmd[2],
-	cmd[3],cmd[4],cmd[5],
-	cmd[6]);
+	rt_kprintf("Server Time \t%08x\r\n",cmd[0]<<24|cmd[1]<<16|cmd[2]<<8|cmd[3]<<0);
 	adjust_time(cmd);
-	rt_kprintf("type \t\t%d\r\n",cmd[7]);
-	if (cmd[7] != 0) {
-		rt_uint16_t v = (cmd[8]<<8)|cmd[9];
+	rt_kprintf("type \t\t%d\r\n",cmd[4]);
+	if (cmd[4] != 0) {
+		rt_uint16_t v = (cmd[5]<<8)|cmd[6];
 		switch (cmd[7]) {
 			case 0x01:			
 				rt_kprintf("new APP version: \t%d",v);
@@ -307,7 +317,7 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 void handle_t_common_ack(rt_uint8_t *cmd)
 {
 	rt_kprintf("ack_type \tcommon ack\r\n");
-	rt_kprintf("status \t\r\n",cmd[0]);
+	rt_kprintf("status %d\t\r\n",cmd[0]);
 }
 void handle_get_address_ack(rt_uint8_t *cmd)
 {
@@ -411,10 +421,10 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 			handle_proc_main(data+11);
 			break;
 		case CMD_SET_SUB:
-			handle_set_sub(data+11);
+			//handle_set_sub(data+11);
 			break;
 		case CMD_SET_MAIN:
-			handle_set_main(data+11);
+			//handle_set_main(data+11);
 			break;		
 		case CMD_ASK_SUB:
 			handle_ask_sub(data+11);

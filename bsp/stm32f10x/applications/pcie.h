@@ -42,4 +42,5 @@ ppcie_param g_pcie[2];
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1);
 rt_uint8_t pcie_switch(rt_uint8_t type);
 rt_uint8_t check_pcie(rt_uint8_t num);
+void upload_server(rt_uint16_t cmdType);
 #endif

@@ -127,8 +127,12 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 		int ofs;
 		if (match_bin(last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
 			(match_bin(last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
-			!flag)
+			!flag) {
+			gprs_at_cmd(g_dev_ec20,qird);
+			server_len_ec20 = 0;
+			g_data_in_ec20 = RT_TRUE;
 			return ;
+			}
 		//for (i=0;i<len;i++)
 			//rt_kprintf("%02x ",((char *)last_data_ptr)[i]);
 		if ((ofs = match_bin(last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)))!=-1)
@@ -643,6 +647,8 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					if (!have_str(last_data_ptr, STR_OK)) {
 						g_ec20_state = EC20_STATE_CHECK_QISTAT;
 						gprs_at_cmd(g_dev_ec20,qistat);
+					} else {
+						gprs_at_cmd(g_dev_ec20,at_csq);
 					}
 				}
 
