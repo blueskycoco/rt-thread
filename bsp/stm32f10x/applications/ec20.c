@@ -35,6 +35,7 @@
 #define EC20_STATE_ICCID			24
 #define EC20_STATE_IMEI				25
 #define EC20_STATE_LACR				26
+#define EC20_STATE_CHECK_SENT		27
 
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -80,9 +81,11 @@
 #define at_csq "AT+CSQ\r\n"
 #define at_qccid "AT+QCCID\r\n"
 #define gsn "AT+GSN\r\n"
+#define STR_QISEND "+QISEND:"
 
+#define at_qisend	"AT+QISEND=0,0\r\n"
 #define qistat 		"AT+QISTATE=0,1\r\n"
-#define qiclose "AT+QICLOSE\r\n"
+#define qiclose "AT+QICLOSE=0\r\n"
 #define qilocip  "AT+QILOCIP\r\n"
 #define qilport  "AT+QILPORT?\r\n"
 #define e0  "ATE0\r\n"
@@ -528,8 +531,10 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case EC20_STATE_SET_QIDEACT:
 				if (have_str(last_data_ptr, STR_OK)) {
-					g_ec20_state = EC20_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_ec20,qistat);
+					//g_ec20_state = EC20_STATE_CHECK_QISTAT;
+					//gprs_at_cmd(g_dev_ec20,qistat);
+					g_ec20_state =EC20_STATE_SET_QICLOSE;
+					gprs_at_cmd(g_dev_ec20,qiclose);
 				} else if (have_str(last_data_ptr, STR_ERROR)){
 					g_ec20_state = EC20_STATE_SET_QIDEACT;
 					gprs_at_cmd(g_dev_ec20,qideact);
@@ -555,12 +560,17 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					have_str(last_data_ptr, STR_CONNECT_FAIL)){
 					g_ec20_state = EC20_STATE_SET_QIDEACT;
 					gprs_at_cmd(g_dev_ec20,qideact);
-					if (g_ip_index+1<MAX_IP_LIST && !(mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
+					rt_kprintf("before , ip index %d\r\n", g_ip_index);
+					if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
 						mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
 						mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
 						mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
 						mp.socketAddress[g_ip_index+1].port !=0))
 						g_ip_index++;
+					else
+						g_ip_index=0;
+					rt_kprintf("after , ip index %d\r\n", g_ip_index);
+					rt_thread_delay(100);
 				}
 				break;
 			case EC20_STATE_DATA_PROCESSING:
@@ -580,8 +590,9 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					//rt_kprintf("server addr %08x:%04x, bak %08x:04x\r\n", g_server_addr,g_server_port,g_server_addr_bak,g_server_port_bak);
 					if (g_server_addr != g_server_addr_bak || g_server_port != g_server_port_bak) {
 						g_ip_index=0;
-						g_ec20_state = EC20_STATE_CHECK_QISTAT;
-						gprs_at_cmd(g_dev_ec20,qistat);
+						g_ec20_state = EC20_STATE_SET_QICLOSE;
+						gprs_at_cmd(g_dev_ec20,qiclose);
+						break;
 					}
 					/*check have data to send */
 					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_ec20,&send_size_ec20) == RT_EOK)
@@ -645,8 +656,8 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				} else {
 					rt_kprintf("data processing ,will reconnect %d %s\r\n",data_size,last_data_ptr);
 					if (!have_str(last_data_ptr, STR_OK)) {
-						g_ec20_state = EC20_STATE_CHECK_QISTAT;
-						gprs_at_cmd(g_dev_ec20,qistat);
+						g_ec20_state = EC20_STATE_SET_QICLOSE;
+						gprs_at_cmd(g_dev_ec20,qiclose);
 					} else {
 						gprs_at_cmd(g_dev_ec20,at_csq);
 					}
@@ -659,8 +670,10 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 			case EC20_STATE_DATA_PRE_WRITE:
 				if (have_str(last_data_ptr, STR_BEGIN_WRITE)) {
 					g_ec20_state = EC20_STATE_DATA_WRITE;
+					//for (int ii=0;ii<send_size_ec20;ii++)
+					//	rt_kprintf("sending %02x\r\n", ((rt_uint8_t *)send_data_ptr_ec20)[ii]);
 					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_ec20, send_size_ec20);
-					rt_event_send(&(g_pcie[g_index]->event), EC20_EVENT_0);
+					rt_free(send_data_ptr_ec20);
 				}
 				else if(have_str(last_data_ptr, STR_ERROR))
 				{
@@ -672,9 +685,11 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case EC20_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_SEND_OK)) {
-					g_ec20_state = EC20_STATE_DATA_PROCESSING;
-					rt_hw_led_on(NET_LED);
-					gprs_at_cmd(g_dev_ec20,at_csq);
+					//g_ec20_state = EC20_STATE_DATA_PROCESSING;
+					//rt_hw_led_on(NET_LED);
+					//gprs_at_cmd(g_dev_ec20,at_csq);
+					g_ec20_state = EC20_STATE_CHECK_SENT;
+					gprs_at_cmd(g_dev_ec20, at_qisend);
 				} else {
 					if (!have_str(last_data_ptr, STR_QIURC)) {
 						g_ec20_state = EC20_STATE_CHECK_QISTAT;
@@ -683,7 +698,16 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				if (have_str(last_data_ptr, STR_QIURC))
 					g_data_in_ec20 = RT_TRUE;
-				break;			
+				break;	
+			case EC20_STATE_CHECK_SENT:
+				if (have_str(last_data_ptr, STR_QISEND)) {
+					g_ec20_state = EC20_STATE_DATA_PROCESSING;
+					rt_hw_led_on(NET_LED);
+					gprs_at_cmd(g_dev_ec20,at_csq);
+					rt_event_send(&(g_pcie[g_index]->event), EC20_EVENT_0);
+				} else {
+					gprs_at_cmd(g_dev_ec20, at_qisend);
+				}
 		}
 	}
 }

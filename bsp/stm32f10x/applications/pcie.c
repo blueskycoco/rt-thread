@@ -25,12 +25,14 @@ rt_uint8_t g_exit_reason=0;
 rt_uint16_t g_alarm_reason;
 rt_uint8_t g_alarm_fq;
 rt_uint16_t g_main_event_code;
-rt_uint8_t g_operate_platform;
-rt_uint8_t g_operater[6];
+rt_uint8_t g_operate_platform=0x0;
+rt_uint8_t g_operater[6]={0x00};
 rt_uint16_t g_sub_event_code;
 rt_uint8_t g_fq_len;
 rt_uint8_t g_fq_event[8];
 rt_uint8_t g_addr_type;
+extern rt_uint8_t heart_time;
+
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
@@ -446,34 +448,42 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 }
 void send_process(void* parameter)
 {
-	char cmd[40] = {0};
+	char *cmd = {0};
 	int send_len = 0;
 	
 	while(1)	{
 		gprs_wait_event(RT_WAITING_FOREVER);
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
+		cmd = (char *)rt_malloc(40);
 		if (g_net_state == NET_STATE_INIT) {
 			send_len = build_cmd(cmd,CMD_LOGIN);
 			g_net_state = NET_STATE_LOGIN;
 			heart_time = 0;
-		} else if (g_net_state == NET_STATE_LOGED) {
+		} else if (g_net_state == NET_STATE_LOGED && heart_time == 60) {
 			send_len = build_cmd(cmd,CMD_HEART);
+		} else {
+			heart_time = 0;
+			rt_free(cmd);
+			rt_mutex_release(&(g_pcie[g_index]->lock));
+			continue;
 		}
+		heart_time = 0;
 		rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_WAITING_FOREVER);
-		gprs_wait_event(RT_WAITING_FOREVER);	
+		//gprs_wait_event(RT_WAITING_FOREVER);
 		rt_mutex_release(&(g_pcie[g_index]->lock));
 	}	
 }
 void upload_server(rt_uint16_t cmdType)
 {
-	char cmd[400] = {0};
+	char *cmd = {0};
 	//if (g_net_state != NET_STATE_LOGED)
 	//	return;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
+	cmd = (char *)rt_malloc(400);
 	int send_len = build_cmd(cmd,cmdType);
 	rt_kprintf("send cmd %d to server\r\n",cmdType);
-	rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_WAITING_FOREVER);
-	gprs_wait_event(RT_WAITING_FOREVER);	
+	rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND);
+//	gprs_wait_event(RT_WAITING_FOREVER);	
 	rt_mutex_release(&(g_pcie[g_index]->lock));
 }
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)

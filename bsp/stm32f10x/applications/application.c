@@ -75,6 +75,7 @@ rt_uint8_t heart_time = 0;
 extern rt_uint8_t alarm_led;
 extern struct rt_semaphore alarm_sem;
 extern rt_time_t cur_alarm_time;
+struct rt_mutex g_stm32_lock;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -154,7 +155,6 @@ static void led_thread_entry(void* parameter)
 				g_net_state = NET_STATE_INIT;
 				rt_event_send(&(g_pcie[g_index]->event), 1);
 			}
-			heart_time = 0;
 		}
 		/*ac dc*/
 		ac=check_ac();
@@ -256,7 +256,7 @@ static void led_thread_entry(void* parameter)
 				//g_alarm_voice =0;				
 			}
 		} else {
-			rt_kprintf("delay in %d\r\n", g_delay_in);
+		//	rt_kprintf("delay in %d\r\n", g_delay_in);
 			if (g_delay_in > 10)
 				g_delay_in -= 1;
 			else if (g_delay_in >0 && g_delay_in <= 10){
@@ -362,6 +362,7 @@ void rt_init_thread_entry(void* parameter)
 	button_init();
 	battery_init();
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
+	rt_mutex_init(&(g_stm32_lock),	"stm32_lock",	RT_IPC_FLAG_FIFO);
 	rt_thread_startup(rt_thread_create("7info",info_user, 0,2048, 20, 10));
 
 	/* Filesystem Initialization */
@@ -541,11 +542,13 @@ void rt_init_thread_entry(void* parameter)
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);
 		if (len > 0)
-		{
+		{		
+			//rt_mutex_take(&g_stm32_lock,RT_WAITING_FOREVER);
 			rt_kprintf("\r\ncc1101 recv data %d:",len);
 			cc1101_hex_printf1(buf1,len);
 			rt_kprintf("\r\n");
-			handleSub(buf1);			
+			handleSub(buf1);				
+			rt_mutex_release(&g_stm32_lock);
 			count++;
 		}
 	}

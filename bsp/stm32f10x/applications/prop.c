@@ -174,7 +174,7 @@ int load_param()
 	mp.socketAddress[0].IP[1] = 132;
 	mp.socketAddress[0].IP[2] = 177;
 	mp.socketAddress[0].IP[3] = 116;
-	mp.socketAddress[0].port = 1704;
+	mp.socketAddress[0].port = 1705;
 	strcpy(mp.socketDomainAddress.domain,DEFAULT_DOMAIN);
 	mp.socketDomainAddress.port = 2011;
 	mp.updateAddress.IP[0] = 101;
@@ -282,7 +282,7 @@ int load_param()
 	fqp.alarm_voice_time=30;
 	fqp.is_alarm_voice =1;
 	fqp.is_lamp = 0x04;
-	//mp.socketAddress[0].port = 1704;
+	mp.socketAddress[0].port = 1704;
 	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	return 1;
 }

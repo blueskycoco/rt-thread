@@ -37,7 +37,8 @@ extern rt_uint16_t g_sub_event_code;
 extern rt_uint8_t g_fq_len;
 extern rt_uint8_t g_fq_event[8];
 extern rt_uint8_t g_addr_type;
-
+extern rt_uint16_t command_type;
+extern struct rt_mutex g_stm32_lock;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -97,6 +98,7 @@ void info_user(void *param)
 	rt_uint32_t ev;
 	while (1) {
 		rt_event_recv( &(g_info_event), 0xffffffff, RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ); 
+		rt_mutex_take(&g_stm32_lock,RT_WAITING_FOREVER);
 		if (ev & INFO_EVENT_CODING) {
 			if (cur_status == 1) {
 				/*need protection off first
@@ -147,6 +149,14 @@ void info_user(void *param)
 			set_fq_on(fangqu_wire,WIRE_MAX);
 			set_fq_on(fangqu_wireless,WIRELESS_MAX);			
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
+			rt_kprintf("\r\n\r\nnow stm32 is protect on\r\n\r\n");
+			g_sub_event_code = 0x2002;
+			g_fq_len = 1;
+			g_fq_event[0] = 0xff;
+			g_operater[0] =  fangqu_wireless[g_index_sub].index;
+			g_operate_platform = 0xff;
+			g_operater[5] = 0x10;
+			upload_server(CMD_SUB_EVENT);
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
 			Wtn6_Play(VOICE_YANSHIBF,LOOP);
@@ -172,15 +182,25 @@ void info_user(void *param)
 				rt_thread_delay(100);
 				GPIO_ResetBits(GPIOC, GPIO_Pin_13);
 			}		
+			rt_kprintf("\r\n\r\nnow stm32 is protect off\r\n\r\n");
+			g_sub_event_code = 0x2001;
+			g_fq_len = 1;
+			g_fq_event[0] = 0xff;
+			g_operater[0] = fangqu_wireless[g_index_sub].index;
+			g_operate_platform = 0xff;
+			g_operater[5] = 0x10;
+			upload_server(CMD_SUB_EVENT);
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
+			if (command_type == 4)
+				continue;
 			g_alarm_reason = 0x1001;
 			alarm_led =1;
 			SetStateIco(2,1);
 			rt_hw_led_on(ALARM_LED);
-			rt_kprintf("is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d, voiceType %d\r\n",
-				fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice_time,fangqu_wireless[g_index_sub].voiceType);
+			rt_kprintf("cur status %d , is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d, voiceType %d\r\n",
+				cur_status,fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice_time,fangqu_wireless[g_index_sub].voiceType);
 			pgm_ctl(1);
 			pgm_ctl(2);
 			/*handle alarm voice*/
@@ -256,7 +276,7 @@ void info_user(void *param)
 					Wtn6_Play(VOICE_ALARM2,LOOP);
 				}*/
 				g_alarm_fq = fangqu_wireless[g_index_sub].index;
-				upload_server(CMD_ALARM);
+				upload_server(CMD_ALARM);				
 		}
 		
 		if (ev & INFO_EVENT_SHOW_NUM) {
@@ -272,7 +292,8 @@ void info_user(void *param)
 			rt_kprintf("do mute\r\n");
 			Stop_Playing();
 			bell_ctl(0);
-		}
+		}		
+		//rt_mutex_release(&g_stm32_lock);
 	}
 }
 void handle_login_ack(rt_uint8_t *cmd)

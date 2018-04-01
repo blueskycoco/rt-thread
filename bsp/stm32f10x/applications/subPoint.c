@@ -334,6 +334,8 @@ void handle_protect_off()
 void handle_alarm()
 {
 	g_alarmType = fangqu_wireless[g_index_sub].alarmType;
+	rt_kprintf("proc alarm %d %d %d\r\n",sub_cmd_type,fangqu_wireless[g_index_sub].operationType,
+		cur_status);
 	if (sub_cmd_type == 2 /*s1 alarm*/
 		|| fangqu_wireless[g_index_sub].operationType==2 /*24 hour*/
 		) {
@@ -451,7 +453,7 @@ void handleSub(rt_uint8_t *data)
 		{
 			handle_protect_on();
 		}
-		else if(command_type == 0x0004 && (cur_status || (!cur_status && g_delay_out!=0)))
+		else if(command_type == 0x0004 && (cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
 		{
 			cur_status = 0;
 			g_alarmType =0;
