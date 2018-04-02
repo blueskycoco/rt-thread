@@ -26,6 +26,8 @@
 #ifdef RT_USING_GDB
 #include <gdb_stub.h>
 #endif
+#define AES 1
+#if AES
 void aes_test()
 {
 	uint32_t key[AES_KEY_SIZE]={0x40414243,0x44454647,0x48494a4b,0x4c4d4e4f};
@@ -72,6 +74,7 @@ void aes_test()
 	}
 
 }
+#endif
 void rt_init_thread_entry(void* parameter)
 {
 	/* GDB STUB */
@@ -96,7 +99,9 @@ void rt_init_thread_entry(void* parameter)
 	}
 #endif
 	rt_thread_delay(1000);
+#if AES
 	aes_test();
+#endif
 }
 
 int rt_application_init()
