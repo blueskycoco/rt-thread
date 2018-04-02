@@ -40,6 +40,7 @@ extern rt_uint8_t g_addr_type;
 extern rt_uint16_t command_type;
 extern rt_uint8_t g_ac;
 extern rt_uint8_t g_heart_cnt;
+extern rt_uint8_t g_addr_type;
 extern struct rt_mutex g_stm32_lock;
 void handle_led(int type)
 {
@@ -339,7 +340,10 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 				rt_kprintf("new UpdateIP version: \t%d",v);
 				break;
 		}
-		
+		if (cmd[4] == 2 || cmd[4] == 3) {
+			g_addr_type = cmd[4];
+			upload_server(CMD_ASK_ADDR);
+		}		
 	}
 	if (g_heart_cnt > 1)
 		g_heart_cnt--;
@@ -352,6 +356,17 @@ void handle_t_common_ack(rt_uint8_t *cmd)
 }
 void handle_get_address_ack(rt_uint8_t *cmd)
 {
+	rt_uint16_t ofs = 0;
+	rt_kprintf("ack_type \taddr ack\r\n");
+	rt_kprintf("addr type \t%d\r\n", cmd[0]);
+	rt_kprintf("ip num \t%d\r\n", cmd[1]);
+	ofs = 3;
+	for (int i = 0; i<cmd[1]; i++) {
+		for(int j = ofs; j<cmd[ofs-1]+ofs;j++)
+			rt_kprintf("%c", cmd[j]);
+		rt_kprintf("\r\n");
+		ofs += cmd[ofs-1];
+	}
 }
 void handle_ask_sub(rt_uint8_t *cmd)
 {
@@ -372,14 +387,29 @@ void handle_ask_main(rt_uint8_t *cmd)
 	g_operate_platform = cmd[0];
 	memcpy(g_operater,cmd+1,6);
 	/*build main infor*/
+	
 }
 void handle_proc_main(rt_uint8_t *cmd)
 {
 	rt_kprintf("cmd_type \tproc main\r\n");
+	fqp.alarm_voice_time = (cmd[0]&0xf0)>>4;
+	fqp.audio_vol = cmd[0]&0x0f;
+	fqp.is_lamp = (cmd[1]&0xf0)>>4;
+	fqp.PGM0 = (cmd[2]&0xf0)>>4;
+	fqp.PGM1 = (cmd[2]&0x0f);
+	fqp.is_check_AC = (cmd[3]&0x80)>>7;
+	fqp.is_check_DC = (cmd[3]&0x40)>>6;
+	fqp.is_alarm_voice = (cmd[3]&0x20)>>5;
+	fqp.auto_bufang = 
+	rt_kprintf("alarm voice time \t%d\r\n", )
+	rt_kprintf("audio vol \t%d\r\n", );
+	rt_kprintf("lamp	\t%d\r\n",
+	
 	rt_kprintf("proc code \t%d\r\n", cmd[0]);
 	rt_kprintf("operate platform \t%\r\n", cmd[1]);
 	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
 		cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
+	fqp.alarm_voice_time = 
 	g_operate_platform = cmd[1];
 	memcpy(g_operater,cmd+2,6);
 	/*build proc main ack*/

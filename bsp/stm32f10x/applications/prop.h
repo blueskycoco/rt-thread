@@ -74,6 +74,7 @@ struct FangQuProperty
 	rt_uint32_t  	auto_chefang;
 	rt_uint8_t	  	alarm_voice_time;	//play alarm time
 	rt_uint8_t	  	is_alarm_voice;	//open or not alarm voice
+	rt_uint8_t 		audio_vol;
 	rt_uint8_t   	is_check_AC;
 	rt_uint8_t   	is_check_DC;
 	rt_uint8_t	  	is_lamp;
