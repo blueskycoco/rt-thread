@@ -121,7 +121,7 @@ rt_uint32_t g_server_addr;
 rt_uint32_t g_server_addr_bak;
 rt_uint16_t g_server_port;
 rt_uint16_t g_server_port_bak;
-
+extern rt_uint8_t g_heart_cnt;
 rt_uint8_t g_ip_index=0;
 void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 {
@@ -590,6 +590,11 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					//rt_kprintf("server addr %08x:%04x, bak %08x:04x\r\n", g_server_addr,g_server_port,g_server_addr_bak,g_server_port_bak);
 					if (g_server_addr != g_server_addr_bak || g_server_port != g_server_port_bak) {
 						g_ip_index=0;
+						g_ec20_state = EC20_STATE_SET_QICLOSE;
+						gprs_at_cmd(g_dev_ec20,qiclose);
+						break;
+					}
+					if (g_heart_cnt > 5) {
 						g_ec20_state = EC20_STATE_SET_QICLOSE;
 						gprs_at_cmd(g_dev_ec20,qiclose);
 						break;

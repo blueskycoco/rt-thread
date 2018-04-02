@@ -38,6 +38,8 @@ extern rt_uint8_t g_fq_len;
 extern rt_uint8_t g_fq_event[8];
 extern rt_uint8_t g_addr_type;
 extern rt_uint16_t command_type;
+extern rt_uint8_t g_ac;
+extern rt_uint8_t g_heart_cnt;
 extern struct rt_mutex g_stm32_lock;
 void handle_led(int type)
 {
@@ -50,7 +52,7 @@ void handle_led(int type)
 			GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 		} else if (v == 0x04 || v == 0x01 || v == 0x02) {
 			GPIO_SetBits(GPIOB, GPIO_Pin_7);
-			if (v==0x04)
+			if (v==0x04 && g_ac)
 			rt_hw_led_on(AUX_LED0);
 		}
 
@@ -62,6 +64,7 @@ void handle_led(int type)
 			GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 		} else if (v == 0x04) {
 			GPIO_SetBits(GPIOB, GPIO_Pin_7);
+			if (g_ac)
 			rt_hw_led_on(AUX_LED1);
 		}
 
@@ -125,6 +128,9 @@ void info_user(void *param)
 		if (ev & INFO_EVENT_FACTORY_RESET) {
 			g_main_state = 2;
 			led_blink(3);
+			g_exit_reason = 0x03;
+			upload_server(CMD_EXIT);
+			rt_thread_sleep(500);
 			dfs_mkfs("elm","sd0");
 			Wtn6_Play(VOICE_HUIFU,ONCE);
 			NVIC_SystemReset();
@@ -333,7 +339,11 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 				rt_kprintf("new UpdateIP version: \t%d",v);
 				break;
 		}
+		
 	}
+	if (g_heart_cnt > 1)
+		g_heart_cnt--;
+	
 }
 void handle_t_common_ack(rt_uint8_t *cmd)
 {
@@ -435,6 +445,7 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 		case GET_ADDRESS_ACK:
 			handle_get_address_ack(data+11);
 			break;
+			
 		case CMD_PROC_SUB:
 			handle_proc_sub(data+11);
 			break;

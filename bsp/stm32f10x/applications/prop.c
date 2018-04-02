@@ -297,6 +297,11 @@ void save_param(int type)
 	if (type == TYPE_MP)
 	{
 		fd = open(MP_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0);
+		if (fd<0) {
+			rt_mutex_release(&file_lock);
+			rt_kprintf("save open failed 0\r\n");
+			return ;
+		}
 		crc = CRC_check((unsigned char *)&mp, sizeof(mp));
 		rt_kprintf("crc %x\r\n", crc);
 		length = write(fd, &crc, sizeof(rt_uint16_t));

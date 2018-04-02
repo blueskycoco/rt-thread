@@ -76,6 +76,9 @@ extern rt_uint8_t alarm_led;
 extern struct rt_semaphore alarm_sem;
 extern rt_time_t cur_alarm_time;
 struct rt_mutex g_stm32_lock;
+extern rt_uint8_t g_alarm_fq;
+extern rt_uint16_t g_alarm_reason;
+rt_uint16_t should_upload_bat = 0;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -163,10 +166,20 @@ static void led_thread_entry(void* parameter)
 			g_ac = 1;
 			Wtn6_Play(VOICE_HUIFU,ONCE);
 			SetStateIco(4,1);
+			if (should_upload_bat!=0) {
+				g_alarm_reason=0x0020;
+				g_alarm_fq = 0x00;			
+				upload_server(CMD_ALARM);
+			}
 		} else if (!ac && g_ac){
 			g_ac = 0;
 			Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
 			SetStateIco(4,0);
+			g_alarm_reason=0x0021;
+			g_alarm_fq = 0x00;
+			upload_server(CMD_ALARM);
+			rt_hw_led_off(AUX_LED1);
+			rt_hw_led_off(AUX_LED0);
 		}
 		/*2 mins exit coding mode*/
 		if (g_main_state==1) {
@@ -330,7 +343,14 @@ static void led_thread_entry(void* parameter)
 		}
 		//rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
 		g_bat = ADC_Get_aveg();
-		show_battery(g_bat);		
+		show_battery(g_bat);	
+		if (g_bat < 1000 && (should_upload_bat > 3600 || should_upload_bat ==0)) {
+			g_alarm_reason = 0x0022;
+			g_alarm_fq = 0x00;
+			upload_server(CMD_ALARM);
+			should_upload_bat = 1;
+		}
+		should_upload_bat++;
 	}
 }
 
@@ -537,6 +557,18 @@ void rt_init_thread_entry(void* parameter)
 		Wtn6_Play(VOICE_ZHUJIGZ,ONCE);
 	}
 	
+	if (rt_thread_init(&led_thread,
+			"9led",
+			led_thread_entry,
+			RT_NULL,
+			(rt_uint8_t*)&led_stack[0],
+			sizeof(led_stack),
+			20,
+			5) == RT_EOK)
+	{
+		rt_thread_startup(&led_thread);
+	}	
+	
 	//rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
 	while (1) {
 		wait_cc1101_sem();
@@ -561,18 +593,6 @@ int rt_application_init(void)
 	rt_err_t result;
 
 	/* init led thread */
-	result = rt_thread_init(&led_thread,
-			"9led",
-			led_thread_entry,
-			RT_NULL,
-			(rt_uint8_t*)&led_stack[0],
-			sizeof(led_stack),
-			20,
-			5);
-	if (result == RT_EOK)
-	{
-		rt_thread_startup(&led_thread);
-	}	
 
 #if (RT_THREAD_PRIORITY_MAX == 32)
 	init_thread = rt_thread_create("8init",
@@ -586,7 +606,7 @@ int rt_application_init(void)
 
 	if (init_thread != RT_NULL)
 		rt_thread_startup(init_thread);
-
+	
 
 	return 0;
 }

@@ -9,6 +9,7 @@
 #include "lcd.h"
 #include "wtn6.h"
 #include "subPoint.h"
+#include "pcie.h"
 #define 	MSG_HEAD0		0x6c
 #define 	MSG_HEAD1		0xaa
 
@@ -33,7 +34,8 @@ extern 		rt_uint8_t 		g_num;
 extern 		rt_uint8_t 		g_delay_out;
 extern rt_uint8_t g_alarm_voice;
 extern rt_uint8_t g_delay_in;
-
+extern rt_uint8_t g_alarm_fq;
+extern rt_uint16_t g_alarm_reason;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -431,10 +433,13 @@ void handleSub(rt_uint8_t *data)
 			g_mute=0;
 			resp[18] = fangqu_wireless[g_index_sub].status;//cur_status;
 			g_mute=0;
-			if (!g_main_state) {
-				rt_event_send(&(g_info_event), INFO_EVENT_ALARM);			
-				rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
-			}
+			//if (!g_main_state) {
+			//	rt_event_send(&(g_info_event), INFO_EVENT_ALARM);			
+			//	rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
+			//}			
+			g_alarm_reason = 0x0023;
+			g_alarm_fq = fangqu_wireless[g_index_sub].index;
+			upload_server(CMD_ALARM);
 		}
 		resp[4]=16;
 		unsigned short crc = CRC_check(resp,19);

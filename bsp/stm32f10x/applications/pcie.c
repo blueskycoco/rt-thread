@@ -31,6 +31,7 @@ rt_uint16_t g_sub_event_code;
 rt_uint8_t g_fq_len;
 rt_uint8_t g_fq_event[8];
 rt_uint8_t g_addr_type;
+rt_uint8_t g_heart_cnt=0;
 extern rt_uint8_t heart_time;
 
 //rt_uint8_t pcie_init(rt_uint8_t type);
@@ -454,13 +455,15 @@ void send_process(void* parameter)
 	while(1)	{
 		gprs_wait_event(RT_WAITING_FOREVER);
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
-		cmd = (char *)rt_malloc(40);
+		cmd = (char *)rt_malloc(50);
 		if (g_net_state == NET_STATE_INIT) {
 			send_len = build_cmd(cmd,CMD_LOGIN);
 			g_net_state = NET_STATE_LOGIN;
 			heart_time = 0;
 		} else if (g_net_state == NET_STATE_LOGED && heart_time == 60) {
 			send_len = build_cmd(cmd,CMD_HEART);
+			rt_kprintf("heart cnt %d\r\n",g_heart_cnt);
+			g_heart_cnt++;
 		} else {
 			heart_time = 0;
 			rt_free(cmd);
@@ -485,6 +488,7 @@ void upload_server(rt_uint16_t cmdType)
 	rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND);
 //	gprs_wait_event(RT_WAITING_FOREVER);	
 	rt_mutex_release(&(g_pcie[g_index]->lock));
+	rt_kprintf("send buf done\r\n");
 }
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 {
