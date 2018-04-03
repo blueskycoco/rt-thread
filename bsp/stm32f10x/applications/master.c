@@ -400,10 +400,10 @@ void handle_proc_main(rt_uint8_t *cmd)
 	fqp.is_check_AC = (cmd[3]&0x80)>>7;
 	fqp.is_check_DC = (cmd[3]&0x40)>>6;
 	fqp.is_alarm_voice = (cmd[3]&0x20)>>5;
-	fqp.auto_bufang = 
-	rt_kprintf("alarm voice time \t%d\r\n", )
-	rt_kprintf("audio vol \t%d\r\n", );
-	rt_kprintf("lamp	\t%d\r\n",
+	//fqp.auto_bufang = 
+	//rt_kprintf("alarm voice time \t%d\r\n", )
+	//rt_kprintf("audio vol \t%d\r\n", );
+//	rt_kprintf("lamp	\t%d\r\n",
 	
 	rt_kprintf("proc code \t%d\r\n", cmd[0]);
 	rt_kprintf("operate platform \t%\r\n", cmd[1]);

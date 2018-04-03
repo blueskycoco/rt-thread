@@ -152,7 +152,7 @@ int load_param()
 	rt_memset(fangqu_wire, 0, sizeof(struct FangQu)*WIRE_MAX);
 	rt_memset(fangqu_wireless, 0, sizeof(struct FangQu)*WIRELESS_MAX);
 	rt_memset(&mp, 0, sizeof(struct MachineProperty));
-	
+	list_dir("/");
 	mp.socketAddressVersion= 0;
 	mp.socketDomainVersion= 0;
 	mp.updateAddressVersion = 0;
