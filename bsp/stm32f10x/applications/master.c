@@ -372,7 +372,7 @@ void handle_get_address_ack(rt_uint8_t *cmd)
 void handle_ask_sub(rt_uint8_t *cmd)
 {
 	rt_kprintf("cmd_type \task sub\r\n");
-	rt_kprintf("operate platform \t%d\r\n", cmd[0]);
+	rt_kprintf("operate platform \t%x\r\n", cmd[0]);
 	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
 		cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
 	g_operate_platform = cmd[0];
@@ -422,6 +422,29 @@ void handle_set_main(rt_uint8_t *cmd)
 
 	/*execute cmd*/
 }
+void handle_set_sub(rt_uint8_t *cmd)
+{
+	rt_kprintf("cmd_type \tset sub\r\n");
+	if (cmd[0] != 0)
+		fqp.delya_out= cmd[0];
+	if (cmd[1] != 0)
+		fqp.delay_in = cmd[1];
+	if (cmd[2] != 0) {
+		
+	}
+	
+	g_operate_platform = cmd[12];
+	memcpy(g_operater,cmd+13,6);
+	
+	rt_kprintf("operate platform \t%x\r\n", cmd[12]);
+	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+		cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);
+	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
+	/*build proc main ack*/
+
+	/*execute cmd*/
+}
+
 void handle_proc_main(rt_uint8_t *cmd)
 {
 	rt_kprintf("cmd_type \tproc main\r\n");
@@ -531,7 +554,7 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 			handle_proc_main(data+11);
 			break;
 		case CMD_SET_SUB:
-			//handle_set_sub(data+11);
+			handle_set_sub(data+11);
 			break;
 		case CMD_SET_MAIN:
 			handle_set_main(data+11);

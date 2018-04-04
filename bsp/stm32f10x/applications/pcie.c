@@ -423,11 +423,57 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[6] = CMD_ASK_SUB_ACK&0xff;
 		cmd[15]= fqp.delya_out;
 		cmd[16]= fqp.delay_in;
-		cmd[17]=0;
+		cmd[17]=0;		
+		ofs=18;		
 		/*store fq list*/
-
-		
-		ofs=27;		
+		for(i=0;i<WIRE_MAX;i++)
+		{
+			if(fangqu_wire[i].index != 0) {
+				cmd[ofs++] = fangqu_wire[i].index;
+				cmd[ofs] = 0x80;
+				if (fangqu_wire[i].operationType==TYPE_24)
+					cmd[ofs]|=0x20;
+				else if (fangqu_wire[i].operationType==TYPE_DELAY)
+					cmd[ofs]|=0x10;
+				cmd[ofs++]|=fangqu_wire[i].alarmType;
+				cmd[ofs]=0;
+				if (!fangqu_wire[i].voiceType)
+					cmd[ofs]|=0x80;
+				if (fangqu_wire[i].status)
+					cmd[ofs]|=0x40;
+				if (fangqu_wire[i].slave_delay)
+					cmd[ofs]|=0x20;			
+				if (fangqu_wire[i].isBypass)
+					cmd[ofs]|=0x10;
+				ofs++;
+				cmd[ofs++] = fangqu_wire[i].slave_type;
+				(cmd[17])++;
+			}
+		}
+		for(i=0;i<WIRELESS_MAX;i++)
+		{
+			if(fangqu_wireless[i].index != 0) {
+				cmd[ofs++] = fangqu_wireless[i].index;
+				cmd[ofs] = 0x40;
+				if (fangqu_wireless[i].operationType==TYPE_24)
+					cmd[ofs]|=0x20;
+				else if (fangqu_wireless[i].operationType==TYPE_DELAY)
+					cmd[ofs]|=0x10;
+				cmd[ofs++]|=fangqu_wireless[i].alarmType;
+				cmd[ofs]=0;
+				if (!fangqu_wireless[i].voiceType)
+					cmd[ofs]|=0x80;
+				if (fangqu_wireless[i].status)
+					cmd[ofs]|=0x40;
+				if (fangqu_wireless[i].slave_delay)
+					cmd[ofs]|=0x20;			
+				if (fangqu_wireless[i].isBypass)
+					cmd[ofs]|=0x10;
+				ofs++;
+				cmd[ofs++] = fangqu_wireless[i].slave_type;
+				(cmd[17])++;
+			}
+		}		
 		cmd[ofs++] = g_operate_platform;
 		memcpy(cmd+ofs,g_operater,6);
 		ofs += 6;
