@@ -311,8 +311,8 @@ void handle_login_ack(rt_uint8_t *cmd)
 	adjust_time(cmd+1);
 	rt_kprintf("len \t\t%d\r\n",cmd[5]);
 	if (cmd[5] != 0) {
-		rt_kprintf("new IP: \t");
-		for (int i=6;i<cmd[8]+6;i++)
+		rt_kprintf("new IP: \t\t");
+		for (int i=6;i<cmd[5]+6;i++)
 			rt_kprintf("%c",cmd[i]);
 		/*reconnect with new ip*/
 		update_ip_list(cmd+6,cmd[5]);
@@ -320,6 +320,7 @@ void handle_login_ack(rt_uint8_t *cmd)
 	} else {
 		g_net_state = NET_STATE_LOGED;
 	}
+	rt_kprintf("\r\n");
 }
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
@@ -329,7 +330,7 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 	rt_kprintf("type \t\t%d\r\n",cmd[4]);
 	if (cmd[4] != 0) {
 		rt_uint16_t v = (cmd[5]<<8)|cmd[6];
-		switch (cmd[7]) {
+		switch (cmd[4]) {
 			case 0x01:			
 				rt_kprintf("new APP version: \t%d",v);
 				break;
@@ -359,39 +360,40 @@ void handle_get_address_ack(rt_uint8_t *cmd)
 	rt_uint16_t ofs = 0;
 	rt_kprintf("ack_type \taddr ack\r\n");
 	rt_kprintf("addr type \t%d\r\n", cmd[0]);
-	rt_kprintf("ip num \t%d\r\n", cmd[1]);
+	rt_kprintf("ip num \t\t%d\r\n", cmd[1]);
 	ofs = 3;
 	for (int i = 0; i<cmd[1]; i++) {
 		for(int j = ofs; j<cmd[ofs-1]+ofs;j++)
 			rt_kprintf("%c", cmd[j]);
 		rt_kprintf("\r\n");
-		ofs += cmd[ofs-1];
+		ofs += cmd[ofs-1]+1;
 	}
 }
 void handle_ask_sub(rt_uint8_t *cmd)
 {
 	rt_kprintf("cmd_type \task sub\r\n");
-	rt_kprintf("operate platform \t%\r\n", cmd[0]);
+	rt_kprintf("operate platform \t%d\r\n", cmd[0]);
 	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
 		cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
 	g_operate_platform = cmd[0];
 	memcpy(g_operater,cmd+1,6);
 	/*build sub infor*/
+	upload_server(CMD_ASK_SUB_ACK);
 }
 void handle_ask_main(rt_uint8_t *cmd)
 {
 	rt_kprintf("cmd_type \task main\r\n");
-	rt_kprintf("operate platform \t%\r\n", cmd[0]);
+	rt_kprintf("operate platform \t%d\r\n", cmd[0]);
 	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
 		cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
 	g_operate_platform = cmd[0];
 	memcpy(g_operater,cmd+1,6);
 	/*build main infor*/
-	
+	upload_server(CMD_ASK_MAIN_ACK);
 }
-void handle_proc_main(rt_uint8_t *cmd)
+void handle_set_main(rt_uint8_t *cmd)
 {
-	rt_kprintf("cmd_type \tproc main\r\n");
+	rt_kprintf("cmd_type \tset main\r\n");
 	fqp.alarm_voice_time = (cmd[0]&0xf0)>>4;
 	fqp.audio_vol = cmd[0]&0x0f;
 	fqp.is_lamp = (cmd[1]&0xf0)>>4;
@@ -400,22 +402,68 @@ void handle_proc_main(rt_uint8_t *cmd)
 	fqp.is_check_AC = (cmd[3]&0x80)>>7;
 	fqp.is_check_DC = (cmd[3]&0x40)>>6;
 	fqp.is_alarm_voice = (cmd[3]&0x20)>>5;
-	//fqp.auto_bufang = 
-	//rt_kprintf("alarm voice time \t%d\r\n", )
-	//rt_kprintf("audio vol \t%d\r\n", );
-//	rt_kprintf("lamp	\t%d\r\n",
+	if (((cmd[4]<<8)|cmd[5]) != 0xffff)
+		fqp.auto_bufang = ((cmd[4]<<8)|cmd[5])<<16;		
+	if (((cmd[6]<<8)|cmd[7]) != 0xffff)
+		fqp.auto_bufang |= (cmd[6]<<8)|cmd[7];
+	if (((cmd[8]<<8)|cmd[9]) != 0xffff)
+		fqp.auto_chefang = ((cmd[8]<<8)|cmd[9])<<16;		
+	if (((cmd[10]<<8)|cmd[11]) != 0xffff)
+		fqp.auto_chefang |= (cmd[10]<<8)|cmd[11];
 	
-	rt_kprintf("proc code \t%d\r\n", cmd[0]);
-	rt_kprintf("operate platform \t%\r\n", cmd[1]);
+	g_operate_platform = cmd[12];
+	memcpy(g_operater,cmd+13,6);
+	
+	rt_kprintf("operate platform \t%x\r\n", cmd[12]);
 	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
-		cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
-	fqp.alarm_voice_time = 
-	g_operate_platform = cmd[1];
-	memcpy(g_operater,cmd+2,6);
+		cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);
+	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	/*build proc main ack*/
 
 	/*execute cmd*/
 }
+void handle_proc_main(rt_uint8_t *cmd)
+{
+	rt_kprintf("cmd_type \tproc main\r\n");
+	rt_kprintf("proc code \t");
+	switch (cmd[0]) {
+		case 1:
+			rt_kprintf("restart stm32\r\n");
+			g_main_event_code = 0x200b;
+			break;
+		case 2:
+			rt_kprintf("factory reset\r\n");
+			g_main_event_code = 0x2006;
+			break;
+		case 3:
+			rt_kprintf("mute alarm\r\n");
+			g_main_event_code = 0x200c;
+			break;
+	}	
+	rt_kprintf("operate platform \t%d\r\n", cmd[1]);
+	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+		cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
+
+	g_operate_platform = cmd[1];
+	memcpy(g_operater,cmd+2,6);
+	/*build proc main ack*/
+	upload_server(CMD_MAIN_EVENT);
+	rt_thread_delay(300);
+	/*execute cmd*/
+	if (cmd[0] == 2) {
+		dfs_mkfs("elm","sd0");
+		Wtn6_Play(VOICE_HUIFU,ONCE);
+	}
+	if (cmd[0] == 2 || cmd[0] == 1)
+		NVIC_SystemReset();
+	if (cmd[0] == 3)
+	{
+		rt_hw_led_off(AUX_LED0);
+		rt_hw_led_off(AUX_LED1);
+		bell_ctl(0);
+	}
+}
+
 void handle_proc_sub(rt_uint8_t *cmd)
 {
 	rt_kprintf("cmd_type \tproc sub\r\n");
@@ -486,7 +534,7 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 			//handle_set_sub(data+11);
 			break;
 		case CMD_SET_MAIN:
-			//handle_set_main(data+11);
+			handle_set_main(data+11);
 			break;		
 		case CMD_ASK_SUB:
 			handle_ask_sub(data+11);

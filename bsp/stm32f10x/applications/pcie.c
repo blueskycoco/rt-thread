@@ -425,14 +425,38 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[16]= fqp.delay_in;
 		cmd[17]=0;
 		/*store fq list*/
-	} else if (type == CMD_ASK_MAIN_ACK) {
+
+		
+		ofs=27;		
+		cmd[ofs++] = g_operate_platform;
+		memcpy(cmd+ofs,g_operater,6);
+		ofs += 6;
+	} else if (type == CMD_ASK_MAIN_ACK) {	
 		rt_kprintf("\r\n<CMD ASK MAIN ADDR Packet>\r\n");
 		cmd[5] = (CMD_ASK_MAIN_ACK >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_ASK_MAIN_ACK&0xff;
-		//cmd[15]= fqp.delya_out;
-		//cmd[16]= fqp.delya_in;
-		//cmd[17]=0;
-		/*store fq list*/
+		cmd[15]= (fqp.alarm_voice_time<<4)|(fqp.audio_vol&0x0f);
+		cmd[16]= fqp.is_lamp<<4;
+		cmd[17]=(fqp.PGM0<<4)|(fqp.PGM1&0x0f);
+		cmd[18]=0x00;
+		if (fqp.is_check_AC)
+		cmd[18]|= 0x80;
+		if (fqp.is_check_DC)
+			cmd[18]|=0x40;
+		if (fqp.is_alarm_voice)
+			cmd[18]|=0x20;
+		cmd[19]=(fqp.auto_bufang>>24)&0xff;
+		cmd[20]=(fqp.auto_bufang>>16)&0xff;
+		cmd[21]=(fqp.auto_bufang>>8)&0xff;
+		cmd[22]=(fqp.auto_bufang>>0)&0xff;
+		cmd[23]=(fqp.auto_chefang>>24)&0xff;
+		cmd[24]=(fqp.auto_chefang>>16)&0xff;
+		cmd[25]=(fqp.auto_chefang>>8)&0xff;
+		cmd[26]=(fqp.auto_chefang>>0)&0xff;
+		ofs=27;		
+		cmd[ofs++] = g_operate_platform;
+		memcpy(cmd+ofs,g_operater,6);
+		ofs += 6;
 	}
 	rt_kprintf("ofs is %d\r\n", ofs);
 	cmd[3]=ofs+2;
