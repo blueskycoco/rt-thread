@@ -424,21 +424,29 @@ void handle_set_main(rt_uint8_t *cmd)
 }
 void handle_set_sub(rt_uint8_t *cmd)
 {
+	int i;
 	rt_kprintf("cmd_type \tset sub\r\n");
 	if (cmd[0] != 0)
 		fqp.delya_out= cmd[0];
 	if (cmd[1] != 0)
 		fqp.delay_in = cmd[1];
-	if (cmd[2] != 0) {
-		
+	if (cmd[2] != 0 && (cmd[2] % 4) == 0) {
+		for (i=3; i<cmd[2]+3;i+=4) {
+			if (cmd[i+3] == 0xff) /*delete fq*/
+			{
+				delete_fq(cmd[i],cmd[i+1]);	
+			} else {
+				edit_fq(cmd[i],cmd[i+1],cmd[i+2]);
+			}
+		}
 	}
+	i=cmd[2]+3;
+	g_operate_platform = cmd[i];
+	memcpy(g_operater,cmd+i+1,6);
 	
-	g_operate_platform = cmd[12];
-	memcpy(g_operater,cmd+13,6);
-	
-	rt_kprintf("operate platform \t%x\r\n", cmd[12]);
+	rt_kprintf("operate platform \t%x\r\n", cmd[i]);
 	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
-		cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);
+		cmd[i+1],cmd[i+2],cmd[i+3],cmd[i+4],cmd[i+5],cmd[i+6]);
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	/*build proc main ack*/
 
@@ -489,22 +497,53 @@ void handle_proc_main(rt_uint8_t *cmd)
 
 void handle_proc_sub(rt_uint8_t *cmd)
 {
+	int ofs;
+	rt_uint16_t code = cmd[0];
 	rt_kprintf("cmd_type \tproc sub\r\n");
-	rt_kprintf("proc code \t%d\r\n", cmd[0]);
+	rt_kprintf("proc code \t%x\r\n", code);
 	rt_kprintf("fq len \t%d\r\n", cmd[1]);
 	if (cmd[1] == 1)
+	{
 		rt_kprintf("proc fq \t%d\r\n", cmd[2]);
-	else
+		ofs = 3;
+		g_fq_event[0] = cmd[2];
+	} else {
 		rt_kprintf("proc fq \t%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
-		cmd[3],cmd[4],cmd[5],cmd[6],cmd[7],cmd[8],cmd[9],cmd[10]);
-	rt_kprintf("operate platform \t%\r\n", cmd[11]);
+		cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7],cmd[8],cmd[9]);
+		ofs = 10;
+		memcpy(g_fq_event, cmd+2,8);
+	}
+	rt_kprintf("operate platform \t%\r\n", cmd[ofs]);
 	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
-		cmd[12],cmd[13],cmd[14],cmd[15],cmd[16],cmd[17]);
-	g_operate_platform = cmd[11];
-	memcpy(g_operater,cmd+12,6);
+		cmd[ofs+1],cmd[ofs+2],cmd[ofs+3],cmd[ofs+4],cmd[ofs+5],cmd[ofs+6]);
+	g_operate_platform = cmd[ofs];
+	memcpy(g_operater,cmd+ofs+1,6);
 	/*execute cmd*/
-	
+	if (cmd[1] == 1 && cmd[2] == 0xff) {
+		if (cmd[0] == 0x01) {
+			if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
+			{
+				cur_status = 0;
+				g_alarmType =0;
+				g_delay_out = 0;
+				g_alarm_voice = 0;
+				g_delay_in = 0;
+				fqp.status=cur_status;
+				s1=0;
+				handle_protect_off();
+			}
+		} else if (cmd[0] == 0x02) {
+			if (!cur_status && g_delay_out==0)
+			{
+				handle_protect_on();
+			}
+		}
+	} else {
+
+	}
 	/*build proc sub ack*/
+	g_fq_len=cmd[1];
+	upload_server(CMD_SUB_EVENT);
 }
 
 rt_uint8_t handle_packet(rt_uint8_t *data)
