@@ -430,8 +430,8 @@ void handle_set_sub(rt_uint8_t *cmd)
 		fqp.delya_out= cmd[0];
 	if (cmd[1] != 0)
 		fqp.delay_in = cmd[1];
-	if (cmd[2] != 0 && (cmd[2] % 4) == 0) {
-		for (i=3; i<cmd[2]+3;i+=4) {
+	if (cmd[2] != 0) {
+		for (i=3; i<cmd[2]*4+3;i+=4) {
 			if (cmd[i+3] == 0xff) /*delete fq*/
 			{
 				delete_fq(cmd[i],cmd[i+1]);	
@@ -440,7 +440,7 @@ void handle_set_sub(rt_uint8_t *cmd)
 			}
 		}
 	}
-	i=cmd[2]+3;
+	i=cmd[2]*4+3;
 	g_operate_platform = cmd[i];
 	memcpy(g_operater,cmd+i+1,6);
 	
