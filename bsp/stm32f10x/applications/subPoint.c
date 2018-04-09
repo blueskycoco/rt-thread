@@ -36,6 +36,7 @@ extern rt_uint8_t g_alarm_voice;
 extern rt_uint8_t g_delay_in;
 extern rt_uint8_t g_alarm_fq;
 extern rt_uint16_t g_alarm_reason;
+extern rt_uint16_t g_sub_event_code;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -166,9 +167,62 @@ void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
 			edit_fq_detail(fangqu_wireless,index-2,param0,param1);
 		}
 	} else {
-		if (index > 50 && index < 80)
+		if (index >= 50 && index < 80)
 			edit_fq_detail(fangqu_wire,index-WIRELESS_MAX-1,param0,param1);
 	}
+}
+void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
+{
+	struct FangQu    *ptr;
+	if (index >= 50 && index < 80) 
+		ptr = fangqu_wire+index;
+	else if (index > 0 && index < 50)
+		ptr = fangqu_wireless+index;
+	else
+		return ;
+
+	if (code == 0x01 || code == 0x04) //protect off
+	{
+		if (ptr->operationType != TYPE_24)
+			ptr->status = 0;
+		if (code == 0x01)
+			g_sub_event_code = 0x2001;
+	}
+	else if (code == 0x02) //protect on
+	{
+		ptr->status = 1;
+		g_sub_event_code = 0x2002;
+	}
+	else if (code == 0x03) //bypass
+	{
+		ptr->isBypass = TYPE_BYPASS_Y;
+		g_sub_event_code = 0x2004;
+	} 
+}
+void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
+{
+	int i,j,index=1;
+	rt_uint8_t tmp;
+	for (i=len-1; i>=0; i--)
+	{
+		tmp = fq[i];
+		index = (len-i-1)*8+1;
+		for (j=0; j<8; j++)
+		{
+			if (tmp & 0x01) {
+					rt_kprintf("need proc fq %d\r\n", index+j+20);
+					proc_detail_fq(index+j+20, code);
+			} else {
+				if (code == 0x04) {
+					g_sub_event_code = 0x2003;
+					rt_kprintf("need 1proc fq %d\r\n", index+j+20);
+					proc_detail_fq(index+j+20, 0x02);
+				}
+			}			
+			tmp = tmp >> 1;
+		}
+	}
+	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 }
 void save_fq(struct FangQu *list, int len)
 {

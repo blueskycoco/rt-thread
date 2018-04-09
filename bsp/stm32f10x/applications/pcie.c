@@ -406,6 +406,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[ofs++] = g_fq_event[0];
 		} else {
 			memcpy(cmd+ofs,g_fq_event,8);
+			//for (i=0;i<8;i++)
+			//rt_kprintf("cmd %02x , event %02x\r\n",cmd[i+22],g_fq_event[i]);
 			ofs+=8;
 		}
 		cmd[ofs++] = g_operate_platform;

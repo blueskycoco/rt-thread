@@ -36,6 +36,8 @@
 #define EC20_STATE_IMEI				25
 #define EC20_STATE_LACR				26
 #define EC20_STATE_CHECK_SENT		27
+#define EC20_STATE_CFG_FTP		28
+#define EC20_STATE_OPEN_FTP		29
 
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -74,6 +76,8 @@
 #define STR_CSQ						"+CSQ:"
 #define STR_CREG					"+CREG:"
 #define STR_QCCID				"+QCCID: "
+#define STR_FTP_OK				"+QFTPOPEN: 0,0"
+#define STR_FTP_FAILED			"+QFTPOPEN:"
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
 #define cregs "AT+CREG=2\r\n"
@@ -82,6 +86,17 @@
 #define at_qccid "AT+QCCID\r\n"
 #define gsn "AT+GSN\r\n"
 #define STR_QISEND "+QISEND:"
+rt_uint8_t ftp_addr[32] = {0};//"u.110lw.com";
+rt_uint8_t ftp_user[32] = {0};//"minfei";
+rt_uint8_t ftp_passwd[32] = {0};//"minfei123";
+
+rt_uint8_t ftp_cfg_step = 0;
+#define qicfgftp_id			"AT+QFTPCFG=\"contextid\",1\r\n"
+#define qicfgftp_file		"AT+QFTPCFG=\"filetype\",1\r\n"
+#define qicfgftp_mode		"AT+QFTPCFG=\"transmode\",1\r\n"
+#define qicfgftp_timeout 	"AT+QFTPCFG=\"rsptimeout\",90\r\n"
+#define qiftp_list			"AT+QFTPMLISTD=\".\"\r\n"
+#define qiftp_get			"AT+QFTPGET=\"fegnxun.txt\",\"COM:\"\r\n"
 
 #define at_qisend	"AT+QISEND=0,0\r\n"
 #define qistat 		"AT+QISTATE=0,1\r\n"
@@ -105,11 +120,13 @@
 uint8_t 	  qicsgp_ec20[32]			= {0};
 uint8_t 	  qiopen_ec20[64]			= {0};
 uint8_t 	  qisend_ec20[32] 			= {0};
+uint8_t 	  qiftp_ec20[64] = {0};
 #define qiregapp  "AT+QIREGAPP\r\n"
 #define qiact  "AT+QIACT=1\r\n"
 rt_bool_t g_data_in_ec20 = RT_FALSE;
 extern int g_index;
-
+rt_uint8_t ftp_rty=0;
+rt_uint8_t entering_ftp_mode=0;
 rt_device_t g_dev_ec20;
 uint8_t g_ec20_state 				= EC20_STATE_INIT;
 uint32_t server_len_ec20 = 0;
@@ -263,8 +280,8 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
-	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL&& 
-		!have_str(last_data_ptr,STR_CSQ))
+	//if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL&& 
+	//	!have_str(last_data_ptr,STR_CSQ))
 		rt_kprintf("\r\n(EC20<= %d %d %s)\r\n",g_ec20_state, data_size,last_data_ptr);
 	if (data_size >= 2) {
 		switch (g_ec20_state) {
@@ -446,19 +463,63 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				g_net_state = NET_STATE_UNKNOWN;
 				break;
 			case EC20_STATE_SET_QICLOSE:
-				if (have_str(last_data_ptr, STR_CLOSE_OK)) {
-					g_ec20_state = EC20_STATE_SET_QIOPEN;
-					rt_memset(qiopen_ec20, 0, 64);
-					rt_sprintf(qiopen_ec20, "AT+QIOPEN=1,0,\"TCP\",\"%d.%d.%d.%d\",%d,0,0\r\n",
-							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
-							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
-							mp.socketAddress[g_ip_index].port);
-					gprs_at_cmd(g_dev_ec20,qiopen_ec20);
+				if (entering_ftp_mode) {
+					g_ec20_state = EC20_STATE_CFG_FTP;
+					ftp_cfg_step = 0;
+					gprs_at_cmd(g_dev_ec20,qicfgftp_id);
+				} else {
+					if (have_str(last_data_ptr, STR_CLOSE_OK)) {
+						g_ec20_state = EC20_STATE_SET_QIOPEN;
+						rt_memset(qiopen_ec20, 0, 64);
+						rt_sprintf(qiopen_ec20, "AT+QIOPEN=1,0,\"TCP\",\"%d.%d.%d.%d\",%d,0,0\r\n",
+								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+								mp.socketAddress[g_ip_index].port);
+						gprs_at_cmd(g_dev_ec20,qiopen_ec20);
+					}
+					else
+					{
+						g_ec20_state = EC20_STATE_CHECK_QISTAT;
+						gprs_at_cmd(g_dev_ec20,qistat);
+					}
 				}
-				else
+				break;
+			case EC20_STATE_CFG_FTP:
 				{
-					g_ec20_state = EC20_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_ec20,qistat);
+					if (ftp_cfg_step == 3) {
+						rt_sprintf(qiftp_ec20,"AT+QFTPCFG=\"account\",\"%s\",\"%s\"\r\n", ftp_user,ftp_passwd);
+						gprs_at_cmd(g_dev_ec20,qiftp_ec20);
+					} else if (ftp_cfg_step == 0) {
+						gprs_at_cmd(g_dev_ec20,qicfgftp_file);
+					} else if (ftp_cfg_step == 1) {
+						gprs_at_cmd(g_dev_ec20,qicfgftp_mode);
+					} else if (ftp_cfg_step == 2) {
+						gprs_at_cmd(g_dev_ec20,qicfgftp_timeout);					
+					} else if (ftp_cfg_step == 4) {
+						rt_sprintf(qiftp_ec20,"AT+QFTPOPEN=\"%s\",10021\r\n", ftp_addr);
+						gprs_at_cmd(g_dev_ec20,qiftp_ec20);
+						g_ec20_state = EC20_STATE_OPEN_FTP;
+						ftp_rty=0;
+					}
+					ftp_cfg_step++;
+				}
+				break;
+			case EC20_STATE_OPEN_FTP:
+				{
+					if (have_str(last_data_ptr, STR_FTP_OK)) {
+						rt_kprintf("login ftp ok\r\n");
+						gprs_at_cmd(g_dev_ec20,qiftp_get);
+					} else if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
+						rt_thread_delay(100);
+						gprs_at_cmd(g_dev_ec20,qiftp_ec20);
+						ftp_rty++;
+						if (ftp_rty>5)
+						{
+							entering_ftp_mode=0;
+							g_ec20_state = EC20_STATE_CHECK_QISTAT;
+							gprs_at_cmd(g_dev_ec20,qistat);
+						}
+					}
 				}
 				break;
 			case EC20_STATE_SET_QINDI:
@@ -516,6 +577,15 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				break;		
 			case EC20_STATE_SET_QIACT:
 				if (have_str(last_data_ptr, STR_OK)) {
+					#if 1
+					g_ec20_state = EC20_STATE_CFG_FTP;
+					ftp_cfg_step = 0;
+					strcpy(ftp_addr,"u.110LW.com");
+//					strcpy(ftp_addr,"47.93.48.167");
+					strcpy(ftp_user,"minfei");
+					strcpy(ftp_passwd,"minfei123");
+					gprs_at_cmd(g_dev_ec20,qicfgftp_id);
+					#else				
 					g_ec20_state = EC20_STATE_SET_QIOPEN;
 					rt_memset(qiopen_ec20, 0, 64);					
 					rt_sprintf(qiopen_ec20, "AT+QIOPEN=1,0,\"TCP\",\"%d.%d.%d.%d\",%d,0,0\r\n",
@@ -523,6 +593,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
 							mp.socketAddress[g_ip_index].port);
 					gprs_at_cmd(g_dev_ec20,qiopen_ec20);
+					#endif
 				} else {
 					/*check error condition*/
 					g_ec20_state = EC20_STATE_SET_QIDEACT;
@@ -594,7 +665,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_ec20,qiclose);
 						break;
 					}
-					if (g_heart_cnt > 5) {
+					if (g_heart_cnt > 5 || entering_ftp_mode) {
 						g_ec20_state = EC20_STATE_SET_QICLOSE;
 						gprs_at_cmd(g_dev_ec20,qiclose);
 						break;

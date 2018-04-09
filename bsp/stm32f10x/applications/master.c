@@ -160,9 +160,10 @@ void info_user(void *param)
 			g_sub_event_code = 0x2002;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
-			g_operater[0] =  fangqu_wireless[g_index_sub].index;
+			memset(g_operater,0,8);
+			g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
 			g_operate_platform = 0xff;
-			g_operater[5] = 0x10;
+			//g_operater[5] = 0x10;
 			upload_server(CMD_SUB_EVENT);
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
@@ -193,9 +194,10 @@ void info_user(void *param)
 			g_sub_event_code = 0x2001;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
-			g_operater[0] = fangqu_wireless[g_index_sub].index;
+			memset(g_operater,0,8);
+			g_operater[7] = 0x10+fangqu_wireless[g_index_sub].index;
 			g_operate_platform = 0xff;
-			g_operater[5] = 0x10;
+			//g_operater[5] = 0x10;
 			upload_server(CMD_SUB_EVENT);
 		}
 
@@ -498,48 +500,54 @@ void handle_proc_main(rt_uint8_t *cmd)
 void handle_proc_sub(rt_uint8_t *cmd)
 {
 	int ofs;
-	rt_uint16_t code = cmd[0];
 	rt_kprintf("cmd_type \tproc sub\r\n");
-	rt_kprintf("proc code \t%x\r\n", code);
-	rt_kprintf("fq len \t%d\r\n", cmd[1]);
+	rt_kprintf("proc code \t%x\r\n", cmd[0]);
+	rt_kprintf("fq len \t\t%d\r\n", cmd[1]);
 	if (cmd[1] == 1)
 	{
-		rt_kprintf("proc fq \t%d\r\n", cmd[2]);
-		ofs = 3;
 		g_fq_event[0] = cmd[2];
+		rt_kprintf("proc fq \t%d\r\n", g_fq_event[0]);
+		ofs = 3;
 	} else {
-		rt_kprintf("proc fq \t%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
-		cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7],cmd[8],cmd[9]);
-		ofs = 10;
 		memcpy(g_fq_event, cmd+2,8);
+		rt_kprintf("proc fq \t%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
+		g_fq_event[0],g_fq_event[1],g_fq_event[2],g_fq_event[3],g_fq_event[4],g_fq_event[5],g_fq_event[6],g_fq_event[7]);
+		ofs = 10;
 	}
-	rt_kprintf("operate platform \t%\r\n", cmd[ofs]);
+	rt_kprintf("operate platform \t%d\r\n", cmd[ofs]);
 	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
 		cmd[ofs+1],cmd[ofs+2],cmd[ofs+3],cmd[ofs+4],cmd[ofs+5],cmd[ofs+6]);
 	g_operate_platform = cmd[ofs];
 	memcpy(g_operater,cmd+ofs+1,6);
 	/*execute cmd*/
-	if (cmd[1] == 1 && cmd[2] == 0xff) {
-		if (cmd[0] == 0x01) {
-			if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
-			{
-				cur_status = 0;
-				g_alarmType =0;
-				g_delay_out = 0;
-				g_alarm_voice = 0;
-				g_delay_in = 0;
-				fqp.status=cur_status;
-				s1=0;
-				handle_protect_off();
+	if (cmd[1] == 1) {
+		if (cmd[2] == 0xff) {
+			/*proc stm32*/
+			if (cmd[0] == 0x01) {
+				if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
+				{
+					cur_status = 0;
+					g_alarmType =0;
+					g_delay_out = 0;
+					g_alarm_voice = 0;
+					g_delay_in = 0;
+					fqp.status=cur_status;
+					s1=0;
+					handle_protect_off();
+				}
+			} else if (cmd[0] == 0x02) {
+				if (!cur_status && g_delay_out==0)
+				{
+					handle_protect_on();
+				}
 			}
-		} else if (cmd[0] == 0x02) {
-			if (!cur_status && g_delay_out==0)
-			{
-				handle_protect_on();
-			}
+		} else {
+			/*proc signle fq*/
+			proc_fq(cmd+2, 1, cmd[0]);
 		}
 	} else {
-
+		/*proc multi fq*/
+		proc_fq(cmd+2, 8, cmd[0]);
 	}
 	/*build proc sub ack*/
 	g_fq_len=cmd[1];
