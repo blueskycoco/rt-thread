@@ -42,6 +42,7 @@ extern rt_uint8_t g_ac;
 extern rt_uint8_t g_heart_cnt;
 extern rt_uint8_t g_addr_type;
 extern struct rt_mutex g_stm32_lock;
+extern rt_uint8_t entering_ftp_mode;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -164,7 +165,8 @@ void info_user(void *param)
 			g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
 			g_operate_platform = 0xff;
 			//g_operater[5] = 0x10;
-			upload_server(CMD_SUB_EVENT);
+			upload_server(CMD_SUB_EVENT);			
+			entering_ftp_mode	=1;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
 			Wtn6_Play(VOICE_YANSHIBF,LOOP);

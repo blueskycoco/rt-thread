@@ -32,6 +32,59 @@ unsigned int CRC_check(unsigned char *Data,unsigned short Data_length)
 	}
 	return CRC1;
 }
+unsigned int CRC_check_file(unsigned char *file)
+{
+	unsigned int mid=0;
+	unsigned char times=0;
+	unsigned short Data_index=0;
+	unsigned char *Data = RT_NULL;
+	unsigned short Data_length=0;
+	unsigned int CRC1=0xFFFF;
+	
+	int fd = open(file, O_RDONLY, 0);
+	if (fd < 0)
+	{
+		rt_kprintf("CRC check file ,open %s failed\n");
+		return 0;
+	}
+	Data = (unsigned char *)rt_malloc(1024*sizeof(unsigned char));
+	if (Data == RT_NULL) {
+		rt_kprintf("CRC check file , malloc failed\r\n");
+		return 0;
+	}
+
+	do {
+		Data_length = read(fd, Data, 1024);
+		rt_kprintf("Data length %d\r\n", Data_length);
+		if (Data_length > 0) {
+			Data_index=0;
+			while (Data_length) {
+				CRC1=Data[Data_index]^CRC1;
+				for(times=0;times<8;times++)
+				{
+					mid=CRC1;
+					CRC1=CRC1>>1;
+					if(mid & 0x0001)
+					{
+						CRC1=CRC1^0xA001;
+					}
+				}
+				Data_index++;
+				Data_length--;
+			}
+		}
+		else
+		{
+			rt_kprintf("read %s failed %d\r\n", file,CRC1);
+		}
+
+	}while(Data_length == 1024);
+	close(fd);
+	rt_free(Data);
+	rt_kprintf("CRC check file crc is %04x\r\n", CRC1);
+	return CRC1;
+}
+
 char doit_ack(char *text,const char *item_str)
 {
 	char result=0;cJSON *json,*item_json;
@@ -339,4 +392,15 @@ void update_ip_list(rt_uint8_t *ip, rt_uint8_t len)
 					(mp.socketAddress[0].IP[2] <<  8)|
 					(mp.socketAddress[0].IP[3] <<  0);
 	g_server_port_bak = mp.socketAddress[0].port;
+}
+int get_len(rt_uint8_t *pos, rt_uint16_t len)
+{
+	int i=0;
+	int rlen=0;
+	while (pos[i] != '\r' && pos[i+1] != '\n' && i<len)
+	{
+		rlen = rlen*10 + pos[i] - '0';
+		i++;
+	}
+	return rlen;
 }
