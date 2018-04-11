@@ -633,7 +633,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_OK))
 				{
 					gprs_at_cmd(g_dev_ec20,qiftp_close);
-					g_ec20_state = EC20_STATE_CHECK_QISTAT;
+					g_ec20_state = EC20_STATE_SET_QIACT;
 					entering_ftp_mode=0;
 				}
 				break;
@@ -691,7 +691,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;		
 			case EC20_STATE_SET_QIACT:
-				if (have_str(last_data_ptr, STR_OK)) {
+				if (have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_QFTPCLOSE) ) {
 					#if 0
 					g_ec20_state = EC20_STATE_CFG_FTP;
 					ftp_cfg_step = 0;
