@@ -38,7 +38,7 @@ unsigned int CRC_check_file(unsigned char *file)
 	unsigned char times=0;
 	unsigned short Data_index=0;
 	unsigned char *Data = RT_NULL;
-	unsigned short Data_length=0;
+	unsigned short Data_length=0,Data_length1=0;
 	unsigned int CRC1=0xFFFF;
 	
 	int fd = open(file, O_RDONLY, 0);
@@ -54,8 +54,8 @@ unsigned int CRC_check_file(unsigned char *file)
 	}
 
 	do {
-		Data_length = read(fd, Data, 1024);
-		rt_kprintf("Data length %d\r\n", Data_length);
+		Data_length1 = Data_length = read(fd, Data, 1024);
+		//rt_kprintf("Data length %d\r\n", Data_length);
 		if (Data_length > 0) {
 			Data_index=0;
 			while (Data_length) {
@@ -78,13 +78,41 @@ unsigned int CRC_check_file(unsigned char *file)
 			rt_kprintf("read %s failed %d\r\n", file,CRC1);
 		}
 
-	}while(Data_length == 1024);
+	}while(Data_length1 == 1024);
 	close(fd);
 	rt_free(Data);
 	rt_kprintf("CRC check file crc is %04x\r\n", CRC1);
 	return CRC1;
 }
-
+void cat_file(unsigned char *file)
+{	
+	unsigned char *Data = RT_NULL;
+	int i;
+	unsigned short Data_length=0;
+	int fd = open(file, O_RDONLY, 0);
+	if (fd < 0)
+	{
+		rt_kprintf("CRC check file ,open %s failed\n");
+		return ;
+	}
+	Data = (unsigned char *)rt_malloc(1024*sizeof(unsigned char));
+	if (Data == RT_NULL) {
+		rt_kprintf("CRC check file , malloc failed\r\n");
+		return ;
+	}
+	rt_kprintf("%s \r\n",file);
+	do {
+		Data_length = read(fd, Data, 1024);
+		if (Data_length>0)
+		{
+			for(i=0;i<Data_length;i++)
+				rt_kprintf("%02x", Data[i]);
+			rt_kprintf("\r\n");
+		}		
+		}while(Data_length >0);
+	rt_free(Data);
+	close(fd);
+}
 char doit_ack(char *text,const char *item_str)
 {
 	char result=0;cJSON *json,*item_json;

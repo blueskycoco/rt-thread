@@ -54,7 +54,7 @@
 #define STR_STAT_DEACT				"PDP DEACT"
 #define STR_QIMUX_0					"+QIMUX: 0"
 #define STR_OK						"OK"
-#define STR_CONNECT					"CONNECT\r\n"
+#define STR_CONNECT					"CONNECT "
 #define STR_QIRD					"+QIRD:"
 #define STR_QIURC					"+QIURC: \"recv"
 #define STR_TCP						"TCP,"
@@ -92,6 +92,7 @@
 #define at_qccid "AT+QCCID\r\n"
 #define gsn "AT+GSN\r\n"
 #define STR_QISEND "+QISEND:"
+#define SINGLE_FILE_LEN	1024
 rt_uint8_t ftp_addr[32] = {0};//"u.110lw.com";
 rt_uint8_t ftp_user[32] = {0};//"minfei";
 rt_uint8_t ftp_passwd[32] = {0};//"minfei123";
@@ -102,7 +103,8 @@ rt_uint8_t ftp_cfg_step = 0;
 #define qicfgftp_mode		"AT+QFTPCFG=\"transmode\",1\r\n"
 #define qicfgftp_timeout 	"AT+QFTPCFG=\"rsptimeout\",90\r\n"
 #define qiftp_list			"AT+QFTPMLISTD=\".\"\r\n"
-#define qiftp_get			"AT+QFTPGET=\"fegnxun.txt\",\"RAM:stm32.bin\",0\r\n"
+//#define qiftp_get			"AT+QFTPGET=\"fegnxun.txt\",\"RAM:stm32.bin\",0\r\n"
+#define qiftp_get			"AT+QFTPGET=\"stm32.bin\",\"RAM:stm32.bin\",0\r\n"
 #define qiftp_open_file		"AT+QFOPEN=\"RAM:stm32.bin\",0\r\n"
 #define qiftp_close			"AT+QFTPCLOSE\r\n"
 
@@ -153,7 +155,9 @@ rt_uint8_t g_ip_index=0;
 int stm32_fd=0;
 int stm32_len=0;
 int cur_stm32_len=0;
-
+int down_fd=0;
+rt_uint8_t *tmp_stm32_bin = RT_NULL;
+rt_size_t	tmp_stm32_len = 0;
 void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 {
 		static rt_bool_t flag = RT_FALSE;
@@ -297,7 +301,10 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
 	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL&& 
 		!have_str(last_data_ptr,STR_CSQ))
-		rt_kprintf("\r\n(EC20<= %d %d %s)\r\n",g_ec20_state, data_size,last_data_ptr);
+		 if (!have_str(last_data_ptr,STR_CONNECT))
+			rt_kprintf("\r\n(EC20<= %d %d %s)\r\n",g_ec20_state, data_size,last_data_ptr);
+		 else
+		 	rt_kprintf("\r\n(EC20<= %d %d)\r\n",g_ec20_state, data_size);
 	if (data_size >= 2) {
 		switch (g_ec20_state) {
 			case EC20_STATE_INIT:
@@ -528,8 +535,14 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					if (have_str(last_data_ptr, STR_FTP_OK)) {
 						rt_kprintf("login ftp ok\r\n");
 						gprs_at_cmd(g_dev_ec20,qiftp_get);
-						g_ec20_state = EC20_STATE_GET_FILE;
+						g_ec20_state = EC20_STATE_GET_FILE;				
 						stm32_len=0;
+/*
+						stm32_len = 177580;
+						gprs_at_cmd(g_dev_ec20,qiftp_open_file);
+						g_ec20_state = EC20_STATE_READ_FILE;
+						stm32_fd=0;
+	*/	
 						//gprs_at_cmd(g_dev_ec20,qflds);
 						
 					} else if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
@@ -557,27 +570,62 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 			case EC20_STATE_READ_FILE:
 					if (stm32_fd == 0) {
 						if (have_str(last_data_ptr, STR_QFOPEN)) {
-							stm32_fd = get_len(strstr(last_data_ptr, STR_QFOPEN)+strlen(STR_QFOPEN),data_size-strlen(STR_QFOPEN));					
-							sprintf(qiftp_read_file,"AT+QFREAD=%d,5\r\n", stm32_fd);
+							stm32_fd = get_len(strstr(last_data_ptr, STR_QFOPEN)+strlen(STR_QFOPEN),data_size-strlen(STR_QFOPEN));	
+							if (stm32_len <= SINGLE_FILE_LEN)
+							{
+								sprintf(qiftp_read_file,"AT+QFREAD=%d,%d\r\n", stm32_fd,stm32_len);							
+								//cur_stm32_len = stm32_len;
+							} else {
+								sprintf(qiftp_read_file,"AT+QFREAD=%d,1024\r\n", stm32_fd);
+								//cur_stm32_len = SINGLE_FILE_LEN;
+							}
+							cur_stm32_len=0;
+							down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);
 							rt_kprintf("get stm32 fd %d\r\n", stm32_fd);
-							cur_stm32_len = 5;
 							gprs_at_cmd(g_dev_ec20,qiftp_read_file);	
+							tmp_stm32_bin = (rt_uint8_t *)rt_malloc(1500*sizeof(rt_uint8_t));
+							rt_memset(tmp_stm32_bin,0,1500);
+							tmp_stm32_len=0;
 						}		
-					}
-					if (cur_stm32_len >= stm32_len) {
-						sprintf(qiftp_close_file,"AT+QFCLOSE=%d\r\n",stm32_fd);
-						gprs_at_cmd(g_dev_ec20,qiftp_close_file);
-						g_ec20_state = EC20_STATE_LOGOUT_FTP;
 					} else {
-						if (have_str(last_data_ptr, STR_OK) && have_str(last_data_ptr, STR_CONNECT)) {
-							rt_uint8_t *ch = strstr(last_data_ptr,STR_CONNECT)+strlen(STR_CONNECT);
-							rt_kprintf("get %02x\r\n",ch[0]);
-							rt_kprintf("get %02x\r\n",ch[1]);
-							rt_kprintf("get %02x\r\n",ch[2]);
-							rt_kprintf("get %02x\r\n",ch[3]);
-							rt_kprintf("get %02x\r\n",ch[4]);
-							cur_stm32_len +=5;
-							gprs_at_cmd(g_dev_ec20,qiftp_read_file);					
+						rt_uint8_t *ptr = (rt_uint8_t *)last_data_ptr;					
+						rt_uint16_t cnt=0;
+						
+						rt_memcpy(tmp_stm32_bin+tmp_stm32_len, (rt_uint8_t *)last_data_ptr, data_size);
+						tmp_stm32_len += data_size;						
+						rt_hw_led_off(NET_LED);
+						rt_kprintf("tmp stm32 len %d \r\n",tmp_stm32_len);
+						
+						if (tmp_stm32_bin[tmp_stm32_len-1] == '\n'  
+							&& tmp_stm32_bin[tmp_stm32_len-2] == '\r' 
+							&& tmp_stm32_bin[tmp_stm32_len-3] == 'K'
+							&& tmp_stm32_bin[tmp_stm32_len-4] == 'O'
+							&& have_str(tmp_stm32_bin, STR_CONNECT)) {
+							rt_uint16_t cur_len;
+							cur_len = get_len(strstr(tmp_stm32_bin, STR_CONNECT)+strlen(STR_CONNECT),tmp_stm32_len-strlen(STR_CONNECT));
+							rt_uint8_t *ch = strchr(strstr(tmp_stm32_bin, STR_CONNECT),'\n')+1;							
+							rt_kprintf("%d cur Len %d\r\n", cur_stm32_len, cur_len);																
+							if (cur_len != write(down_fd, ch, cur_len))
+							{
+								rt_kprintf("write data failed\n");
+								close(down_fd);
+								break;
+							}
+							cur_stm32_len +=cur_len;
+							if (cur_stm32_len < stm32_len) {		
+								gprs_at_cmd(g_dev_ec20,qiftp_read_file);									
+								rt_hw_led_on(NET_LED);
+							} else {
+								close(down_fd);
+								rt_free(tmp_stm32_bin);
+								//cat_file("/stm32.bin");
+								CRC_check_file("/stm32.bin");
+								sprintf(qiftp_close_file,"AT+QFCLOSE=%d\r\n",stm32_fd);
+								gprs_at_cmd(g_dev_ec20,qiftp_close_file);
+								g_ec20_state = EC20_STATE_LOGOUT_FTP;
+							}
+							tmp_stm32_len=0;
+							rt_memset(tmp_stm32_bin,0,1500);			
 						}
 					}				
 				break;
