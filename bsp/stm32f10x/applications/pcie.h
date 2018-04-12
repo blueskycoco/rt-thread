@@ -24,6 +24,25 @@
 #define NET_STATE_INIT  	1
 #define NET_STATE_LOGIN		2
 #define NET_STATE_LOGED		3
+#define qicfgftp_id			"AT+QFTPCFG=\"contextid\",1\r\n"
+#define qicfgftp_file		"AT+QFTPCFG=\"filetype\",1\r\n"
+#define qicfgftp_mode		"AT+QFTPCFG=\"transmode\",1\r\n"
+#define qicfgftp_timeout 	"AT+QFTPCFG=\"rsptimeout\",90\r\n"
+#define qiftp_list			"AT+QFTPMLISTD=\".\"\r\n"
+#define qiftp_m26_ram		"AT+QFTPCFG=4,\"/RAM/stm32.bin\"\r\n"
+//#define qiftp_get			"AT+QFTPGET=\"fegnxun.txt\",\"RAM:stm32.bin\",0\r\n"
+#define qiftp_get			"AT+QFTPGET=\"stm32.bin\",\"RAM:stm32.bin\",0\r\n"
+#define qiftp_get_m26			"AT+QFTPGET=\"fegnxun.txt\"\r\n"
+#define qiftp_open_file		"AT+QFOPEN=\"RAM:stm32.bin\",0\r\n"
+#define qiftp_close			"AT+QFTPCLOSE\r\n"
+#define STR_CONNECT					"CONNECT "
+#define STR_FTP_OK				"+QFTPOPEN: 0,0"
+#define STR_FTP_OK_M26				"+QFTPOPEN:0"
+#define STR_FTP_FAILED			"+QFTPOPEN:"
+#define STR_QFTPGET				"+QFTPGET: 0,"
+#define STR_QFOPEN				"+QFOPEN: "
+#define STR_QFTPCLOSE			"+QFTPCLOSE: 0,0"
+#define SINGLE_FILE_LEN	1024
 
 struct rt_data_queue *g_data_queue;
 typedef struct _pcie_param {

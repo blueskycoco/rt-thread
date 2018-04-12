@@ -54,7 +54,6 @@
 #define STR_STAT_DEACT				"PDP DEACT"
 #define STR_QIMUX_0					"+QIMUX: 0"
 #define STR_OK						"OK"
-#define STR_CONNECT					"CONNECT "
 #define STR_QIRD					"+QIRD:"
 #define STR_QIURC					"+QIURC: \"recv"
 #define STR_TCP						"TCP,"
@@ -79,11 +78,6 @@
 #define STR_CSQ						"+CSQ:"
 #define STR_CREG					"+CREG:"
 #define STR_QCCID				"+QCCID: "
-#define STR_FTP_OK				"+QFTPOPEN: 0,0"
-#define STR_FTP_FAILED			"+QFTPOPEN:"
-#define STR_QFTPGET				"+QFTPGET: 0,"
-#define STR_QFOPEN				"+QFOPEN: "
-#define STR_QFTPCLOSE			"+QFTPCLOSE: 0,0"
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
 #define cregs "AT+CREG=2\r\n"
@@ -92,21 +86,11 @@
 #define at_qccid "AT+QCCID\r\n"
 #define gsn "AT+GSN\r\n"
 #define STR_QISEND "+QISEND:"
-#define SINGLE_FILE_LEN	1024
 rt_uint8_t ftp_addr[32] = {0};//"u.110lw.com";
 rt_uint8_t ftp_user[32] = {0};//"minfei";
 rt_uint8_t ftp_passwd[32] = {0};//"minfei123";
 
 rt_uint8_t ftp_cfg_step = 0;
-#define qicfgftp_id			"AT+QFTPCFG=\"contextid\",1\r\n"
-#define qicfgftp_file		"AT+QFTPCFG=\"filetype\",1\r\n"
-#define qicfgftp_mode		"AT+QFTPCFG=\"transmode\",1\r\n"
-#define qicfgftp_timeout 	"AT+QFTPCFG=\"rsptimeout\",90\r\n"
-#define qiftp_list			"AT+QFTPMLISTD=\".\"\r\n"
-//#define qiftp_get			"AT+QFTPGET=\"fegnxun.txt\",\"RAM:stm32.bin\",0\r\n"
-#define qiftp_get			"AT+QFTPGET=\"stm32.bin\",\"RAM:stm32.bin\",0\r\n"
-#define qiftp_open_file		"AT+QFOPEN=\"RAM:stm32.bin\",0\r\n"
-#define qiftp_close			"AT+QFTPCLOSE\r\n"
 
 #define at_qisend	"AT+QISEND=0,0\r\n"
 #define qistat 		"AT+QISTATE=0,1\r\n"
@@ -146,16 +130,16 @@ uint8_t *server_buf_ec20 = RT_NULL;
 void *send_data_ptr_ec20 = RT_NULL;
 rt_size_t send_size_ec20;
 extern rt_uint8_t g_net_state;
-rt_uint32_t g_server_addr;
-rt_uint32_t g_server_addr_bak;
-rt_uint16_t g_server_port;
-rt_uint16_t g_server_port_bak;
 extern rt_uint8_t g_heart_cnt;
-rt_uint8_t g_ip_index=0;
 int stm32_fd=0;
 int stm32_len=0;
 int cur_stm32_len=0;
 int down_fd=0;
+rt_uint32_t g_server_addr;
+rt_uint32_t g_server_addr_bak;
+rt_uint16_t g_server_port;
+rt_uint16_t g_server_port_bak;
+rt_uint8_t g_ip_index=0;
 rt_uint8_t *tmp_stm32_bin = RT_NULL;
 rt_size_t	tmp_stm32_len = 0;
 void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
@@ -864,7 +848,6 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					//for (int ii=0;ii<send_size_ec20;ii++)
 					//	rt_kprintf("sending %02x\r\n", ((rt_uint8_t *)send_data_ptr_ec20)[ii]);
 					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_ec20, send_size_ec20);
-					rt_free(send_data_ptr_ec20);
 				}
 				else if(have_str(last_data_ptr, STR_ERROR))
 				{
@@ -873,6 +856,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				if (have_str(last_data_ptr, STR_QIURC))
 					g_data_in_ec20 = RT_TRUE;
+				rt_free(send_data_ptr_ec20);
 				break;
 			case EC20_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_SEND_OK)) {

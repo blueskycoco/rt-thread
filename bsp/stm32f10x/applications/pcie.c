@@ -525,10 +525,14 @@ void send_process(void* parameter)
 	int send_len = 0;
 	
 	while(1)	{
+		rt_kprintf("wait for event\r\n");
 		gprs_wait_event(RT_WAITING_FOREVER);
-		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
+		rt_kprintf("wait lock\r\n");
+		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);		
 		cmd = (char *)rt_malloc(50);
+		rt_kprintf("begin send cmd\r\n");
 		if (g_net_state == NET_STATE_INIT) {
+			rt_kprintf("send login\r\n");
 			send_len = build_cmd(cmd,CMD_LOGIN);
 			g_net_state = NET_STATE_LOGIN;
 			heart_time = 0;

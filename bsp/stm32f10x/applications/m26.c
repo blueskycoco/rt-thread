@@ -35,6 +35,12 @@
 #define M26_STATE_ICCID				24
 #define M26_STATE_IMEI				25
 #define M26_STATE_LACR				26
+#define M26_STATE_IFGCNT			27
+#define M26_STATE_CFG_FTP		28
+#define M26_STATE_OPEN_FTP		29
+#define M26_STATE_GET_FILE		30
+#define M26_STATE_READ_FILE	31
+#define M26_STATE_LOGOUT_FTP	32
 
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -74,7 +80,7 @@
 #define STR_CONNECT_FAIL			"CONNECT FAIL"
 #define STR_CONNECT_OK_EC20			"+QIOPEN: 0,0"
 #define STR_CONNECT_FAIL_EC20		"+QIOPEN: 0,"
-
+#define STR_QFTPCFG					"+QFTPCFG:0"
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
 
@@ -116,11 +122,46 @@ uint32_t server_len_m26 = 0;
 uint8_t *server_buf_m26 = RT_NULL;
 void *send_data_ptr_m26 = RT_NULL;
 rt_size_t send_size_m26;
-void handle_m26_server_in(const void *last_data_ptr)
+
+extern rt_uint8_t g_net_state;
+extern rt_uint32_t g_server_addr;
+extern rt_uint32_t g_server_addr_bak;
+extern rt_uint16_t g_server_port;
+extern rt_uint16_t g_server_port_bak;
+extern rt_uint8_t g_ip_index;
+extern rt_uint8_t ftp_cfg_step;
+extern rt_uint8_t ftp_addr[32];
+extern rt_uint8_t ftp_user[32];
+extern rt_uint8_t ftp_passwd[32];
+extern rt_uint8_t g_heart_cnt;
+extern rt_uint8_t entering_ftp_mode;
+extern rt_uint8_t *tmp_stm32_bin;
+extern rt_size_t	tmp_stm32_len;
+extern int stm32_fd;
+extern int stm32_len;
+extern int cur_stm32_len;
+extern int down_fd;
+extern uint8_t 	  qiftp_ec20[64];
+extern uint8_t		  qiftp_read_file[32];//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
+extern uint8_t			qiftp_close_file[32];
+extern rt_uint8_t ftp_rty;
+void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
-	static rt_bool_t flag = RT_FALSE;
-	if (have_str(last_data_ptr, STR_TCP))
+	static rt_bool_t flag = RT_FALSE;	
+	int i;
+	int ofs;
+	if (match_bin(last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
+		(match_bin(last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
+		!flag) {
+		gprs_at_cmd(g_dev_m26,qird);
+		server_len_m26 = 0;
+		g_data_in_m26 = RT_TRUE;
+		return ;
+		}
+	
+	if (/*have_str(last_data_ptr, STR_TCP)*/(ofs = match_bin(last_data_ptr, len,STR_TCP,rt_strlen(STR_TCP)))!=-1)
 	{	
+	#if 0
 		uint8_t *begin = (uint8_t *)strstr(last_data_ptr,STR_QIRD);
 		uint8_t *pos = RT_NULL;
 		if (begin == RT_NULL)
@@ -171,6 +212,58 @@ void handle_m26_server_in(const void *last_data_ptr)
 			else
 				flag = RT_TRUE;
 		}
+		#else
+			uint8_t *pos = (uint8_t *)last_data_ptr;
+			//for(i=0;i<256;i++)
+			//	rt_kprintf("%c",pos[i]);
+			//rt_kprintf("ofs is %d\r\n",ofs);
+			//if (pos != RT_NULL) {
+				int i = 4+ofs;
+				//rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
+				//	pos[ofs],pos[ofs+1],pos[ofs+2],pos[ofs+3],pos[ofs+4],pos[ofs+5],pos[ofs+6],pos[ofs+7],
+				//	pos[ofs+8],pos[ofs+9],pos[ofs+10],pos[ofs+11]);
+				while (pos[i] != '\r' && pos[i+1] != '\n' && i<len)
+				{
+					server_len_m26 = server_len_m26*10 + pos[i] - '0';
+					i++;
+				}
+				//server_len_ec20 = get_len(pos+i,len-i);
+				//rt_kprintf("server len %d\r\n", server_len_m26);
+				server_buf_m26 = (uint8_t *)rt_malloc(server_len_m26 * sizeof(uint8_t));
+				rt_memset(server_buf_m26,0,server_len_m26);
+				//server_len_ec20 = 0;
+				i+=2;
+				if (i+server_len_m26 < len)
+					rt_memcpy(server_buf_m26,pos+i,server_len_m26);
+				else
+				{
+					server_len_m26 = i+server_len_m26-len;
+					rt_memcpy(server_buf_m26,pos+i,server_len_m26);
+				}
+				/*while(i<len && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
+				{
+	
+					server_buf_ec20[server_len_ec20++] = pos[i++];
+					rt_kprintf("<%02x>\r\n", server_buf_ec20[server_len_ec20-1]);
+				}*/
+				if (match_bin(pos, len, "OK",rt_strlen("OK"))!=-1)
+				{
+					rt_data_queue_push(&g_data_queue[3], server_buf_m26, server_len_m26, RT_WAITING_FOREVER);
+					if (server_len_m26 == 1500) {
+						g_m26_state = M26_STATE_CHECK_QISTAT;
+						gprs_at_cmd(g_dev_m26,qistat);
+					} else {
+						g_m26_state = M26_STATE_DATA_PROCESSING;
+						gprs_at_cmd(g_dev_m26,at_csq);
+					}
+					if (match_bin(last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))==-1)
+						g_data_in_m26 = RT_FALSE;
+	
+					flag = RT_FALSE;
+				}
+				else
+					flag = RT_TRUE;
+		#endif
 	}
 	else if (flag){	
 		int i=0;
@@ -192,7 +285,7 @@ void handle_m26_server_in(const void *last_data_ptr)
 			}
 			if (!have_str(last_data_ptr, STR_QIRDI))
 				g_data_in_m26 = RT_FALSE;
-			rt_mutex_release(&(g_pcie[g_index]->lock));
+			//rt_mutex_release(&(g_pcie[g_index]->lock));
 			flag = RT_FALSE;
 		}
 		
@@ -293,10 +386,16 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
 					rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
-					g_m26_state = M26_STATE_LAC;
-					gprs_at_cmd(g_dev_m26,cregs);
+					//g_m26_state = M26_STATE_LAC;
+					//gprs_at_cmd(g_dev_m26,cregs);
+					gprs_at_cmd(g_dev_m26,qifgcnt);
+					g_m26_state = M26_STATE_IFGCNT;
 				} 
 				break;
+			case M26_STATE_IFGCNT:
+					g_m26_state = M26_STATE_LAC;
+					gprs_at_cmd(g_dev_m26,cregs);
+					break;
 			case M26_STATE_LAC:
 				if (have_str(last_data_ptr,STR_OK)) {
 					g_m26_state = M26_STATE_LACR;
@@ -430,20 +529,157 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_m26,qiopen_m26);
 				}			
 				break;
-			case M26_STATE_SET_QICLOSE:
-				if (have_str(last_data_ptr, STR_CLOSE_OK)) {
-					g_m26_state = M26_STATE_SET_QIOPEN;
-					rt_memset(qiopen_m26, 0, 64);
-					rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%d.%d.%d.%d\",\"%d\"\r\n",
-							mp.socketAddress[0].IP[0],mp.socketAddress[0].IP[1],
-							mp.socketAddress[0].IP[2],mp.socketAddress[0].IP[3],
-							mp.socketAddress[0].port);
-					gprs_at_cmd(g_dev_m26,qiopen_m26);
-				}
-				else
+			case M26_STATE_CFG_FTP:
 				{
-					g_m26_state = M26_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_m26,qistat);
+					if (ftp_cfg_step == 0) {
+						rt_sprintf(qiftp_ec20,"AT+QFTPPASS=\"%s\"\r\n", ftp_passwd);
+						gprs_at_cmd(g_dev_m26,qiftp_ec20);
+					} else if (ftp_cfg_step == 2) {
+						if (have_str(last_data_ptr,STR_QFTPCFG)) {
+						rt_sprintf(qiftp_ec20,"AT+QFTPOPEN=\"%s\",10021\r\n", ftp_addr);
+						gprs_at_cmd(g_dev_m26,qiftp_ec20);
+						g_m26_state = M26_STATE_OPEN_FTP;
+						ftp_rty=0;
+						} else 
+							ftp_cfg_step--;
+					} else if (ftp_cfg_step == 1) {
+						gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
+					}
+					ftp_cfg_step++;
+				}
+				break;
+			case M26_STATE_OPEN_FTP:
+				{
+					if (have_str(last_data_ptr, STR_FTP_OK_M26)) {
+						rt_kprintf("login ftp ok\r\n");
+						gprs_at_cmd(g_dev_m26,qiftp_get_m26);
+						g_m26_state = M26_STATE_GET_FILE; 			
+						stm32_len=0;
+/*
+						stm32_len = 177580;
+						gprs_at_cmd(g_dev_ec20,qiftp_open_file);
+						g_ec20_state = EC20_STATE_READ_FILE;
+						stm32_fd=0;
+	*/	
+						//gprs_at_cmd(g_dev_ec20,qflds);
+						
+					} else if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
+						rt_thread_delay(100);
+						gprs_at_cmd(g_dev_m26,qiftp_ec20);
+						ftp_rty++;
+						if (ftp_rty>5)
+						{
+							entering_ftp_mode=0;
+							g_m26_state = M26_STATE_CHECK_QISTAT;
+							gprs_at_cmd(g_dev_m26,qistat);
+						}
+					}
+				}
+				break;
+			case M26_STATE_GET_FILE:
+				if (have_str(last_data_ptr, STR_QFTPGET)) {
+					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET)+strlen(STR_QFTPGET),data_size-strlen(STR_QFTPGET));
+					rt_kprintf("get stm32 len %d\r\n", stm32_len);
+					gprs_at_cmd(g_dev_m26,qiftp_open_file);
+					g_m26_state = M26_STATE_READ_FILE;
+					stm32_fd=0;
+				}
+				break;
+			case M26_STATE_READ_FILE:
+					if (stm32_fd == 0) {
+						if (have_str(last_data_ptr, STR_QFOPEN)) {
+							stm32_fd = get_len(strstr(last_data_ptr, STR_QFOPEN)+strlen(STR_QFOPEN),data_size-strlen(STR_QFOPEN));	
+							if (stm32_len <= SINGLE_FILE_LEN)
+							{
+								sprintf(qiftp_read_file,"AT+QFREAD=%d,%d\r\n", stm32_fd,stm32_len); 						
+								//cur_stm32_len = stm32_len;
+							} else {
+								sprintf(qiftp_read_file,"AT+QFREAD=%d,1024\r\n", stm32_fd);
+								//cur_stm32_len = SINGLE_FILE_LEN;
+							}
+							cur_stm32_len=0;
+							down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);
+							rt_kprintf("get stm32 fd %d\r\n", stm32_fd);
+							gprs_at_cmd(g_dev_m26,qiftp_read_file);	
+							tmp_stm32_bin = (rt_uint8_t *)rt_malloc(1500*sizeof(rt_uint8_t));
+							rt_memset(tmp_stm32_bin,0,1500);
+							tmp_stm32_len=0;
+						}		
+					} else {
+						rt_uint8_t *ptr = (rt_uint8_t *)last_data_ptr;					
+						rt_uint16_t cnt=0;
+						
+						rt_memcpy(tmp_stm32_bin+tmp_stm32_len, (rt_uint8_t *)last_data_ptr, data_size);
+						tmp_stm32_len += data_size; 					
+						rt_hw_led_off(NET_LED);
+						rt_kprintf("tmp stm32 len %d \r\n",tmp_stm32_len);
+						
+						if (tmp_stm32_bin[tmp_stm32_len-1] == '\n'	
+							&& tmp_stm32_bin[tmp_stm32_len-2] == '\r' 
+							&& tmp_stm32_bin[tmp_stm32_len-3] == 'K'
+							&& tmp_stm32_bin[tmp_stm32_len-4] == 'O'
+							&& have_str(tmp_stm32_bin, STR_CONNECT)) {
+							rt_uint16_t cur_len;
+							cur_len = get_len(strstr(tmp_stm32_bin, STR_CONNECT)+strlen(STR_CONNECT),tmp_stm32_len-strlen(STR_CONNECT));
+							rt_uint8_t *ch = strchr(strstr(tmp_stm32_bin, STR_CONNECT),'\n')+1; 						
+							rt_kprintf("%d cur Len %d\r\n", cur_stm32_len, cur_len);																
+							if (cur_len != write(down_fd, ch, cur_len))
+							{
+								rt_kprintf("write data failed\n");
+								close(down_fd);
+								break;
+							}
+							cur_stm32_len +=cur_len;
+							if (cur_stm32_len < stm32_len) {		
+								gprs_at_cmd(g_dev_m26,qiftp_read_file);									
+								rt_hw_led_on(NET_LED);
+							} else {
+								close(down_fd);
+								rt_free(tmp_stm32_bin);
+								//cat_file("/stm32.bin");
+								CRC_check_file("/stm32.bin");
+								sprintf(qiftp_close_file,"AT+QFCLOSE=%d\r\n",stm32_fd);
+								gprs_at_cmd(g_dev_m26,qiftp_close_file);
+								g_m26_state = M26_STATE_LOGOUT_FTP;
+							}
+							tmp_stm32_len=0;
+							rt_memset(tmp_stm32_bin,0,1500);			
+						}
+					}				
+				break;
+			case M26_STATE_LOGOUT_FTP:
+				if (have_str(last_data_ptr, STR_OK))
+				{
+					gprs_at_cmd(g_dev_m26,qiftp_close);
+					g_m26_state = M26_STATE_SET_QIACT;
+					entering_ftp_mode=0;
+				}
+				break;
+				
+			case M26_STATE_SET_QICLOSE:				
+				if (entering_ftp_mode) {
+					ftp_cfg_step = 0;
+					strcpy(ftp_addr,"u.110LW.com");
+//					strcpy(ftp_addr,"47.93.48.167");
+					strcpy(ftp_user,"minfei");
+					strcpy(ftp_passwd,"minfei123");
+					g_m26_state = M26_STATE_SET_QIDEACT;
+					gprs_at_cmd(g_dev_m26,qideact);
+				} else {
+					if (have_str(last_data_ptr, STR_CLOSE_OK)) {
+						g_m26_state = M26_STATE_SET_QIOPEN;
+						rt_memset(qiopen_m26, 0, 64);
+						rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%d.%d.%d.%d\",\"%d\"\r\n",
+								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+								mp.socketAddress[g_ip_index].port);
+						gprs_at_cmd(g_dev_m26,qiopen_m26);
+					}
+					else
+					{
+						g_m26_state = M26_STATE_CHECK_QISTAT;
+						gprs_at_cmd(g_dev_m26,qistat);
+					}
 				}
 				break;
 			case M26_STATE_SET_QINDI:
@@ -500,24 +736,30 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;		
 			case M26_STATE_SET_QIACT:
+				if (entering_ftp_mode) {
+					g_m26_state = M26_STATE_CFG_FTP;
+					rt_sprintf(qiftp_ec20,"AT+QFTPUSER=\"%s\"\r\n", ftp_user);
+					gprs_at_cmd(g_dev_m26,qiftp_ec20);
+				} else {
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_m26_state = M26_STATE_SET_QIOPEN;
 					rt_memset(qiopen_m26, 0, 64);					
 					rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%d.%d.%d.%d\",\"%d\"\r\n",
-							mp.socketAddress[0].IP[0],mp.socketAddress[0].IP[1],
-							mp.socketAddress[0].IP[2],mp.socketAddress[0].IP[3],
-							mp.socketAddress[0].port);
+							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+							mp.socketAddress[g_ip_index].port);
 					gprs_at_cmd(g_dev_m26,qiopen_m26);
 				} else {
 					/*check error condition*/
 					g_m26_state = M26_STATE_CHECK_QISTAT;
 					gprs_at_cmd(g_dev_m26,qistat);
 				}
+				}
 				break;
 			case M26_STATE_SET_QIDEACT:
 				if (have_str(last_data_ptr, STR_OK)) {
-					g_m26_state = M26_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_m26,qistat);
+					g_m26_state = M26_STATE_SET_QIREGAPP;
+					gprs_at_cmd(g_dev_m26,qiregapp);
 				} else if (have_str(last_data_ptr, STR_ERROR)){
 					g_m26_state = M26_STATE_SET_QIDEACT;
 					gprs_at_cmd(g_dev_m26,qideact);
@@ -527,19 +769,57 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_CONNECT_OK)) {
 					g_m26_state = M26_STATE_DATA_PROCESSING;
 					/*send data here */
+				//	rt_kprintf("connect to server ok\r\n");
+				//	rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
+				//	gprs_at_cmd(g_dev_m26,at_csq);
+				//	rt_hw_led_on(NET_LED);
+
+					
+					/*send data here */
+					g_server_addr = (mp.socketAddress[g_ip_index].IP[0] << 24)|
+									(mp.socketAddress[g_ip_index].IP[1] << 16)|
+									(mp.socketAddress[g_ip_index].IP[2] <<  8)|
+									(mp.socketAddress[g_ip_index].IP[3] <<  0);
+					g_server_port = mp.socketAddress[g_ip_index].port;
+					g_server_addr_bak = g_server_addr;
+					g_server_port_bak = g_server_port;					
 					rt_kprintf("connect to server ok\r\n");
+					g_net_state = NET_STATE_INIT;
 					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 					gprs_at_cmd(g_dev_m26,at_csq);
 					rt_hw_led_on(NET_LED);
+
 				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
 					g_m26_state = M26_STATE_SET_QIDEACT;
-					gprs_at_cmd(g_dev_m26,qideact);
+					gprs_at_cmd(g_dev_m26,qideact);					
+					
+					rt_kprintf("before , ip index %d\r\n", g_ip_index);
+					if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
+						mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
+						mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
+						mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
+						mp.socketAddress[g_ip_index+1].port !=0))
+						g_ip_index++;
+					else
+						g_ip_index=0;
+					rt_kprintf("after , ip index %d\r\n", g_ip_index);
+					rt_thread_delay(100);
 				}
 				else {
 					if (!have_str(last_data_ptr, STR_OK)) {
 						rt_thread_delay(100*3);
 						g_m26_state = M26_STATE_CHECK_QISTAT;
 						gprs_at_cmd(g_dev_m26,qistat);
+						rt_kprintf("before , ip index %d\r\n", g_ip_index);
+						if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
+							mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
+							mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
+							mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
+							mp.socketAddress[g_ip_index+1].port !=0))
+							g_ip_index++;
+						else
+							g_ip_index=0;
+						rt_kprintf("after , ip index %d\r\n", g_ip_index);
 					}
 				}
 
@@ -548,7 +828,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_QIRDI)||
 						have_str(last_data_ptr, STR_QIURC)) {
 					/*server data in */					
-					rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
+					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
 					g_m26_state = M26_STATE_DATA_READ;
 					gprs_at_cmd(g_dev_m26,qird);
 					server_len_m26 = 0;
@@ -561,6 +841,20 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
 					//rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
+
+					
+					if (g_server_addr != g_server_addr_bak || g_server_port != g_server_port_bak) {
+						g_ip_index=0;
+						g_m26_state = M26_STATE_SET_QICLOSE;
+						gprs_at_cmd(g_dev_m26,qiclose);
+						break;
+					}
+					if (g_heart_cnt > 5 || entering_ftp_mode) {
+							g_m26_state = M26_STATE_SET_QICLOSE;
+							gprs_at_cmd(g_dev_m26,qiclose);
+						break;
+					}
+
 					/*check have data to send */
 					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_m26,&send_size_m26) == RT_EOK)
 					{	
@@ -623,13 +917,12 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				//{
 				//	rt_kprintf("%c",((rt_uint8_t *)last_data_ptr)[m]);
 				//}
-				handle_m26_server_in(last_data_ptr);
+				handle_m26_server_in(last_data_ptr,data_size);
 				break;
 			case M26_STATE_DATA_PRE_WRITE:
 				if (have_str(last_data_ptr, STR_BEGIN_WRITE)) {
 					g_m26_state = M26_STATE_DATA_WRITE;
 					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_m26, send_size_m26);	
-					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 				}
 				else if(have_str(last_data_ptr, STR_ERROR))
 				{
@@ -638,6 +931,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				if (have_str(last_data_ptr, STR_QIRDI)||have_str(last_data_ptr, STR_QIURC))
 					g_data_in_m26 = RT_TRUE;
+				rt_free(send_data_ptr_m26);
 				break;
 			case M26_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_SEND_OK)) {
@@ -645,6 +939,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					//gprs_at_cmd(g_dev_m26,(qisack);
 					g_m26_state = M26_STATE_DATA_PROCESSING;
 					gprs_at_cmd(g_dev_m26,at_csq);
+					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 				} else {
 					if (!have_str(last_data_ptr, STR_QIRDI) && 
 							!have_str(last_data_ptr, STR_QIURC)) {
