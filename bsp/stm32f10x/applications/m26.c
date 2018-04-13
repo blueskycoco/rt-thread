@@ -41,6 +41,8 @@
 #define M26_STATE_GET_FILE		30
 #define M26_STATE_READ_FILE	31
 #define M26_STATE_LOGOUT_FTP	32
+#define M26_STATE_FTP_SET_PATH	33
+#define M26_STATE_V				34
 
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -81,6 +83,7 @@
 #define STR_CONNECT_OK_EC20			"+QIOPEN: 0,0"
 #define STR_CONNECT_FAIL_EC20		"+QIOPEN: 0,"
 #define STR_QFTPCFG					"+QFTPCFG:0"
+#define STR_FTP_SET_PATH			"+QFTPPATH:0"
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
 
@@ -103,11 +106,12 @@
 #define qimux "AT+QIMUX=0\r\n"
 #define ask_qimux "AT+QIMUX?\r\n"
 #define qideact "AT+QIDEACT\r\n"
-
+#define ati	"ATI\r\n"
 #define qindi "AT+QINDI=1\r\n"
 #define qird "AT+QIRD=0,1,0,1500\r\n"
 #define qisack "AT+QISACK\r\n"
 #define qiat "AT\r\n"
+#define qiftp_set_path	"AT+QFTPPATH=\"/\"\r\n"
 uint8_t 	  qicsgp_m26[32]			= {0};
 uint8_t 	  qiopen_m26[64]			= {0};
 uint8_t 	  qisend_m26[32] 			= {0};
@@ -349,12 +353,18 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case M26_STATE_ATE0:
 				if (have_str(last_data_ptr,STR_OK)) {
-					g_pcie[g_index]->cpin_cnt=0;
-					g_m26_state = M26_STATE_CHECK_CPIN;
-					gprs_at_cmd(g_dev_m26,cpin);
+					g_m26_state = M26_STATE_V;
+					gprs_at_cmd(g_dev_m26,ati);
 				} else {
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_m26,e0);
+				}
+				break;
+			case M26_STATE_V:
+				if (have_str(last_data_ptr,STR_OK)) {
+					g_pcie[g_index]->cpin_cnt=0;
+					g_m26_state = M26_STATE_CHECK_CPIN;
+					gprs_at_cmd(g_dev_m26,cpin);
 				}
 				break;
 			case M26_STATE_CHECK_CPIN:
@@ -534,27 +544,42 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					if (ftp_cfg_step == 0) {
 						rt_sprintf(qiftp_ec20,"AT+QFTPPASS=\"%s\"\r\n", ftp_passwd);
 						gprs_at_cmd(g_dev_m26,qiftp_ec20);
-					} else if (ftp_cfg_step == 2) {
-						if (have_str(last_data_ptr,STR_QFTPCFG)) {
-						rt_sprintf(qiftp_ec20,"AT+QFTPOPEN=\"%s\",10021\r\n", ftp_addr);
-						gprs_at_cmd(g_dev_m26,qiftp_ec20);
-						g_m26_state = M26_STATE_OPEN_FTP;
-						ftp_rty=0;
-						} else 
-							ftp_cfg_step--;
 					} else if (ftp_cfg_step == 1) {
-						gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
+						rt_sprintf(qiftp_ec20,"AT+QFTPOPEN=\"%s\",21\r\n", ftp_addr);
+						gprs_at_cmd(g_dev_m26,qiftp_ec20);
+					} else if (ftp_cfg_step == 2) {
+						if (have_str(last_data_ptr, STR_FTP_OK_M26)) {
+							gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
+							g_m26_state = M26_STATE_OPEN_FTP;
+							ftp_rty=0;
+						} else {
+							ftp_cfg_step--;
+							if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
+								rt_thread_delay(100);
+								gprs_at_cmd(g_dev_m26,qiftp_ec20);
+								ftp_rty++;
+								if (ftp_rty>5)
+								{
+									entering_ftp_mode=0;
+									g_m26_state = M26_STATE_CHECK_QISTAT;
+									gprs_at_cmd(g_dev_m26,qistat);
+								}
+							}
+
+						}
 					}
 					ftp_cfg_step++;
 				}
 				break;
 			case M26_STATE_OPEN_FTP:
 				{
-					if (have_str(last_data_ptr, STR_FTP_OK_M26)) {
+					if (have_str(last_data_ptr, STR_QFTPCFG)) {
 						rt_kprintf("login ftp ok\r\n");
-						gprs_at_cmd(g_dev_m26,qiftp_get_m26);
-						g_m26_state = M26_STATE_GET_FILE; 			
+						//gprs_at_cmd(g_dev_m26,qiftp_get_m26);
+						//g_m26_state = M26_STATE_GET_FILE; 			
 						stm32_len=0;
+						gprs_at_cmd(g_dev_m26,qiftp_set_path);
+						g_m26_state = M26_STATE_FTP_SET_PATH; 			
 /*
 						stm32_len = 177580;
 						gprs_at_cmd(g_dev_ec20,qiftp_open_file);
@@ -563,17 +588,13 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 	*/	
 						//gprs_at_cmd(g_dev_ec20,qflds);
 						
-					} else if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
-						rt_thread_delay(100);
-						gprs_at_cmd(g_dev_m26,qiftp_ec20);
-						ftp_rty++;
-						if (ftp_rty>5)
-						{
-							entering_ftp_mode=0;
-							g_m26_state = M26_STATE_CHECK_QISTAT;
-							gprs_at_cmd(g_dev_m26,qistat);
-						}
 					}
+				}
+				break;
+			case M26_STATE_FTP_SET_PATH:
+				if (have_str(last_data_ptr, STR_FTP_SET_PATH)) {
+					gprs_at_cmd(g_dev_m26,qiftp_get_m26);
+					g_m26_state = M26_STATE_GET_FILE; 			
 				}
 				break;
 			case M26_STATE_GET_FILE:
