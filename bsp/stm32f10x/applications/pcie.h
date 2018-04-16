@@ -34,8 +34,8 @@
 
 //#define qiftp_get			"AT+QFTPGET=\"fegnxun.txt\",\"RAM:stm32.bin\",0\r\n"
 #define qiftp_get			"AT+QFTPGET=\"stm32.bin\",\"RAM:stm32.bin\",0\r\n"
-//#define qiftp_get_m26			"AT+QFTPGET=\"fegnxun.txt\"\r\n"
-#define qiftp_get_m26			"AT+QFTPLIST\r\n"
+#define qiftp_get_m26			"AT+QFTPGET=\"stm32.bin\",10\r\n"
+//#define qiftp_get_m26			"AT+QFTPLIST\r\n"
 #define qiftp_open_file		"AT+QFOPEN=\"RAM:stm32.bin\",0\r\n"
 #define qiftp_close			"AT+QFTPCLOSE\r\n"
 #define STR_CONNECT					"CONNECT "
@@ -43,6 +43,7 @@
 #define STR_FTP_OK_M26				"+QFTPOPEN:0"
 #define STR_FTP_FAILED			"+QFTPOPEN:"
 #define STR_QFTPGET				"+QFTPGET: 0,"
+#define STR_QFTPGET_M26				"+QFTPGET:"
 #define STR_QFOPEN				"+QFOPEN: "
 #define STR_QFTPCLOSE			"+QFTPCLOSE: 0,0"
 #define SINGLE_FILE_LEN	1024
