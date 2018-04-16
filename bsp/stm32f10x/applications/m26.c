@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <unistd.h> 
 #include <board.h>
 #include <rtthread.h>
 #include <rtdevice.h>
@@ -8,6 +10,8 @@
 #include "bsp_misc.h"
 #include "master.h"
 #include "prop.h"
+#include "lcd.h"
+
 #define M26_EVENT_0 				(1<<0)
 #define M26_STATE_INIT				0
 #define M26_STATE_CHECK_CPIN		1
@@ -41,10 +45,10 @@
 #define M26_STATE_GET_FILE		30
 #define M26_STATE_READ_FILE	31
 #define M26_STATE_LOGOUT_FTP	32
-#define M26_STATE_FTP_FILE_SIZE	33
+#define M26_STATE_SET_LOCATION	33
 #define M26_STATE_V				34
 #define M26_STATE_CLEAN_RAM		35
-#define M26_STATE_SET_RESUMING_OFS	36
+#define M26_STATE_CLOSE_FILE	36
 
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -152,7 +156,7 @@ extern int stm32_fd;
 extern int stm32_len;
 extern int cur_stm32_len;
 extern int down_fd;
-extern uint8_t 	  qiftp_ec20[64];
+uint8_t 	  qiftp_m26[64];
 extern uint8_t		  qiftp_read_file[32];//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
 extern uint8_t			qiftp_close_file[32];
 extern rt_uint8_t ftp_rty;
@@ -161,8 +165,8 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 	static rt_bool_t flag = RT_FALSE;	
 	int i;
 	int ofs;
-	if (match_bin(last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
-		(match_bin(last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
+	if (match_bin((rt_uint8_t *)last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
+		(match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
 		!flag) {
 		gprs_at_cmd(g_dev_m26,qird);
 		server_len_m26 = 0;
@@ -170,7 +174,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 		return ;
 		}
 	
-	if (/*have_str(last_data_ptr, STR_TCP)*/(ofs = match_bin(last_data_ptr, len,STR_TCP,rt_strlen(STR_TCP)))!=-1)
+	if (/*have_str(last_data_ptr, STR_TCP)*/(ofs = match_bin((rt_uint8_t *)last_data_ptr, len,STR_TCP,rt_strlen(STR_TCP)))!=-1)
 	{	
 	#if 0
 		uint8_t *begin = (uint8_t *)strstr(last_data_ptr,STR_QIRD);
@@ -267,7 +271,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 						g_m26_state = M26_STATE_DATA_PROCESSING;
 						gprs_at_cmd(g_dev_m26,at_csq);
 					}
-					if (match_bin(last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))==-1)
+					if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))==-1)
 						g_data_in_m26 = RT_FALSE;
 	
 					flag = RT_FALSE;
@@ -546,158 +550,134 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_m26,qiopen_m26);
 				}			
 				break;
+/******************************************************************************************************************************************/				
 			case M26_STATE_CFG_FTP:
 				{
 					if (ftp_cfg_step == 0) {
-						rt_sprintf(qiftp_ec20,"AT+QFTPPASS=\"%s\"\r\n", ftp_passwd);
-						gprs_at_cmd(g_dev_m26,qiftp_ec20);
+						rt_sprintf(qiftp_m26,"AT+QFTPPASS=\"%s\"\r\n", ftp_passwd);
+						gprs_at_cmd(g_dev_m26,qiftp_m26);
 					} else if (ftp_cfg_step == 1) {
-						rt_sprintf(qiftp_ec20,"AT+QFTPOPEN=\"%s\",21\r\n", ftp_addr);
-						gprs_at_cmd(g_dev_m26,qiftp_ec20);
-					} else if (ftp_cfg_step == 2) {
-						if (have_str(last_data_ptr, STR_FTP_OK_M26)) {
-							m26_cnt = 0;
-							sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/stm32_%d.bin\"\r\n",m26_cnt);
-							gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
-							g_m26_state = M26_STATE_OPEN_FTP;
-							ftp_rty=0;
-						} else {
-							ftp_cfg_step--;
-							if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
-								rt_thread_delay(100);
-								gprs_at_cmd(g_dev_m26,qiftp_ec20);
-								ftp_rty++;
-								if (ftp_rty>5)
-								{
-									entering_ftp_mode=0;
-									g_m26_state = M26_STATE_CHECK_QISTAT;
-									gprs_at_cmd(g_dev_m26,qistat);
-								}
-							}
-
-						}
+						rt_sprintf(qiftp_m26,"AT+QFTPOPEN=\"%s\",21\r\n", ftp_addr);
+						gprs_at_cmd(g_dev_m26,qiftp_m26);
 					}
 					ftp_cfg_step++;
 				}
 				break;
 			case M26_STATE_OPEN_FTP:
 				{
-					if (have_str(last_data_ptr, STR_QFTPCFG)) {
+					if (have_str(last_data_ptr, STR_FTP_OK_M26)) {
 						rt_kprintf("login ftp ok\r\n");
-						stm32_len=0;
-						gprs_at_cmd(g_dev_m26,qiftp_file_size);
-						g_m26_state = M26_STATE_FTP_FILE_SIZE;						
+						m26_cnt = 0;
+						sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/stm32_%d.bin\"\r\n",m26_cnt);
+						gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
+						g_m26_state = M26_STATE_SET_LOCATION;
+						ftp_rty=0;			
+						down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);			
+					} else {
+						if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
+							rt_thread_delay(100);
+							gprs_at_cmd(g_dev_m26,qiftp_m26);
+							ftp_rty++;
+							if (ftp_rty>5)
+							{
+								entering_ftp_mode=0;
+								g_m26_state = M26_STATE_CHECK_QISTAT;
+								gprs_at_cmd(g_dev_m26,qistat);
+							}
+						}
 					}
 				}
 				break;
-			case M26_STATE_FTP_FILE_SIZE:
-				if (have_str(last_data_ptr, STR_FTP_FILE_SIZE)) {
-					stm32_len = get_len(strstr(last_data_ptr, STR_FTP_FILE_SIZE)+strlen(STR_FTP_FILE_SIZE),
-								data_size - strlen(STR_FTP_FILE_SIZE));
-					rt_kprintf("get stm32 size %d\r\n", stm32_len);
-					//sprintf(qiftp_set_resuming, "AT+QFTPCFG=3,%d\r\n",ftp_ofs);
-					//gprs_at_cmd(g_dev_m26,qiftp_set_resuming);
-					//g_m26_state = M26_STATE_SET_RESUMING_OFS;
+			case M26_STATE_SET_LOCATION:
+				if (have_str(last_data_ptr, STR_QFTPCFG)) {					
 					gprs_at_cmd(g_dev_m26,qiftp_clean_ram);
 					g_m26_state = M26_STATE_CLEAN_RAM;
 				}
 				break;
 			case M26_STATE_CLEAN_RAM:
-				//if (have_str(last_data_ptr, STR_OK)) {
-					//sprintf(qiftp_set_resuming, "AT+QFTPCFG=3,%d\r\n",ftp_ofs);
-					//gprs_at_cmd(g_dev_m26,qiftp_set_resuming);
-					//g_m26_state = M26_STATE_SET_RESUMING_OFS;
 					sprintf(qiftp_get_m26, "AT+QFTPGET=\"stm32_%d.bin\"\r\n",m26_cnt);
 					gprs_at_cmd(g_dev_m26, qiftp_get_m26);
 					g_m26_state = M26_STATE_GET_FILE;
-				//}
 			break;
-			case M26_STATE_SET_RESUMING_OFS:
-				if (have_str(last_data_ptr, STR_QFTPCFG)) {
-					gprs_at_cmd(g_dev_m26, qiftp_get_m26);
-					g_m26_state = M26_STATE_GET_FILE;
+			case M26_STATE_CLOSE_FILE:
+				if (have_str(last_data_ptr, STR_OK)) {
+					m26_cnt++;
+					sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/stm32_%d.bin\"\r\n",m26_cnt);
+					gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
+					g_m26_state = M26_STATE_SET_LOCATION;
 				}
 				break;
 			case M26_STATE_GET_FILE:
-				if (have_str(last_data_ptr, STR_QFTPGET_M26)) {
-					uint32_t cur_len = get_len(strstr(last_data_ptr, STR_QFTPGET_M26)+strlen(STR_QFTPGET_M26),data_size-strlen(STR_QFTPGET_M26));
-					rt_kprintf("get stm32 len %d\r\n", cur_len);
-					//gprs_at_cmd(g_dev_m26,qiftp_open_file);
-					//g_m26_state = M26_STATE_READ_FILE;
-					sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/stm32_%d.bin\"\r\n",m26_cnt);
-					m26_cnt++;
-					if (m26_cnt < 2) {
-						gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
-						g_m26_state = M26_STATE_OPEN_FTP;
-					}
-					stm32_fd=0;
+				if (have_str(last_data_ptr, STR_QFTPGET_M26)) {					
+					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET_M26)+strlen(STR_QFTPGET_M26),data_size-strlen(STR_QFTPGET_M26));
+					rt_kprintf("get stm32 len %d\r\n", stm32_len);		
+					sprintf(qiftp_m26_ram,"AT+QFOPEN=\"RAM:stm32_%d.bin\",0\r\n",m26_cnt);
+					gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
+					g_m26_state = M26_STATE_READ_FILE;
+					stm32_fd=0;			
 				}
 				break;
 			case M26_STATE_READ_FILE:
-					if (stm32_fd == 0) {
-						if (have_str(last_data_ptr, STR_QFOPEN)) {
-							stm32_fd = get_len(strstr(last_data_ptr, STR_QFOPEN)+strlen(STR_QFOPEN),data_size-strlen(STR_QFOPEN));	
-							if (stm32_len <= SINGLE_FILE_LEN)
-							{
-								sprintf(qiftp_read_file,"AT+QFREAD=%d,%d\r\n", stm32_fd,stm32_len); 						
-								//cur_stm32_len = stm32_len;
-							} else {
-								sprintf(qiftp_read_file,"AT+QFREAD=%d,1024\r\n", stm32_fd);
-								//cur_stm32_len = SINGLE_FILE_LEN;
-							}
-							cur_stm32_len=0;
-							down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);
-							rt_kprintf("get stm32 fd %d\r\n", stm32_fd);
-							gprs_at_cmd(g_dev_m26,qiftp_read_file);	
-							tmp_stm32_bin = (rt_uint8_t *)rt_malloc(1500*sizeof(rt_uint8_t));
-							rt_memset(tmp_stm32_bin,0,1500);
-							tmp_stm32_len=0;
-						}		
-					} else {
-						rt_uint8_t *ptr = (rt_uint8_t *)last_data_ptr;					
-						rt_uint16_t cnt=0;
-						
-						rt_memcpy(tmp_stm32_bin+tmp_stm32_len, (rt_uint8_t *)last_data_ptr, data_size);
-						tmp_stm32_len += data_size; 					
-						rt_hw_led_off(NET_LED);
-						rt_kprintf("tmp stm32 len %d \r\n",tmp_stm32_len);
-						
-						if (tmp_stm32_bin[tmp_stm32_len-1] == '\n'	
-							&& tmp_stm32_bin[tmp_stm32_len-2] == '\r' 
-							&& tmp_stm32_bin[tmp_stm32_len-3] == 'K'
-							&& tmp_stm32_bin[tmp_stm32_len-4] == 'O'
-							&& have_str(tmp_stm32_bin, STR_CONNECT)) {
-							rt_uint16_t cur_len;
-							cur_len = get_len(strstr(tmp_stm32_bin, STR_CONNECT)+strlen(STR_CONNECT),tmp_stm32_len-strlen(STR_CONNECT));
-							rt_uint8_t *ch = strchr(strstr(tmp_stm32_bin, STR_CONNECT),'\n')+1; 						
-							rt_kprintf("%d cur Len %d\r\n", cur_stm32_len, cur_len);																
-							if (cur_len != write(down_fd, ch, cur_len))
-							{
-								rt_kprintf("write data failed\n");
-								close(down_fd);
-								break;
-							}
-							cur_stm32_len +=cur_len;
-							if (cur_stm32_len < stm32_len) {		
-								gprs_at_cmd(g_dev_m26,qiftp_read_file);									
-								rt_hw_led_on(NET_LED);
-							} else {
-								close(down_fd);
-								rt_free(tmp_stm32_bin);
-								//cat_file("/stm32.bin");
-								CRC_check_file("/stm32.bin");
-								sprintf(qiftp_close_file,"AT+QFCLOSE=%d\r\n",stm32_fd);
-								gprs_at_cmd(g_dev_m26,qiftp_close_file);
-								g_m26_state = M26_STATE_LOGOUT_FTP;
-							}
-							tmp_stm32_len=0;
-							rt_memset(tmp_stm32_bin,0,1500);			
+				if (stm32_fd == 0) {
+					if (have_str(last_data_ptr, STR_QFOPEN)) {
+						stm32_fd = get_len(strstr(last_data_ptr, STR_QFOPEN)+strlen(STR_QFOPEN),data_size-strlen(STR_QFOPEN));								
+						sprintf(qiftp_read_file,"AT+QFREAD=%d,1024\r\n", stm32_fd);
+						cur_stm32_len=0;
+						rt_kprintf("get stm32 fd %d\r\n", stm32_fd);
+						gprs_at_cmd(g_dev_m26,qiftp_read_file);	
+						tmp_stm32_bin = (rt_uint8_t *)rt_malloc(1500*sizeof(rt_uint8_t));
+						rt_memset(tmp_stm32_bin,0,1500);
+						tmp_stm32_len=0;
+					}		
+				} else {
+					rt_uint8_t *ptr = (rt_uint8_t *)last_data_ptr;					
+					rt_uint16_t cnt=0;
+					
+					rt_memcpy(tmp_stm32_bin+tmp_stm32_len, (rt_uint8_t *)last_data_ptr, data_size);
+					tmp_stm32_len += data_size; 					
+					rt_hw_led_off(NET_LED);
+					rt_kprintf("tmp stm32 len %d \r\n",tmp_stm32_len);
+					
+					if (tmp_stm32_bin[tmp_stm32_len-1] == '\n'	
+						&& tmp_stm32_bin[tmp_stm32_len-2] == '\r' 
+						&& tmp_stm32_bin[tmp_stm32_len-3] == 'K'
+						&& tmp_stm32_bin[tmp_stm32_len-4] == 'O'
+						&& have_str(tmp_stm32_bin, STR_CONNECT)) {
+						rt_uint16_t cur_len;
+						cur_len = get_len(strstr(tmp_stm32_bin, STR_CONNECT)+strlen(STR_CONNECT),tmp_stm32_len-strlen(STR_CONNECT));
+						rt_uint8_t *ch = strchr(strstr(tmp_stm32_bin, STR_CONNECT),'\n')+1; 						
+						rt_kprintf("%d cur Len %d\r\n", cur_stm32_len, cur_len);																
+						if (cur_len != write(down_fd, ch, cur_len))
+						{
+							rt_kprintf("write data failed\n");
+							close(down_fd);
+							break;
 						}
-					}				
+						cur_stm32_len +=cur_len;
+						tmp_stm32_len=0;
+						rt_memset(tmp_stm32_bin,0,1500);		
+						if (cur_stm32_len < stm32_len) {		
+							gprs_at_cmd(g_dev_m26,qiftp_read_file);									
+							rt_hw_led_on(NET_LED);
+						} else {
+							rt_free(tmp_stm32_bin);
+							//cat_file("/stm32.bin");
+							sprintf(qiftp_close_file,"AT+QFCLOSE=%d\r\n",stm32_fd);
+							gprs_at_cmd(g_dev_m26,qiftp_close_file);
+							if (m26_cnt == 1) {
+								g_m26_state = M26_STATE_LOGOUT_FTP;
+							} else {
+								g_m26_state = M26_STATE_CLOSE_FILE;
+							}
+						}	
+					}
+				}				
 				break;
 			case M26_STATE_LOGOUT_FTP:
 				if (have_str(last_data_ptr, STR_OK))
 				{
+					close(down_fd);
+					CRC_check_file("/stm32.bin");
 					gprs_at_cmd(g_dev_m26,qiftp_close);
 					g_m26_state = M26_STATE_SET_QIACT;
 					entering_ftp_mode=0;
@@ -730,6 +710,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					}
 				}
 				break;
+/******************************************************************************************************************************************/				
 			case M26_STATE_SET_QINDI:
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_m26_state = M26_STATE_CHECK_CIMI;
@@ -786,8 +767,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			case M26_STATE_SET_QIACT:
 				if (entering_ftp_mode) {
 					g_m26_state = M26_STATE_CFG_FTP;
-					rt_sprintf(qiftp_ec20,"AT+QFTPUSER=\"%s\"\r\n", ftp_user);
-					gprs_at_cmd(g_dev_m26,qiftp_ec20);
+					rt_sprintf(qiftp_m26,"AT+QFTPUSER=\"%s\"\r\n", ftp_user);
+					gprs_at_cmd(g_dev_m26,qiftp_m26);
 				} else {
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_m26_state = M26_STATE_SET_QIOPEN;

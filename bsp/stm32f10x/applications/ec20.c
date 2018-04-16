@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <unistd.h> 
 #include <board.h>
 #include <rtthread.h>
 #include <rtdevice.h>
@@ -8,6 +10,7 @@
 #include "bsp_misc.h"
 #include "master.h"
 #include "prop.h"
+#include "lcd.h"
 #define EC20_EVENT_0 				(1<<0)
 #define EC20_STATE_INIT				0
 #define EC20_STATE_CHECK_CPIN		1
@@ -147,8 +150,8 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 		static rt_bool_t flag = RT_FALSE;
 		int i;
 		int ofs;
-		if (match_bin(last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
-			(match_bin(last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
+		if (match_bin((rt_uint8_t *)last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
+			(match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
 			!flag) {
 			gprs_at_cmd(g_dev_ec20,qird);
 			server_len_ec20 = 0;
@@ -157,7 +160,7 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 			}
 		//for (i=0;i<len;i++)
 			//rt_kprintf("%02x ",((char *)last_data_ptr)[i]);
-		if ((ofs = match_bin(last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)))!=-1)
+		if ((ofs = match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)))!=-1)
 		{	
 			uint8_t *pos = (uint8_t *)last_data_ptr;
 			//rt_kprintf("ofs is %d\r\n",ofs);
@@ -190,7 +193,7 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 					server_buf_ec20[server_len_ec20++] = pos[i++];
 					rt_kprintf("<%02x>\r\n", server_buf_ec20[server_len_ec20-1]);
 				}*/
-				if (match_bin(pos, len, "OK",rt_strlen("OK"))!=-1)
+				if (match_bin((rt_uint8_t *)pos, len, "OK",rt_strlen("OK"))!=-1)
 				{
 					rt_data_queue_push(&g_data_queue[3], server_buf_ec20, server_len_ec20, RT_WAITING_FOREVER);
 					if (server_len_ec20 == 1500) {
@@ -200,7 +203,7 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 						g_ec20_state = EC20_STATE_DATA_PROCESSING;
 						gprs_at_cmd(g_dev_ec20,at_csq);
 					}
-					if (match_bin(last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))==-1)
+					if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))==-1)
 						g_data_in_ec20 = RT_FALSE;
 	
 					flag = RT_FALSE;
@@ -221,7 +224,7 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 				server_buf_ec20[server_len_ec20++] = pos[i++];
 			}
 	
-			if (match_bin(pos, len,"OK",2)!=RT_NULL)
+			if (match_bin((rt_uint8_t *)pos, len,"OK",2)!=RT_NULL)
 			{
 				rt_data_queue_push(&g_data_queue[3], server_buf_ec20, server_len_ec20, RT_WAITING_FOREVER);
 				if (server_len_ec20 == 1500) {
@@ -231,7 +234,7 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
 					gprs_at_cmd(g_dev_ec20,at_csq);		
 				}
-				if (match_bin(last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI)))
+				if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI)))
 					g_data_in_ec20 = RT_FALSE;
 				flag = RT_FALSE;
 			}

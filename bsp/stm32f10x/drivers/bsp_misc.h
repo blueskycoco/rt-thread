@@ -12,4 +12,6 @@ void adjust_time(rt_uint8_t *server_time);
 void update_ip_list(rt_uint8_t *ip, rt_uint8_t len);
 int get_len(rt_uint8_t *pos, rt_uint16_t len);
 void cat_file(unsigned char *file);
+unsigned int CRC_check_file(unsigned char *file);
+void show_signal(int csq);
 #endif
