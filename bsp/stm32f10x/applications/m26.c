@@ -353,7 +353,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
 	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL && 
 		!have_str(last_data_ptr,STR_CSQ))
-		rt_kprintf("\r\n(M26<= %d %d %s)\r\n",g_m26_state, data_size,last_data_ptr);
+		if (!have_str(last_data_ptr,STR_CONNECT))
+			rt_kprintf("\r\n(M26<= %d %d %s)\r\n",g_m26_state, data_size,last_data_ptr);
+		else
+			rt_kprintf("\r\n(M26<= %d %d)\r\n",g_m26_state, data_size);
 	if (data_size >= 2) {
 		switch (g_m26_state) {
 			case M26_STATE_INIT:
@@ -559,6 +562,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					} else if (ftp_cfg_step == 1) {
 						rt_sprintf(qiftp_m26,"AT+QFTPOPEN=\"%s\",21\r\n", ftp_addr);
 						gprs_at_cmd(g_dev_m26,qiftp_m26);
+						g_m26_state = M26_STATE_OPEN_FTP;
 					}
 					ftp_cfg_step++;
 				}
@@ -817,7 +821,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 					gprs_at_cmd(g_dev_m26,at_csq);
 					rt_hw_led_on(NET_LED);
-					entering_ftp_mode=1;
+					//entering_ftp_mode=1;
 				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
 					g_m26_state = M26_STATE_SET_QIDEACT;
 					gprs_at_cmd(g_dev_m26,qideact);					

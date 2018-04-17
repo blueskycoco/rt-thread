@@ -528,11 +528,11 @@ void rt_init_thread_entry(void* parameter)
 		rt_kprintf("pcie identify done , err 0x%08x\r\n",err_code);
 	if ((pcie_status & PCIE_2_M26) && (pcie_status & PCIE_1_EC20))
 	{
-		//SetSimTypeIco(3);
-		SetSimTypeIco(2);
+		SetSimTypeIco(3);
+		//SetSimTypeIco(2);
 		pcie_init(PCIE_1_EC20,PCIE_2_M26);
-		//pcie_switch(PCIE_1_EC20);
-		pcie_switch(PCIE_2_M26);
+		pcie_switch(PCIE_1_EC20);
+		//pcie_switch(PCIE_2_M26);
 		SetStateIco(6,1);
 		SetStateIco(5,0);
 	} else if(pcie_status & PCIE_2_M26) {
