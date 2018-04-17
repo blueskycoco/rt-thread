@@ -726,6 +726,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					g_server_port_bak = g_server_port;
 					rt_kprintf("connect to server ok\r\n");
 					g_net_state = NET_STATE_INIT;
+					g_heart_cnt=0;
 					rt_event_send(&(g_pcie[g_index]->event), EC20_EVENT_0);
 					gprs_at_cmd(g_dev_ec20,at_csq);
 					rt_hw_led_on(NET_LED);

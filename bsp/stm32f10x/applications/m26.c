@@ -817,6 +817,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_server_addr_bak = g_server_addr;
 					g_server_port_bak = g_server_port;					
 					rt_kprintf("connect to server ok\r\n");
+					g_heart_cnt=0;
 					g_net_state = NET_STATE_INIT;
 					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 					gprs_at_cmd(g_dev_m26,at_csq);
@@ -956,6 +957,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_BEGIN_WRITE)) {
 					g_m26_state = M26_STATE_DATA_WRITE;
 					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_m26, send_size_m26);	
+					rt_free(send_data_ptr_m26);
 				}
 				else if(have_str(last_data_ptr, STR_ERROR))
 				{
@@ -964,7 +966,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				if (have_str(last_data_ptr, STR_QIRDI)||have_str(last_data_ptr, STR_QIURC))
 					g_data_in_m26 = RT_TRUE;
-				rt_free(send_data_ptr_m26);
+				
 				break;
 			case M26_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_SEND_OK)) {
