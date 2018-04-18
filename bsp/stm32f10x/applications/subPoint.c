@@ -586,9 +586,9 @@ void handleSub(rt_uint8_t *data)
 			rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
 			rt_kprintf("got mute\r\n");
 		} else {
-			if ((command_type == 0x0002 && cur_status) || 
-				(command_type == 0x0004 && !cur_status))
-				Wtn6_Play(VOICE_ERRORTIP,ONCE);			
+			//if ((command_type == 0x0002 && cur_status) || 
+			//	(command_type == 0x0004 && !cur_status))
+			//	Wtn6_Play(VOICE_ERRORTIP,ONCE);			
 		}
 	}
 }

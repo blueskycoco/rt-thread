@@ -275,7 +275,7 @@ static void led_thread_entry(void* parameter)
 			else if (g_delay_in >0 && g_delay_in <= 10){
 				rt_kprintf("last count %d\r\n",g_delay_in);
 				if (g_delay_in == 10)
-					Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
+					Wtn6_Play(VOICE_COUNTDOWN,ONCE);
 				g_delay_in -= 1;
 			} else if (g_delay_in == 0 && g_flag == 0/* && g_alarm_voice >0*/) {
 				//rt_kprintf("play end %d\r\n",g_alarm_voice);
@@ -304,7 +304,7 @@ static void led_thread_entry(void* parameter)
 					rt_kprintf("out last count %d\r\n",g_delay_out);
 					if (g_delay_out == 10)
 					{
-						Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
+						Wtn6_Play(VOICE_COUNTDOWN,ONCE);
 					}
 					if (g_delay_out == 1)
 						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
@@ -552,11 +552,11 @@ void rt_init_thread_entry(void* parameter)
 		buzzer_ctl(1);
 		SetSimTypeIco(0);
 		SetStateIco(3,1);
-		Wtn6_Play(VOICE_ZHUJIGZ,ONCE);
+		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
 		rt_thread_delay(150);
-		Wtn6_Play(VOICE_ZHUJIGZ,ONCE);
+		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
 		rt_thread_delay(150);
-		Wtn6_Play(VOICE_ZHUJIGZ,ONCE);
+		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
 	}
 	
 	if (rt_thread_init(&led_thread,

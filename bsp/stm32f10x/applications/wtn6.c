@@ -115,7 +115,7 @@ u8 Is_Playing(void)
 */
 void Stop_Playing(void)
 {
-	if(Is_Playing())
+	//if(Is_Playing())
 	{
 		Send_Command(CMD_Stop);
 	}
