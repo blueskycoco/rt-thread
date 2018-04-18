@@ -532,6 +532,7 @@ void send_process(void* parameter)
 		cmd = (char *)rt_malloc(50);
 		rt_kprintf("begin send cmd\r\n");
 		if (g_net_state == NET_STATE_INIT) {
+			SetStateIco(7,1);
 			rt_kprintf("send login\r\n");
 			send_len = build_cmd(cmd,CMD_LOGIN);
 			g_net_state = NET_STATE_LOGIN;

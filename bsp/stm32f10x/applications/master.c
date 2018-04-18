@@ -109,7 +109,7 @@ void info_user(void *param)
 				/*need protection off first
 				  *play audio here
 				  */
-				Wtn6_Play(VOICE_DUIMASB,ONCE);
+				Wtn6_Play(VOICE_XIANCHEFANG,ONCE);
 				g_main_state = 0;
 			} else {
 				//SetErrorCode(0x01);
@@ -133,8 +133,7 @@ void info_user(void *param)
 			g_exit_reason = 0x03;
 			upload_server(CMD_EXIT);
 			rt_thread_sleep(500);
-			dfs_mkfs("elm","sd0");
-			Wtn6_Play(VOICE_HUIFU,ONCE);
+			dfs_mkfs("elm","sd0");			
 			NVIC_SystemReset();
 		}
 		if (ev & INFO_EVENT_PROTECT_ON) {
@@ -142,7 +141,7 @@ void info_user(void *param)
 			SetStateIco(1,0);
 			rt_hw_led_on(ARM_LED);
 			cur_status = 1;						
-			Wtn6_Play(VOICE_BUFANG,ONCE);
+			//Wtn6_Play(VOICE_BUFANG,ONCE);
 			rt_kprintf("bufang ok\r\n");
 			handle_led(TYPE_PROTECT_ON);
 			pgm_ctl(5);
@@ -165,8 +164,10 @@ void info_user(void *param)
 			g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
 			g_operate_platform = 0xff;
 			//g_operater[5] = 0x10;
-			upload_server(CMD_SUB_EVENT);			
-			entering_ftp_mode	=1;
+			upload_server(CMD_SUB_EVENT);		
+			rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+			Wtn6_JoinPlay(voice,2,2);
+			//entering_ftp_mode	=1;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
 			Wtn6_Play(VOICE_YANSHIBF,LOOP);
@@ -181,7 +182,7 @@ void info_user(void *param)
 			SetStateIco(2,0);
 			rt_hw_led_off(ARM_LED);	
 			rt_hw_led_off(ALARM_LED);	
-			Wtn6_Play(VOICE_CHEFANG,ONCE);
+			//Wtn6_Play(VOICE_CHEFANG,ONCE);
 			handle_led(TYPE_PROTECT_OFF);
 			pgm_ctl(6);
 			rt_hw_led_off(PGM3_LED);
@@ -200,7 +201,9 @@ void info_user(void *param)
 			g_operater[7] = 0x10+fangqu_wireless[g_index_sub].index;
 			g_operate_platform = 0xff;
 			//g_operater[5] = 0x10;
-			upload_server(CMD_SUB_EVENT);
+			upload_server(CMD_SUB_EVENT);			
+			rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
+			Wtn6_JoinPlay(voice,2,2);
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
@@ -269,10 +272,10 @@ void info_user(void *param)
 								Wtn6_Play(VOICE_YANSHIBF,action);
 							} else if (g_alarmType == 2) {//emergency
 								rt_kprintf("emergency\r\n");
-								Wtn6_Play(VOICE_TUICHUDM,action);
+								Wtn6_Play(VOICE_JJALARM,action);
 							} else if (g_alarmType == 3) {//medical
 								rt_kprintf("medical\r\n");
-								Wtn6_Play(VOICE_SHANCHU,action);
+								Wtn6_Play(VOICE_YLALARM,action);
 							} else if (g_alarmType == 4) {
 								rt_kprintf("4 \r\n");
 								Wtn6_Play(VOICE_JIAOLIUDD,action);
@@ -325,6 +328,7 @@ void handle_login_ack(rt_uint8_t *cmd)
 		g_net_state = NET_STATE_LOGED;
 	}
 	rt_kprintf("\r\n");
+	
 }
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
@@ -487,7 +491,7 @@ void handle_proc_main(rt_uint8_t *cmd)
 	/*execute cmd*/
 	if (cmd[0] == 2) {
 		dfs_mkfs("elm","sd0");
-		Wtn6_Play(VOICE_HUIFU,ONCE);
+		Wtn6_Play(VOICE_AGAIN,ONCE);
 	}
 	if (cmd[0] == 2 || cmd[0] == 1)
 		NVIC_SystemReset();

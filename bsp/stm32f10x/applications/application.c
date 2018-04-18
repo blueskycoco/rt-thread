@@ -69,7 +69,7 @@ extern rt_uint16_t pgm1_cnt;
 extern rt_uint8_t g_net_state;
 extern int g_index;
 rt_uint16_t g_bat = 0;
-rt_uint8_t g_ac=0;
+rt_uint8_t g_ac=1;
 rt_uint8_t g_flag=0;
 rt_uint8_t heart_time = 0;
 extern rt_uint8_t alarm_led;
@@ -164,7 +164,7 @@ static void led_thread_entry(void* parameter)
 		if (ac && !g_ac)
 		{
 			g_ac = 1;
-			Wtn6_Play(VOICE_HUIFU,ONCE);
+			Wtn6_Play(VOICE_JIAOLIUHF,ONCE);
 			SetStateIco(4,1);
 			if (should_upload_bat!=0) {
 				g_alarm_reason=0x0020;
@@ -480,7 +480,7 @@ void rt_init_thread_entry(void* parameter)
 	SetErrorCode(1);
 	SetSignalIco(1);
 	SetBatteryIco(4);
-	SetWifiIco(4);
+	//SetWifiIco(4);
 	SetSimTypeIco(1);
 	SetStateIco(0,1);
 	SetStateIco(1,1);

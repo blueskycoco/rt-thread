@@ -7,35 +7,70 @@
 //#define CLK    PBin(1)			//时钟
 //#define DATA   PBin(2)			//数据
 
-#define BUSY   GPIO_Pin_3			//芯片状态输出pb3
-#define CLK    GPIO_Pin_15			//时钟pa15
-#define DATA   GPIO_Pin_4			//数据pb4
+#define wtn_BUSY   GPIO_Pin_3			//芯片状态输出
+#define wtn_CLK    GPIO_Pin_15			//时钟pa15
+#define wtn_DATA   GPIO_Pin_4			//数据pb4
 
-#define BUSY_PORT GPIOB
-#define CLK_PORT GPIOA
-#define DATA_PORT GPIOB
+#define wtn_BUSY_PORT GPIOB
+#define wtn_CLK_PORT GPIOA
+#define wtn_DATA_PORT GPIOB
 
+/*命令类型*/
 #define CMD_Stop   0xFE			//停止播放
-#define CMD_LOOP   0xF2			//停止播放
+#define CMD_LOOP   0xF2			//循环播放
+#define CMD_JOIN   0xF3			//连码播放
+#define CMD_MUTE	 0xF8			//插入静音
+
 
 /*语音地址*/
-typedef enum
-{
-	VOICE_BUFANG=0x00,							//布防成功
-	VOICE_CHEFANG=0x01,							//撤防成功
-	VOICE_DUIMA=0x02,								//对码成功
-	VOICE_DUIMAMS=0x03,							//对码模式	
-	VOICE_DUIMASB=0x04,							//对码失败	
-	VOICE_WELCOME=0x05,							//欢迎使用云盾超级报警器	
-	VOICE_HUIFU=0x06,								//恢复成功	
-	VOICE_JIAOLIUDD=0x07,						//交流电断电	
-	VOICE_ALARM1=0x08,							//你已进入警戒区域，出警人员正在火速赶来	
-	VOICE_ALARM2=0x09,							//你已进入警戒区域，请速撤防	
-	VOICE_SHANCHU=0x0A,							//删除成功	
-	VOICE_TUICHUDM=0x0B,						//退出对码模式	
-	VOICE_YANSHIBF=0x0C,						//延时布防模式，音乐	
-	VOICE_ZHUJIGZ=0x0D							//主机故障	
-}Wtn6_VoiceTypeDef;
+#define VOICE_COUNTDOWN        	0x00        //10秒倒计时
+#define VOICE_BUFANG        		0x01        //布防
+#define VOICE_CHEFANG        		0x02        //撤防
+#define VOICE_ERRORTIP        	0x03        //错误音
+#define VOICE_DUIMA        			0x04        //对码成功
+#define VOICE_DUIMAMS        		0x05        //对码模式	
+#define VOICE_DUIMASB        		0x06        //对码失败	
+#define VOICE_FCALARM        		0x07        //防拆报警
+#define VOICE_FANGQUYM        	0x08        //防区已满
+#define VOICE_WELCOME        		0x09        //欢迎使用云盾超级报警器	
+#define VOICE_HZALARM        		0x0a        //火灾报警
+#define VOICE_JIANPAN        		0x0b        //键盘(操作)
+#define VOICE_JIAOLIUDD        	0x0c        //交流电断电	
+#define VOICE_JIAOLIUHF        	0x0d        //交流电恢复
+#define VOICE_JJALARM        		0x0e        //紧急报警
+#define VOICE_ALARM2        		0x0f        //你已进入警戒区域，请速撤防	
+#define VOICE_ALARM1        		0x10        //你已进入警戒区域，出警人员正在火速赶来	
+#define VOICE_CHANGEIP        	0x11        //请把IP模块插入右侧插槽
+#define VOICE_XIANCHEFANG       0x12        //请先撤防
+#define VOICE_AGAIN        			0x13        //请重试
+#define VOICE_SHOUJI        		0x14        //手机(操作)
+#define VOICE_TUICHUDM        	0x15        //退出对码模式	
+#define VOICE_NOMOKUAI        	0x16        //未检测到通信模块
+#define VOICE_YANSHIBF        	0x17        //延时布防模式，音乐	
+#define VOICE_YAOKONG        		0x19        //遥控(操作)
+#define VOICE_YLALARM        		0x1a        //医疗报警
+#define VOICE_ZHONGXIN        	0x1b        //中心(操作)
+#define VOICE_ZHUJIGZ        		0x1c        //主机故障	
+
+
+
+//typedef enum
+//{
+//	VOICE_BUFANG=0x00,							
+//	VOICE_CHEFANG=0x01,							
+//	VOICE_DUIMA=0x02,								
+//	VOICE_DUIMAMS=0x03,							
+//	VOICE_DUIMASB=0x04,							
+//	VOICE_WELCOME=0x05,							
+//	VOICE_HUIFU=0x06,								//恢复成功	
+//	VOICE_JIAOLIUDD=0x07,						
+//	VOICE_ALARM1=0x08,							
+//	VOICE_ALARM2=0x09,							
+//	VOICE_SHANCHU=0x0A,							//删除成功	
+//	VOICE_TUICHUDM=0x0B,						
+//	VOICE_YANSHIBF=0x0C,						
+//	VOICE_ZHUJIGZ=0x0D							
+//}Wtn6_VoiceTypeDef;
 
 /*
 *播放方式
@@ -74,11 +109,13 @@ typedef enum
 /*外部接口*/
 extern void Wtn6_Init(void);
 extern void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne);
-extern void Wtn6_Play(Wtn6_VoiceTypeDef voice,Wtn6_PlayTypeDef PlayType);
+extern void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType);
+extern void Wtn6_JoinPlay(u8 voices[],u8 size,u8 muteTimes);
+extern void Stop_Playing(void);
 
 /*内部接口*/
 static void Set_Loop(void);
-u8 Is_Playing(void);
-void Stop_Playing(void);
+static u8 Is_Playing(void);
+//static void Stop_Playing(void);
 static void Send_Command(u8 command);
 #endif

@@ -1,21 +1,22 @@
-#ifndef _LCD__
-#define _LCD__
+#ifndef __GPIO_LCD__
+#define __GPIO_LCD__
+#include "stm32f10x.h"
 /**************************************************************************************************/
 /*|  PIN  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  10 |  11 |  12  |  13  |  14  |*/
 /*|       |     |     |     |     |seg0 |seg1 |seg2 |seg3 |seg4 |seg5 |seg6 | seg7 | seg8 | seg9 |*/
-/*| com1  |com1 |     |     |     | 1A  | p6  | 2A  | p7  | s8  | s1  | p5  | p13  | p18  | p17  |*/
-/*| com2  |     |com2 |     |     | 1F  | 1B  | 2F  | 2B  | s7  | s2  | p4  | p12  | p1   | p16  |*/
-/*| com3  |     |     |com3 |     | 1E  | 1G  | 2E  | 2G  | s6  | s3  | p3  | p11  | p8   | p15  |*/
-/*| com4  |     |     |     |com4 | 1D  | 1C  | 2D  | 2C  | s5  | s4  | p2  | p10  | p9   | p14  |*/
+/*| com1  |com1 |     |     |     | 1A  |  /  | 2A  | p9  | p21 | p8  | p4  | p20  | p1   | p15  |*/
+/*| com2  |     |com2 |     |     | 1F  | 1B  | 2F  | 2B  | p24 | p7  | p25 | p19  | p10  | p14  |*/
+/*| com3  |     |     |com3 |     | 1E  | 1G  | 2E  | 2G  | p23 | p6  | p3  | p18  | p11  | p13  |*/
+/*| com4  |     |     |     |com4 | 1D  | 1C  | 2D  | 2C  | p22 | p5  | p2  | p17  | p16  | p12  |*/
 /**************************************************************************************************/
-/* segx x=偶数=高4bit；x=奇数=低四4bit；                                                           */
-/* seg0_3 两个数字管；p6=有无网络图标；p7有无交流电图标；                                           */
-/* seg4 电池图标； seg5 wifi图标                                                                   */
-/* seg6 p5=sim卡图标，p4=故障图标，p3=报警图标，p2=撤防图标                                         */ 
-/* seg7_8 信号强度图标，其中，p1=布放图标                                                           */
-/* seg9   p14=2G,p15=3G,p16=4G,p17=5G                                                              */
+/* segx x=偶数=高4bit；x=奇数=低四4bit；                                                          */
+/* seg0_3 两个数字管；p9有无交流电图标；                                           								*/
+/* seg4 电池图标；                                                                  							*/
+/* seg5 p8=故障图标；p7=报警图标；p6=撤防图标;p5=布防图标																					*/
+/* seg6 p4=上传图标，p25=下载图标，p3=云端图标，p2=网卡图标                                       */ 
+/* seg7_8 信号强度图标，其中，p1=SIM卡图标                                                        */
+/* seg9   p14=2G,p15=3G,p16=4G,p17=5G                                                             */
 /**************************************************************************************************/
-//#include "Global.h"
 
 #define MODE_COM                0
 #define MODE_DATA               1
@@ -55,7 +56,7 @@
 
 #define LCD_GPIOE               GPIOE
 #define LCD_GPIOB               GPIOB
-#define DELAY_MS                ((uint8_t)1)
+#define DELAY_MS                5000
 
 typedef enum
 {
@@ -71,16 +72,10 @@ typedef enum
 {
   SIM_0G=0x00,
   SIM_2G=0x01,
-  SIM_3G=0x02,
+  SIM_NB=0x02,
   SIM_4G=0x04,
   SIM_5G=0x08
 } HTB_SIM;
-
-typedef enum
-{
-  WIFI,
-  BATTERY
-} HTB_STYLE;
 
 typedef enum
 {
@@ -90,7 +85,10 @@ typedef enum
   ICO_GUZHANG,                          /*故障图标*/
   ICO_JIAOLIU,                          /*有无交流电*/
   ICO_NETWORK,                          /*有无网线*/
-  ICO_SIM                               /*有无SIM卡*/
+  ICO_SIM,                          		/*有无SIM卡*/
+	ICO_NET,															/*链接网路*/
+	ICO_LOAD,															/*下载数据*/
+	ICO_UPDATE														/*上传数据*/
 }HTB_ICO;
 
 typedef enum
@@ -101,36 +99,34 @@ typedef enum
 /**************************************************************************************************/
 /*|  PIN  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  10 |  11 |  12  |  13  |  14  |*/
 /*|       |     |     |     |     |seg0 |seg1 |seg2 |seg3 |seg4 |seg5 |seg6 | seg7 | seg8 | seg9 |*/
-/*| com1  |com1 |     |     |     | 1A  | p6  | 2A  | p7  | s8  | s1  | p5  | p13  | p18  | p17  |*/
-/*| com2  |     |com2 |     |     | 1F  | 1B  | 2F  | 2B  | s7  | s2  | p4  | p12  | p1   | p16  |*/
-/*| com3  |     |     |com3 |     | 1E  | 1G  | 2E  | 2G  | s6  | s3  | p3  | p11  | p8   | p15  |*/
-/*| com4  |     |     |     |com4 | 1D  | 1C  | 2D  | 2C  | s5  | s4  | p2  | p10  | p9   | p14  |*/
+/*| com1  |com1 |     |     |     | 1A  |  /  | 2A  | p9  | p21 | p8  | p4  | p20  | p1   | p15  |*/
+/*| com2  |     |com2 |     |     | 1F  | 1B  | 2F  | 2B  | p24 | p7  | p25 | p19  | p10  | p14  |*/
+/*| com3  |     |     |com3 |     | 1E  | 1G  | 2E  | 2G  | p23 | p6  | p3  | p18  | p11  | p13  |*/
+/*| com4  |     |     |     |com4 | 1D  | 1C  | 2D  | 2C  | p22 | p5  | p2  | p17  | p16  | p12  |*/
 /**************************************************************************************************/
-/* segx x=偶数=高4bit；x=奇数=低四4bit；                                                           */
-/* seg0_3 两个数字管；p6=有无网络图标；p7有无交流电图标；                                           */
-/* seg4 电池图标； seg5 wifi图标                                                                   */
-/* seg6 p5=sim卡图标，p4=故障图标，p3=报警图标，p2=撤防图标                                         */ 
-/* seg7_8 信号强度图标，其中，p1=布放图标                                                           */
-/* seg9   p14=2G,p15=3G,p16=4G,p17=5G                                                              */
+/* segx x=偶数=高4bit；x=奇数=低四4bit；                                                          */
+/* seg0_3 两个数字管；p9有无交流电图标；                                           								*/
+/* seg4 电池图标；                                                                  							*/
+/* seg5 p8=故障图标；p7=报警图标；p6=撤防图标;p5=布防图标																					*/
+/* seg6 p4=上传图标，p25=下载图标，p3=云端图标，p2=网卡图标                                       */ 
+/* seg7_8 信号强度图标，其中，p1=SIM卡图标                                                        */
+/* seg9   p14=2G,p15=3G,p16=4G,p17=5G                                                             */
 /**************************************************************************************************/
 typedef struct
 {
   u8 num_seg0_1;                                /*数字1*/
   u8 num_seg2_3;                                /*数字2*/
-  u8 ico_seg4_5;                                /*seg4(h_4bit)=电池和seg5(l_4bit)=wifi*/
+  u8 ico_seg4_5;                                /*seg4(h_4bit)=电池和状态图标*/
   u8 ico_seg7_8;                                /*信号强度*/
   u8 ico_seg69;                                 /*各种图标,seg6和seg9=2G--5G*/
 } HTB_RAM;
 //-------------------------------------外部接口-----------------------------------------
 void SetErrorCode(u8 value);                            /*设置错误码*/
 void SetBatteryIco(u8 value);                           /*设置电池图标*/
-void SetWifiIco(u8 value);                              /*设置wifi图标*/
 void SetStateIco(u8 value,HTB_ICO_STATE ico_state);     /*状态图标*/
 void SetSignalIco(u8 value);                            /*信号强度*/
 void SetSimTypeIco(u8 value);                           /*2G-5G*/
-void HtbLcdClear();                                     /*清空所有图标*/
-void HtbLcdShow();                                      /*显示所有图标*/
-void GPIO_Lcd_Init();
-
+void HtbLcdClear(void);                                 /*清空所有图标*/
+void HtbLcdShow(void);                                  /*显示所有图标*/
+void GPIO_Lcd_Init(void);
 #endif
-

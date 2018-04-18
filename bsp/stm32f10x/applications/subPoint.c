@@ -269,8 +269,8 @@ void save_fq(struct FangQu *list, int len)
 			/*test code*/
 			if (sub_id == 0x0a) {
 				list[i].alarmType = TYPE_ALARM_02;
-				list[i].operationType= TYPE_24;
-				list[i].voiceType= 1;
+				list[i].operationType= TYPE_DELAY;
+				list[i].voiceType= 0;
 			} else if (sub_id == 0x0b) {
 				list[i].alarmType = TYPE_ALARM_00;
 				list[i].operationType= TYPE_NOW;
@@ -585,6 +585,10 @@ void handleSub(rt_uint8_t *data)
 			g_mute=1;
 			rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
 			rt_kprintf("got mute\r\n");
-		}		
+		} else {
+			if ((command_type == 0x0002 && cur_status) || 
+				(command_type == 0x0004 && !cur_status))
+				Wtn6_Play(VOICE_ERRORTIP,ONCE);			
+		}
 	}
 }
