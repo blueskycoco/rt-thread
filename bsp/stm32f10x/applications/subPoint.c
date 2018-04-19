@@ -241,6 +241,7 @@ void save_fq(struct FangQu *list, int len)
 			
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 			/*play audio here*/
+			Wtn6_Play(VOICE_ERRORTIP,ONCE);
 			return;
 		}
 	}

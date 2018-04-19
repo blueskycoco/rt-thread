@@ -477,6 +477,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_hw_led_on(WIRELESS_LED);
 	rt_hw_led_on(FAIL_LED);
 	rt_hw_led_on(NET_LED);
+	HtbLcdShow();/*
 	SetErrorCode(1);
 	SetSignalIco(1);
 	SetBatteryIco(4);
@@ -488,7 +489,7 @@ void rt_init_thread_entry(void* parameter)
 	SetStateIco(3,1);
 	SetStateIco(4,1);
 	SetStateIco(5,1);
-	SetStateIco(6,1);
+	SetStateIco(6,1);*/
 	rt_thread_delay(200);	
 	HtbLcdClear();	
 	cur_status = fqp.status;
@@ -553,9 +554,9 @@ void rt_init_thread_entry(void* parameter)
 		SetSimTypeIco(0);
 		SetStateIco(3,1);
 		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
-		rt_thread_delay(150);
+		rt_thread_delay(550);
 		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
-		rt_thread_delay(150);
+		rt_thread_delay(550);
 		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
 	}
 	

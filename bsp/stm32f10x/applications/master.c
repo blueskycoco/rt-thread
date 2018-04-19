@@ -129,6 +129,7 @@ void info_user(void *param)
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
 			g_main_state = 2;
+			Stop_Playing();
 			led_blink(3);
 			g_exit_reason = 0x03;
 			upload_server(CMD_EXIT);
@@ -137,8 +138,8 @@ void info_user(void *param)
 			NVIC_SystemReset();
 		}
 		if (ev & INFO_EVENT_PROTECT_ON) {
-			SetStateIco(0,1);
 			SetStateIco(1,0);
+			SetStateIco(0,1);
 			rt_hw_led_on(ARM_LED);
 			cur_status = 1;						
 			//Wtn6_Play(VOICE_BUFANG,ONCE);
@@ -166,7 +167,7 @@ void info_user(void *param)
 			//g_operater[5] = 0x10;
 			upload_server(CMD_SUB_EVENT);		
 			rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
-			Wtn6_JoinPlay(voice,2,2);
+			Wtn6_JoinPlay(voice,2,1);
 			//entering_ftp_mode	=1;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
@@ -177,9 +178,9 @@ void info_user(void *param)
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
 			alarm_led=0;
-			SetStateIco(1,1);
 			SetStateIco(0,0);
 			SetStateIco(2,0);
+			SetStateIco(1,1);
 			rt_hw_led_off(ARM_LED);	
 			rt_hw_led_off(ALARM_LED);	
 			//Wtn6_Play(VOICE_CHEFANG,ONCE);
@@ -203,7 +204,7 @@ void info_user(void *param)
 			//g_operater[5] = 0x10;
 			upload_server(CMD_SUB_EVENT);			
 			rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
-			Wtn6_JoinPlay(voice,2,2);
+			Wtn6_JoinPlay(voice,2,1);
 		}
 
 		if (ev & INFO_EVENT_ALARM) {

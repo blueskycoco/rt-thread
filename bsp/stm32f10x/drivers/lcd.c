@@ -457,7 +457,6 @@ void HTB_SetBatteryIco(HTB_LEVEL value)
 
 void GPIO_Lcd_Init()
 {
-  HTB_Lcd_Clr();
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOE, ENABLE);
   GPIO_InitTypeDef GPIO_InitStruct;
   GPIO_InitStruct.GPIO_Pin=LCD_PIN_CS|LCD_PIN_RD|LCD_PIN_WR;
@@ -474,6 +473,7 @@ void GPIO_Lcd_Init()
   GPIO_Init(LCD_GPIOB,&GPIO_InitStruct);
   GPIO_Pin_Set(LCD_GPIOB,LCD_PIN_DATA);
 	
+  HTB_Lcd_Clr();
   HTB_Lcd_Init();
 }
 
@@ -652,9 +652,10 @@ void GPIO_Pin_Set(GPIO_TypeDef  *gpiox,u16 pin)
 
 void HTB_Delay_ms(int ms)
 {
-	while(ms)
+	volatile u32 cnt = 1000;
+	while(cnt)
 	{
-		ms--;
+		cnt--;
 	}
 }
 
