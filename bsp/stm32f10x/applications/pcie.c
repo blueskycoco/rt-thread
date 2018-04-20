@@ -615,7 +615,21 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
 	return 1;
 }
-
+void switch_pcie_power(rt_uint8_t type)
+{
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_6|GPIO_Pin_5;
+	GPIO_Init(GPIOD, &GPIO_InitStructure);
+	if (type == 0) {
+		GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_SET);
+		GPIO_WriteBit(GPIOD,GPIO_Pin_5,Bit_RESET);
+	} else {
+		GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_RESET);
+		GPIO_WriteBit(GPIOD,GPIO_Pin_5,Bit_SET);
+	}
+}
 rt_uint8_t pcie_switch(rt_uint8_t type)
 {
 	switch (type) 
@@ -624,9 +638,11 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			//ip_module_start(0);
 			break;
 		case PCIE_1_M26:
+			switch_pcie_power(0);
 			m26_start(0);
 			break;
 		case PCIE_1_EC20:
+			switch_pcie_power(0);
 			ec20_start(0);
 			break;
 		case PCIE_1_NBIOT:
@@ -636,10 +652,12 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			//ip_module_start(1);
 			break;
 		case PCIE_2_M26:
+			switch_pcie_power(1);
 			m26_start(1);
 			break;
 		case PCIE_2_EC20:
-			//ec20_start(1);
+			switch_pcie_power(1);
+			ec20_start(1);
 			break;
 		case PCIE_2_NBIOT:
 			//nb_iot_start(1);
@@ -649,26 +667,65 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			break;
 	}	
 }
+rt_uint8_t check_type(rt_uint8_t pcie_index)
+{	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	uint16_t pin0,pin1,pin2;
+	uint32_t port;
+	rt_uint8_t result=0;
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_8|GPIO_Pin_9|GPIO_Pin_10;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_10|GPIO_Pin_11|GPIO_Pin_12;
+	GPIO_Init(GPIOE, &GPIO_InitStructure);
+	if (pcie_index == 0) {
+		port = GPIOA;
+		pin0 = GPIO_Pin_8;pin0 = GPIO_Pin_9;pin0 = GPIO_Pin_10;
+	} else {
+		port = GPIOE;
+		pin0 = GPIO_Pin_10;pin0 = GPIO_Pin_11;pin0 = GPIO_Pin_12;
+	}
+
+	if (!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
+		!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+		GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+		result = PCIE_1_EC20;
+	else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
+		GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+		!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+		result = PCIE_1_M26;
+	else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
+		!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+		!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+		result = PCIE_1_IP;
+	else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
+		GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+		GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+		result = PCIE_1_NBIOT;
+
+	if (pcie_index == 1)
+		result = (result << 4);
+	rt_kprintf("PCIE index %d, type %x\r\n", pcie_index,result);
+	return result;
+}
 rt_uint8_t check_pcie(rt_uint8_t num) {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	if (num == 0) {
-		/*pcie1_cd pd11*/		
-		GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_11;
-		GPIO_Init(GPIOD, &GPIO_InitStructure);
-		if (GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_11) == SET)
+		/*pcie1_cd pc6*/		
+		GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_6;
+		GPIO_Init(GPIOC, &GPIO_InitStructure);
+		if (GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_6) == SET)
 			return 0;
-		return PCIE_1_EC20;
-		/*TODO: more check on IO*/
 	} else {
 		/*pcie2_cd pe15*/		
 		GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_15;
 		GPIO_Init(GPIOE, &GPIO_InitStructure);
 		if (GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_15) == SET)
 			return 0;
-		return PCIE_2_M26;
-		/*TODO: more check on IO*/
 	}
+	return check_type(num);
 }
 

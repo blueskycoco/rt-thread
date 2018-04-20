@@ -3,16 +3,16 @@
 #include <stdint.h>
 #include "cc1101.h"
 #include "spi1.h"
-#define PIN_CS		GPIO_Pin_1
+#define PIN_CS		GPIO_Pin_4
 #define PORT_CS		GPIOA
-#define PIN_GDO0	GPIO_Pin_2
+#define PIN_GDO0	GPIO_Pin_1
 #define PORT_GDO0	GPIOA
-#define PIN_GDO2	GPIO_Pin_3
+#define PIN_GDO2	GPIO_Pin_0
 #define PORT_GDO2	GPIOA
 #define GPIO_PortSourceX GPIO_PortSourceGPIOA
-#define GPIO_PinSourceX GPIO_PinSource2
+#define GPIO_PinSourceX GPIO_PinSource1
 #define EXTI_IRQnX EXTI2_IRQn
-#define EXTI_LineX	EXTI_Line2
+#define EXTI_LineX	EXTI_Line1
 #define st(x)      do { x } while (__LINE__ == -1)
 struct rt_event cc1101_event;
 #define GDO0_H (1<<0)
@@ -138,7 +138,7 @@ void trxRfDisableInt()
 }
 int getIntFlag()
 {
-	return EXTI_GetFlagStatus(EXTI_Line2);
+	return EXTI_GetFlagStatus(EXTI_LineX);
 }
 void clearIntFlag()
 {
@@ -166,7 +166,7 @@ void trxRfSpiInterruptInit()
 }
 int gdo_level()
 {
-	return GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_2);
+	return GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_0);
 }
 int check_status(uint8_t bit)
 {	

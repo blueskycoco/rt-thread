@@ -323,12 +323,12 @@ void m26_start(int index)
 		GPIO_power = GPIOE;
 		GPIO_pwr = GPIOE;
 	} else {
-		power_rcc = RCC_APB2Periph_GPIOE;
-		pwr_key_rcc = RCC_APB2Periph_GPIOE;
-		power_pin = GPIO_Pin_14;
-		pwr_key_pin = GPIO_Pin_14;
-		GPIO_power = GPIOE;
-		GPIO_pwr = GPIOE;
+		power_rcc = RCC_APB2Periph_GPIOC;
+		pwr_key_rcc = RCC_APB2Periph_GPIOC;
+		power_pin = GPIO_Pin_8;
+		pwr_key_pin = GPIO_Pin_8;
+		GPIO_power = GPIOC;
+		GPIO_pwr = GPIOC;
 	}
 	RCC_APB2PeriphClockCmd(power_rcc|pwr_key_rcc,ENABLE);
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;

@@ -659,6 +659,7 @@ int radio_init(void)
 	trxRfSpiInterfaceInit();	
 
 	trxSpiCmdStrobe(RF_SRES);
+	rt_kprintf("get here\r\n");
 	if (DEV_CC1101 != get_device_id())
 		return 0;
 	rt_kprintf("rssi %d\r\n",radio_get_rssi());

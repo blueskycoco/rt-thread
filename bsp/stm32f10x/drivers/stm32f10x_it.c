@@ -202,18 +202,18 @@ void EXTI9_5_IRQHandler(void)
 	rt_interrupt_leave();
 }
 
-void EXTI4_IRQHandler(void)
+void EXTI1_IRQHandler(void)
 {
     extern void cc1101_isr(void);
 	/* enter interrupt */
 	rt_interrupt_enter();
-	if(EXTI_GetITStatus(EXTI_Line4))
+	if(EXTI_GetITStatus(EXTI_Line1))
 	{	 
-		if (GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_4) == RESET)
+		if (GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_1) == RESET)
 			cc1101_isr();	
 		//else
 		//	rt_kprintf("code button int\r\n");
-		EXTI_ClearITPendingBit(EXTI_Line4);
+		EXTI_ClearITPendingBit(EXTI_Line1);
 	}
 	/* leave interrupt */
 	rt_interrupt_leave();
