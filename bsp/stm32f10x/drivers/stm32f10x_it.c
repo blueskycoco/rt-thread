@@ -209,10 +209,10 @@ void EXTI1_IRQHandler(void)
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line1))
 	{	 
-		if (GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_1) == RESET)
+			rt_kprintf("cc1101 int\r\n");
+		//if (GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_1) == RESET)
 			cc1101_isr();	
 		//else
-		//	rt_kprintf("code button int\r\n");
 		EXTI_ClearITPendingBit(EXTI_Line1);
 	}
 	/* leave interrupt */

@@ -3,22 +3,22 @@
 #include <stdint.h>
 #include "cc1101.h"
 
-#define PIN_CLK		GPIO_Pin_1
-#define PORT_CLK		GPIOC
-#define PIN_MOSI		GPIO_Pin_0
-#define PORT_MOSI		GPIOC
-#define PIN_MISO		GPIO_Pin_2
-#define PORT_MISO		GPIOC
-#define PIN_CS		GPIO_Pin_5
-#define PORT_CS		GPIOC
-#define PIN_GDO0	GPIO_Pin_4
-#define PORT_GDO0	GPIOC
-#define PIN_GDO2	GPIO_Pin_3
-#define PORT_GDO2	GPIOC
-#define GPIO_PortSourceX GPIO_PortSourceGPIOC
-#define GPIO_PinSourceX GPIO_PinSource4
-#define EXTI_IRQnX EXTI4_IRQn
-#define EXTI_LineX	EXTI_Line4
+#define PIN_CLK		GPIO_Pin_5
+#define PORT_CLK		GPIOA
+#define PIN_MOSI		GPIO_Pin_7
+#define PORT_MOSI		GPIOA
+#define PIN_MISO		GPIO_Pin_6
+#define PORT_MISO		GPIOA
+#define PIN_CS		GPIO_Pin_4
+#define PORT_CS		GPIOA
+#define PIN_GDO0	GPIO_Pin_1
+#define PORT_GDO0	GPIOA
+#define PIN_GDO2	GPIO_Pin_0
+#define PORT_GDO2	GPIOA
+#define GPIO_PortSourceX GPIO_PortSourceGPIOA
+#define GPIO_PinSourceX GPIO_PinSource1
+#define EXTI_IRQnX EXTI1_IRQn
+#define EXTI_LineX	EXTI_Line1
 #define st(x)      do { x } while (__LINE__ == -1)
 struct rt_event cc1101_event;
 #define GDO0_H (1<<0)
@@ -70,7 +70,7 @@ void trxRfSpiInterfaceInit()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	rt_event_init(&cc1101_event, "cc1101_event", RT_IPC_FLAG_FIFO );	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);	
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;	
 	GPIO_InitStructure.GPIO_Pin = PIN_CS;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -88,7 +88,7 @@ void trxRfSpiInterruptInit()
 	GPIO_InitTypeDef GPIO_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC|RCC_APB2Periph_AFIO, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_AFIO, ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_InitStructure.GPIO_Pin =  PIN_GDO0;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;

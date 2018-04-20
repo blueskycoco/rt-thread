@@ -623,11 +623,11 @@ void switch_pcie_power(rt_uint8_t type)
 	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_6|GPIO_Pin_5;
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
 	if (type == 0) {
-		GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_SET);
-		GPIO_WriteBit(GPIOD,GPIO_Pin_5,Bit_RESET);
-	} else {
 		GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_RESET);
 		GPIO_WriteBit(GPIOD,GPIO_Pin_5,Bit_SET);
+	} else {
+		GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_SET);
+		GPIO_WriteBit(GPIOD,GPIO_Pin_5,Bit_RESET);
 	}
 }
 rt_uint8_t pcie_switch(rt_uint8_t type)
@@ -681,10 +681,10 @@ rt_uint8_t check_type(rt_uint8_t pcie_index)
 	GPIO_Init(GPIOE, &GPIO_InitStructure);
 	if (pcie_index == 0) {
 		port = GPIOA;
-		pin0 = GPIO_Pin_8;pin0 = GPIO_Pin_9;pin0 = GPIO_Pin_10;
+		pin0 = GPIO_Pin_8;pin1 = GPIO_Pin_9;pin2 = GPIO_Pin_10;
 	} else {
 		port = GPIOE;
-		pin0 = GPIO_Pin_10;pin0 = GPIO_Pin_11;pin0 = GPIO_Pin_12;
+		pin0 = GPIO_Pin_10;pin1 = GPIO_Pin_11;pin2 = GPIO_Pin_12;
 	}
 
 	if (!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&

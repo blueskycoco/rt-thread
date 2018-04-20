@@ -253,16 +253,16 @@ void ec20_start(int index)
 	if (index) {
 		power_rcc = RCC_APB2Periph_GPIOC;
 		pwr_key_rcc = RCC_APB2Periph_GPIOC;
-		power_pin = GPIO_Pin_8;
+		power_pin = GPIO_Pin_9;
 		pwr_key_pin = GPIO_Pin_8;
 		GPIO_power = GPIOC;
 		GPIO_pwr = GPIOC;
 	} else {
 		power_rcc = RCC_APB2Periph_GPIOB;
 		pwr_key_rcc = RCC_APB2Periph_GPIOB;
-		power_pin = GPIO_Pin_3;
+		power_pin = GPIO_Pin_13;
 		pwr_key_pin = GPIO_Pin_3;
-		GPIO_power = GPIOB;
+		GPIO_power = GPIOE;
 		GPIO_pwr = GPIOB;
 	}
 	RCC_APB2PeriphClockCmd(power_rcc|pwr_key_rcc,ENABLE);

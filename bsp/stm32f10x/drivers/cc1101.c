@@ -333,7 +333,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 	int i;
     unsigned char packet_len, status[2];
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &packet_len, 1);
-	//rt_kprintf("packet len is %x\r\n",packet_len);
+	rt_kprintf("packet len is %x\r\n",packet_len);
     if((packet_len & 0x7f) == 0 || (packet_len & 0x80) != 0)    
     {  
         return -1;  
@@ -341,7 +341,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
   
     //packet_len = cc1101_read_signle_reg(RF_RXFIFO);  
     trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &packet_len, 1);
-	//rt_kprintf("packet len is %d\r\n",packet_len);
+	rt_kprintf("packet len is %d\r\n",packet_len);
     if(packet_len <= *count)  
     {  
         //cc1101_read_burst_reg(RF_RXFIFO, buf, packet_len);            
@@ -349,7 +349,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, buf, packet_len);
 		*count = packet_len;
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, status, 2);
-		//rt_kprintf("status %x %x \r\n",status[0],status[1]);
+		rt_kprintf("status %x %x \r\n",status[0],status[1]);
 		//trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, RSSI, &status[0], 1);
 		//trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, LQI, &status[1], 1);
 		//rt_kprintf("status %x %x \r\n",status[0],status[1]);

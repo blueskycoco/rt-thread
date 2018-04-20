@@ -325,10 +325,11 @@ void m26_start(int index)
 	} else {
 		power_rcc = RCC_APB2Periph_GPIOC;
 		pwr_key_rcc = RCC_APB2Periph_GPIOC;
-		power_pin = GPIO_Pin_8;
-		pwr_key_pin = GPIO_Pin_8;
+		power_pin = GPIO_Pin_7;
+		pwr_key_pin = GPIO_Pin_7;
 		GPIO_power = GPIOC;
 		GPIO_pwr = GPIOC;
+		rt_kprintf("use pcie0 gpioc pin 7\r\n");
 	}
 	RCC_APB2PeriphClockCmd(power_rcc|pwr_key_rcc,ENABLE);
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
@@ -345,6 +346,7 @@ void m26_start(int index)
 	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
 	rt_thread_delay(RT_TICK_PER_SECOND);
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
+	rt_kprintf("m26 power on done\r\n");
 }
 
 void m26_proc(void *last_data_ptr, rt_size_t data_size)

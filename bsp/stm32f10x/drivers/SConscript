@@ -12,7 +12,7 @@ led.c
 usart.c
 swo.c
 cc1101.c
-spi.c
+spi_gpio.c
 cJSON.c
 bsp_misc.c
 rt_stm32f10x_spi.c

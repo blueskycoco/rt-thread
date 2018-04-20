@@ -11,7 +11,7 @@
 #define PORT_GDO2	GPIOA
 #define GPIO_PortSourceX GPIO_PortSourceGPIOA
 #define GPIO_PinSourceX GPIO_PinSource1
-#define EXTI_IRQnX EXTI2_IRQn
+#define EXTI_IRQnX EXTI1_IRQn
 #define EXTI_LineX	EXTI_Line1
 #define st(x)      do { x } while (__LINE__ == -1)
 struct rt_event cc1101_event;
@@ -233,9 +233,14 @@ static void trxReadWriteBurstSingle(uint8 addr,uint8 *pData,uint16 len)
 }
 rfStatus_t trx8BitRegAccess(uint8 accessType, uint8 addrByte, uint8 *pData, uint16 len)
 {
+	int i=0;
 	uint8 readValue;
 	RF_SPI_BEGIN();
-	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET);
+	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET);/* {
+		i++;
+		if (i==100) 
+			return 0;
+	}*/
 //	if(check_status(SPI_I2S_IT_TXE))
 		SPI_SendData8(SPI1, accessType|addrByte);
 	check_status(SPI_I2S_IT_TXE);
@@ -248,9 +253,14 @@ rfStatus_t trx8BitRegAccess(uint8 accessType, uint8 addrByte, uint8 *pData, uint
 
 rfStatus_t trxSpiCmdStrobe(uint8 cmd)
 {
+	int i=0;
 	uint8 rc;
 	RF_SPI_BEGIN();
-	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET);
+	while(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6) ==SET);/* {
+		i++;
+		if (i==100) 
+			return 0;
+	}*/
 	//if(check_status(SPI_I2S_IT_TXE))
 		SPI_SendData8(SPI1, cmd);
 	check_status(SPI_I2S_IT_TXE);

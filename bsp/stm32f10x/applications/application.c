@@ -536,16 +536,36 @@ void rt_init_thread_entry(void* parameter)
 		//pcie_switch(PCIE_2_M26);
 		SetStateIco(6,1);
 		SetStateIco(5,0);
-	} else if(pcie_status & PCIE_2_M26) {
+	} else if ((pcie_status & PCIE_1_M26) && (pcie_status & PCIE_2_EC20)) {
+		SetSimTypeIco(3);
+		//SetSimTypeIco(2);
+		pcie_init(PCIE_1_M26,PCIE_2_EC20);
+		pcie_switch(PCIE_2_EC20);
+		//pcie_switch(PCIE_2_M26);
+		SetStateIco(6,1);
+		SetStateIco(5,0);
+	}else if(pcie_status & PCIE_2_M26) {
 		SetSimTypeIco(1);
 		pcie_init(0,PCIE_2_M26);
 		pcie_switch(PCIE_2_M26);
+		SetStateIco(6,1);
+		SetStateIco(5,0);
+	} else if(pcie_status & PCIE_1_M26) {
+		SetSimTypeIco(1);
+		pcie_init(PCIE_1_M26,0);
+		pcie_switch(PCIE_1_M26);
 		SetStateIco(6,1);
 		SetStateIco(5,0);
 	} else if(pcie_status & PCIE_1_EC20) {
 		SetSimTypeIco(3);
 		pcie_init(PCIE_1_EC20,0);
 		pcie_switch(PCIE_1_EC20);
+		SetStateIco(6,1);
+		SetStateIco(5,0);
+	} else if(pcie_status & PCIE_2_EC20) {
+		SetSimTypeIco(3);
+		pcie_init(0,PCIE_2_EC20);
+		pcie_switch(PCIE_2_EC20);
 		SetStateIco(6,1);
 		SetStateIco(5,0);
 	} else {
@@ -558,6 +578,7 @@ void rt_init_thread_entry(void* parameter)
 		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
 		rt_thread_delay(550);
 		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
+		return ;
 	}
 	
 	if (rt_thread_init(&led_thread,
