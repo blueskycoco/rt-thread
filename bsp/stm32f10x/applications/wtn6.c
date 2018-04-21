@@ -32,7 +32,7 @@ void Wtn6_Init(void)
 	GPIO_ResetBits(wtn_CLK_PORT,wtn_CLK);
 	GPIO_ResetBits(wtn_DATA_PORT,wtn_DATA);
 
-	Wtn6_Set_Volumne(LEVEL16);
+	Wtn6_Set_Volumne(LEVEL08);
 }
 /*
 *外部接口，设置播放音量

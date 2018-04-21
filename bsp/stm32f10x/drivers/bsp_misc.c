@@ -256,6 +256,7 @@ void show_signal(int csq)
 }
 void show_battery(int v)
 {
+	static rt_bool_t blink = RT_FALSE;
 	int level = 4;
 	if (v>1180)
 		level=4;
@@ -267,27 +268,36 @@ void show_battery(int v)
 		level=1;
 	else
 		level=5;
-
-	SetBatteryIco(level);
+	//rt_kprintf("battery %d level %d\r\n", v,level);
+	if (level == 5) {
+		if (blink) {
+			blink = RT_FALSE;
+			SetBatteryIco(level);
+		} else {
+			blink = RT_TRUE;
+			SetBatteryIco(1);
+		}
+	} else 
+		SetBatteryIco(level);
 }
 void Adc_Init(void)
 {
 
 	ADC_InitTypeDef ADC_InitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOB, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOC, ENABLE);
 	RCC_ADCCLKConfig(RCC_PCLK2_Div6);
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
 	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
 	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
 	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-	ADC_InitStructure.ADC_NbrOfChannel = ADC_Channel_8;
+	ADC_InitStructure.ADC_NbrOfChannel = ADC_Channel_14;
 	ADC_Init(ADC1, &ADC_InitStructure);
 
 
@@ -321,7 +331,7 @@ rt_uint16_t ADC_Get_aveg(void)
 	rt_uint8_t i; 
 	for(i=0;i<10;i++) 
 	{ 
-		ad_sum += Get_val(ADC_Channel_8);
+		ad_sum += Get_val(ADC_Channel_14);
 		rt_thread_delay(1); 
 	} 
 	return (ad_sum / 10);

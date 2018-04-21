@@ -60,16 +60,16 @@
 
 #define AUX_LED_rcc                RCC_APB2Periph_GPIOC
 #define AUX_LED_gpio               GPIOC
-#define AUX_LED_pin1                (GPIO_Pin_3)
-#define AUX_LED_pin2                (GPIO_Pin_2)
+#define AUX_LED_pin1                (GPIO_Pin_1)
+#define AUX_LED_pin2                (GPIO_Pin_0)
 
 #define PGM3_LED_rcc                 RCC_APB2Periph_GPIOC
 #define PGM3_LED_gpio                GPIOC
-#define PGM3_LED_pin                 (GPIO_Pin_1)
+#define PGM3_LED_pin                 (GPIO_Pin_2)
 
 #define PGM4_LED_rcc                 RCC_APB2Periph_GPIOC
 #define PGM4_LED_gpio                GPIOC
-#define PGM4_LED_pin                 (GPIO_Pin_0)
+#define PGM4_LED_pin                 (GPIO_Pin_3)
 
 #else
 #define led1_rcc                    RCC_APB2Periph_GPIOD
