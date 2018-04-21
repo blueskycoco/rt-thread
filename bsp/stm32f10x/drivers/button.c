@@ -19,7 +19,7 @@ void button_init(void)
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_9;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_5;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_13;
@@ -63,11 +63,11 @@ void battery_init()
 	DMA_InitTypeDef DMA_InitStructure;
 	
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOB |RCC_APB2Periph_AFIO, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOC |RCC_APB2Periph_AFIO, ENABLE);
 	
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	
 	DMA_DeInit(DMA1_Channel1);
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)ADC1->DR;//ADC1_DR_Address;
@@ -92,7 +92,7 @@ void battery_init()
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	ADC_InitStructure.ADC_NbrOfChannel = 1;
 	ADC_Init(ADC1, &ADC_InitStructure);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 1, ADC_SampleTime_71Cycles5);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 2, ADC_SampleTime_71Cycles5);
 	//ADC1选择信道8,音序器等级1,采样时间13.5个周期
 	//ADC_RegularChannelConfig(ADC1, ADC_Channel_9, 2, ADC_SampleTime_71Cycles5);
 	//ADC1选择信道9,音序器等级2,采样时间13.5个周期
@@ -115,7 +115,7 @@ void bell_ctl(int level)
 }
 rt_uint8_t check_ac()
 {
-	return (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_5)?0:1);
+	return (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_6)?0:1);
 }
 void buzzer_ctl(int level)
 {

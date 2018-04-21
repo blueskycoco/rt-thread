@@ -58,18 +58,18 @@
 #define FAIL_LED_gpio               GPIOE
 #define FAIL_LED_pin                (GPIO_Pin_6)
 
-#define AUX_LED_rcc                RCC_APB2Periph_GPIOA
-#define AUX_LED_gpio               GPIOA
-#define AUX_LED_pin1                (GPIO_Pin_7)
-#define AUX_LED_pin2                (GPIO_Pin_6)
+#define AUX_LED_rcc                RCC_APB2Periph_GPIOC
+#define AUX_LED_gpio               GPIOC
+#define AUX_LED_pin1                (GPIO_Pin_3)
+#define AUX_LED_pin2                (GPIO_Pin_2)
 
-#define PGM3_LED_rcc                 RCC_APB2Periph_GPIOA
-#define PGM3_LED_gpio                GPIOA
-#define PGM3_LED_pin                 (GPIO_Pin_5)
+#define PGM3_LED_rcc                 RCC_APB2Periph_GPIOC
+#define PGM3_LED_gpio                GPIOC
+#define PGM3_LED_pin                 (GPIO_Pin_1)
 
-#define PGM4_LED_rcc                 RCC_APB2Periph_GPIOA
-#define PGM4_LED_gpio                GPIOA
-#define PGM4_LED_pin                 (GPIO_Pin_4)
+#define PGM4_LED_rcc                 RCC_APB2Periph_GPIOC
+#define PGM4_LED_gpio                GPIOC
+#define PGM4_LED_pin                 (GPIO_Pin_0)
 
 #else
 #define led1_rcc                    RCC_APB2Periph_GPIOD
@@ -83,7 +83,7 @@ void rt_hw_led_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
 
-    RCC_APB2PeriphClockCmd(led1_rcc|RCC_APB2Periph_GPIOE|RCC_APB2Periph_GPIOA,ENABLE);
+    RCC_APB2PeriphClockCmd(led1_rcc|RCC_APB2Periph_GPIOE|RCC_APB2Periph_GPIOC,ENABLE);
 
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;

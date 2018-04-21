@@ -209,7 +209,7 @@ void EXTI1_IRQHandler(void)
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line1))
 	{	 
-			rt_kprintf("cc1101 int\r\n");
+		//	rt_kprintf("cc1101 int\r\n");
 		//if (GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_1) == RESET)
 			cc1101_isr();	
 		//else

@@ -258,7 +258,7 @@ void ec20_start(int index)
 		GPIO_power = GPIOC;
 		GPIO_pwr = GPIOC;
 	} else {
-		power_rcc = RCC_APB2Periph_GPIOB;
+		power_rcc = RCC_APB2Periph_GPIOE;
 		pwr_key_rcc = RCC_APB2Periph_GPIOB;
 		power_pin = GPIO_Pin_13;
 		pwr_key_pin = GPIO_Pin_3;

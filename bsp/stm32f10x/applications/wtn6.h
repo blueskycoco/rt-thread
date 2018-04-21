@@ -7,13 +7,13 @@
 //#define CLK    PBin(1)			//时钟
 //#define DATA   PBin(2)			//数据
 
-#define wtn_BUSY   GPIO_Pin_3			//芯片状态输出
-#define wtn_CLK    GPIO_Pin_15			//时钟pa15
-#define wtn_DATA   GPIO_Pin_4			//数据pb4
+#define wtn_BUSY   GPIO_Pin_2			//芯片状态输出
+#define wtn_CLK    GPIO_Pin_1			//时钟pa15
+#define wtn_DATA   GPIO_Pin_0			//数据pb4
 
-#define wtn_BUSY_PORT GPIOB
-#define wtn_CLK_PORT GPIOA
-#define wtn_DATA_PORT GPIOB
+#define wtn_BUSY_PORT GPIOD
+#define wtn_CLK_PORT GPIOD
+#define wtn_DATA_PORT GPIOD
 
 /*命令类型*/
 #define CMD_Stop   0xFE			//停止播放
