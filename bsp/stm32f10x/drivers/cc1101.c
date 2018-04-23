@@ -14,6 +14,7 @@ unsigned long volatile time_counter = 0;
 #define RX_BUF_SIZE              256  
 #define MAX_FIFO_SIZE            0x38 
 struct rt_semaphore cc1101_rx_sem;
+extern rt_uint8_t r_signal;
 
 unsigned char paTable[1];           
 unsigned char rf_end_packet = 0;
@@ -354,6 +355,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 		//trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, LQI, &status[1], 1);
 		//rt_kprintf("status %x %x \r\n",status[0],status[1]);
         //*count = packet_len;  
+        r_signal = status[0];
         return ((status[1] & 0x80) ? 0 : -2);  
     }  
     else   

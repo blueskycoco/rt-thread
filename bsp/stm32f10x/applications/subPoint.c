@@ -37,6 +37,8 @@ extern rt_uint8_t g_delay_in;
 extern rt_uint8_t g_alarm_fq;
 extern rt_uint16_t g_alarm_reason;
 extern rt_uint16_t g_sub_event_code;
+rt_uint8_t r_signal = 0x00;
+
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {

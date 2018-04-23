@@ -33,7 +33,8 @@ rt_uint8_t g_fq_event[8];
 rt_uint8_t g_addr_type;
 rt_uint8_t g_heart_cnt=0;
 extern rt_uint8_t heart_time;
-
+extern rt_uint8_t r_signal;
+extern rt_uint16_t battery;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
@@ -375,7 +376,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[19] = (cur_time >>  8) & 0xff;
 		cmd[20] = (cur_time >>  0) & 0xff;
 		cmd[21] = g_alarm_fq;
-		ofs= 22;
+		cmd[22] = (battery>>8) & 0xff;
+		cmd[23] = (battery) & 0xff;
+		cmd[24] = con_rssi(r_signal);
+		ofs= 25;
 	} else if (type == CMD_MAIN_EVENT) {
 		rt_kprintf("\r\n<CMD MAIN EVENT Packet>\r\n");
 		cmd[5]=(CMD_MAIN_EVENT >> 8) & 0xff;//main event
@@ -413,6 +417,15 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[ofs++] = g_operate_platform;
 		memcpy(cmd+ofs,g_operater,6);
 		ofs += 6;
+		if ((g_sub_event_code == 0x2001||
+			g_sub_event_code == 0x2002) &&
+			(g_operate_platform == 0xff ||
+			g_operate_platform == 0xfe))
+			{				
+				cmd[ofs++] = (battery>>8) & 0xff;
+				cmd[ofs++] = (battery) & 0xff;
+				cmd[ofs++] = con_rssi(r_signal);
+			}
 	} else if (type == CMD_ASK_ADDR) {
 		rt_kprintf("\r\n<CMD ASK ADDR Packet>\r\n");
 		cmd[5] = (CMD_ASK_ADDR >> 8) & 0xff;//ask addr
@@ -530,7 +543,7 @@ void send_process(void* parameter)
 		rt_kprintf("wait lock\r\n");
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);		
 		cmd = (char *)rt_malloc(50);
-		rt_kprintf("begin send cmd\r\n");
+		rt_kprintf("begin send cmd, %d\r\n",g_net_state);
 		if (g_net_state == NET_STATE_INIT) {
 			SetStateIco(7,1);
 			rt_kprintf("send login\r\n");
@@ -545,6 +558,7 @@ void send_process(void* parameter)
 			heart_time = 0;
 			rt_free(cmd);
 			rt_mutex_release(&(g_pcie[g_index]->lock));
+			rt_kprintf("unknown state ,ignore\r\n");
 			continue;
 		}
 		heart_time = 0;

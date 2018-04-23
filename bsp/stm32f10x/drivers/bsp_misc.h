@@ -14,4 +14,5 @@ int get_len(rt_uint8_t *pos, rt_uint16_t len);
 void cat_file(unsigned char *file);
 unsigned int CRC_check_file(unsigned char *file);
 void show_signal(int csq);
+rt_uint8_t con_rssi(rt_uint8_t cc_rssi);
 #endif

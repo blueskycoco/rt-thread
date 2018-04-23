@@ -442,3 +442,13 @@ int get_len(rt_uint8_t *pos, rt_uint16_t len)
 	}
 	return rlen;
 }
+rt_uint8_t con_rssi(rt_uint8_t cc_rssi)
+{	
+	rt_uint8_t rssi;
+	if (cc_rssi >= 128) {
+	  rssi = 100+((cc_rssi-256)>>1) - 72;
+	} else {
+	  rssi = 100+(cc_rssi>>1) - 72;
+	}
+	return rssi;
+}
