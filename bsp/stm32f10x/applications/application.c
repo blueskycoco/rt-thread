@@ -383,7 +383,7 @@ void rt_init_thread_entry(void* parameter)
 	//battery_init();
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_mutex_init(&(g_stm32_lock),	"stm32_lock",	RT_IPC_FLAG_FIFO);
-	rt_thread_startup(rt_thread_create("7info",info_user, 0,2048, 20, 10));
+	rt_thread_startup(rt_thread_create("7info",info_user, 0,4096, 20, 10));
 
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)

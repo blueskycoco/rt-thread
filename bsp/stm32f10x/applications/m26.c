@@ -50,6 +50,7 @@
 #define M26_STATE_CLEAN_RAM		35
 #define M26_STATE_CLOSE_FILE	36
 
+#define STR_CFUN					"+CFUN:"
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
 #define STR_CSQ						"+CSQ:"
@@ -304,6 +305,13 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 			flag = RT_FALSE;
 		}
 		
+	}else {
+		if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))) {
+				gprs_at_cmd(g_dev_m26,qird);
+				server_len_m26 = 0;
+				g_data_in_m26 = RT_TRUE;
+
+		}
 	}
 }
 
@@ -360,9 +368,13 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 		else
 			rt_kprintf("\r\n(M26<= %d %d)\r\n",g_m26_state, data_size);
 	if (data_size >= 2) {
+		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN))
+		{
+			g_m26_state = M26_STATE_INIT;
+		}
 		switch (g_m26_state) {
 			case M26_STATE_INIT:
-				if (have_str(last_data_ptr,STR_RDY)) {
+				if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)) {
 				g_m26_state = M26_STATE_ATE0;
 				gprs_at_cmd(g_dev_m26,e0);	
 				}
@@ -878,7 +890,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					//rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
 
-					
+				
 					if (g_server_addr != g_server_addr_bak || g_server_port != g_server_port_bak) {
 						g_ip_index=0;
 						g_m26_state = M26_STATE_SET_QICLOSE;
@@ -976,6 +988,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					//gprs_at_cmd(g_dev_m26,(qisack);
 					g_m26_state = M26_STATE_DATA_PROCESSING;
 					gprs_at_cmd(g_dev_m26,at_csq);
+					rt_time_t cur_time = time(RT_NULL);
+					rt_kprintf("send server ok %s\r\n",ctime(&cur_time));
 					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 				} else {
 					if (!have_str(last_data_ptr, STR_QIRDI) && 
@@ -984,9 +998,12 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_m26,qistat);
 					}
 				}
-				if (have_str(last_data_ptr, STR_QIRDI) ||
-						!have_str(last_data_ptr, STR_QIURC))
-					g_data_in_m26 = RT_TRUE;
+				if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_m26)
+				{
+						g_m26_state = M26_STATE_DATA_READ;
+						gprs_at_cmd(g_dev_m26,qird);
+						server_len_m26 = 0;
+				}
 				break;
 			case M26_STATE_DATA_ACK:
 				if (have_str(last_data_ptr, STR_QISACK)) {
