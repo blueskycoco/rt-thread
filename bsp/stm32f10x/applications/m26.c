@@ -169,9 +169,14 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 	if (match_bin((rt_uint8_t *)last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
 		(match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
 		!flag) {
-		gprs_at_cmd(g_dev_m26,qird);
-		server_len_m26 = 0;
-		g_data_in_m26 = RT_TRUE;
+		//for (i=0;i<len;i++)
+		//	rt_kprintf("%c",((rt_uint8_t *)last_data_ptr)[i]);
+		//rt_kprintf("m26 read again\r\n");
+		if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_CSQ,rt_strlen(STR_CSQ))==-1) {
+			gprs_at_cmd(g_dev_m26,qird);
+			server_len_m26 = 0;
+			g_data_in_m26 = RT_TRUE;
+		}
 		return ;
 		}
 	
@@ -310,7 +315,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 				gprs_at_cmd(g_dev_m26,qird);
 				server_len_m26 = 0;
 				g_data_in_m26 = RT_TRUE;
-
+				flag=RT_FALSE;
 		}
 	}
 }
