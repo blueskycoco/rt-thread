@@ -498,6 +498,7 @@ void handleSub(rt_uint8_t *data)
 		rt_kprintf("command not for me\r\n"); 
 		return ;
 	}
+
 	/*check sub id in fangqu list && non-coding mode*/
 	if (!check_sub_id(sub_id, fangqu_wireless,WIRELESS_MAX)
 		&& g_main_state != 1) {
@@ -514,8 +515,12 @@ void handleSub(rt_uint8_t *data)
 		{	/*require cc1101 addr*/
 			resp[18] = get_addr(data[11]<<24|data[12]<<16|data[13]<<8|data[14],fangqu_wireless,WIRELESS_MAX);
 		} else if (0x0010 == command_type) {
-			/*get cur status*/
-			resp[18] = fangqu_wireless[g_index_sub].status;//cur_status;
+			/*get cur status*/			
+			if (fangqu_wireless[g_index_sub].status == TYPE_PROTECT_ON)
+				resp[18] = 0x01;//cur_status;
+			else
+				resp[18] = 0x00;//cur_status;
+			
 		} else if (0x0014 == command_type) {
 			/*configrm coding*/
 			resp[18] = 0x01;
@@ -523,7 +528,12 @@ void handleSub(rt_uint8_t *data)
 				save_fq(fangqu_wireless,WIRELESS_MAX);
 		} else if (0x0006 == command_type) {
 			/*send alarm to server*/
-			resp[18] = fangqu_wireless[g_index_sub].status;//cur_status;
+			
+			if (fangqu_wireless[g_index_sub].status == TYPE_PROTECT_ON)
+				resp[18] = 0x01;//cur_status;
+			else
+				resp[18] = 0x00;//cur_status;
+			
 			g_mute=0;
 			rt_kprintf("have alarm %d %d %d %d\r\n",
 				g_main_state, sub_cmd_type,cur_status,fangqu_wireless[g_index_sub].operationType);
@@ -542,7 +552,10 @@ void handleSub(rt_uint8_t *data)
 		} else if (0x000c == command_type) {
 			/*send low power alarm to server*/
 			g_mute=0;
-			resp[18] = fangqu_wireless[g_index_sub].status;//cur_status;
+			if (fangqu_wireless[g_index_sub].status == TYPE_PROTECT_ON)
+				resp[18] = 0x01;//cur_status;
+			else
+				resp[18] = 0x00;//cur_status;
 			g_mute=0;
 			//if (!g_main_state) {
 			//	rt_event_send(&(g_info_event), INFO_EVENT_ALARM);			
