@@ -256,7 +256,7 @@ void info_user(void *param)
 						g_alarm_reason = 0x1003;
 						if (s1 == 1) { //s1 switch
 							rt_kprintf("s1 audio\r\n");
-							Wtn6_Play(VOICE_CHEFANG,ONCE);
+							Wtn6_Play(VOICE_FCALARM,ONCE);
 						} else {
 							rt_kprintf("non-s1 audio \r\n");
 							g_alarm_voice = fqp.alarm_voice_time;

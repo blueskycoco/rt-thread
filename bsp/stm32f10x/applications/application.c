@@ -274,8 +274,10 @@ static void led_thread_entry(void* parameter)
 				g_delay_in -= 1;
 			else if (g_delay_in >0 && g_delay_in <= 10){
 				rt_kprintf("last count %d\r\n",g_delay_in);
-				if (g_delay_in == 10)
+				if (g_delay_in == 10) {
 					Wtn6_Play(VOICE_COUNTDOWN,ONCE);
+					rt_thread_delay(300);
+				}
 				g_delay_in -= 1;
 			} else if (g_delay_in == 0 && g_flag == 0/* && g_alarm_voice >0*/) {
 				//rt_kprintf("play end %d\r\n",g_alarm_voice);
@@ -300,11 +302,12 @@ static void led_thread_entry(void* parameter)
 		if (!g_mute) {
 				if (g_delay_out > 10)
 					g_delay_out -= 1;
-				else if (g_delay_out >0 && g_delay_out <= 10){				
+				else if (g_delay_out >0 && g_delay_out <= 10){
 					rt_kprintf("out last count %d\r\n",g_delay_out);
 					if (g_delay_out == 10)
 					{
 						Wtn6_Play(VOICE_COUNTDOWN,ONCE);
+						rt_thread_delay(300);
 					}
 					if (g_delay_out == 1)
 						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
