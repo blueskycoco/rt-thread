@@ -83,7 +83,7 @@
 #define STR_CONNECT_OK				"CONNECT OK"
 #define STR_CLOSE_OK				"CLOSE OK"
 #define STR_SEND_OK					"SEND OK"
-#define STR_QIRDI					"+QIRDI:"
+#define STR_QIRDI					"+QIRDI: 0,1,0"
 #define STR_QISACK					"+QISACK"
 #define STR_SOCKET_BUSSY			"SOCKET BUSY"
 #define STR_CONNECT_FAIL			"CONNECT FAIL"
@@ -312,6 +312,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 		
 	}else {
 		if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))) {
+				rt_kprintf("got another qirdi\r\n");
 				gprs_at_cmd(g_dev_m26,qird);
 				server_len_m26 = 0;
 				g_data_in_m26 = RT_TRUE;

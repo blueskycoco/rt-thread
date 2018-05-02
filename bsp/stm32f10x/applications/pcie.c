@@ -68,6 +68,11 @@ static void pcie1_rcv(void* parameter)
 		//rt_kprintf("==>%s", buf);
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || strchr(buf,'>')!=RT_NULL) {
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
+			if (rcv == RT_NULL) {
+				rt_kprintf("no memory\r\n");
+				while((rcv = (uint8_t *)rt_malloc(total_len+1)) == RT_NULL)
+					rt_thread_delay(10);
+			}
 			rt_memcpy(rcv, buf, total_len);
 			rcv[total_len] = '\0';
 			rt_data_queue_push(&g_data_queue[1], rcv, total_len, RT_WAITING_FOREVER);
@@ -574,12 +579,15 @@ void upload_server(rt_uint16_t cmdType)
 	//	return;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
 	cmd = (char *)rt_malloc(400);
+	if (cmd != RT_NULL) {
 	int send_len = build_cmd(cmd,cmdType);
 	rt_kprintf("send cmd %d to server\r\n",cmdType);
 	rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND);
 //	gprs_wait_event(RT_WAITING_FOREVER);	
 	rt_mutex_release(&(g_pcie[g_index]->lock));
 	rt_kprintf("send buf done\r\n");
+	} else 
+		rt_mutex_release(&(g_pcie[g_index]->lock));
 }
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 {
