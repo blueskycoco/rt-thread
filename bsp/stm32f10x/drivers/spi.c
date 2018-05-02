@@ -157,8 +157,8 @@ void trxRfSpiInterruptInit()
 	GPIO_EXTILineConfig(GPIO_PortSourceX, GPIO_PinSourceX);
 
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI_IRQnX;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority= 2; 
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority= 0; 
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 	trxRfEnableInt();

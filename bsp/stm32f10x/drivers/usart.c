@@ -561,7 +561,7 @@ static void DMA_Configuration(struct rt_serial_device *serial) {
     /* rx dma interrupt config */
     NVIC_InitStructure.NVIC_IRQChannel = uart->dma.rx_irq_ch;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
 }
