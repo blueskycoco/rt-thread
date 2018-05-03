@@ -166,6 +166,14 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 	static rt_bool_t flag = RT_FALSE;	
 	int i;
 	int ofs;
+	if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))!=-1) {
+				rt_kprintf("got another qirdi\r\n");
+				gprs_at_cmd(g_dev_m26,qird);
+				server_len_m26 = 0;
+				g_data_in_m26 = RT_TRUE;
+				flag=RT_FALSE;
+				return ;
+		}
 	if (match_bin((rt_uint8_t *)last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
 		(match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
 		!flag) {
@@ -311,13 +319,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 		}
 		
 	}else {
-		if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))) {
-				rt_kprintf("got another qirdi\r\n");
-				gprs_at_cmd(g_dev_m26,qird);
-				server_len_m26 = 0;
-				g_data_in_m26 = RT_TRUE;
-				flag=RT_FALSE;
-		}
+		
 	}
 }
 

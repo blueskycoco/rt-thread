@@ -17,7 +17,7 @@ unsigned int CRC_check(unsigned char *Data,unsigned short Data_length)
 	unsigned int CRC1=0xFFFF;
 	while(Data_length)
 	{
-		CRC1=Data[Data_index]^CRC1;
+		CRC1=((unsigned int)(Data[Data_index]))^CRC1;
 		for(times=0;times<8;times++)
 		{
 			mid=CRC1;

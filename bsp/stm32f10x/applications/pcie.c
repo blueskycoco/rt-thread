@@ -101,6 +101,12 @@ static void pcie0_rcv(void* parameter)
 		//rt_kprintf("==>%s", buf);
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || strchr(buf,'>')!=RT_NULL) {
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
+			
+			if (rcv == RT_NULL) {
+				rt_kprintf("no memory\r\n");
+				while((rcv = (uint8_t *)rt_malloc(total_len+1)) == RT_NULL)
+					rt_thread_delay(10);
+			}
 			rt_memcpy(rcv, buf, total_len);
 			rcv[total_len] = '\0';
 			rt_data_queue_push(&g_data_queue[0], rcv, total_len, RT_WAITING_FOREVER);
@@ -193,9 +199,9 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 {
 	int i=0;
 	int cnt=0;
-	rt_uint16_t packet_len[5];
-	rt_uint8_t index[5];
-	rt_uint16_t crc[5];
+	rt_uint16_t packet_len[20];
+	rt_uint8_t index[20];
+	rt_uint16_t crc[20];
 	for (i=0; i<len; i++)
 	{
 		//rt_kprintf("data %x\r\n",data[i]);
@@ -215,7 +221,7 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 				return 0;
 			}
 			crc[cnt]=(data[i+packet_len[cnt]-2]<<8)|data[i+packet_len[cnt]-1];
-			//rt_kprintf("Found 0xAD 0xAC at %d, len %d, crc %x\r\n", index[cnt],packet_len[cnt],crc[cnt]);
+			rt_kprintf("Found 0xAD 0xAC at %d, len %d, crc %x\r\n", index[cnt],packet_len[cnt],crc[cnt]);
 			if (crc[cnt] == CRC_check(data+i+2,packet_len[cnt]-4))
 			{
 				//rt_kprintf("packet %d, CRC is match\r\n",index[cnt]);
