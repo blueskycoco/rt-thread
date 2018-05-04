@@ -565,7 +565,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 	if (cmd[0] == 6)
 		g_sub_event_code = 0x200d;
 	else
-		g_sub_event_code = 0x2001+cmd[0];
+		g_sub_event_code = 0x2000+cmd[0];
 	upload_server(CMD_SUB_EVENT);
 }
 
