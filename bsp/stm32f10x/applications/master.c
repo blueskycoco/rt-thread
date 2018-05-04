@@ -164,8 +164,9 @@ void info_user(void *param)
 			memset(g_operater,0,8);
 			g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
 			g_operate_platform = 0xff;
-			//g_operater[5] = 0x10;
-			upload_server(CMD_SUB_EVENT);		
+			//g_operater[5] = 0x10;			
+			if (command_type==0x0002)
+				upload_server(CMD_SUB_EVENT);		
 			rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 			Wtn6_JoinPlay(voice,2,1);
 			//entering_ftp_mode	=1;
@@ -202,7 +203,8 @@ void info_user(void *param)
 			g_operater[7] = 0x10+fangqu_wireless[g_index_sub].index;
 			g_operate_platform = 0xff;
 			//g_operater[5] = 0x10;
-			upload_server(CMD_SUB_EVENT);			
+			if (command_type==0x0004)
+				upload_server(CMD_SUB_EVENT);			
 			rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
 			Wtn6_JoinPlay(voice,2,1);
 		}
@@ -458,6 +460,7 @@ void handle_set_sub(rt_uint8_t *cmd)
 		cmd[i+1],cmd[i+2],cmd[i+3],cmd[i+4],cmd[i+5],cmd[i+6]);
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	/*build proc main ack*/
+	upload_server(CMD_ASK_SUB_ACK);
 
 	/*execute cmd*/
 }
@@ -546,6 +549,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 				if (!cur_status && g_delay_out==0)
 				{
 					handle_protect_on();
+					g_sub_event_code = 0x2002;
 				}
 			}
 		} else {
@@ -558,6 +562,10 @@ void handle_proc_sub(rt_uint8_t *cmd)
 	}
 	/*build proc sub ack*/
 	g_fq_len=cmd[1];
+	if (cmd[0] == 6)
+		g_sub_event_code = 0x200d;
+	else
+		g_sub_event_code = 0x2001+cmd[0];
 	upload_server(CMD_SUB_EVENT);
 }
 

@@ -320,9 +320,12 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		memcpy(cmd+22,g_pcie[g_index]->imei,8);
 		cmd[30] = 0;
 		ofs = 31;
-		if (g_index == 1 && g_type1 == PCIE_2_M26)
+		rt_kprintf("login %d %d %d\r\n", g_index,g_type1,g_type0);
+		if ((g_index == 1 && g_type1 == PCIE_2_M26) ||
+			(g_index == 0 && g_type0 == PCIE_1_M26))
 			cmd[30] |= 0x20;
-		if (g_index == 0 && g_type1 == PCIE_1_EC20)
+		if ((g_index == 1 && g_type1 == PCIE_2_EC20) ||
+			(g_index == 0 && g_type0 == PCIE_1_EC20))
 			cmd[30] |= 0x10;
 		if (g_pcie[g_index]->lac_ci !=0 )
 		{
@@ -341,6 +344,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			memcpy(cmd+ofs,g_pcie[g_index]->qccid,10);
 			ofs+=10;
 		}
+		if (cur_status)
+			cmd[ofs++] = 2;
+		else
+			cmd[ofs++] = 1;
 	} else if(type == CMD_HEART) {			
 		rt_kprintf("\r\n<CMD HEART Packet>\r\n");
 		cmd[5]=(CMD_HEART >> 8) & 0xff;//heart

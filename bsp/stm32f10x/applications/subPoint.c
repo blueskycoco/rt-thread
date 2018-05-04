@@ -200,6 +200,11 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 		ptr->isBypass = TYPE_BYPASS_Y;
 		g_sub_event_code = 0x2004;
 	} 
+	else if (code == 0x05)
+	{
+		rt_kprintf("delete fq %d\r\n", index);
+		memset(ptr,0,sizeof(struct FangQu));
+	}
 }
 void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
 {
