@@ -188,7 +188,7 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 
 	if (code == 0x01 || code == 0x04) //protect off
 	{
-		//if (ptr[index].operationType != TYPE_24) {
+		//if (ptr[index].slave_model != 0xd001) {
 			ptr[index].status = 0;
 			ptr[index].isBypass = TYPE_BYPASS_N;
 			rt_kprintf("protect off fq %d\r\n", index);
@@ -204,8 +204,10 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 	}
 	else if (code == 0x03) //bypass
 	{
+		if (ptr[index].slave_model != 0xd001) {
 		rt_kprintf("bypass fq %d\r\n", index);
 		ptr[index].isBypass = TYPE_BYPASS_Y;
+		}
 		g_sub_event_code = 0x2004;
 	} 
 	else if (code == 0x05)
@@ -219,7 +221,7 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 		ptr[index].isBypass = TYPE_BYPASS_N;
 	}
 
-	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
+	//dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 }
 void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
 {
@@ -232,13 +234,13 @@ void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
 		for (j=0; j<8; j++)
 		{
 			if (tmp & 0x01) {
-					rt_kprintf("need proc fq %d %d\r\n", index+j+20,code);
-					proc_detail_fq(index+j+20, code);
+					rt_kprintf("need proc fq %d %d\r\n", index+j,code);
+					proc_detail_fq(index+j, code);
 			} else {
 				if (code == 0x04) {
 					g_sub_event_code = 0x2003;
-					rt_kprintf("need 1proc fq %d %d\r\n", index+j+20,code);
-					proc_detail_fq(index+j+20, 0x02);
+					rt_kprintf("need 1proc fq %d %d\r\n", index+j,code);
+					proc_detail_fq(index+j, 0x02);
 				}
 			}			
 			tmp = tmp >> 1;

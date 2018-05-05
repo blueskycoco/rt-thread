@@ -35,7 +35,7 @@ extern rt_uint8_t g_operate_platform;
 extern rt_uint8_t g_operater[6];
 extern rt_uint16_t g_sub_event_code;
 extern rt_uint8_t g_fq_len;
-extern rt_uint8_t g_fq_event[8];
+extern rt_uint8_t g_fq_event[10];
 extern rt_uint8_t g_addr_type;
 extern rt_uint16_t command_type;
 extern rt_uint8_t g_ac;
@@ -384,7 +384,7 @@ void handle_ask_sub(rt_uint8_t *cmd)
 {
 	rt_kprintf("cmd_type \task sub\r\n");
 	rt_kprintf("operate platform \t%x\r\n", cmd[0]);
-	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
 	g_operate_platform = cmd[0];
 	memcpy(g_operater,cmd+1,6);
@@ -395,7 +395,7 @@ void handle_ask_main(rt_uint8_t *cmd)
 {
 	rt_kprintf("cmd_type \task main\r\n");
 	rt_kprintf("operate platform \t%d\r\n", cmd[0]);
-	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
 	g_operate_platform = cmd[0];
 	memcpy(g_operater,cmd+1,6);
@@ -426,7 +426,7 @@ void handle_set_main(rt_uint8_t *cmd)
 	memcpy(g_operater,cmd+13,6);
 	
 	rt_kprintf("operate platform \t%x\r\n", cmd[12]);
-	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	/*build proc main ack*/
@@ -456,7 +456,7 @@ void handle_set_sub(rt_uint8_t *cmd)
 	memcpy(g_operater,cmd+i+1,6);
 	
 	rt_kprintf("operate platform \t%x\r\n", cmd[i]);
-	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[i+1],cmd[i+2],cmd[i+3],cmd[i+4],cmd[i+5],cmd[i+6]);
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	/*build proc main ack*/
@@ -484,7 +484,7 @@ void handle_proc_main(rt_uint8_t *cmd)
 			break;
 	}	
 	rt_kprintf("operate platform \t%d\r\n", cmd[1]);
-	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
 
 	g_operate_platform = cmd[1];
@@ -519,13 +519,14 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		rt_kprintf("proc fq \t%d\r\n", g_fq_event[0]);
 		ofs = 3;
 	} else {
-		memcpy(g_fq_event, cmd+2,8);
-		rt_kprintf("proc fq \t%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
-		g_fq_event[0],g_fq_event[1],g_fq_event[2],g_fq_event[3],g_fq_event[4],g_fq_event[5],g_fq_event[6],g_fq_event[7]);
+		memcpy(g_fq_event, cmd+2,10);
+		rt_kprintf("proc fq \t%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
+		g_fq_event[0],g_fq_event[1],g_fq_event[2],g_fq_event[3],g_fq_event[4],
+		g_fq_event[5],g_fq_event[6],g_fq_event[7],g_fq_event[8],g_fq_event[9]);
 		ofs = 10;
 	}
 	rt_kprintf("operate platform \t%d\r\n", cmd[ofs]);
-	rt_kprintf("operater \t%c%c%c%c%c%c\r\n",
+	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[ofs+1],cmd[ofs+2],cmd[ofs+3],cmd[ofs+4],cmd[ofs+5],cmd[ofs+6]);
 	g_operate_platform = cmd[ofs];
 	memcpy(g_operater,cmd+ofs+1,6);
@@ -559,7 +560,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		}
 	} else {
 		/*proc multi fq*/
-		proc_fq(cmd+2, 8, cmd[0]);
+		proc_fq(cmd+2, 10, cmd[0]);
 	}
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	/*build proc sub ack*/
@@ -576,6 +577,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		g_sub_event_code = 0x200D;
 	else if (cmd[0] == 6)
 		g_sub_event_code = 0x2005;
+	if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03))
 	upload_server(CMD_SUB_EVENT);
 }
 

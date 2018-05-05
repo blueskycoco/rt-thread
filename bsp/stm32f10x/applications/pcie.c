@@ -29,7 +29,7 @@ rt_uint8_t g_operate_platform=0x0;
 rt_uint8_t g_operater[6]={0x00};
 rt_uint16_t g_sub_event_code;
 rt_uint8_t g_fq_len;
-rt_uint8_t g_fq_event[8];
+rt_uint8_t g_fq_event[10];
 rt_uint8_t g_addr_type;
 rt_uint8_t g_heart_cnt=0;
 extern rt_uint8_t heart_time;
@@ -427,10 +427,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		{
 			cmd[ofs++] = g_fq_event[0];
 		} else {
-			memcpy(cmd+ofs,g_fq_event,8);
+			memcpy(cmd+ofs,g_fq_event,10);
 			//for (i=0;i<8;i++)
 			//rt_kprintf("cmd %02x , event %02x\r\n",cmd[i+22],g_fq_event[i]);
-			ofs+=8;
+			ofs+=10;
 		}
 		cmd[ofs++] = g_operate_platform;
 		memcpy(cmd+ofs,g_operater,6);
