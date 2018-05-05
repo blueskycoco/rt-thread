@@ -554,18 +554,28 @@ void handle_proc_sub(rt_uint8_t *cmd)
 			}
 		} else {
 			/*proc signle fq*/
-			proc_fq(cmd+2, 1, cmd[0]);
+			//proc_fq(cmd+2, 1, cmd[0]);
+			proc_detail_fq(cmd[2], cmd[0]);
 		}
 	} else {
 		/*proc multi fq*/
 		proc_fq(cmd+2, 8, cmd[0]);
 	}
+	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	/*build proc sub ack*/
 	g_fq_len=cmd[1];
-	if (cmd[0] == 6)
-		g_sub_event_code = 0x200d;
-	else
-		g_sub_event_code = 0x2000+cmd[0];
+	if (cmd[0] == 1)
+		g_sub_event_code = 0x2001;
+	else if (cmd[0] == 2)
+		g_sub_event_code = 0x2002;	
+	else if (cmd[0] == 3)
+		g_sub_event_code = 0x2004;	
+	else if (cmd[0] == 4)
+		g_sub_event_code = 0x2003;
+	else if (cmd[0] == 5)
+		g_sub_event_code = 0x200D;
+	else if (cmd[0] == 6)
+		g_sub_event_code = 0x2005;
 	upload_server(CMD_SUB_EVENT);
 }
 

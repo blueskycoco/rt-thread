@@ -176,35 +176,50 @@ void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
 void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 {
 	struct FangQu    *ptr;
-	if (index >= 50 && index < 80) 
-		ptr = fangqu_wire+index;
-	else if (index > 0 && index < 50)
-		ptr = fangqu_wireless+index;
-	else
+	if (index >= 50 && index < 80) {
+		index -= 50;
+		ptr = fangqu_wire;
+	}
+	else if (index >= 2 && index < 50) {
+		index -= 2;
+		ptr = fangqu_wireless;
+	} else
 		return ;
 
 	if (code == 0x01 || code == 0x04) //protect off
 	{
-		if (ptr->operationType != TYPE_24)
-			ptr->status = 0;
+		//if (ptr[index].operationType != TYPE_24) {
+			ptr[index].status = 0;
+			ptr[index].isBypass = TYPE_BYPASS_N;
+			rt_kprintf("protect off fq %d\r\n", index);
+		//}
 		if (code == 0x01)
 			g_sub_event_code = 0x2001;
 	}
 	else if (code == 0x02) //protect on
 	{
-		ptr->status = 1;
+		rt_kprintf("protect on fq %d\r\n", index);
+		ptr[index].status = 1;
 		g_sub_event_code = 0x2002;
 	}
 	else if (code == 0x03) //bypass
 	{
-		ptr->isBypass = TYPE_BYPASS_Y;
+		rt_kprintf("bypass fq %d\r\n", index);
+		ptr[index].isBypass = TYPE_BYPASS_Y;
 		g_sub_event_code = 0x2004;
 	} 
 	else if (code == 0x05)
 	{
 		rt_kprintf("delete fq %d\r\n", index);
-		memset(ptr,0,sizeof(struct FangQu));
+		memset(ptr+index,0,sizeof(struct FangQu));
+	}	
+	else if (code == 0x06)
+	{
+		rt_kprintf("unbypass fq %d\r\n", index);
+		ptr[index].isBypass = TYPE_BYPASS_N;
 	}
+
+	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 }
 void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
 {
@@ -217,12 +232,12 @@ void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
 		for (j=0; j<8; j++)
 		{
 			if (tmp & 0x01) {
-					rt_kprintf("need proc fq %d\r\n", index+j+20);
+					rt_kprintf("need proc fq %d %d\r\n", index+j+20,code);
 					proc_detail_fq(index+j+20, code);
 			} else {
 				if (code == 0x04) {
 					g_sub_event_code = 0x2003;
-					rt_kprintf("need 1proc fq %d\r\n", index+j+20);
+					rt_kprintf("need 1proc fq %d %d\r\n", index+j+20,code);
 					proc_detail_fq(index+j+20, 0x02);
 				}
 			}			

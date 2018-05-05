@@ -463,7 +463,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		{
 			if(fangqu_wire[i].index != 0) {
 				cmd[ofs++] = fangqu_wire[i].index;
-				cmd[ofs] = 0x80;
+				cmd[ofs] = 0x40;
 				if (fangqu_wire[i].operationType==TYPE_24)
 					cmd[ofs]|=0x20;
 				else if (fangqu_wire[i].operationType==TYPE_DELAY)
@@ -487,7 +487,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		{
 			if(fangqu_wireless[i].index != 0) {
 				cmd[ofs++] = fangqu_wireless[i].index;
-				cmd[ofs] = 0x40;
+				cmd[ofs] = 0x80;
 				if (fangqu_wireless[i].operationType==TYPE_24)
 					cmd[ofs]|=0x20;
 				else if (fangqu_wireless[i].operationType==TYPE_DELAY)
