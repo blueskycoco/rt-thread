@@ -105,11 +105,11 @@ static void led_thread_entry1(void* parameter)
 static void alarm_thread(void *parameter)
 {
 	struct tm *to;
-	set_date(2018,3,24);
-	set_time(9,6,0);
-	set_alarm(9,6,30);
-	fqp.auto_bufang = RTC_GetAlarm();
-	fqp.auto_chefang = RTC_GetAlarm();
+	//set_date(2018,3,24);
+	//set_time(9,6,0);
+	//set_alarm(9,6,30);
+	//fqp.auto_bufang = RTC_GetAlarm();
+	//fqp.auto_chefang = RTC_GetAlarm();
 	rt_kprintf("init auto bu/chefang %d %d\r\n", fqp.auto_bufang,fqp.auto_chefang);
 	while(1) {
 		rt_sem_take(&(alarm_sem), RT_WAITING_FOREVER);
@@ -307,10 +307,11 @@ static void led_thread_entry(void* parameter)
 					if (g_delay_out == 10)
 					{
 						Wtn6_Play(VOICE_COUNTDOWN,ONCE);
-						rt_thread_delay(300);
 					}
-					if (g_delay_out == 1)
+					if (g_delay_out == 1) {
+						rt_thread_delay(100);
 						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
+						}
 					g_delay_out -=1;
 				}
 		} else {
@@ -596,7 +597,7 @@ void rt_init_thread_entry(void* parameter)
 		rt_thread_startup(&led_thread);
 	}	
 	
-	//rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
+	rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
 	while (1) {
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);

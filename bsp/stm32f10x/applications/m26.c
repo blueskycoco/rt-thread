@@ -569,9 +569,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_m26_state = M26_STATE_SET_QIOPEN;
 					rt_memset(qiopen_m26, 0, 64);
 					rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%d.%d.%d.%d\",\"%d\"\r\n",
-							mp.socketAddress[0].IP[0],mp.socketAddress[0].IP[1],
-							mp.socketAddress[0].IP[2],mp.socketAddress[0].IP[3],
-							mp.socketAddress[0].port);
+							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+							mp.socketAddress[g_ip_index].port);
+					rt_kprintf("state ip index %d\r\n",g_ip_index);
 					gprs_at_cmd(g_dev_m26,qiopen_m26);
 				}			
 				break;
@@ -727,6 +728,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
 								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
 								mp.socketAddress[g_ip_index].port);
+						rt_kprintf("close ip index %d\r\n",g_ip_index);
 						gprs_at_cmd(g_dev_m26,qiopen_m26);
 					}
 					else
@@ -803,6 +805,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
 							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
 							mp.socketAddress[g_ip_index].port);
+					rt_kprintf("open ip index %d\r\n",g_ip_index);
 					gprs_at_cmd(g_dev_m26,qiopen_m26);
 				} else {
 					/*check error condition*/

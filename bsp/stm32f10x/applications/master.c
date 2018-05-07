@@ -166,9 +166,11 @@ void info_user(void *param)
 			g_operate_platform = 0xff;
 			//g_operater[5] = 0x10;			
 			if (command_type==0x0002)
-				upload_server(CMD_SUB_EVENT);		
-			rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
-			Wtn6_JoinPlay(voice,2,1);
+			{	upload_server(CMD_SUB_EVENT);		
+				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+				Wtn6_JoinPlay(voice,2,1);
+			} else
+			   Wtn6_Play(VOICE_BUFANG,ONCE);
 			//entering_ftp_mode	=1;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
@@ -204,9 +206,11 @@ void info_user(void *param)
 			g_operate_platform = 0xff;
 			//g_operater[5] = 0x10;
 			if (command_type==0x0004)
-				upload_server(CMD_SUB_EVENT);			
-			rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
-			Wtn6_JoinPlay(voice,2,1);
+			{	upload_server(CMD_SUB_EVENT);			
+				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
+				Wtn6_JoinPlay(voice,2,1);
+			} else
+				Wtn6_Play(VOICE_CHEFANG,ONCE);
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
@@ -413,13 +417,13 @@ void handle_set_main(rt_uint8_t *cmd)
 	fqp.is_check_AC = (cmd[3]&0x80)>>7;
 	fqp.is_check_DC = (cmd[3]&0x40)>>6;
 	fqp.is_alarm_voice = (cmd[3]&0x20)>>5;
-	if (((cmd[4]<<8)|cmd[5]) != 0xffff)
-		fqp.auto_bufang = ((cmd[4]<<8)|cmd[5])<<16;		
-	if (((cmd[6]<<8)|cmd[7]) != 0xffff)
+	//if (((cmd[4]<<8)|cmd[5]) != 0xffff)
+		fqp.auto_bufang = ((cmd[4]<<8)|cmd[5])<<16;
+	//if (((cmd[6]<<8)|cmd[7]) != 0xffff)
 		fqp.auto_bufang |= (cmd[6]<<8)|cmd[7];
-	if (((cmd[8]<<8)|cmd[9]) != 0xffff)
+	//if (((cmd[8]<<8)|cmd[9]) != 0xffff)
 		fqp.auto_chefang = ((cmd[8]<<8)|cmd[9])<<16;		
-	if (((cmd[10]<<8)|cmd[11]) != 0xffff)
+	//if (((cmd[10]<<8)|cmd[11]) != 0xffff)
 		fqp.auto_chefang |= (cmd[10]<<8)|cmd[11];
 	
 	g_operate_platform = cmd[12];
@@ -432,6 +436,7 @@ void handle_set_main(rt_uint8_t *cmd)
 	/*build proc main ack*/
 
 	/*execute cmd*/
+	upload_server(CMD_ASK_MAIN_ACK);
 }
 void handle_set_sub(rt_uint8_t *cmd)
 {
