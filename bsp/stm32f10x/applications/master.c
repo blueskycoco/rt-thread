@@ -161,16 +161,22 @@ void info_user(void *param)
 			g_sub_event_code = 0x2002;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
-			memset(g_operater,0,8);
-			g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
-			g_operate_platform = 0xff;
+			
 			//g_operater[5] = 0x10;			
 			if (command_type==0x0002)
-			{	upload_server(CMD_SUB_EVENT);		
+			{	
+				memset(g_operater,0,8);
+				g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
+				g_operate_platform = 0xff;
 				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 				Wtn6_JoinPlay(voice,2,1);
-			} else
-			   Wtn6_Play(VOICE_BUFANG,ONCE);
+			} else {
+			   Wtn6_Play(VOICE_BUFANG,ONCE);			   
+			   g_operate_platform = 0xfd;
+			   memset(g_operater,0,8);
+  			   g_operater[7] =  0x10;
+			}
+			upload_server(CMD_SUB_EVENT);		
 			//entering_ftp_mode	=1;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
@@ -201,16 +207,22 @@ void info_user(void *param)
 			g_sub_event_code = 0x2001;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
-			memset(g_operater,0,8);
-			g_operater[7] = 0x10+fangqu_wireless[g_index_sub].index;
-			g_operate_platform = 0xff;
+			
 			//g_operater[5] = 0x10;
 			if (command_type==0x0004)
-			{	upload_server(CMD_SUB_EVENT);			
+			{	
+				memset(g_operater,0,8);
+				g_operater[7] = 0x10+fangqu_wireless[g_index_sub].index;
+				g_operate_platform = 0xff;
 				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
 				Wtn6_JoinPlay(voice,2,1);
-			} else
+			} else {
 				Wtn6_Play(VOICE_CHEFANG,ONCE);
+				memset(g_operater,0,8);
+				g_operater[7] = 0x10;
+				g_operate_platform = 0xfd;
+			}
+			upload_server(CMD_SUB_EVENT);			
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
@@ -425,13 +437,13 @@ void handle_set_main(rt_uint8_t *cmd)
 		fqp.auto_chefang = ((cmd[8]<<8)|cmd[9])<<16;		
 	//if (((cmd[10]<<8)|cmd[11]) != 0xffff)
 		fqp.auto_chefang |= (cmd[10]<<8)|cmd[11];
-	
 	g_operate_platform = cmd[12];
 	memcpy(g_operater,cmd+13,6);
 	
 	rt_kprintf("operate platform \t%x\r\n", cmd[12]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);
+	set_alarm_now();
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	/*build proc main ack*/
 

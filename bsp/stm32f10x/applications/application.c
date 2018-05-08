@@ -102,36 +102,128 @@ static void led_thread_entry1(void* parameter)
 		//rtc_set_alarm(mktime(alarm_time));
 	}
 }
+static void set_next_alarm(rt_uint8_t cur_hour,rt_uint8_t cur_mins)
+{
+	rt_uint8_t hour[5];
+	rt_uint8_t mins[5];
+	rt_uint8_t i,j,tmp_h,tmp_m,m;
+	rt_kprintf("cur hour %d, cur mins %d\r\n", cur_hour,cur_mins);
+	hour[0] = (fqp.auto_bufang>>24)&0xff;
+	hour[1] = (fqp.auto_bufang>>8)&0xff;
+	hour[2] = (fqp.auto_chefang>>24)&0xff;
+	hour[3] = (fqp.auto_chefang>>8)&0xff;
+	hour[4] = cur_hour;
+
+	mins[0] = (fqp.auto_bufang>>16)&0xff;
+	mins[1] = (fqp.auto_bufang)&0xff;
+	mins[2] = (fqp.auto_chefang>>16)&0xff;
+	mins[3] = (fqp.auto_chefang)&0xff;
+	mins[4] = cur_mins;
+
+	for (i=0; i<4; i++)
+		for (j=0; j<4-i; j++)
+		if (hour[j] > hour[j+1])
+		{
+			tmp_h = hour[j+1];
+			tmp_m = mins[j+1];
+			hour[j+1] = hour[j];
+			mins[j+1] = mins[j];
+			hour[j] = tmp_h;
+			mins[j] = tmp_m;
+		} else if (hour[j] == hour[j+1]) {
+			if (mins[j] > mins[j+1]) {
+				tmp_h = hour[j+1];
+				tmp_m = mins[j+1];
+				hour[j+1] = hour[j];
+				mins[j+1] = mins[j];
+				hour[j] = tmp_h;
+				mins[j] = tmp_m;
+			}
+		}
+/*	for (i=0; i<4; i++)
+	{		
+		if (hour[i] == hour[i+1]) {
+			if (mins[i] > mins[i+1])
+			{
+				tmp_h = hour[i];
+				tmp_m = mins[i];
+				hour[i] = hour[i+1];
+				mins[i] = mins[i+1];
+				hour[i+1] = tmp_h;
+				mins[i+1] = tmp_m;
+			} 
+		}
+	}*/
+	for (i=0; i<5; i++)
+	{
+		rt_kprintf("hour[%d] %d , mins %d\r\n",i, hour[i],mins[i]);
+	}
+	for (i=0; i<5; i++)
+	{
+		rt_kprintf("hour[%d] %d , mins %d\r\n",i, hour[i],mins[i]);
+		if (cur_hour == hour[i] &&
+			cur_mins == mins[i]) {			
+			j=i;
+			m=0;
+			while(1) {
+				j++;
+				if (j==5)
+					j=0;
+				if (hour[j] != cur_hour && hour[j] != 0xff)
+					break;
+				else {
+					if (mins[j] != cur_mins && mins[j] != 0xff)
+						break;
+				}
+				if (m==5)
+					break;
+				m++;
+			}			
+			rt_kprintf("set next alarm to %d:%d m %d\r\n",hour[j],mins[j],m);
+			set_alarm(hour[j],mins[j],0);
+			break;
+		}
+	}
+}
+void set_alarm_now()
+{
+	struct tm *to;
+	rt_time_t local_time;
+	time(&local_time);
+	to = localtime(&local_time);
+	rt_kprintf("auto bu/chefang %04x %04x\r\n", fqp.auto_bufang,fqp.auto_chefang);
+	set_next_alarm(to->tm_hour,to->tm_min);
+}
 static void alarm_thread(void *parameter)
 {
 	struct tm *to;
-	//set_date(2018,3,24);
-	//set_time(9,6,0);
-	//set_alarm(9,6,30);
-	//fqp.auto_bufang = RTC_GetAlarm();
-	//fqp.auto_chefang = RTC_GetAlarm();
-	rt_kprintf("init auto bu/chefang %d %d\r\n", fqp.auto_bufang,fqp.auto_chefang);
+	rt_uint32_t hour,mins;
+	set_alarm_now();
 	while(1) {
 		rt_sem_take(&(alarm_sem), RT_WAITING_FOREVER);
 		to = localtime(&cur_alarm_time);
-		rt_kprintf("cur alarm time %d hour %d, min %d, sec %d, auto_bufang %d\r\n",cur_alarm_time,to->tm_hour,to->tm_min,to->tm_sec,fqp.auto_bufang);
-		if (cur_alarm_time == fqp.auto_bufang)
+		rt_kprintf("cur alarm time %d hour %d, min %d, sec %d, auto_bufang %04x, auto_chefang %04x\r\n",
+			cur_alarm_time,to->tm_hour,to->tm_min,to->tm_sec,fqp.auto_bufang,
+			fqp.auto_chefang);
+		if (((to->tm_hour == ((fqp.auto_bufang>>24)&0xff)) &&
+			(to->tm_min == ((fqp.auto_bufang>>16)&0xff))) ||
+			((to->tm_hour == ((fqp.auto_bufang>>8)&0xff)) &&
+			(to->tm_min == ((fqp.auto_bufang)&0xff))))
 		{
+			rt_kprintf("begin to hand auto on %d %d\r\n",cur_status,g_delay_out);
 			if (!cur_status&& g_delay_out==0)
-				handle_protect_on();	
-			set_alarm2(cur_alarm_time+5*60);
-			fqp.auto_chefang = RTC_GetAlarm();
+				handle_protect_on();
 		}
 		else
 		{
+			rt_kprintf("begin to hand auto off %d %d\r\n",cur_status,g_delay_out);
 			if (cur_status|| (!cur_status && g_delay_out!=0))
 			{
 				cur_status=0;
 				handle_protect_off();			
 			}
-			set_alarm2(cur_alarm_time+6*60);
-			fqp.auto_bufang = RTC_GetAlarm();
 		}
+		set_next_alarm(to->tm_hour,to->tm_min);
 	}
 }
 static void led_thread_entry(void* parameter)
