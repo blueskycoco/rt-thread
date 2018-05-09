@@ -161,6 +161,9 @@ uint8_t 	  qiftp_m26[64];
 extern uint8_t		  qiftp_read_file[32];//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
 extern uint8_t			qiftp_close_file[32];
 extern rt_uint8_t ftp_rty;
+rt_uint16_t g_app_v=0;
+extern struct rt_event g_info_event;
+
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -704,7 +707,11 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_OK))
 				{
 					close(down_fd);
-					CRC_check_file("/stm32.bin");
+					mp.firmCRC = CRC_check_file("/stm32.bin");
+					if (g_app_v!=0)
+						mp.firmVersion = g_app_v;
+					mp.firmLength = stm32_len;
+					rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 					gprs_at_cmd(g_dev_m26,qiftp_close);
 					g_m26_state = M26_STATE_SET_QIACT;
 					entering_ftp_mode=0;
