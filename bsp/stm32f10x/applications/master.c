@@ -223,7 +223,7 @@ void info_user(void *param)
 				g_operate_platform = 0xfd;
 			}
 			upload_server(CMD_SUB_EVENT);	
-			entering_ftp_mode	=1;		
+			//entering_ftp_mode	=1;		
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
@@ -362,6 +362,7 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 			case 0x01:			
 				rt_kprintf("new APP version: \t%d",v);
 				g_app_v = v;
+				entering_ftp_mode = 1;
 				break;
 			case 0x02:			
 				rt_kprintf("new SokcetIP version: \t%d",v);

@@ -366,6 +366,11 @@ void m26_start(int index)
 	rt_thread_delay(RT_TICK_PER_SECOND);
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
 	rt_kprintf("m26 power on done\r\n");
+	
+	strcpy(ftp_addr,"u.110LW.com");
+	//strcpy(ftp_addr,"47.93.48.167");
+	strcpy(ftp_user,"minfei");
+	strcpy(ftp_passwd,"minfei123");
 }
 
 void m26_proc(void *last_data_ptr, rt_size_t data_size)
@@ -721,10 +726,6 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			case M26_STATE_SET_QICLOSE:				
 				if (entering_ftp_mode) {
 					ftp_cfg_step = 0;
-					strcpy(ftp_addr,"u.110LW.com");
-//					strcpy(ftp_addr,"47.93.48.167");
-					strcpy(ftp_user,"minfei");
-					strcpy(ftp_passwd,"minfei123");
 					g_m26_state = M26_STATE_SET_QIDEACT;
 					gprs_at_cmd(g_dev_m26,qideact);
 				} else {
