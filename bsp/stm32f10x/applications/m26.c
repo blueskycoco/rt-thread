@@ -262,6 +262,8 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 				//server_len_ec20 = get_len(pos+i,len-i);
 				//rt_kprintf("server len %d\r\n", server_len_m26);
 				server_buf_m26 = (uint8_t *)rt_malloc(server_len_m26 * sizeof(uint8_t));
+				if (server_buf_m26 == RT_NULL)
+					rt_kprintf("malloc buf 26 failed\r\n");
 				rt_memset(server_buf_m26,0,server_len_m26);
 				//server_len_ec20 = 0;
 				i+=2;
@@ -661,6 +663,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_kprintf("get stm32 fd %d\r\n", stm32_fd);
 						gprs_at_cmd(g_dev_m26,qiftp_read_file);	
 						tmp_stm32_bin = (rt_uint8_t *)rt_malloc(1500*sizeof(rt_uint8_t));
+						if (tmp_stm32_bin == RT_NULL)
+							rt_kprintf("stm32 bin malloc failed\r\n");
 						rt_memset(tmp_stm32_bin,0,1500);
 						tmp_stm32_len=0;
 					}		

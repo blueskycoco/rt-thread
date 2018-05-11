@@ -51,6 +51,8 @@ static void pcie1_rcv(void* parameter)
 {	
 	uint32_t len = 0, total_len = 0;
 	uint8_t *buf = rt_malloc(1600);
+	if (buf == RT_NULL)
+		rt_kprintf("pcie 1 malloc failed\r\n");
 	while(1)	
 	{			
 		rt_sem_take(&(g_pcie[1]->sem), RT_WAITING_FOREVER);
@@ -84,6 +86,8 @@ static void pcie0_rcv(void* parameter)
 {	
 	uint32_t len = 0, total_len = 0;
 	uint8_t *buf = rt_malloc(1600);
+	if (buf == RT_NULL)
+		rt_kprintf("pcie 0 malloc failed\r\n");
 	while(1)	
 	{			
 		rt_sem_take(&(g_pcie[0]->sem), RT_WAITING_FOREVER);
@@ -561,6 +565,8 @@ void send_process(void* parameter)
 		rt_kprintf("wait lock\r\n");
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);		
 		cmd = (char *)rt_malloc(50);
+		if (cmd == RT_NULL)
+			rt_kprintf("build cmd failed\r\n");
 		rt_kprintf("begin send cmd, %d\r\n",g_net_state);
 		if (g_net_state == NET_STATE_INIT) {
 			SetStateIco(7,1);
@@ -599,8 +605,10 @@ void upload_server(rt_uint16_t cmdType)
 //	gprs_wait_event(RT_WAITING_FOREVER);	
 	rt_mutex_release(&(g_pcie[g_index]->lock));
 	rt_kprintf("send buf done\r\n");
-	} else 
+	} else {
+		rt_kprintf("not enough mem\r\n");
 		rt_mutex_release(&(g_pcie[g_index]->lock));
+	}
 }
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 {
