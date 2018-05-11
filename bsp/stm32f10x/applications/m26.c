@@ -703,7 +703,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 							//cat_file("/stm32.bin");
 							sprintf(qiftp_close_file,"AT+QFCLOSE=%d\r\n",stm32_fd);
 							gprs_at_cmd(g_dev_m26,qiftp_close_file);
-							if (m26_cnt == 1) {
+							if (m26_cnt == 2) {
 								g_m26_state = M26_STATE_LOGOUT_FTP;
 							} else {
 								g_m26_state = M26_STATE_CLOSE_FILE;
