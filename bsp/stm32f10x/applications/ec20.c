@@ -251,19 +251,19 @@ void ec20_start(int index)
 	g_index = index;
 	g_dev_ec20 = g_pcie[index]->dev;
 	if (index) {
-		power_rcc = RCC_APB2Periph_GPIOC;
-		pwr_key_rcc = RCC_APB2Periph_GPIOC;
-		power_pin = GPIO_Pin_9;
-		pwr_key_pin = GPIO_Pin_8;
-		GPIO_power = GPIOC;
-		GPIO_pwr = GPIOC;
-	} else {
 		power_rcc = RCC_APB2Periph_GPIOE;
 		pwr_key_rcc = RCC_APB2Periph_GPIOB;
 		power_pin = GPIO_Pin_13;
 		pwr_key_pin = GPIO_Pin_3;
 		GPIO_power = GPIOE;
 		GPIO_pwr = GPIOB;
+	} else {
+		power_rcc = RCC_APB2Periph_GPIOC;
+		pwr_key_rcc = RCC_APB2Periph_GPIOC;
+		power_pin = GPIO_Pin_9;
+		pwr_key_pin = GPIO_Pin_8;
+		GPIO_power = GPIOC;
+		GPIO_pwr = GPIOC;
 	}
 	RCC_APB2PeriphClockCmd(power_rcc|pwr_key_rcc,ENABLE);
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
@@ -273,13 +273,16 @@ void ec20_start(int index)
 	GPIO_InitStructure.GPIO_Pin   = pwr_key_pin;
 	GPIO_Init(GPIO_pwr, &GPIO_InitStructure);
 	/*open pciex power*/
-	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
-	//GPIO_ResetBits(GPIO_power, power_pin);
-	rt_thread_delay(RT_TICK_PER_SECOND);
-	GPIO_SetBits(GPIO_power, power_pin);
 	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
+	//GPIO_ResetBits(GPIO_power, power_pin);
+	GPIO_ResetBits(GPIO_power, power_pin);
 	rt_thread_delay(RT_TICK_PER_SECOND);
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
+	rt_thread_delay(RT_TICK_PER_SECOND);
+	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
+	
+	//GPIO_SetBits(GPIO_pwr, pwr_key_pin);
+	rt_kprintf("ec20 init done\r\n");
 }
 
 void ec20_proc(void *last_data_ptr, rt_size_t data_size)
