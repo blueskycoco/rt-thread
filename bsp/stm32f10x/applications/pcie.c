@@ -366,18 +366,18 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[17] = g_bat % 256;
 		if (heart_type == 0) {
 			cmd[18] = 0x01;
-			cmd[19] = 0x00;
-			cmd[20] = 0x01;
+			cmd[19] = mp.firmVersion >> 8;
+			cmd[20] = mp.firmVersion & 0xff;
 			heart_type = 1;
 		} else if (heart_type == 1) {
 			cmd[18] = 0x02;
-			cmd[19] = 0x00;
-			cmd[20] = 0x01;
+			cmd[19] = mp.socketAddressVersion >> 8;
+			cmd[20] = mp.socketAddressVersion & 0xff;
 			heart_type = 2;
 		} else if (heart_type == 2) {
 			cmd[18] = 0x03;
-			cmd[19] = 0x00;
-			cmd[20] = 0x01;
+			cmd[19] = mp.updateAddressVersion >> 8;
+			cmd[20] = mp.updateAddressVersion & 0xff;
 			heart_type = 0;
 		}
 		ofs = 21;

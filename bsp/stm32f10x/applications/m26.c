@@ -382,9 +382,9 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL && 
 		!have_str(last_data_ptr,STR_CSQ))
 		if (!have_str(last_data_ptr,STR_CONNECT))
-			rt_kprintf("\r\n(M26<= %d %d %s)\r\n",g_m26_state, data_size,last_data_ptr);
+			rt_kprintf("\r\n(M26<= %d %d %d %s)\r\n",g_m26_state, data_size,rt_strlen(last_data_ptr), last_data_ptr);
 		else
-			rt_kprintf("\r\n(M26<= %d %d)\r\n",g_m26_state, data_size);
+			rt_kprintf("\r\n(M26<= %d %d %d)\r\n",g_m26_state, data_size, rt_strlen(last_data_ptr));
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN))
 		{
