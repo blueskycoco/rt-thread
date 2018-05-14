@@ -4,6 +4,7 @@
 #include "led.h"
 #include <string.h>
 #include "m26.h"
+#include "bc26.h"
 #include "ec20.h"
 //#include "nb_iot.h"
 //#include "ip_module.h"
@@ -35,6 +36,7 @@ rt_uint8_t g_heart_cnt=0;
 extern rt_uint8_t heart_time;
 extern rt_uint8_t r_signal;
 extern rt_uint16_t battery;
+extern rt_uint8_t g_module_type;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
@@ -147,10 +149,10 @@ void pcie1_sm(void* parameter)
 					m26_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_2_EC20:
-					//ec20_proc(last_data_ptr, data_size);
+					ec20_proc(last_data_ptr, data_size);
 					break;
 				case PCIE_2_NBIOT:
-					//nb_iot_proc(last_data_ptr, data_size);
+					//bc26_proc(last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie1 unknown sm\r\n");
@@ -185,7 +187,7 @@ void pcie0_sm(void* parameter)
 					ec20_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_1_NBIOT:
-					//nb_iot_proc(last_data_ptr, data_size);
+					//bc26_proc(last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie0 unknown sm\r\n");
@@ -675,6 +677,7 @@ void switch_pcie_power(rt_uint8_t type)
 }
 rt_uint8_t pcie_switch(rt_uint8_t type)
 {
+	g_module_type = type;
 	switch (type) 
 	{
 		case PCIE_1_IP:

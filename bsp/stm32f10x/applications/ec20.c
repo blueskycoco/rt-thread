@@ -44,6 +44,7 @@
 #define EC20_STATE_GET_FILE		30
 #define EC20_STATE_READ_FILE	31
 #define EC20_STATE_LOGOUT_FTP	32
+#define STR_POWER_DOWN				"POWERED DOWN"
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
 #define STR_CPIN_READY				"+CPIN: READY"
@@ -104,6 +105,7 @@ rt_uint8_t ftp_cfg_step = 0;
 #define cgreg  "AT+CGREG?\r\n"
 #define cimi  "AT+CIMI\r\n"
 #define cpin  "AT+CPIN?\r\n"
+#define cfun  "AT+CFUN=1,1\r\n"
 #define qifgcnt "AT+QIFGCNT=0\r\n"
 #define qisrvc  "AT+QISRVC=1\r\n"
 #define qimux  "AT+QIMUX=0\r\n"
@@ -145,6 +147,10 @@ rt_uint16_t g_server_port_bak;
 rt_uint8_t g_ip_index=0;
 rt_uint8_t *tmp_stm32_bin = RT_NULL;
 rt_size_t	tmp_stm32_len = 0;
+rt_uint8_t g_module_type = 0;
+extern rt_uint16_t g_app_v;
+extern struct rt_event g_info_event;
+
 void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 {
 		static rt_bool_t flag = RT_FALSE;
@@ -244,42 +250,84 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 
 void ec20_start(int index)
 {
-	rt_uint32_t power_rcc,pwr_key_rcc;
-	rt_uint16_t power_pin,pwr_key_pin;
-	GPIO_TypeDef* GPIO_power,*GPIO_pwr;
+	rt_uint32_t power_rcc,pwr_key_rcc,status_rcc;
+	rt_uint16_t power_pin,pwr_key_pin,status_pin;
+	GPIO_TypeDef* GPIO_power,*GPIO_pwr,*GPIO_status;
 	GPIO_InitTypeDef GPIO_InitStructure;
 	g_index = index;
 	g_dev_ec20 = g_pcie[index]->dev;
+
 	if (index) {
 		power_rcc = RCC_APB2Periph_GPIOE;
 		pwr_key_rcc = RCC_APB2Periph_GPIOB;
+		status_rcc = RCC_APB2Periph_GPIOE;
+		status_pin = GPIO_Pin_14; 
 		power_pin = GPIO_Pin_13;
 		pwr_key_pin = GPIO_Pin_3;
 		GPIO_power = GPIOE;
 		GPIO_pwr = GPIOB;
-	} else {		
+		GPIO_status = GPIOE;
+	} else {
 		power_rcc = RCC_APB2Periph_GPIOC;
 		pwr_key_rcc = RCC_APB2Periph_GPIOC;
+		status_rcc = RCC_APB2Periph_GPIOC;
 		power_pin = GPIO_Pin_9;
 		pwr_key_pin = GPIO_Pin_8;
+		status_pin = GPIO_Pin_7;
 		GPIO_power = GPIOC;
 		GPIO_pwr = GPIOC;
+		GPIO_status = GPIOC;
 	}
-	RCC_APB2PeriphClockCmd(power_rcc|pwr_key_rcc,ENABLE);
+	RCC_APB2PeriphClockCmd(status_rcc|power_rcc|pwr_key_rcc,ENABLE);
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Pin   = power_pin;
 	GPIO_Init(GPIO_power, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin   = pwr_key_pin;
 	GPIO_Init(GPIO_pwr, &GPIO_InitStructure);
-	/*open pciex power*/
-	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
-	//GPIO_ResetBits(GPIO_power, power_pin);
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Pin   = status_pin;
+	GPIO_Init(GPIO_status, &GPIO_InitStructure);
+
+	if (GPIO_ReadInputDataBit(GPIO_status,status_pin) == Bit_RESET)
+	{
+		rt_kprintf("ec20 is running\r\n");	
+		#if 0
+		GPIO_ResetBits(GPIO_power, power_pin);
+		GPIO_ResetBits(GPIO_pwr, pwr_key_pin);		
+		rt_thread_delay(RT_TICK_PER_SECOND);
+		
+		GPIO_SetBits(GPIO_pwr, pwr_key_pin);
+		rt_thread_delay(50);
+		GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
+		while(GPIO_ReadInputDataBit(GPIO_status,status_pin) == Bit_RESET)
+			rt_thread_delay(1);
+		#else
+		gprs_at_cmd(g_dev_ec20,cfun);
+		return;
+		#endif
+		
+	}
+	GPIO_ResetBits(GPIO_power, power_pin);
+	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);		
 	rt_thread_delay(RT_TICK_PER_SECOND);
-	GPIO_SetBits(GPIO_power, power_pin);
+	
+	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
+	rt_thread_delay(50);
 	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
-	rt_thread_delay(RT_TICK_PER_SECOND);
+	
+	/*rt_thread_delay(300);
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
+	rt_thread_delay(15);
+	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
+	
+
+	GPIO_SetBits(GPIO_power, power_pin);
+	rt_thread_delay(20);
+	GPIO_ResetBits(GPIO_power, power_pin);
+	*/
+
+	rt_kprintf("ec20 init done\r\n");
 }
 
 void ec20_proc(void *last_data_ptr, rt_size_t data_size)
@@ -298,7 +346,9 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr,STR_RDY)) {
 				g_ec20_state = EC20_STATE_ATE0;
 				gprs_at_cmd(g_dev_ec20,e0);			
-				}
+				}/* else if (have_str(last_data_ptr, STR_POWER_DOWN)){						
+					pcie_switch(g_module_type);
+				}*/
 				break;
 			case EC20_STATE_ATE0:
 				if (have_str(last_data_ptr,STR_OK)) {
@@ -509,7 +559,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					} else if (ftp_cfg_step == 2) {
 						gprs_at_cmd(g_dev_ec20,qicfgftp_timeout);					
 					} else if (ftp_cfg_step == 4) {
-						rt_sprintf(qiftp_ec20,"AT+QFTPOPEN=\"%s\",10021\r\n", ftp_addr);
+						rt_sprintf(qiftp_ec20,"AT+QFTPOPEN=\"%s\",21\r\n", ftp_addr);
 						gprs_at_cmd(g_dev_ec20,qiftp_ec20);
 						g_ec20_state = EC20_STATE_OPEN_FTP;
 						ftp_rty=0;
@@ -606,10 +656,15 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 								close(down_fd);
 								rt_free(tmp_stm32_bin);
 								//cat_file("/stm32.bin");
-								CRC_check_file("/stm32.bin");
+								//CRC_check_file("/stm32.bin");
 								sprintf(qiftp_close_file,"AT+QFCLOSE=%d\r\n",stm32_fd);
 								gprs_at_cmd(g_dev_ec20,qiftp_close_file);
 								g_ec20_state = EC20_STATE_LOGOUT_FTP;
+								mp.firmCRC = CRC_check_file("/stm32.bin");
+								if (g_app_v!=0)
+									mp.firmVersion = g_app_v;
+								mp.firmLength = stm32_len;
+								rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 							}
 							tmp_stm32_len=0;
 							rt_memset(tmp_stm32_bin,0,1500);			

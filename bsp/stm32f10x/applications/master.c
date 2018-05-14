@@ -362,7 +362,8 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 			case 0x01:			
 				rt_kprintf("new APP version: \t%d",v);
 				g_app_v = v;
-				entering_ftp_mode = 1;
+				if (!cur_status)
+					entering_ftp_mode = 1;
 				break;
 			case 0x02:			
 				rt_kprintf("new SokcetIP version: \t%d",v);
