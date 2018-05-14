@@ -236,13 +236,13 @@ void EXTI3_IRQHandler(void)
 #ifndef STM32F10X_CL
 /* CAN and USB IRQ for stm32 none connectivity line devices
  */
-void USB_LP_CAN1_RX0_IRQHandler(void)
+void USB_LP_CAN1_RX0_IRQHandler1(void)
 {
 #ifdef RT_USING_CAN
     CAN1_RX0_IRQHandler();
 #endif
 }
-void USB_HP_CAN1_TX_IRQHandler(void)
+void USB_HP_CAN1_TX_IRQHandler1(void)
 {
 #ifdef RT_USING_CAN
     CAN1_TX_IRQHandler();

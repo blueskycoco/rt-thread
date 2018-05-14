@@ -16,6 +16,7 @@ pcie.c
 wtn6.c
 prop.c
 listdir.c
+can.c
 """)
 
 if GetDepend('RT_USING_CAN'):

@@ -304,6 +304,10 @@ void ec20_start(int index)
 			rt_thread_delay(1);
 		#else
 		gprs_at_cmd(g_dev_ec20,cfun);
+		rt_thread_delay(50);
+		gprs_at_cmd(g_dev_ec20,cfun);
+		rt_thread_delay(50);
+		gprs_at_cmd(g_dev_ec20,cfun);
 		return;
 		#endif
 		
