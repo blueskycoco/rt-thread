@@ -150,7 +150,7 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 		else
 			list[index].status = 0;
 		
-		if ((param1 & 0x20))
+		/*if ((param1 & 0x20))
 			list[index].slave_delay = 1;
 		else
 			list[index].slave_delay = 0;
@@ -158,7 +158,7 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 		if ((param1 & 0x10))
 			list[index].isBypass = 1;
 		else
-			list[index].isBypass = 0;
+			list[index].isBypass = 0;*/
 	//}
 }
 void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
