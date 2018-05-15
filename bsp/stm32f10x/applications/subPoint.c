@@ -146,9 +146,9 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 			list[index].voiceType = 0;
 		
 		if ((param1 & 0x40))
-			list[index].status = 1;
+			list[index].slave_delay = 1;
 		else
-			list[index].status = 0;
+			list[index].slave_delay = 0;
 		
 		/*if ((param1 & 0x20))
 			list[index].slave_delay = 1;

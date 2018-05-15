@@ -4,7 +4,7 @@
 #include "led.h"
 #include <string.h>
 #include "m26.h"
-#include "bc26.h"
+//#include "bc26.h"
 #include "ec20.h"
 //#include "nb_iot.h"
 //#include "ip_module.h"
@@ -479,9 +479,9 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				if (fangqu_wire[i].voiceType)
 					cmd[ofs]|=0x80;
 				if (fangqu_wire[i].status)
-					cmd[ofs]|=0x40;
+					cmd[ofs]|=0x20;
 				if (fangqu_wire[i].slave_delay)
-					cmd[ofs]|=0x20;			
+					cmd[ofs]|=0x40;			
 				if (fangqu_wire[i].isBypass)
 					cmd[ofs]|=0x10;
 				ofs++;
@@ -503,9 +503,9 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				if (fangqu_wireless[i].voiceType)
 					cmd[ofs]|=0x80;
 				if (fangqu_wireless[i].status)
-					cmd[ofs]|=0x40;
+					cmd[ofs]|=0x20;
 				if (fangqu_wireless[i].slave_delay)
-					cmd[ofs]|=0x20;			
+					cmd[ofs]|=0x40;			
 				if (fangqu_wireless[i].isBypass)
 					cmd[ofs]|=0x10;
 				ofs++;
