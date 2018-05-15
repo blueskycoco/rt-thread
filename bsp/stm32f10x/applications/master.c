@@ -171,13 +171,13 @@ void info_user(void *param)
 				g_operate_platform = 0xff;
 				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 				Wtn6_JoinPlay(voice,2,1);
+				upload_server(CMD_SUB_EVENT);
 			} else {
 			   Wtn6_Play(VOICE_BUFANG,ONCE);			   
 			   g_operate_platform = 0xfd;
 			   memset(g_operater,0,8);
   			   g_operater[7] =  0x10;
 			}
-			upload_server(CMD_SUB_EVENT);
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
 			Wtn6_Play(VOICE_YANSHIBF,LOOP);
@@ -216,13 +216,13 @@ void info_user(void *param)
 				g_operate_platform = 0xff;
 				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
 				Wtn6_JoinPlay(voice,2,1);
+				upload_server(CMD_SUB_EVENT);	
 			} else {
 				Wtn6_Play(VOICE_CHEFANG,ONCE);
 				memset(g_operater,0,8);
 				g_operater[7] = 0x10;
 				g_operate_platform = 0xfd;
 			}
-			upload_server(CMD_SUB_EVENT);	
 			//entering_ftp_mode	=1;		
 		}
 

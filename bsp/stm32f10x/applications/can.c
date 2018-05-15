@@ -14,7 +14,7 @@ uint16_t 							local_addr = 0x02;
 #define RCC_APB2Periph_GPIO_CAN1   	RCC_APB2Periph_GPIOA
 #define CANx			   			CAN1
 #define GPIO_CAN		   			GPIOA
-#define GPIO_Remapping_CAN	   		GPIO_Remap2_CAN1
+#define GPIO_Remapping_CAN	   		GPIO_Remap1_CAN1
 #define GPIO_Pin_CAN_RX 	   		GPIO_Pin_11
 #define GPIO_Pin_CAN_TX 	   		GPIO_Pin_12
 int poll_can()
@@ -125,7 +125,7 @@ void can_init()
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIO_CAN, &GPIO_InitStructure);
 
-	GPIO_PinRemapConfig(GPIO_Remapping_CAN , ENABLE);
+//	GPIO_PinRemapConfig(GPIO_Remapping_CAN , ENABLE);
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);
 
@@ -231,7 +231,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 #else
             handle_can_resp();
 #endif
-        CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
+       // CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
     }
 }
 

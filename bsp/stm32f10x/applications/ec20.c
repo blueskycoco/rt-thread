@@ -891,7 +891,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_ec20,at_csq);
 					}
 
-				} else {
+				}/* else {
 					rt_kprintf("data processing ,will reconnect %d %s\r\n",data_size,last_data_ptr);
 					if (!have_str(last_data_ptr, STR_OK) && !have_str(last_data_ptr, STR_RDY)) {
 						g_ec20_state = EC20_STATE_SET_QICLOSE;
@@ -899,7 +899,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					} else {
 						gprs_at_cmd(g_dev_ec20,at_csq);
 					}
-				}
+				}*/
 
 				break;
 			case EC20_STATE_DATA_READ:
