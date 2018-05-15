@@ -476,7 +476,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 					cmd[ofs]|=0x10;
 				cmd[ofs++]|=fangqu_wire[i].alarmType;
 				cmd[ofs]=0;
-				if (!fangqu_wire[i].voiceType)
+				if (fangqu_wire[i].voiceType)
 					cmd[ofs]|=0x80;
 				if (fangqu_wire[i].status)
 					cmd[ofs]|=0x40;
@@ -500,7 +500,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 					cmd[ofs]|=0x10;
 				cmd[ofs++]|=fangqu_wireless[i].alarmType;
 				cmd[ofs]=0;
-				if (!fangqu_wireless[i].voiceType)
+				if (fangqu_wireless[i].voiceType)
 					cmd[ofs]|=0x80;
 				if (fangqu_wireless[i].status)
 					cmd[ofs]|=0x40;

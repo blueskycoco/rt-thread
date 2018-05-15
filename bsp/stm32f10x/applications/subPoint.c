@@ -120,7 +120,7 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 }
 void delete_fq(rt_uint8_t index, rt_uint8_t type)
 {
-	if (type & 0x80 == 0x80) /*wireless*/
+	if ((type & 0x80) == 0x80) /*wireless*/
 	{
 		if (index > 0 && index < 50)
 			memset(&(fangqu_wireless[index-2]),0,sizeof(struct FangQu));
@@ -131,14 +131,15 @@ void delete_fq(rt_uint8_t index, rt_uint8_t type)
 }
 void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
 {
-	if (list[index].index !=0) {
+	//if (list[index].index !=0) {
 		if ((param0 & 0x20) == 0x20)
 			list[index].operationType = TYPE_24;
-		else if (param0 & 0x10 == 0x10)
+		else if ((param0 & 0x10) == 0x10)
 			list[index].operationType = TYPE_DELAY;
 		else
 			list[index].operationType = TYPE_NOW;
 		list[index].alarmType = param0 & 0x0f;
+		rt_kprintf("param %x %x %x\r\n",index,param0,param1);
 		if ((param1 & 0x80))
 			list[index].voiceType = 1;
 		else
@@ -158,11 +159,11 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 			list[index].isBypass = 1;
 		else
 			list[index].isBypass = 0;
-	}
+	//}
 }
 void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
 {	
-	if (param0 & 0x80 == 0x80) /*wireless*/
+	if ((param0 & 0x80) == 0x80) /*wireless*/
 	{
 		if (index > 0 && index < 50)
 		{

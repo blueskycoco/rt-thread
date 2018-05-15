@@ -449,6 +449,7 @@ void handle_set_main(rt_uint8_t *cmd)
 		cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);
 	set_alarm_now();
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
+	rt_thread_delay(100);
 	/*build proc main ack*/
 
 	/*execute cmd*/
@@ -468,6 +469,7 @@ void handle_set_sub(rt_uint8_t *cmd)
 			{
 				delete_fq(cmd[i],cmd[i+1]);	
 			} else {
+				rt_kprintf("edit fq %x %x %x\r\n",cmd[i],cmd[i+1],cmd[i+2]);
 				edit_fq(cmd[i],cmd[i+1],cmd[i+2]);
 			}
 		}
@@ -480,6 +482,7 @@ void handle_set_sub(rt_uint8_t *cmd)
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[i+1],cmd[i+2],cmd[i+3],cmd[i+4],cmd[i+5],cmd[i+6]);
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
+	rt_thread_delay(100);
 	/*build proc main ack*/
 	upload_server(CMD_ASK_SUB_ACK);
 
@@ -584,6 +587,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		proc_fq(cmd+2, 10, cmd[0]);
 	}
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
+	rt_thread_delay(100);
 	/*build proc sub ack*/
 	g_fq_len=cmd[1];
 	if (cmd[0] == 1)
