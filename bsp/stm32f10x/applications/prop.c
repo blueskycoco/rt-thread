@@ -317,7 +317,7 @@ void save_param(int type)
 			rt_mutex_release(&file_lock);
 			return ;
 		}
-		dump_mp(mp);
+		//dump_mp(mp);
 	}
 	else
 	{
@@ -355,7 +355,7 @@ void save_param(int type)
 			rt_mutex_release(&file_lock);
 			return ;
 		}
-		dump_fqp(fqp,fangqu_wire,fangqu_wireless);		
+		//dump_fqp(fqp,fangqu_wire,fangqu_wireless);		
 	}
 	close(fd);
 	rt_mutex_release(&file_lock);

@@ -156,12 +156,25 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 		static rt_bool_t flag = RT_FALSE;
 		int i;
 		int ofs;
+		if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))!=-1) {
+					rt_kprintf("got another qirdi\r\n");
+					gprs_at_cmd(g_dev_ec20,qird);
+					server_len_ec20 = 0;
+					g_data_in_ec20 = RT_TRUE;
+					flag=RT_FALSE;
+					return ;
+			}
 		if (match_bin((rt_uint8_t *)last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
 			(match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
 			!flag) {
-			gprs_at_cmd(g_dev_ec20,qird);
-			server_len_ec20 = 0;
-			g_data_in_ec20 = RT_TRUE;
+			//for (i=0;i<len;i++)
+			//	rt_kprintf("%c",((rt_uint8_t *)last_data_ptr)[i]);
+			//rt_kprintf("m26 read again\r\n");
+			if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_CSQ,rt_strlen(STR_CSQ))==-1) {
+				gprs_at_cmd(g_dev_ec20,qird);
+				server_len_ec20 = 0;
+				g_data_in_ec20 = RT_TRUE;
+			}
 			return ;
 			}
 		//for (i=0;i<len;i++)
@@ -891,15 +904,20 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_ec20,at_csq);
 					}
 
-				}/* else {
+				} else {/*
 					rt_kprintf("data processing ,will reconnect %d %s\r\n",data_size,last_data_ptr);
 					if (!have_str(last_data_ptr, STR_OK) && !have_str(last_data_ptr, STR_RDY)) {
 						g_ec20_state = EC20_STATE_SET_QICLOSE;
 						gprs_at_cmd(g_dev_ec20,qiclose);
 					} else {
 						gprs_at_cmd(g_dev_ec20,at_csq);
-					}
-				}*/
+					}*/
+					
+					g_ec20_state = EC20_STATE_DATA_READ;
+					gprs_at_cmd(g_dev_ec20,qird);
+					server_len_ec20 = 0;
+					g_data_in_ec20 = RT_TRUE;
+				}
 
 				break;
 			case EC20_STATE_DATA_READ:
@@ -911,6 +929,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					//for (int ii=0;ii<send_size_ec20;ii++)
 					//	rt_kprintf("sending %02x\r\n", ((rt_uint8_t *)send_data_ptr_ec20)[ii]);
 					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_ec20, send_size_ec20);
+					rt_free(send_data_ptr_ec20);
 				}
 				else if(have_str(last_data_ptr, STR_ERROR))
 				{
@@ -919,7 +938,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				if (have_str(last_data_ptr, STR_QIURC))
 					g_data_in_ec20 = RT_TRUE;
-				rt_free(send_data_ptr_ec20);
+				
 				break;
 			case EC20_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_SEND_OK)) {
@@ -934,14 +953,20 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_ec20,qistat);
 					}
 				}
-				if (have_str(last_data_ptr, STR_QIURC))
-					g_data_in_ec20 = RT_TRUE;
+				if (have_str(last_data_ptr, STR_QIURC) || g_data_in_ec20)
+				{
+						g_ec20_state = EC20_STATE_DATA_READ;
+						gprs_at_cmd(g_dev_ec20,qird);
+						server_len_ec20 = 0;
+				}
 				break;	
 			case EC20_STATE_CHECK_SENT:
 				if (have_str(last_data_ptr, STR_QISEND)) {
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
 					rt_hw_led_on(NET_LED);
 					gprs_at_cmd(g_dev_ec20,at_csq);
+					rt_time_t cur_time = time(RT_NULL);
+					rt_kprintf("send server ok ======> %s\r\n",ctime(&cur_time));
 					rt_event_send(&(g_pcie[g_index]->event), EC20_EVENT_0);
 				} else {
 					gprs_at_cmd(g_dev_ec20, at_qisend);

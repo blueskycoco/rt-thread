@@ -80,6 +80,7 @@ struct rt_mutex g_stm32_lock;
 extern rt_uint8_t g_alarm_fq;
 extern rt_uint16_t g_alarm_reason;
 rt_uint16_t should_upload_bat = 0;
+rt_uint8_t time_protect=0;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -213,7 +214,10 @@ static void alarm_thread(void *parameter)
 		{
 			rt_kprintf("begin to hand auto on %d %d\r\n",cur_status,g_delay_out);
 			if (!cur_status&& g_delay_out==0)
+			{
+				time_protect = 1;
 				handle_protect_on();
+			}
 		}
 		else
 		{
@@ -221,6 +225,7 @@ static void alarm_thread(void *parameter)
 			if (cur_status|| (!cur_status && g_delay_out!=0))
 			{
 				cur_status=0;
+				time_protect = 1;
 				handle_protect_off();			
 			}
 		}

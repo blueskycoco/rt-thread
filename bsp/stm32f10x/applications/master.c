@@ -44,6 +44,7 @@ extern rt_uint8_t g_addr_type;
 extern struct rt_mutex g_stm32_lock;
 extern rt_uint8_t entering_ftp_mode;
 extern rt_uint16_t g_app_v;
+extern rt_uint8_t time_protect;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -166,6 +167,7 @@ void info_user(void *param)
 			//g_operater[5] = 0x10;			
 			if (command_type==0x0002)
 			{	
+				command_type = 0;
 				memset(g_operater,0,8);
 				g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
 				g_operate_platform = 0xff;
@@ -177,6 +179,10 @@ void info_user(void *param)
 			   g_operate_platform = 0xfd;
 			   memset(g_operater,0,8);
   			   g_operater[7] =  0x10;
+			   if (time_protect) {
+			   	time_protect = 0;
+			   	upload_server(CMD_SUB_EVENT);
+			   }
 			}
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
@@ -211,6 +217,7 @@ void info_user(void *param)
 			//g_operater[5] = 0x10;
 			if (command_type==0x0004)
 			{	
+				command_type = 0;
 				memset(g_operater,0,8);
 				g_operater[7] = 0x10+fangqu_wireless[g_index_sub].index;
 				g_operate_platform = 0xff;
@@ -222,6 +229,10 @@ void info_user(void *param)
 				memset(g_operater,0,8);
 				g_operater[7] = 0x10;
 				g_operate_platform = 0xfd;
+				if (time_protect) {
+					time_protect = 0;
+					upload_server(CMD_SUB_EVENT);
+				}
 			}
 			//entering_ftp_mode	=1;		
 		}
@@ -615,7 +626,7 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 	rt_uint8_t stm32_id[6];
 	memcpy(stm32_id, data+5,6);
 	rt_time_t cur_time = time(RT_NULL);
-	rt_kprintf("recv server ok %s\r\n",ctime(&cur_time));
+	rt_kprintf("recv server ok ========> %s\r\n",ctime(&cur_time));
 	rt_kprintf("=================================================>\r\nwater no \t%d\r\n", water_no);
 	rt_kprintf("pacet type \t%x\r\n", packet_type);
 	rt_kprintf("protol version \t%d\r\n", protocl_v);
