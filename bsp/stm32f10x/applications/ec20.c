@@ -2,6 +2,7 @@
 #include <unistd.h> 
 #include <board.h>
 #include <rtthread.h>
+#include <ctype.h>
 #include <rtdevice.h>
 #include "led.h"
 #include <string.h>
@@ -84,6 +85,7 @@
 #define STR_QCCID				"+QCCID: "
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
+#define STR_NO_DATA					"+QIRD: 0"
 #define cregs "AT+CREG=2\r\n"
 #define cregr "AT+CREG?\r\n"
 #define at_csq "AT+CSQ\r\n"
@@ -150,13 +152,18 @@ rt_size_t	tmp_stm32_len = 0;
 rt_uint8_t g_module_type = 0;
 extern rt_uint16_t g_app_v;
 extern struct rt_event g_info_event;
-
+rt_uint8_t need_read = 0;
 void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 {
 		static rt_bool_t flag = RT_FALSE;
 		int i;
 		int ofs;
-		if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))!=-1) {
+		if (match_bin((rt_uint8_t *)last_data_ptr, len, STR_NO_DATA,rt_strlen(STR_NO_DATA))!=-1) {
+			g_ec20_state = EC20_STATE_DATA_PROCESSING;
+			gprs_at_cmd(g_dev_ec20,at_csq);		
+			return;
+		}
+		if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIURC,rt_strlen(STR_QIURC))!=-1) {
 					rt_kprintf("got another qirdi\r\n");
 					gprs_at_cmd(g_dev_ec20,qird);
 					server_len_ec20 = 0;
@@ -177,10 +184,19 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 			}
 			return ;
 			}
-		//for (i=0;i<len;i++)
-			//rt_kprintf("%02x ",((char *)last_data_ptr)[i]);
+		rt_kprintf("????????????????????????????????????????????????\r\n");
+		for (i=0;i<len;i++)
+		{
+			if (isascii(((char *)last_data_ptr)[i]))
+				rt_kprintf("%c",((char *)last_data_ptr)[i]);
+			else
+				break;
+		}
+		rt_kprintf("\r\n");
+    	rt_kprintf("????????????????????????????????????????????????\r\n");
 		if ((ofs = match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)))!=-1)
 		{	
+			need_read = 0;
 			uint8_t *pos = (uint8_t *)last_data_ptr;
 			//rt_kprintf("ofs is %d\r\n",ofs);
 			//if (pos != RT_NULL) {
@@ -196,6 +212,11 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 				//server_len_ec20 = get_len(pos+i,len-i);
 				//rt_kprintf("server len %d\r\n", server_len_ec20);
 				server_buf_ec20 = (uint8_t *)rt_malloc(server_len_ec20 * sizeof(uint8_t));
+				if (server_buf_ec20 == RT_NULL)
+				{
+					rt_kprintf("malloc buf ec20 failed\r\n");
+					return ;
+				}
 				rt_memset(server_buf_ec20,0,server_len_ec20);
 				//server_len_ec20 = 0;
 				i+=2;
@@ -243,7 +264,7 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 				server_buf_ec20[server_len_ec20++] = pos[i++];
 			}
 	
-			if (match_bin((rt_uint8_t *)pos, len,"OK",2)!=RT_NULL)
+			if (match_bin((rt_uint8_t *)pos, len,"OK",2)!=-1)
 			{
 				rt_data_queue_push(&g_data_queue[3], server_buf_ec20, server_len_ec20, RT_WAITING_FOREVER);
 				if (server_len_ec20 == 1500) {
@@ -253,7 +274,7 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
 					gprs_at_cmd(g_dev_ec20,at_csq);		
 				}
-				if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI)))
+				if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIURC,rt_strlen(STR_QIURC))==-1)
 					g_data_in_ec20 = RT_FALSE;
 				flag = RT_FALSE;
 			}
@@ -638,6 +659,10 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 							rt_kprintf("get stm32 fd %d\r\n", stm32_fd);
 							gprs_at_cmd(g_dev_ec20,qiftp_read_file);	
 							tmp_stm32_bin = (rt_uint8_t *)rt_malloc(1500*sizeof(rt_uint8_t));
+							if (tmp_stm32_bin == RT_NULL)
+							{
+								rt_kprintf("malloc tmp ec20 failed\r\n");
+							}
 							rt_memset(tmp_stm32_bin,0,1500);
 							tmp_stm32_len=0;
 						}		
@@ -901,7 +926,13 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					} 
 					else {								
 						rt_thread_delay(100);
-						gprs_at_cmd(g_dev_ec20,at_csq);
+						if (need_read) {
+							g_ec20_state = EC20_STATE_DATA_READ;
+							gprs_at_cmd(g_dev_ec20,qird);
+							server_len_ec20 = 0;
+							g_data_in_ec20 = RT_TRUE;
+						} else
+							gprs_at_cmd(g_dev_ec20,at_csq);
 					}
 
 				} else {/*
@@ -949,8 +980,11 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_ec20, at_qisend);
 				} else {
 					if (!have_str(last_data_ptr, STR_QIURC)) {
-						g_ec20_state = EC20_STATE_CHECK_QISTAT;
-						gprs_at_cmd(g_dev_ec20,qistat);
+						//g_ec20_state = EC20_STATE_CHECK_QISTAT;
+						//gprs_at_cmd(g_dev_ec20,qistat);
+						g_ec20_state = EC20_STATE_SET_QICLOSE;
+						gprs_at_cmd(g_dev_ec20,qiclose);
+						break;
 					}
 				}
 				if (have_str(last_data_ptr, STR_QIURC) || g_data_in_ec20)
@@ -967,6 +1001,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_ec20,at_csq);
 					rt_time_t cur_time = time(RT_NULL);
 					rt_kprintf("send server ok ======> %s\r\n",ctime(&cur_time));
+					
 					rt_event_send(&(g_pcie[g_index]->event), EC20_EVENT_0);
 				} else {
 					gprs_at_cmd(g_dev_ec20, at_qisend);

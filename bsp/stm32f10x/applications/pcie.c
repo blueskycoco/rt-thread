@@ -37,6 +37,7 @@ extern rt_uint8_t heart_time;
 extern rt_uint8_t r_signal;
 extern rt_uint16_t battery;
 extern rt_uint8_t g_module_type;
+extern rt_uint8_t need_read;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
@@ -226,6 +227,10 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 				rt_kprintf("return 2 %d %d\r\n", i+packet_len[cnt]-2,len);
 				return 0;
 			}
+			if (packet_len[cnt] <= 4) {
+				rt_kprintf("len is not correct\r\n");
+				return 0;
+			}
 			crc[cnt]=(data[i+packet_len[cnt]-2]<<8)|data[i+packet_len[cnt]-1];
 			rt_kprintf("Found 0xAD 0xAC at %d, len %d, crc %x\r\n", index[cnt],packet_len[cnt],crc[cnt]);
 			if (crc[cnt] == CRC_check(data+i+2,packet_len[cnt]-4))
@@ -354,6 +359,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[ofs++] = 2;
 		else
 			cmd[ofs++] = 1;
+		need_read = 1;
 	} else if(type == CMD_HEART) {			
 		rt_kprintf("\r\n<CMD HEART Packet>\r\n");
 		cmd[5]=(CMD_HEART >> 8) & 0xff;//heart
@@ -383,6 +389,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			heart_type = 0;
 		}
 		ofs = 21;
+		need_read = 1;
 	}else if(type == CMD_EXIT) {
 		rt_kprintf("\r\n<CMD EXIT Packet>\r\n");
 		cmd[5]=(CMD_EXIT >> 8) & 0xff;//exit
@@ -404,6 +411,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[23] = (battery) & 0xff;
 		cmd[24] = con_rssi(r_signal);
 		ofs= 25;
+		need_read = 1;
 	} else if (type == CMD_MAIN_EVENT) {
 		rt_kprintf("\r\n<CMD MAIN EVENT Packet>\r\n");
 		cmd[5]=(CMD_MAIN_EVENT >> 8) & 0xff;//main event
@@ -417,6 +425,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[21] = g_operate_platform;
 		memcpy(cmd+22,g_operater,6);
 		ofs = 28;
+		need_read = 1;
 	} else if (type == CMD_SUB_EVENT) {
 		rt_kprintf("\r\n<CMD SUB EVENT Packet>\r\n");
 		cmd[5]=(CMD_SUB_EVENT >> 8) & 0xff;//main event
@@ -450,12 +459,14 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				cmd[ofs++] = (battery) & 0xff;
 				cmd[ofs++] = con_rssi(r_signal);
 			}
+		need_read = 1;
 	} else if (type == CMD_ASK_ADDR) {
 		rt_kprintf("\r\n<CMD ASK ADDR Packet>\r\n");
 		cmd[5] = (CMD_ASK_ADDR >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_ASK_ADDR&0xff;
 		cmd[15]= g_addr_type;
 		ofs = 16;
+		need_read = 1;
 	} else if (type == CMD_ASK_SUB_ACK) {
 		rt_kprintf("\r\n<CMD ASK SUB ADDR Packet>\r\n");
 		cmd[5] = (CMD_ASK_SUB_ACK >> 8) & 0xff;//ask addr
