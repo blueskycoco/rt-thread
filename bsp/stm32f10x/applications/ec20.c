@@ -45,6 +45,7 @@
 #define EC20_STATE_GET_FILE		30
 #define EC20_STATE_READ_FILE	31
 #define EC20_STATE_LOGOUT_FTP	32
+#define EC20_STATE_V			33
 #define STR_POWER_DOWN				"POWERED DOWN"
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -118,6 +119,9 @@ rt_uint8_t ftp_cfg_step = 0;
 #define qird  "AT+QIRD=0,1500\r\r\n"
 #define qisack  "AT+QISACK\r\n"
 #define qiat  "AT\r\n"
+#define ati	"ATI\r\n"
+#define atdbg "AT+QURCCFG=\"urcport\",\"uart1\"\r\n"
+#define atdbg1 "AT+QCFG=\"DBGCTL\",0\r\n"
 uint8_t 	  qicsgp_ec20[32]			= {0};
 uint8_t 	  qiopen_ec20[64]			= {0};
 uint8_t 	  qisend_ec20[32] 			= {0};
@@ -390,11 +394,22 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case EC20_STATE_ATE0:
 				if (have_str(last_data_ptr,STR_OK)) {
-					g_ec20_state = EC20_STATE_CHECK_CPIN;
-					gprs_at_cmd(g_dev_ec20,cpin);
+					//g_ec20_state = EC20_STATE_CHECK_CPIN;
+					//gprs_at_cmd(g_dev_ec20,cpin);					
+					g_ec20_state = EC20_STATE_V;
+					gprs_at_cmd(g_dev_ec20,atdbg);
+					rt_thread_delay(100);
+					gprs_at_cmd(g_dev_ec20,atdbg1);					
 				} else {
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_ec20,e0);
+				}
+				break;				
+			case EC20_STATE_V:
+				if (have_str(last_data_ptr,STR_OK)) {
+					g_pcie[g_index]->cpin_cnt=0;
+					g_ec20_state = EC20_STATE_CHECK_CPIN;
+					gprs_at_cmd(g_dev_ec20,cpin);
 				}
 				break;
 			case EC20_STATE_CHECK_CPIN:
