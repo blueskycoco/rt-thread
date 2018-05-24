@@ -81,6 +81,7 @@ extern rt_uint8_t g_alarm_fq;
 extern rt_uint16_t g_alarm_reason;
 rt_uint16_t should_upload_bat = 0;
 rt_uint8_t time_protect=0;
+extern rt_uint8_t g_remote_protect;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 512 ];
@@ -338,7 +339,7 @@ static void led_thread_entry(void* parameter)
 			g_alarm_voice -=1;
 			if (g_alarm_voice == 1) {		
 			bell_ctl(0);		
-			Stop_Playing();
+			//Stop_Playing();
 			}
 		}
 		/*pgm ctl*/
@@ -407,17 +408,36 @@ static void led_thread_entry(void* parameter)
 						Wtn6_Play(VOICE_COUNTDOWN,ONCE);
 					}
 					if (g_delay_out == 1) {
-						rt_thread_delay(100);
+						//rt_thread_delay(300);
+						if (g_remote_protect != 1)
+					{	
+						rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+						Wtn6_JoinPlay(voice,2,1);
+					} else {
+						rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+						Wtn6_JoinPlay(voice,2,1);
+					   }
+					rt_thread_delay(200);
 						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 						}
 					g_delay_out -=1;
 				}
-		} else {
-			if (g_delay_out || g_alarm_voice)
-				rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
-			g_delay_out = 0;
-			g_alarm_voice =0;				
+		} else {			
 			Stop_Playing();
+			if (g_delay_out || g_alarm_voice) {
+				rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
+				if (g_remote_protect != 1)
+				{	
+					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+					Wtn6_JoinPlay(voice,2,1);
+				} else {
+					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+					Wtn6_JoinPlay(voice,2,1);
+				   }
+				rt_thread_delay(200);
+			g_delay_out = 0;
+			g_alarm_voice =0;	
+			}
 		}
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 		//SetStateIco(count%7,0);

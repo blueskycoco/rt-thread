@@ -45,6 +45,9 @@ extern struct rt_mutex g_stm32_lock;
 extern rt_uint8_t entering_ftp_mode;
 extern rt_uint16_t g_app_v;
 extern rt_uint8_t time_protect;
+rt_uint8_t g_yanshi = 0;
+rt_uint8_t g_remote_protect = 0;
+
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -159,37 +162,73 @@ void info_user(void *param)
 			set_fq_on(fangqu_wire,WIRE_MAX);
 			set_fq_on(fangqu_wireless,WIRELESS_MAX);			
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
-			rt_kprintf("\r\n\r\nnow stm32 is protect on\r\n\r\n");
+			rt_kprintf("\r\n\r\nnow stm32 is protect on %d\r\n\r\n",g_remote_protect);
 			g_sub_event_code = 0x2002;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
 			
-			//g_operater[5] = 0x10;			
-			if (command_type==0x0002)
-			{	
-				command_type = 0;
-				memset(g_operater,0,8);
-				g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
-				g_operate_platform = 0xff;
-				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
-				Wtn6_JoinPlay(voice,2,1);
-				upload_server(CMD_SUB_EVENT);
-			} else {
-				rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
-				Wtn6_JoinPlay(voice,2,1);			   
-			   if (time_protect) {
-			   		g_operate_platform = 0xfd;
-			  	 memset(g_operater,0,8);
-  			   	g_operater[7] =  0x10;
-			   	time_protect = 0;
-			   	upload_server(CMD_SUB_EVENT);
-			   }
+			//g_operater[5] = 0x10;	
+			if (!g_yanshi) {
+				if (g_remote_protect != 1)
+				{	
+					command_type = 0;
+					memset(g_operater,0,8);
+					g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
+					g_operate_platform = 0xff;
+					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+					Wtn6_JoinPlay(voice,2,1);
+					upload_server(CMD_SUB_EVENT);
+				} else {
+					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+					Wtn6_JoinPlay(voice,2,1);			   
+				   if (time_protect) {
+				   		g_operate_platform = 0xfd;
+				  	 memset(g_operater,0,8);
+	  			   	g_operater[7] =  0x10;
+				   	time_protect = 0;
+				   	upload_server(CMD_SUB_EVENT);
+				   }
+				}
 			}
+			/*else 
+			{
+				if (g_remote_protect != 1)
+				{	
+					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+					Wtn6_JoinPlay(voice,2,1);
+				} else {
+					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+					Wtn6_JoinPlay(voice,2,1);
+				   }
+				
+			}*/
+			g_yanshi = 0;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
 			Wtn6_Play(VOICE_YANSHIBF,LOOP);
 			g_delay_out = fqp.delya_out;
 			g_alarm_voice = fqp.alarm_voice_time;
+			g_yanshi = 1;
+			if (g_remote_protect != 1)
+				{	
+					command_type = 0;
+					memset(g_operater,0,8);
+					g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
+					g_operate_platform = 0xff;
+					//rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+					//Wtn6_JoinPlay(voice,2,1);
+					upload_server(CMD_SUB_EVENT);
+				} else {
+					//rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+					//Wtn6_JoinPlay(voice,2,1);			   
+				   if (time_protect) {
+				   		g_operate_platform = 0xfd;
+				  	 memset(g_operater,0,8);
+	  			   	g_operater[7] =  0x10;
+				   	time_protect = 0;
+				   	upload_server(CMD_SUB_EVENT);
+				   }
+				}
 			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
@@ -216,7 +255,7 @@ void info_user(void *param)
 			g_fq_event[0] = 0xff;
 			
 			//g_operater[5] = 0x10;
-			if (command_type==0x0004)
+			if (g_remote_protect!=1)
 			{	
 				command_type = 0;
 				memset(g_operater,0,8);
@@ -567,6 +606,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		cmd[ofs+1],cmd[ofs+2],cmd[ofs+3],cmd[ofs+4],cmd[ofs+5],cmd[ofs+6]);
 	g_operate_platform = cmd[ofs];
 	memcpy(g_operater,cmd+ofs+1,6);
+	g_remote_protect = 1;
 	/*execute cmd*/
 	if (cmd[1] == 1) {
 		if (cmd[2] == 0xff) {
@@ -586,8 +626,8 @@ void handle_proc_sub(rt_uint8_t *cmd)
 			} else if (cmd[0] == 0x02) {
 				if (!cur_status && g_delay_out==0)
 				{
-					handle_protect_on();
 					g_sub_event_code = 0x2002;
+					handle_protect_on();
 				}
 			}
 		} else {

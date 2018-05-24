@@ -184,7 +184,7 @@ void EXTI9_5_IRQHandler(void)
 		{			
 			rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
 		}
-		else if(i>20)
+		else if(i>10)
 		{	
 			if (g_main_state==0)
 				rt_event_send(&(g_info_event), INFO_EVENT_CODING);

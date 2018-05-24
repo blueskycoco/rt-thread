@@ -278,7 +278,8 @@ int load_param()
 		close(fd);
 	}
 
-	fqp.delay_in=20;
+	fqp.delya_out=30;
+	fqp.delay_in=30;
 	fqp.alarm_voice_time=30;
 	fqp.is_alarm_voice =1;
 	fqp.is_lamp = 0x04;

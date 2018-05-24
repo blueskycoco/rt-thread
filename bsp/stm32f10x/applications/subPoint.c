@@ -38,6 +38,7 @@ extern rt_uint8_t g_alarm_fq;
 extern rt_uint16_t g_alarm_reason;
 extern rt_uint16_t g_sub_event_code;
 rt_uint8_t r_signal = 0x00;
+extern rt_uint8_t g_remote_protect;
 
 char *cmd_type(rt_uint16_t type)
 {
@@ -286,13 +287,13 @@ void save_fq(struct FangQu *list, int len)
 			list[i].slave_model = dev_model;
 			list[i].slave_batch = dev_time&0x00ffffff;
 			list[i].voiceType =TYPE_VOICE_Y;
-			list[i].operationType= TYPE_NOW;
+			list[i].operationType= TYPE_DELAY;
 			list[i].alarmType= TYPE_ALARM_00;
 			list[i].slave_delay = TYPE_SLAVE_MODE_DELAY;
 			list[i].status= TYPE_PROTECT_OFF;
 			list[i].isStay= TYPE_STAY_N;
 			list[i].isBypass= TYPE_BYPASS_N;
-			/*test code*/
+			/*test code
 			if (sub_id == 0x0a) {
 				list[i].alarmType = TYPE_ALARM_02;
 				list[i].operationType= TYPE_DELAY;
@@ -316,7 +317,7 @@ void save_fq(struct FangQu *list, int len)
 				list[i].alarmType = TYPE_ALARM_02;
 				list[i].operationType= TYPE_24;
 				list[i].voiceType= 0;
-			}
+			}*/
 			/*test code*/
 			g_num=list[i].index;
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
@@ -603,10 +604,12 @@ void handleSub(rt_uint8_t *data)
 		g_mute=0;
 		if (command_type == 0x0002 && !cur_status && g_delay_out==0)
 		{
+			g_remote_protect=0;
 			handle_protect_on();
 		}
 		else if(command_type == 0x0004 && (cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
 		{
+			g_remote_protect=0;
 			cur_status = 0;
 			g_alarmType =0;
 			g_delay_out = 0;
@@ -616,6 +619,7 @@ void handleSub(rt_uint8_t *data)
 			s1=0;
 			handle_protect_off();
 		} else if (command_type == 0x0006) {
+		
 			g_mute=0;
 			g_alarmType =2;
 			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
