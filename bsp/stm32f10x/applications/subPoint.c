@@ -451,7 +451,7 @@ void handle_protect_on()
 	flag = check_delay_fq(fangqu_wire,WIRE_MAX);
 	if (!flag)
 		flag = check_delay_fq(fangqu_wireless,WIRELESS_MAX);
-	if (flag)
+	if (flag && (fqp.delya_out!=0))
 	{
 		rt_event_send(&(g_info_event), INFO_EVENT_DELAY_PROTECT_ON);
 	}
@@ -483,7 +483,7 @@ void handle_alarm()
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);				
 	} else {
 		/*normal alarm*/
-		if (cur_status) {				
+		if (cur_status && !fangqu_wireless[g_index_sub].isBypass) {				
 			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);										
 		}

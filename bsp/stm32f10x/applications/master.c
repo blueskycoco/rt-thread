@@ -229,7 +229,7 @@ void info_user(void *param)
 				   	upload_server(CMD_SUB_EVENT);
 				   }
 				}
-			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);
+			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);			
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
 			alarm_led=0;
@@ -511,9 +511,9 @@ void handle_set_sub(rt_uint8_t *cmd)
 {
 	int i;
 	rt_kprintf("cmd_type \tset sub\r\n");
-	if (cmd[0] != 0)
+	//if (cmd[0] != 0)
 		fqp.delya_out= cmd[0];
-	if (cmd[1] != 0)
+	//if (cmd[1] != 0)
 		fqp.delay_in = cmd[1];
 	if (cmd[2] != 0) {
 		for (i=3; i<cmd[2]*4+3;i+=4) {
