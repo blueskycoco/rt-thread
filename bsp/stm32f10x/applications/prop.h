@@ -45,6 +45,7 @@ struct MachineProperty
 	rt_uint16_t 			firmLength;
 	rt_uint8_t  			status;	
 	rt_uint8_t 				qccid[10];
+	rt_uint8_t				reload;
 };
 struct FangQu
 {
@@ -134,4 +135,5 @@ void dump_mp(struct MachineProperty v);
 void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3);
 int load_param();
 void save_param(int type);
+void default_fqp();
 #endif

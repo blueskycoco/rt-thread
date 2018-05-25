@@ -14,6 +14,7 @@ void dump_mp(struct MachineProperty v)
 {
 	int i;
 	rt_kprintf("\r\n\r\n<<MainStation Param>>\r\n");
+	rt_kprintf("reload %d\r\n",v.reload);
 	rt_kprintf("socketAddressVersion \t%d\r\n",
 		v.socketAddressVersion);
 	rt_kprintf("appVersion \t\t%d\r\n",
@@ -137,7 +138,35 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 		}
 	}
 }
+void default_fqp()
+{
+	int i;
+	for(i=0;i<WIRE_MAX;i++)
+	{
+		if(fangqu_wire[i].index != 0) {
+			fangqu_wire[i].voiceType =TYPE_VOICE_Y;
+			fangqu_wire[i].operationType= TYPE_DELAY;
+			fangqu_wire[i].alarmType= TYPE_ALARM_00;
+			fangqu_wire[i].slave_delay = TYPE_SLAVE_MODE_DELAY;
+			fangqu_wire[i].status= TYPE_PROTECT_OFF;
+			fangqu_wire[i].isStay= TYPE_STAY_N;
+			fangqu_wire[i].isBypass= TYPE_BYPASS_N;
+		}
+	}
 
+	for(i=0;i<WIRELESS_MAX;i++)
+	{
+		if(fangqu_wireless[i].index != 0) {
+			fangqu_wireless[i].voiceType =TYPE_VOICE_Y;
+			fangqu_wireless[i].operationType= TYPE_DELAY;
+			fangqu_wireless[i].alarmType= TYPE_ALARM_00;
+			fangqu_wireless[i].slave_delay = TYPE_SLAVE_MODE_DELAY;
+			fangqu_wireless[i].status= TYPE_PROTECT_OFF;
+			fangqu_wireless[i].isStay= TYPE_STAY_N;
+			fangqu_wireless[i].isBypass= TYPE_BYPASS_N;
+		}
+	}
+}
 int load_param()
 {
 	int length;
@@ -153,6 +182,7 @@ int load_param()
 	rt_memset(fangqu_wireless, 0, sizeof(struct FangQu)*WIRELESS_MAX);
 	rt_memset(&mp, 0, sizeof(struct MachineProperty));
 	//list_dir("/");
+	mp.reload = 0;
 	mp.socketAddressVersion= 0;
 	mp.socketDomainVersion= 0;
 	mp.updateAddressVersion = 0;

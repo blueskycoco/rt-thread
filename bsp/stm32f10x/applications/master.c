@@ -138,8 +138,12 @@ void info_user(void *param)
 			led_blink(3);
 			g_exit_reason = 0x03;
 			upload_server(CMD_EXIT);
+			//dfs_mkfs("elm","sd0");
+			mp.reload=1;
+			default_fqp();
+			save_param(1);
+			save_param(0);
 			rt_thread_sleep(500);
-			dfs_mkfs("elm","sd0");			
 			NVIC_SystemReset();
 		}
 		if (ev & INFO_EVENT_PROTECT_ON) {
@@ -570,7 +574,11 @@ void handle_proc_main(rt_uint8_t *cmd)
 	rt_thread_delay(300);
 	/*execute cmd*/
 	if (cmd[0] == 2) {
-		dfs_mkfs("elm","sd0");
+		//dfs_mkfs("elm","sd0");		
+		mp.reload=1;
+		default_fqp();
+		save_param(1);
+		save_param(0);
 		Wtn6_Play(VOICE_AGAIN,ONCE);
 	}
 	if (cmd[0] == 2 || cmd[0] == 1)
