@@ -218,7 +218,9 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 				server_buf_ec20 = (uint8_t *)rt_malloc(server_len_ec20 * sizeof(uint8_t));
 				if (server_buf_ec20 == RT_NULL)
 				{
-					rt_kprintf("malloc buf ec20 failed\r\n");
+					rt_kprintf("malloc buf ec20 failed %d\r\n",server_len_ec20);
+					g_ec20_state = EC20_STATE_DATA_PROCESSING;
+					gprs_at_cmd(g_dev_ec20,at_csq);		
 					return ;
 				}
 				rt_memset(server_buf_ec20,0,server_len_ec20);
@@ -258,8 +260,7 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 				  put to another dataqueue
 				  */
 			//}
-		}
-	
+		}	
 		else if (flag){ 
 			int i=0;
 			uint8_t *pos = (uint8_t *)last_data_ptr;
@@ -941,12 +942,12 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					} 
 					else {								
 						rt_thread_delay(100);
-						if (need_read) {
+						/*if (need_read) {
 							g_ec20_state = EC20_STATE_DATA_READ;
 							gprs_at_cmd(g_dev_ec20,qird);
 							server_len_ec20 = 0;
 							g_data_in_ec20 = RT_TRUE;
-						} else
+						} else*/
 							gprs_at_cmd(g_dev_ec20,at_csq);
 					}
 

@@ -175,20 +175,28 @@ void info_user(void *param)
 			if (!g_yanshi) {
 				if (g_remote_protect != 1)
 				{	
+					 if (time_protect) {
+					 	g_operate_platform = 0xfd;
+				  	 memset(g_operater,0,6);
+	  			   	g_operater[5] =  0x10;
+				   	time_protect = 0;
+					Wtn6_Play(VOICE_BUFANG,ONCE);
+					 	} else {
 					command_type = 0;
-					memset(g_operater,0,8);
-					g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
+					memset(g_operater,0,6);
+					g_operater[5] =  0x10+fangqu_wireless[g_index_sub].index;
 					g_operate_platform = 0xff;
 					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 					Wtn6_JoinPlay(voice,2,1);
+					 	}
 					upload_server(CMD_SUB_EVENT);
 				} else {
 					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
 					Wtn6_JoinPlay(voice,2,1);			   
 				   if (time_protect) {
 				   		g_operate_platform = 0xfd;
-				  	 memset(g_operater,0,8);
-	  			   	g_operater[7] =  0x10;
+				  	 memset(g_operater,0,6);
+	  			   	g_operater[5] =  0x10;
 				   	time_protect = 0;
 				   	upload_server(CMD_SUB_EVENT);
 				   }
@@ -215,10 +223,18 @@ void info_user(void *param)
 			g_yanshi = 1;
 			if (g_remote_protect != 1)
 				{	
+					
+					if (time_protect) {
+						g_operate_platform = 0xfd;
+				  	 memset(g_operater,0,6);
+	  			   	g_operater[5] =  0x10;
+				   	time_protect = 0;
+					} else {
 					command_type = 0;
-					memset(g_operater,0,8);
-					g_operater[7] =  0x10+fangqu_wireless[g_index_sub].index;
+					memset(g_operater,0,6);
+					g_operater[5] =  0x10+fangqu_wireless[g_index_sub].index;
 					g_operate_platform = 0xff;
+					}
 					//rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 					//Wtn6_JoinPlay(voice,2,1);
 					upload_server(CMD_SUB_EVENT);
@@ -227,8 +243,8 @@ void info_user(void *param)
 					//Wtn6_JoinPlay(voice,2,1);			   
 				   if (time_protect) {
 				   		g_operate_platform = 0xfd;
-				  	 memset(g_operater,0,8);
-	  			   	g_operater[7] =  0x10;
+				  	 memset(g_operater,0,6);
+	  			   	g_operater[5] =  0x10;
 				   	time_protect = 0;
 				   	upload_server(CMD_SUB_EVENT);
 				   }
@@ -261,19 +277,27 @@ void info_user(void *param)
 			//g_operater[5] = 0x10;
 			if (g_remote_protect!=1)
 			{	
+				if (time_protect) {
+						memset(g_operater,0,6);
+					g_operater[5] = 0x10;
+					g_operate_platform = 0xfd;
+					time_protect = 0;
+					Wtn6_Play(VOICE_CHEFANG,ONCE);
+					}else{
 				command_type = 0;
-				memset(g_operater,0,8);
-				g_operater[7] = 0x10+fangqu_wireless[g_index_sub].index;
+				memset(g_operater,0,6);
+				g_operater[5] = 0x10+fangqu_wireless[g_index_sub].index;
 				g_operate_platform = 0xff;
 				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
 				Wtn6_JoinPlay(voice,2,1);
+				}
 				upload_server(CMD_SUB_EVENT);	
 			} else {
 				rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_CHEFANG };
 				Wtn6_JoinPlay(voice,2,1);
 				if (time_protect) {
-					memset(g_operater,0,8);
-					g_operater[7] = 0x10;
+					memset(g_operater,0,6);
+					g_operater[5] = 0x10;
 					g_operate_platform = 0xfd;
 					time_protect = 0;
 					upload_server(CMD_SUB_EVENT);

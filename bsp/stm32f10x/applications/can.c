@@ -43,7 +43,7 @@ int can_send(unsigned short id, unsigned char *payload,
 	TxMessage.StdId = id;
 	memcpy(TxMessage.Data, payload, 8);
 	//CAN_ClearFlag(CAN1,0xffffffff);
-#ifdef DEBUG
+#if 1
 	rt_kprintf("CAN send ID %d:\r\n", id);
 	for (i=0;i<payload_len;i++)
 		rt_kprintf("%02x ", payload[i]);
@@ -74,13 +74,13 @@ int can_read(unsigned char *buf, unsigned char *buf_len)
 	//if (num == 0)
 	//	return 0;
 	CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
-#ifdef DEBUG
+#if 1
 	//rt_krt_kprintf("pending message %d\r\n", num);
 	rt_kprintf("DLC %x, ExtId %x, FMI %x, IDE %x, RTR %x, StdId %x\r\n",
 			RxMessage.DLC,(unsigned int)RxMessage.ExtId,RxMessage.FMI,
 			RxMessage.IDE,RxMessage.RTR,(unsigned int)RxMessage.StdId);
 #endif
-	if (/*(RxMessage.StdId == local_addr)&&*/(RxMessage.IDE == CAN_ID_STD) 
+	if ((RxMessage.StdId == local_addr)&&(RxMessage.IDE == CAN_ID_STD) 
 			&& (RxMessage.DLC == 8))
 	{
 		memcpy(buf, RxMessage.Data, 8);
@@ -234,20 +234,22 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
                     rt_kprintf("dev_type %x, fact_time %x\r\n",
                     	resp[2],fangqu_wire[stdid].slave_batch);
                     cmd[0] = 0x00;cmd[1]=0x03;
-                    cmd[2] = 0;
-                    memset(cmd+3, 0, 5);
+                    cmd[2] = 0;cmd[3] = 0;
+                    memcpy(cmd+4, &(fangqu_wire[stdid].slave_sn), 4);
                     can_send(stdid,cmd,8);
                 }  else if (resp[0] == 0x00 && resp[1] == 0x06) {
                     //alarm
                     cmd[0] = 0x00;cmd[1]=0x07;
                     cmd[2] = resp[2];
-                    memcpy(cmd+4, resp+4, 4);
+                    //memcpy(cmd+4, resp+4, 4);
+					memcpy(cmd+4, &(fangqu_wire[stdid].slave_sn), 4);
                     can_send(stdid,cmd,8);
                 } else if (resp[0] == 0x00 && resp[1] == 0x10) {
                     //curr status
                     cmd[0] = 0x00;cmd[1]=0x11;
                     cmd[2] = resp[2];
-                    memcpy(cmd+4, resp+4, 4);
+                    //memcpy(cmd+4, resp+4, 4);
+                    memcpy(cmd+4, &(fangqu_wire[stdid].slave_sn), 4);
                     can_send(stdid,cmd,8);
                 }
             }
