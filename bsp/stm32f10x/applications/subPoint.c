@@ -293,6 +293,8 @@ void save_fq(struct FangQu *list, int len)
 			list[i].status= TYPE_PROTECT_OFF;
 			list[i].isStay= TYPE_STAY_N;
 			list[i].isBypass= TYPE_BYPASS_N;
+			if (dev_model == 0xd001)
+				list[i].operationType= TYPE_24;
 			/*test code
 			if (sub_id == 0x0a) {
 				list[i].alarmType = TYPE_ALARM_02;

@@ -44,7 +44,7 @@ int can_send(unsigned short id, unsigned char *payload,
 	memcpy(TxMessage.Data, payload, 8);
 	//CAN_ClearFlag(CAN1,0xffffffff);
 #if 1
-	rt_kprintf("CAN send ID %d:\r\n", id);
+	rt_kprintf("CAN send ID %x:\r\n", id);
 	for (i=0;i<payload_len;i++)
 		rt_kprintf("%02x ", payload[i]);
 	rt_kprintf("\r\n");
@@ -85,7 +85,7 @@ int can_read(unsigned char *buf, unsigned char *buf_len)
 	{
 		memcpy(buf, RxMessage.Data, 8);
 		*buf_len = 8;
-#ifdef DEBUG
+#if 1
 		rt_kprintf("we got message %02x %02x %02x %02x %02x %02x %02x %02x\r\n", 
 				RxMessage.Data[0],RxMessage.Data[1],RxMessage.Data[2],
 				RxMessage.Data[3],RxMessage.Data[4],RxMessage.Data[5],
@@ -210,10 +210,12 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 	                id = (id<<8) + resp[6];
 	                id = (id<<8) + resp[7];
          			addr = get_addr(id,fangqu_wire,WIRE_MAX);
-					fangqu_wire[addr].slave_sn = id;
-					fangqu_wire[addr].slave_model = (resp[2]<<8)|resp[3];
-                	rt_kprintf("addr %d, id %08x mode %02x\r\n",addr,id,
-						fangqu_wire[addr].slave_model);
+					fangqu_wire[addr - WIRELESS_MAX].index = addr;
+					fangqu_wire[addr - WIRELESS_MAX].slave_sn = id;
+					fangqu_wire[addr - WIRELESS_MAX].slave_model = (resp[2]<<8)|resp[3];
+                	rt_kprintf("addr %d, id %08x mode %02x\r\n",addr - WIRELESS_MAX,
+						fangqu_wire[addr - WIRELESS_MAX].slave_sn,
+						fangqu_wire[addr - WIRELESS_MAX].slave_model);
                     cmd[0] = 0x00;cmd[1]=0x01;
                     cmd[2] = (addr >> 8) & 0xff;
                     cmd[3] = addr&0xff;
@@ -221,36 +223,52 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
                     can_send(2,cmd,8);
                 } else if (resp[0] == 0x00 && resp[1] == 0x02) {
                     //info
-                    fangqu_wire[stdid].slave_type = resp[2];
-					fangqu_wire[stdid].slave_batch = 
-						((resp[3]<<24)|(resp[4]<<16)|(resp[5]<<8)|(resp[6]<<0))&0x00ffffff;						
-					fangqu_wire[stdid].voiceType =TYPE_VOICE_Y;
-					fangqu_wire[stdid].operationType= TYPE_DELAY;
-					fangqu_wire[stdid].alarmType= TYPE_ALARM_00;
-					fangqu_wire[stdid].slave_delay = TYPE_SLAVE_MODE_DELAY;
-					fangqu_wire[stdid].status= TYPE_PROTECT_OFF;
-					fangqu_wire[stdid].isStay= TYPE_STAY_N;
-					fangqu_wire[stdid].isBypass= TYPE_BYPASS_N;
+                    if (resp[2] < WIRELESS_MAX)
+						return;
+                    addr = resp[2] - WIRELESS_MAX;
+                    fangqu_wire[addr].slave_type = resp[3];
+					fangqu_wire[addr].slave_batch = 
+						((resp[4]<<24)|(resp[5]<<16)|(resp[6]<<8)|(resp[7]<<0))&0x00ffffff;						
+					fangqu_wire[addr].voiceType =TYPE_VOICE_Y;
+					fangqu_wire[addr].operationType= TYPE_DELAY;
+					fangqu_wire[addr].alarmType= TYPE_ALARM_00;
+					fangqu_wire[addr].slave_delay = TYPE_SLAVE_MODE_DELAY;
+					fangqu_wire[addr].status= TYPE_PROTECT_OFF;
+					fangqu_wire[addr].isStay= TYPE_STAY_N;
+					fangqu_wire[addr].isBypass= TYPE_BYPASS_N;
                     rt_kprintf("dev_type %x, fact_time %x\r\n",
-                    	resp[2],fangqu_wire[stdid].slave_batch);
+                    	resp[3],fangqu_wire[addr].slave_batch);
                     cmd[0] = 0x00;cmd[1]=0x03;
-                    cmd[2] = 0;cmd[3] = 0;
-                    memcpy(cmd+4, &(fangqu_wire[stdid].slave_sn), 4);
-                    can_send(stdid,cmd,8);
+                    cmd[2] = 0;cmd[3] = fangqu_wire[addr].status-1;
+					cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
+					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
+					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
+					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
+                    can_send(resp[2],cmd,8);
                 }  else if (resp[0] == 0x00 && resp[1] == 0x06) {
                     //alarm
+                    if (resp[2] < WIRELESS_MAX)
+						return;
+                    addr = resp[2] - WIRELESS_MAX;
                     cmd[0] = 0x00;cmd[1]=0x07;
-                    cmd[2] = resp[2];
-                    //memcpy(cmd+4, resp+4, 4);
-					memcpy(cmd+4, &(fangqu_wire[stdid].slave_sn), 4);
-                    can_send(stdid,cmd,8);
+                    cmd[2] = 0x00;cmd[3] = fangqu_wire[addr].status-1;
+					cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
+					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
+					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
+					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
+                    can_send(resp[2],cmd,8);
                 } else if (resp[0] == 0x00 && resp[1] == 0x10) {
                     //curr status
+                    if (resp[2] < WIRELESS_MAX)
+						return;
+                    addr = resp[2] - WIRELESS_MAX;
                     cmd[0] = 0x00;cmd[1]=0x11;
-                    cmd[2] = resp[2];
-                    //memcpy(cmd+4, resp+4, 4);
-                    memcpy(cmd+4, &(fangqu_wire[stdid].slave_sn), 4);
-                    can_send(stdid,cmd,8);
+                    cmd[2] = 0x00;cmd[3] = fangqu_wire[addr].status-1;
+					cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
+					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
+					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
+					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
+                    can_send(resp[2],cmd,8);
                 }
             }
 #else
