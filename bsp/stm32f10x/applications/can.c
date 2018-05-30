@@ -5,7 +5,12 @@
 #include <string.h>
 #include "prop.h"
 #include "can.h"
+#include "wtn6.h"
+#include "master.h"
 #define MASTER	1
+extern struct rt_event g_info_event;
+extern rt_uint8_t 	g_main_state;
+extern rt_uint8_t g_num;
 CanRxMsg 							RxMessage;
 CAN_FilterInitTypeDef  				CAN_FilterInitStructure;
 CanTxMsg 							TxMessage;
@@ -61,7 +66,7 @@ int can_send(unsigned short id, unsigned char *payload,
 	{
 		i++;
 	}
-	rt_kprintf("i is %x\r\n", i);
+	//rt_kprintf("i is %x\r\n", i);
 	if (i == 0xFFFF)
 		return 0;
 	
@@ -74,7 +79,7 @@ int can_read(unsigned char *buf, unsigned char *buf_len)
 	//if (num == 0)
 	//	return 0;
 	CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
-#if 1
+#if 0
 	//rt_krt_kprintf("pending message %d\r\n", num);
 	rt_kprintf("DLC %x, ExtId %x, FMI %x, IDE %x, RTR %x, StdId %x\r\n",
 			RxMessage.DLC,(unsigned int)RxMessage.ExtId,RxMessage.FMI,
@@ -188,10 +193,47 @@ void can_init()
 	}
 	CAN_ITConfig(CANx, CAN_IT_FMP0, ENABLE);
 }
+char *can_cmd_type(rt_uint16_t cmdtype)
+{
+	switch (cmdtype) {
+		case 0x0000:
+			return "require can addr";
+		case 0x0002:
+			return "upload wire information";
+		case 0x0006:
+			return "alarm";
+		case 0x0010:
+			return "ask cur status";
+		default:
+			return "unknown";
+	}
+	return "unknown";
+}
+void save_fq_wire(int addr, rt_uint8_t type, rt_uint32_t fact_time)
+{
+	if (fangqu_wire[addr].slave_batch == 0) {
+	    fangqu_wire[addr].slave_type = type;
+		fangqu_wire[addr].slave_batch = fact_time;
+		fangqu_wire[addr].voiceType =TYPE_VOICE_Y;
+		fangqu_wire[addr].operationType= TYPE_DELAY;
+		fangqu_wire[addr].alarmType= TYPE_ALARM_00;
+		fangqu_wire[addr].slave_delay = TYPE_SLAVE_MODE_DELAY;
+		fangqu_wire[addr].status= TYPE_PROTECT_OFF;
+		fangqu_wire[addr].isStay= TYPE_STAY_N;
+		fangqu_wire[addr].isBypass= TYPE_BYPASS_N;
+		g_num=fangqu_wire[addr].index;
+		rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
+			addr, fangqu_wire[addr].index,fangqu_wire[addr].slave_sn);			
+		Wtn6_Play(VOICE_DUIMA,ONCE);
+		rt_kprintf("duima ok\r\n");
+		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
+		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
+	}
+}
 
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
-    rt_kprintf("can1 rx0 %d\r\n", CAN_GetITStatus(CAN1,CAN_IT_FMP0));
+    //rt_kprintf("can1 rx0 %d\r\n", CAN_GetITStatus(CAN1,CAN_IT_FMP0));
     if (CAN_GetITStatus(CAN1,CAN_IT_FMP0) != RESET) {
 #ifdef MASTER
        // key |= KEY_CAN;
@@ -202,7 +244,8 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
     uint16_t addr;
     uint32_t id;
             if ((stdid = can_read(resp, &len)) != 0) {
-				rt_kprintf("get stdid %d message\r\n", stdid);
+				rt_kprintf("<$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\r\n");
+				rt_kprintf("CMD\t\t%s\r\n", can_cmd_type(resp[0]<<8|resp[1]));				
                 if (resp[0] == 0x00 && resp[1] == 0x00)
                 {   //assign can addr
 	                id = resp[4];
@@ -213,9 +256,9 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					fangqu_wire[addr - WIRELESS_MAX].index = addr;
 					fangqu_wire[addr - WIRELESS_MAX].slave_sn = id;
 					fangqu_wire[addr - WIRELESS_MAX].slave_model = (resp[2]<<8)|resp[3];
-                	rt_kprintf("addr %d, id %08x mode %02x\r\n",addr - WIRELESS_MAX,
-						fangqu_wire[addr - WIRELESS_MAX].slave_sn,
-						fangqu_wire[addr - WIRELESS_MAX].slave_model);
+                	rt_kprintf("id\t\t%08x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_sn);
+					rt_kprintf("model\t\t%04x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_model);
+					rt_kprintf("assign addr\t%0x\r\n",fangqu_wire[addr - WIRELESS_MAX].index);
                     cmd[0] = 0x00;cmd[1]=0x01;
                     cmd[2] = (addr >> 8) & 0xff;
                     cmd[3] = addr&0xff;
@@ -226,18 +269,10 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
                     if (resp[2] < WIRELESS_MAX)
 						return;
                     addr = resp[2] - WIRELESS_MAX;
-                    fangqu_wire[addr].slave_type = resp[3];
-					fangqu_wire[addr].slave_batch = 
-						((resp[4]<<24)|(resp[5]<<16)|(resp[6]<<8)|(resp[7]<<0))&0x00ffffff;						
-					fangqu_wire[addr].voiceType =TYPE_VOICE_Y;
-					fangqu_wire[addr].operationType= TYPE_DELAY;
-					fangqu_wire[addr].alarmType= TYPE_ALARM_00;
-					fangqu_wire[addr].slave_delay = TYPE_SLAVE_MODE_DELAY;
-					fangqu_wire[addr].status= TYPE_PROTECT_OFF;
-					fangqu_wire[addr].isStay= TYPE_STAY_N;
-					fangqu_wire[addr].isBypass= TYPE_BYPASS_N;
-                    rt_kprintf("dev_type %x, fact_time %x\r\n",
-                    	resp[3],fangqu_wire[addr].slave_batch);
+					if (g_main_state ==1)
+					save_fq_wire(addr, resp[3], (resp[4]<<24)|(resp[5]<<16)|(resp[6]<<8)|resp[7]);
+                    rt_kprintf("id\t\t%08x\r\naddr\t%x\r\nfact_time\t%x\r\ntype\t%x\r\n",
+                    	fangqu_wire[addr].slave_sn,resp[2],fangqu_wire[addr].slave_batch,resp[3]);
                     cmd[0] = 0x00;cmd[1]=0x03;
                     cmd[2] = 0;cmd[3] = fangqu_wire[addr].status-1;
 					cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
@@ -256,6 +291,10 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
 					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
+					rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
+					rt_kprintf("addr\t\t%x\r\n", resp[2]);
+					rt_kprintf("status\t\t%d\r\n", cmd[3]);
+					rt_kprintf("alarm\t\t%s\r\n", cmd_sub_type(resp[3]));
                     can_send(resp[2],cmd,8);
                 } else if (resp[0] == 0x00 && resp[1] == 0x10) {
                     //curr status
@@ -268,8 +307,12 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
 					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
+					rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
+					rt_kprintf("addr\t\t%x\r\n", resp[2]);
+					rt_kprintf("status\t\t%d\r\n", cmd[3]);
                     can_send(resp[2],cmd,8);
                 }
+				rt_kprintf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$>\r\n");
             }
 #else
             handle_can_resp();

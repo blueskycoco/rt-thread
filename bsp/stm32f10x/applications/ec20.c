@@ -295,6 +295,7 @@ void ec20_start(int index)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	g_index = index;
 	g_dev_ec20 = g_pcie[index]->dev;
+	g_ec20_state = EC20_STATE_INIT;
 
 	if (index) {
 		power_rcc = RCC_APB2Periph_GPIOE;
