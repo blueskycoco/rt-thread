@@ -47,7 +47,7 @@ extern rt_uint16_t g_app_v;
 extern rt_uint8_t time_protect;
 rt_uint8_t g_yanshi = 0;
 rt_uint8_t g_remote_protect = 0;
-
+extern rt_uint8_t duima_key;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -176,15 +176,22 @@ void info_user(void *param)
 				if (g_remote_protect != 1)
 				{	
 					 if (time_protect) {
-					 	g_operate_platform = 0xfd;
+					 	
 				  	 memset(g_operater,0,6);
-	  			   	g_operater[5] =  0x10;
+	  			   	g_operater[0] =  0x10;
 				   	time_protect = 0;
+					if (duima_key) {
+						duima_key=0;
+						g_operate_platform = 0xfc;
+						g_operater[5] = 0x01;
+					}
+					else
+						g_operate_platform = 0xfd;
 					Wtn6_Play(VOICE_BUFANG,ONCE);
-					 	} else {
+					} else {
 					command_type = 0;
 					memset(g_operater,0,6);
-					g_operater[5] =  0x10+fangqu_wireless[g_index_sub].index;
+					g_operater[0] =  0x10+fangqu_wireless[g_index_sub].index;
 					g_operate_platform = 0xff;
 					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 					Wtn6_JoinPlay(voice,2,1);
@@ -196,7 +203,7 @@ void info_user(void *param)
 				   if (time_protect) {
 				   		g_operate_platform = 0xfd;
 				  	 memset(g_operater,0,6);
-	  			   	g_operater[5] =  0x10;
+	  			   	g_operater[0] =  0x10;
 				   	time_protect = 0;
 				   	upload_server(CMD_SUB_EVENT);
 				   }
@@ -221,18 +228,26 @@ void info_user(void *param)
 			g_delay_out = fqp.delya_out;
 			g_alarm_voice = fqp.alarm_voice_time;
 			g_yanshi = 1;
+			g_sub_event_code = 0x2002;
 			if (g_remote_protect != 1)
 				{	
 					
 					if (time_protect) {
-						g_operate_platform = 0xfd;
+						
 				  	 memset(g_operater,0,6);
-	  			   	g_operater[5] =  0x10;
-				   	time_protect = 0;
+	  			   	g_operater[0] =  0x10;
+					if (duima_key) {
+						duima_key=0;
+						g_operate_platform = 0xfc;
+						g_operater[5] = 0x01;
+					}
+					else
+						g_operate_platform = 0xfd;
+				   	//time_protect = 0;
 					} else {
 					command_type = 0;
 					memset(g_operater,0,6);
-					g_operater[5] =  0x10+fangqu_wireless[g_index_sub].index;
+					g_operater[0] =  0x10+fangqu_wireless[g_index_sub].index;
 					g_operate_platform = 0xff;
 					}
 					//rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
@@ -244,8 +259,8 @@ void info_user(void *param)
 				   if (time_protect) {
 				   		g_operate_platform = 0xfd;
 				  	 memset(g_operater,0,6);
-	  			   	g_operater[5] =  0x10;
-				   	time_protect = 0;
+	  			   	g_operater[0] =  0x10;
+				   	//time_protect = 0;
 				   	upload_server(CMD_SUB_EVENT);
 				   }
 				}
@@ -279,14 +294,20 @@ void info_user(void *param)
 			{	
 				if (time_protect) {
 						memset(g_operater,0,6);
-					g_operater[5] = 0x10;
-					g_operate_platform = 0xfd;
+					g_operater[0] = 0x10;
+					if (duima_key) {
+						duima_key=0;
+						g_operate_platform = 0xfc;
+						g_operater[5] = 0x01;
+					}
+					else
+						g_operate_platform = 0xfd;
 					time_protect = 0;
 					Wtn6_Play(VOICE_CHEFANG,ONCE);
 					}else{
 				command_type = 0;
 				memset(g_operater,0,6);
-				g_operater[5] = 0x10+fangqu_wireless[g_index_sub].index;
+				g_operater[0] = 0x10+fangqu_wireless[g_index_sub].index;
 				g_operate_platform = 0xff;
 				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
 				Wtn6_JoinPlay(voice,2,1);
@@ -297,7 +318,7 @@ void info_user(void *param)
 				Wtn6_JoinPlay(voice,2,1);
 				if (time_protect) {
 					memset(g_operater,0,6);
-					g_operater[5] = 0x10;
+					g_operater[0] = 0x10;
 					g_operate_platform = 0xfd;
 					time_protect = 0;
 					upload_server(CMD_SUB_EVENT);
@@ -311,7 +332,8 @@ void info_user(void *param)
 				continue;
 			g_alarm_reason = 0x1001;
 			alarm_led =1;
-			SetStateIco(2,1);
+			//SetStateIco(2,1);
+			
 			rt_hw_led_on(ALARM_LED);
 			rt_kprintf("cur status %d , is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d, voiceType %d\r\n",
 				cur_status,fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice_time,fangqu_wireless[g_index_sub].voiceType);
@@ -697,7 +719,8 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 	rt_uint8_t water_no = data[0];
 	rt_uint16_t packet_type = (data[1]<<8)|data[2];
 	rt_uint16_t protocl_v = (data[3]<<8)|data[4];
-	rt_uint8_t stm32_id[6];
+	rt_uint8_t stm32_id[6];	
+	net_flow();
 	memcpy(stm32_id, data+5,6);
 	rt_time_t cur_time = time(RT_NULL);
 	rt_kprintf("recv server ok ========> %s\r\n",ctime(&cur_time));

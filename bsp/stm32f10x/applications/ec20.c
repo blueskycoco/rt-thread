@@ -976,6 +976,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					g_ec20_state = EC20_STATE_DATA_WRITE;
 					//for (int ii=0;ii<send_size_ec20;ii++)
 					//	rt_kprintf("sending %02x\r\n", ((rt_uint8_t *)send_data_ptr_ec20)[ii]);
+					
 					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_ec20, send_size_ec20);
 					rt_free(send_data_ptr_ec20);
 				}

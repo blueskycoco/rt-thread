@@ -6,6 +6,7 @@
 #include "stm32f10x.h"
 #include "bsp_misc.h"
 #include "prop.h"
+#include "lcd.h"
 extern rt_uint8_t g_main_state;
 extern rt_uint32_t g_server_addr_bak;
 extern rt_uint32_t g_server_port_bak;
@@ -453,4 +454,27 @@ rt_uint8_t con_rssi(rt_uint8_t cc_rssi)
 	  rssi = 100+(cc_rssi>>1) - 72;
 	}
 	return rssi;
+}
+void net_flow(void)
+{
+	int i;
+	for (i=0; i<2; i++) {
+	SetStateIco(8,ICO_ON);
+	SetStateIco(9,ICO_OFF);
+	rt_thread_delay(40);
+	SetStateIco(8,ICO_OFF);
+	SetStateIco(9,ICO_ON);
+	rt_thread_delay(40);
+	}
+}
+void alarm_flow(void)
+{
+	static int flag = 0;
+	if (flag) {
+		SetStateIco(2,ICO_ON);
+		flag = 0;
+	} else {
+		SetStateIco(2,ICO_OFF);
+		flag = 1;
+	}
 }

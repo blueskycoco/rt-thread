@@ -38,10 +38,13 @@ void button_init(void)
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
 	NVIC_Init(&NVIC_InitStructure);
 
-	EXTI_InitStructure.EXTI_Line = EXTI_Line9|EXTI_Line3;
+	EXTI_InitStructure.EXTI_Line = EXTI_Line3;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+	EXTI_InitStructure.EXTI_Line = EXTI_Line9;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
 	EXTI_Init(&EXTI_InitStructure);
 	EXTI_ClearITPendingBit(EXTI_Line9);
 	EXTI_ClearITPendingBit(EXTI_Line3);

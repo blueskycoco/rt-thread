@@ -411,8 +411,13 @@ static void led_thread_entry(void* parameter)
 						//rt_thread_delay(300);
 						if (g_remote_protect != 1)
 					{	
+					if (!time_protect) {
 						rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 						Wtn6_JoinPlay(voice,2,1);
+						} else {
+						time_protect=0;
+						Wtn6_Play(VOICE_BUFANG,ONCE);
+					}
 					} else {
 						rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
 						Wtn6_JoinPlay(voice,2,1);
@@ -428,8 +433,13 @@ static void led_thread_entry(void* parameter)
 				rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 				if (g_remote_protect != 1)
 				{	
+					if (!time_protect) {
 					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 					Wtn6_JoinPlay(voice,2,1);
+					} else {
+						time_protect=0;
+						Wtn6_Play(VOICE_BUFANG,ONCE);
+					}
 				} else {
 					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
 					Wtn6_JoinPlay(voice,2,1);
@@ -439,6 +449,8 @@ static void led_thread_entry(void* parameter)
 			g_alarm_voice =0;	
 			}
 		}
+		if (alarm_led)
+			alarm_flow();
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 		//SetStateIco(count%7,0);
 		count++;
@@ -451,6 +463,7 @@ static void led_thread_entry(void* parameter)
 		rt_hw_led_on(0);
 		//buzzer_ctl(0);
 		if (alarm_led) {			
+			alarm_flow();
 			if (fqp.is_lamp != 0 && g_ac) {
 			for (int j=0;j<4;j++) {			
 					rt_hw_led_on(AUX_LED0);

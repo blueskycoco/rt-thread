@@ -26,6 +26,7 @@
 #include <board.h>
 #include <rtthread.h>
 #include "master.h"
+#include "prop.h"
 /** @addtogroup Template_Project
   * @{
   */
@@ -41,6 +42,15 @@
 /*            Cortex-M3 Processor Exceptions Handlers                         */
 /******************************************************************************/
 extern	struct rt_event g_info_event;
+extern rt_uint8_t 	cur_status;
+extern rt_uint16_t g_sub_event_code;
+extern rt_uint8_t g_delay_out;
+extern rt_uint8_t g_alarm_voice;
+extern rt_uint8_t g_alarmType;
+extern rt_uint8_t g_delay_in;
+extern rt_uint8_t s1;
+extern rt_uint8_t time_protect;
+rt_uint8_t duima_key=0;
 /**
   * @brief   This function handles NMI exception.
   * @param  None
@@ -168,13 +178,19 @@ void ldelay()
 void EXTI9_5_IRQHandler(void)
 {
 	rt_uint32_t i=0;
+	rt_uint8_t level = 0;
+	static rt_uint32_t s_cnt = 0;
+	static rt_uint32_t e_cnt = 0;
+	static rt_uint8_t short_press=0;
+	rt_uint32_t diff = 0;
 	//extern void cc1101_isr(void);
 	extern rt_uint8_t g_main_state;
 	/* enter interrupt */
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line9))
 	{	 
-		rt_kprintf("code button int\r\n");
+		//rt_kprintf("code button int\r\n");
+		#if 0
 		while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET)
 		{
 			i++;
@@ -196,6 +212,81 @@ void EXTI9_5_IRQHandler(void)
 			rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
 		}*/
 		rt_kprintf("i is %d, state %d\r\n", i,g_main_state);
+		#else
+		if (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET) {
+			while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET)
+			{
+				i++;
+				ldelay();
+				if (i>5) {
+					break;
+				}
+			}			
+		} else {
+			while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == SET)
+			{
+				i++;
+				ldelay();
+				if (i>5) {
+					break;
+				}
+			}
+		}
+		if (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET) {
+			s_cnt = rt_tick_get();
+			rt_kprintf("S button press %d\r\n",s_cnt - e_cnt);
+			if (s_cnt - e_cnt < 40)
+			{
+				short_press++;
+				if (short_press >= 2) {
+					short_press=0;
+					if (cur_status) {
+						if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
+						{
+							cur_status = 0;
+							g_alarmType =0;
+							g_delay_out = 0;
+							g_alarm_voice = 0;
+							g_delay_in = 0;
+							fqp.status=cur_status;
+							s1=0;
+							time_protect = 1;
+							duima_key=1;
+							rt_kprintf("switch protect off\r\n");
+							handle_protect_off();
+						}
+					} else {
+						if (!cur_status && g_delay_out==0)
+						{
+							rt_kprintf("switch protect on\r\n");
+							g_sub_event_code = 0x2002;
+							time_protect = 1;
+							duima_key=1;
+							handle_protect_on();
+						}
+					}
+				}
+			}
+			else
+				short_press=0;
+		} else {
+			e_cnt =rt_tick_get(); 
+			diff = e_cnt - s_cnt;
+			rt_kprintf("S button relese %d\r\n", diff);
+			if (diff > 1000) {
+				short_press=0;
+				rt_kprintf("factory reset");
+				rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
+			} else if (diff > 300) {
+				short_press=0;
+				rt_kprintf("coding or not");
+				if (g_main_state==0)
+				rt_event_send(&(g_info_event), INFO_EVENT_CODING);
+				else					
+				rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
+			}
+		}
+		#endif
 		EXTI_ClearITPendingBit(EXTI_Line9);
 	}
 	/* leave interrupt */

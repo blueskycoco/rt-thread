@@ -565,6 +565,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 	
 	if (flow_cnt == 255)
 		flow_cnt=0;
+	net_flow();
 	return ofs;
 }
 void send_process(void* parameter)
@@ -669,10 +670,10 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	}
 	if (type1) {
 		rt_device_set_rx_indicate(g_pcie[1]->dev, pcie1_rx_ind);
-		rt_thread_startup(rt_thread_create("3pcie1",pcie1_rcv, 0,1524, 20, 10));
+		rt_thread_startup(rt_thread_create("3pcie1",pcie1_rcv, 0,1524, 15, 10));
 		rt_thread_startup(rt_thread_create("4pcie1", pcie1_sm,  0,2048, 20, 10));
 	}
-	rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 20, 10));
+	rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 15, 10));
 	rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
 	return 1;
 }
