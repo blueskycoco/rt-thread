@@ -512,6 +512,8 @@ void rt_init_thread_entry(void* parameter)
 	/* initialization RT-Thread Components */
 	rt_components_init();
 #endif
+	g_mute=1;
+
 	rt_kprintf("==========================================\r\n\r\n");
 	rt_kprintf("\t\tUPGRADE Version\r\n");
 	rt_kprintf("\r\n==========================================\r\n\r\n");
@@ -733,6 +735,7 @@ void rt_init_thread_entry(void* parameter)
 	}	
 	
 	rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
+	g_mute=0;
 	while (1) {
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);
