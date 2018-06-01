@@ -942,7 +942,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_m26,&send_size_m26) == RT_EOK)
 					{	
 						rt_data_queue_pop(&g_data_queue[2], (const void **)&send_data_ptr_m26, &send_size_m26, RT_WAITING_FOREVER);
-						rt_kprintf("should send data %d\r\n", send_size_m26);
+						//rt_kprintf("should send data %d\r\n", send_size_m26);
 						rt_sprintf(qisend_m26, "AT+QISEND=%d\r\n", send_size_m26);
 						gprs_at_cmd(g_dev_m26,qisend_m26);
 						g_m26_state = M26_STATE_DATA_PRE_WRITE;

@@ -71,7 +71,7 @@ extern rt_uint8_t g_net_state;
 extern int g_index;
 rt_uint16_t g_bat = 0;
 rt_uint8_t g_ac=1;
-rt_uint8_t g_flag=0;
+rt_uint8_t g_flag=1;
 rt_uint8_t heart_time = 0;
 extern rt_uint8_t alarm_led;
 extern struct rt_semaphore alarm_sem;
@@ -607,8 +607,8 @@ void rt_init_thread_entry(void* parameter)
 		buzzer_ctl(BUZZER_ERROR);
 	}
 	Adc_Init();	
-	set_date(2018,3,26);
-	set_time(11,55,0);
+	//set_date(2018,3,26);
+	//set_time(11,55,0);
 	rt_time_t cur_time = time(RT_NULL);
 	rt_kprintf("Curr Time: %08x %d %s\r\n",cur_time, sizeof(cur_time),ctime(&cur_time));
 	rt_kprintf("Battery : %04x\r\n",ADC_Get_aveg());

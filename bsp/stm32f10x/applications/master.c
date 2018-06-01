@@ -221,6 +221,7 @@ void info_user(void *param)
 				   }
 				
 			}*/
+			g_flag = 1;
 			g_yanshi = 0;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
@@ -264,6 +265,7 @@ void info_user(void *param)
 				   	upload_server(CMD_SUB_EVENT);
 				   }
 				}
+				g_flag = 1;
 			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);			
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
@@ -454,8 +456,9 @@ void handle_login_ack(rt_uint8_t *cmd)
 }
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
+	rt_uint32_t ts = cmd[0]<<24|cmd[1]<<16|cmd[2]<<8|cmd[3]<<0;
 	rt_kprintf("ack_type \theart ack\r\n");
-	rt_kprintf("Server Time \t%08x\r\n",cmd[0]<<24|cmd[1]<<16|cmd[2]<<8|cmd[3]<<0);
+	rt_kprintf("Server Time \t%s",ctime(&ts));
 	adjust_time(cmd);
 	rt_kprintf("type \t\t%d\r\n",cmd[4]);
 	if (cmd[4] != 0) {

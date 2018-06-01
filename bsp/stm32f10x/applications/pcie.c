@@ -451,8 +451,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		need_read = 1;
 		rt_kprintf("event code\t%04x\r\n",g_main_event_code);
 		rt_kprintf("time\t\t%s\r\n",ctime(&cur_time));
-		rt_kprintf("platform\t\t%x\r\n",g_operate_platform);
-		rt_kprintf("operator\t\t%02x%02x%02x%02x%02x%02x\r\n",
+		rt_kprintf("platform\t%x\r\n",g_operate_platform);
+		rt_kprintf("operator\t%02x%02x%02x%02x%02x%02x\r\n",
 			cmd[22],cmd[23],cmd[24],cmd[25],cmd[26],cmd[27]);
 	} else if (type == CMD_SUB_EVENT) {
 		rt_kprintf("\r\n<CMD SUB EVENT Packet>\r\n");
@@ -582,17 +582,17 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[ofs++] = g_operate_platform;
 		memcpy(cmd+ofs,g_operater,6);
 		ofs += 6;
-		rt_kprintf("voice time\t\t%d\r\n",fqp.alarm_voice_time);
+		rt_kprintf("voice time\t%d\r\n",fqp.alarm_voice_time);
 		rt_kprintf("vol\t\t%d\r\n",fqp.audio_vol);
 		rt_kprintf("is_lamp\t\t%d\r\n",fqp.is_lamp);
 		rt_kprintf("pgm0,1\t\t%d\r\n",cmd[17]);
-		rt_kprintf("check ac\t\t%d\r\n",fqp.is_check_AC);
-		rt_kprintf("check dc\t\t%d\r\n",fqp.is_check_DC);
-		rt_kprintf("voice switch\t\t%d\r\n",fqp.is_alarm_voice);
+		rt_kprintf("check ac\t%d\r\n",fqp.is_check_AC);
+		rt_kprintf("check dc\t%d\r\n",fqp.is_check_DC);
+		rt_kprintf("voice switch\t%d\r\n",fqp.is_alarm_voice);
 		rt_kprintf("auto_bufang\t%04x\r\n",fqp.auto_bufang);
 		rt_kprintf("auto_chefang\t%04x\r\n",fqp.auto_chefang);
-		rt_kprintf("platform\t\t%x\r\n",g_operate_platform);		
-		rt_kprintf("operator\t\t%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
+		rt_kprintf("platform\t%x\r\n",g_operate_platform);		
+		rt_kprintf("operator\t%02x%02x%02x%02x%02x%02x\r\n",
 			g_operater[0],g_operater[1],g_operater[2],g_operater[3],
 			g_operater[4],g_operater[5]);
 	}
@@ -617,17 +617,17 @@ void send_process(void* parameter)
 	int send_len = 0;
 	
 	while(1)	{
-		rt_kprintf("wait for event\r\n");
+		//rt_kprintf("wait for event\r\n");
 		gprs_wait_event(RT_WAITING_FOREVER);
-		rt_kprintf("wait lock\r\n");
+		//rt_kprintf("wait lock\r\n");
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);		
 		cmd = (char *)rt_malloc(50);
 		if (cmd == RT_NULL)
 			rt_kprintf("build cmd failed\r\n");
-		rt_kprintf("begin send cmd, %d\r\n",g_net_state);
+		//rt_kprintf("begin send cmd, %d\r\n",g_net_state);
 		if (g_net_state == NET_STATE_INIT) {
 			SetStateIco(7,1);
-			rt_kprintf("send login\r\n");
+			//rt_kprintf("send login\r\n");
 			send_len = build_cmd(cmd,CMD_LOGIN);
 			g_net_state = NET_STATE_LOGIN;
 			heart_time = 0;
@@ -644,7 +644,7 @@ void send_process(void* parameter)
 			heart_time = 0;
 			rt_free(cmd);
 			rt_mutex_release(&(g_pcie[g_index]->lock));
-			rt_kprintf("unknown state ,ignore\r\n");
+			//rt_kprintf("unknown state ,ignore\r\n");
 			continue;
 		}
 		heart_time = 0;
@@ -662,11 +662,11 @@ void upload_server(rt_uint16_t cmdType)
 	cmd = (char *)rt_malloc(400);
 	if (cmd != RT_NULL) {
 	int send_len = build_cmd(cmd,cmdType);
-	rt_kprintf("send cmd %d to server\r\n",cmdType);
+	//rt_kprintf("send cmd %d to server\r\n",cmdType);
 	rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND);
 //	gprs_wait_event(RT_WAITING_FOREVER);	
 	rt_mutex_release(&(g_pcie[g_index]->lock));
-	rt_kprintf("send buf done\r\n");
+	//rt_kprintf("send buf done\r\n");
 	} else {
 		rt_kprintf("not enough mem\r\n");
 		rt_mutex_release(&(g_pcie[g_index]->lock));
