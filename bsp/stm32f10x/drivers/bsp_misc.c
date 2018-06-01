@@ -466,6 +466,8 @@ void net_flow(void)
 	SetStateIco(9,ICO_ON);
 	rt_thread_delay(40);
 	}
+	SetStateIco(8,ICO_OFF);
+	SetStateIco(9,ICO_OFF);
 }
 void alarm_flow(void)
 {

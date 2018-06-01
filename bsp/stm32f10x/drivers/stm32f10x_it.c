@@ -213,7 +213,7 @@ void EXTI9_5_IRQHandler(void)
 		}*/
 		rt_kprintf("i is %d, state %d\r\n", i,g_main_state);
 		#else
-		if (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET) {
+		/*if (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET) {
 			while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET)
 			{
 				i++;
@@ -231,7 +231,7 @@ void EXTI9_5_IRQHandler(void)
 					break;
 				}
 			}
-		}
+		}*/
 		if (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET) {
 			s_cnt = rt_tick_get();
 			rt_kprintf("S button press %d\r\n",s_cnt - e_cnt);
@@ -277,7 +277,7 @@ void EXTI9_5_IRQHandler(void)
 				short_press=0;
 				rt_kprintf("factory reset");
 				rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
-			} else if (diff > 300) {
+			} else if (diff > 50) {
 				short_press=0;
 				rt_kprintf("coding or not");
 				if (g_main_state==0)

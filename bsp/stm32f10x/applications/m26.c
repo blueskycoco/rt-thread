@@ -11,6 +11,7 @@
 #include "master.h"
 #include "prop.h"
 #include "lcd.h"
+#include <ctype.h>
 
 #define M26_EVENT_0 				(1<<0)
 #define M26_STATE_INIT				0
@@ -379,12 +380,23 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
+	#if 0
 	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL && 
 		!have_str(last_data_ptr,STR_CSQ))
-		//if (!have_str(last_data_ptr,STR_CONNECT))
-		//	rt_kprintf("\r\n(M26<= %d %d %d %s)\r\n",g_m26_state, data_size,rt_strlen(last_data_ptr), last_data_ptr);
-		//else
+		if (!have_str(last_data_ptr,STR_CONNECT))
+			rt_kprintf("\r\n(M26<= %d %d %d %s)\r\n",g_m26_state, data_size,rt_strlen(last_data_ptr), last_data_ptr);
+		else
 			rt_kprintf("\r\n(M26<= %d %d)\r\n",g_m26_state, data_size);
+	#else
+		if (!have_str(last_data_ptr,STR_CSQ)) {
+		rt_kprintf("\r\n<== (M26 %d %d)\r\n",g_m26_state, data_size);
+		for (i=0; i<data_size; i++)
+			if (isascii(tmp[i]))
+				rt_kprintf("%c", tmp[i]);
+			else
+				break;
+		}
+	#endif
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN))
 		{

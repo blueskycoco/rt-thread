@@ -517,13 +517,14 @@ void rt_init_thread_entry(void* parameter)
 	rt_kprintf("==========================================\r\n\r\n");
 	rt_kprintf("\t\tUPGRADE Version\r\n");
 	rt_kprintf("\r\n==========================================\r\n\r\n");
-	Wtn6_Init();
-	GPIO_Lcd_Init();
-	button_init();
-	//battery_init();
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_mutex_init(&(g_stm32_lock),	"stm32_lock",	RT_IPC_FLAG_FIFO);
+	Wtn6_Init();
+	GPIO_Lcd_Init();
+	//battery_init();
 	rt_thread_startup(rt_thread_create("7info",info_user, 0,4096, 20, 10));
+
+	button_init();
 
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)
@@ -592,7 +593,7 @@ void rt_init_thread_entry(void* parameter)
 		SetErrorCode(err_code);
 	}
 	rt_kprintf("cc1101 init done , err 0x%08x\r\n",err_code);
-	can_init();
+	//can_init();
 	if (!load_param()) {
 		rt_kprintf("load param failed\r\n");
 		dfs_mkfs("elm","sd0");

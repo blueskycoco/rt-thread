@@ -317,8 +317,9 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 	cmd[7]=(PROTL_V>>8) & 0xff;//v
 	cmd[8]=PROTL_V&0xff;
 	memcpy(cmd+9,mp.roProperty.sn,6);
+	rt_kprintf("\r\n******************************************************\r\n");
 	if (type == CMD_LOGIN) {
-		rt_kprintf("\r\n<CMD LOGIN Packet>\r\n");
+		rt_kprintf("req\t\tCMD LOGIN Packet\r\n");
 		cmd[5]=(CMD_LOGIN >> 8) & 0xff;//login
 		cmd[6]=CMD_LOGIN&0xff;		
 		cmd[15]=g_pcie[g_index]->csq;
@@ -331,13 +332,19 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		memcpy(cmd+22,g_pcie[g_index]->imei,8);
 		cmd[30] = 0;
 		ofs = 31;
-		rt_kprintf("login %d %d %d\r\n", g_index,g_type1,g_type0);
+		//rt_kprintf("login %d %d %d\r\n", g_index,g_type1,g_type0);
 		if ((g_index == 1 && g_type1 == PCIE_2_M26) ||
 			(g_index == 0 && g_type0 == PCIE_1_M26))
-			cmd[30] |= 0x20;
+		{	
+			cmd[30] |= 0x20; 
+			rt_kprintf("interface\tm26\r\n");
+		}
 		if ((g_index == 1 && g_type1 == PCIE_2_EC20) ||
 			(g_index == 0 && g_type0 == PCIE_1_EC20))
+		{
 			cmd[30] |= 0x10;
+			rt_kprintf("interface\tec20\r\n");
+		}
 		if (g_pcie[g_index]->lac_ci !=0 )
 		{
 			cmd[30] |= 0x08;
@@ -345,6 +352,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[ofs++] = (g_pcie[g_index]->lac_ci>>16)&0xff;
 			cmd[ofs++] = (g_pcie[g_index]->lac_ci>>8)&0xff;
 			cmd[ofs++] = (g_pcie[g_index]->lac_ci>>0)&0xff;
+			rt_kprintf("lac_ci\t\t%08x\r\n",g_pcie[g_index]->lac_ci);
 		}
 		if (rt_memcmp(g_pcie[g_index]->qccid,zero_array,10) !=0 &&
 			rt_memcmp(g_pcie[g_index]->qccid,mp.qccid,10) !=0 )
@@ -354,14 +362,17 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[30] |= 0x04;
 			memcpy(cmd+ofs,g_pcie[g_index]->qccid,10);
 			ofs+=10;
+			rt_kprintf("qccid\t\t%010x\r\n",g_pcie[g_index]->qccid);
 		}
 		if (cur_status)
 			cmd[ofs++] = 2;
 		else
 			cmd[ofs++] = 1;
 		need_read = 1;
+		rt_kprintf("csq\t\t%d\r\n",	cmd[15]);
+		rt_kprintf("imei\t\t%02x%02x%02x%02x%02x%02x%02x%02x\r\n",cmd[22],cmd[23],cmd[24],cmd[25],cmd[26],cmd[27],cmd[28],cmd[29]);
 	} else if(type == CMD_HEART) {			
-		rt_kprintf("\r\n<CMD HEART Packet>\r\n");
+		rt_kprintf("req\t\tCMD HEART Packet\r\n");
 		cmd[5]=(CMD_HEART >> 8) & 0xff;//heart
 		cmd[6]=CMD_HEART&0xff;		
 		if (cur_status)
@@ -377,19 +388,26 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[19] = mp.firmVersion >> 8;
 			cmd[20] = mp.firmVersion & 0xff;
 			heart_type = 1;
+			rt_kprintf("addr_type\tAPP %d\r\n",mp.firmVersion);
 		} else if (heart_type == 1) {
 			cmd[18] = 0x02;
 			cmd[19] = mp.socketAddressVersion >> 8;
 			cmd[20] = mp.socketAddressVersion & 0xff;
 			heart_type = 2;
+			rt_kprintf("addr_type\tSocketIP %d\r\n",mp.socketAddressVersion);
 		} else if (heart_type == 2) {
 			cmd[18] = 0x03;
 			cmd[19] = mp.updateAddressVersion >> 8;
 			cmd[20] = mp.updateAddressVersion & 0xff;
 			heart_type = 0;
+			rt_kprintf("addr_type\tUpgradeIP %d\r\n",mp.updateAddressVersion);
 		}
 		ofs = 21;
 		need_read = 1;
+		rt_kprintf("status\t\t%s\r\n", (cur_status==0)?"chefang":"bufang");
+		rt_kprintf("power\t\t%s\r\n", (g_ac==1)?"ext power":"battery");
+		rt_kprintf("csq\t\t%d\r\n", cmd[16]);
+		rt_kprintf("battery\t\t%d\r\n", cmd[17]);
 	}else if(type == CMD_EXIT) {
 		rt_kprintf("\r\n<CMD EXIT Packet>\r\n");
 		cmd[5]=(CMD_EXIT >> 8) & 0xff;//exit
@@ -397,7 +415,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[15] = g_exit_reason;
 		ofs= 16;
 	} else if(type == CMD_ALARM) {		
-		rt_kprintf("\r\n<CMD ALARM Packet>\r\n");
+		rt_kprintf("req\t\tCMD ALARM Packet\r\n");
 		cmd[5]=(CMD_ALARM >> 8) & 0xff;//alarm
 		cmd[6]=CMD_ALARM&0xff;		
 		cmd[15] = (g_alarm_reason >> 8) & 0xff;
@@ -412,8 +430,13 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[24] = con_rssi(r_signal);
 		ofs= 25;
 		need_read = 1;
+		rt_kprintf("alarm\t\t%02x%02x\r\n", cmd[15],cmd[16]);
+		rt_kprintf("time\t\t%s\r\n",ctime(&cur_time));
+		rt_kprintf("alarm fq\t\t%d\r\n", g_alarm_fq);
+		rt_kprintf("battery\t\t%d\r\n",battery);
+		rt_kprintf("signal\t\t%d\r\n",cmd[24]);
 	} else if (type == CMD_MAIN_EVENT) {
-		rt_kprintf("\r\n<CMD MAIN EVENT Packet>\r\n");
+		rt_kprintf("req\t\tCMD MAIN EVENT Packet\r\n");
 		cmd[5]=(CMD_MAIN_EVENT >> 8) & 0xff;//main event
 		cmd[6]=CMD_MAIN_EVENT&0xff;
 		cmd[15] = (g_main_event_code >> 8) & 0xff;
@@ -426,6 +449,11 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		memcpy(cmd+22,g_operater,6);
 		ofs = 28;
 		need_read = 1;
+		rt_kprintf("event code\t%04x\r\n",g_main_event_code);
+		rt_kprintf("time\t\t%s\r\n",ctime(&cur_time));
+		rt_kprintf("platform\t\t%x\r\n",g_operate_platform);
+		rt_kprintf("operator\t\t%02x%02x%02x%02x%02x%02x\r\n",
+			cmd[22],cmd[23],cmd[24],cmd[25],cmd[26],cmd[27]);
 	} else if (type == CMD_SUB_EVENT) {
 		rt_kprintf("\r\n<CMD SUB EVENT Packet>\r\n");
 		cmd[5]=(CMD_SUB_EVENT >> 8) & 0xff;//main event
@@ -461,14 +489,15 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			}
 		need_read = 1;
 	} else if (type == CMD_ASK_ADDR) {
-		rt_kprintf("\r\n<CMD ASK ADDR Packet>\r\n");
+		rt_kprintf("req\t\tCMD ASK ADDR Packet\r\n");
 		cmd[5] = (CMD_ASK_ADDR >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_ASK_ADDR&0xff;
 		cmd[15]= g_addr_type;
 		ofs = 16;
 		need_read = 1;
+		rt_kprintf("addr type\t\t%d\r\n",g_addr_type);
 	} else if (type == CMD_ASK_SUB_ACK) {
-		rt_kprintf("\r\n<CMD ASK SUB ADDR Packet>\r\n");
+		rt_kprintf("req\t\tCMD ASK SUB ADDR Packet\r\n");
 		cmd[5] = (CMD_ASK_SUB_ACK >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_ASK_SUB_ACK&0xff;
 		cmd[15]= fqp.delya_out;
@@ -528,7 +557,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		memcpy(cmd+ofs,g_operater,6);
 		ofs += 6;
 	} else if (type == CMD_ASK_MAIN_ACK) {	
-		rt_kprintf("\r\n<CMD ASK MAIN ADDR Packet>\r\n");
+		rt_kprintf("req\t\tCMD ASK MAIN ADDR Packet\r\n");
 		cmd[5] = (CMD_ASK_MAIN_ACK >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_ASK_MAIN_ACK&0xff;
 		cmd[15]= (fqp.alarm_voice_time<<4)|(fqp.audio_vol&0x0f);
@@ -553,19 +582,33 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[ofs++] = g_operate_platform;
 		memcpy(cmd+ofs,g_operater,6);
 		ofs += 6;
+		rt_kprintf("voice time\t\t%d\r\n",fqp.alarm_voice_time);
+		rt_kprintf("vol\t\t%d\r\n",fqp.audio_vol);
+		rt_kprintf("is_lamp\t\t%d\r\n",fqp.is_lamp);
+		rt_kprintf("pgm0,1\t\t%d\r\n",cmd[17]);
+		rt_kprintf("check ac\t\t%d\r\n",fqp.is_check_AC);
+		rt_kprintf("check dc\t\t%d\r\n",fqp.is_check_DC);
+		rt_kprintf("voice switch\t\t%d\r\n",fqp.is_alarm_voice);
+		rt_kprintf("auto_bufang\t%04x\r\n",fqp.auto_bufang);
+		rt_kprintf("auto_chefang\t%04x\r\n",fqp.auto_chefang);
+		rt_kprintf("platform\t\t%x\r\n",g_operate_platform);		
+		rt_kprintf("operator\t\t%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
+			g_operater[0],g_operater[1],g_operater[2],g_operater[3],
+			g_operater[4],g_operater[5]);
 	}
-	rt_kprintf("ofs is %d\r\n", ofs);
+	//rt_kprintf("ofs is %d\r\n", ofs);
 	cmd[3]=ofs+2;
 	rt_uint16_t crc = CRC_check(cmd+2,ofs-2);
-	rt_kprintf("crc is %x\r\n",crc);
+	//rt_kprintf("crc is %x\r\n",crc);
 	cmd[ofs++]=(crc>>8)&0xff;
 	cmd[ofs++]=crc&0xff;
 	for(i=0;i<ofs;i++)
-		rt_kprintf("cmd[%02d] = 0x%02x\r\n",i,cmd[i]);
+		rt_kprintf("%02x ",cmd[i]);
 	
 	if (flow_cnt == 255)
 		flow_cnt=0;
 	net_flow();
+	rt_kprintf("\r\n******************************************************\r\n");
 	return ofs;
 }
 void send_process(void* parameter)
