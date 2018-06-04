@@ -164,7 +164,7 @@ extern uint8_t			qiftp_close_file[32];
 extern rt_uint8_t ftp_rty;
 rt_uint16_t g_app_v=0;
 extern struct rt_event g_info_event;
-
+rt_uint32_t bak_server_len_m26 = 0;
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -264,7 +264,11 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 				rt_kprintf("server len %d\r\n", server_len_m26);
 				server_buf_m26 = (uint8_t *)rt_malloc(server_len_m26 * sizeof(uint8_t));
 				if (server_buf_m26 == RT_NULL)
+				{
+					g_m26_state = M26_STATE_DATA_PROCESSING;
+						gprs_at_cmd(g_dev_m26,at_csq);
 					rt_kprintf("malloc buf 26 failed\r\n");
+				}
 				rt_memset(server_buf_m26,0,server_len_m26);
 				//server_len_ec20 = 0;
 				i+=2;
@@ -272,6 +276,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 					rt_memcpy(server_buf_m26,pos+i,server_len_m26);
 				else
 				{
+					bak_server_len_m26 = server_len_m26;
 					server_len_m26 = i+server_len_m26-len;
 					rt_memcpy(server_buf_m26,pos+i,server_len_m26);
 				}
@@ -297,7 +302,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 					flag = RT_FALSE;
 				}
 				else {
-					rt_kprintf("waiting for second part\r\n");
+					rt_kprintf("waiting for second part %d\r\n",server_len_m26);
 					flag = RT_TRUE;
 				}
 		#endif
@@ -305,13 +310,16 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 	else if (flag){	
 		int i=0;
 		uint8_t *pos = (uint8_t *)last_data_ptr;
-		while(i<strlen(pos) && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
+		while(i<len && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
 		{
 			server_buf_m26[server_len_m26++] = pos[i++];
+			if (server_len_m26 == bak_server_len_m26)
+				break;
 		}
 
-		if (strstr(pos, "OK")!=RT_NULL)
+		if (match_bin((rt_uint8_t *)pos, len,"OK",2)!=-1)
 		{
+			rt_kprintf("got the second parts %d\r\n",server_len_m26);
 			rt_data_queue_push(&g_data_queue[3], server_buf_m26, server_len_m26, RT_WAITING_FOREVER);
 			if (server_len_m26 == 1500) {
 				g_m26_state = M26_STATE_CHECK_QISTAT;
