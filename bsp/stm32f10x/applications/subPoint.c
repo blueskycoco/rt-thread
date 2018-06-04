@@ -133,7 +133,7 @@ void delete_fq(rt_uint8_t index, rt_uint8_t type)
 			memset(&(fangqu_wireless[index-2]),0,sizeof(struct FangQu));
 	} else {
 		if (index > 50 && index < 80)
-			memset(&(fangqu_wire[index-WIRELESS_MAX-1]),0,sizeof(struct FangQu));
+			memset(&(fangqu_wire[index-WIRELESS_MAX]),0,sizeof(struct FangQu));
 	}
 }
 void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
@@ -187,7 +187,7 @@ void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
 		}
 	} else {
 		if (index >= 50 && index < 80)
-			edit_fq_detail(fangqu_wire,index-WIRELESS_MAX-1,param0,param1);
+			edit_fq_detail(fangqu_wire,index-WIRELESS_MAX,param0,param1);
 	}
 }
 void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)

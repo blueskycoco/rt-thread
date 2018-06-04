@@ -154,7 +154,8 @@ void info_user(void *param)
 			SetStateIco(1,0);
 			SetStateIco(0,1);
 			rt_hw_led_on(ARM_LED);
-			cur_status = 1;						
+			cur_status = 1;				
+			g_flag = 1;		
 			//Wtn6_Play(VOICE_BUFANG,ONCE);
 			rt_kprintf("bufang ok\r\n");
 			handle_led(TYPE_PROTECT_ON);
@@ -225,7 +226,6 @@ void info_user(void *param)
 				   }
 				
 			}*/
-			g_flag = 1;
 			g_yanshi = 0;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
@@ -233,6 +233,7 @@ void info_user(void *param)
 			g_delay_out = fqp.delya_out;
 			g_alarm_voice = fqp.alarm_voice_time;
 			g_yanshi = 1;
+			g_flag = 1;
 			g_sub_event_code = 0x2002;
 			if (g_remote_protect != 1)
 				{	
@@ -269,7 +270,6 @@ void info_user(void *param)
 				   	upload_server(CMD_SUB_EVENT);
 				   }
 				}
-				g_flag = 1;
 			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);			
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
