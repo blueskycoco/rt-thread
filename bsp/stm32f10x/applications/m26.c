@@ -261,7 +261,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 					i++;
 				}
 				//server_len_ec20 = get_len(pos+i,len-i);
-				//rt_kprintf("server len %d\r\n", server_len_m26);
+				rt_kprintf("server len %d\r\n", server_len_m26);
 				server_buf_m26 = (uint8_t *)rt_malloc(server_len_m26 * sizeof(uint8_t));
 				if (server_buf_m26 == RT_NULL)
 					rt_kprintf("malloc buf 26 failed\r\n");
@@ -296,8 +296,10 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 	
 					flag = RT_FALSE;
 				}
-				else
+				else {
+					rt_kprintf("waiting for second part\r\n");
 					flag = RT_TRUE;
+				}
 		#endif
 	}
 	else if (flag){	
