@@ -514,9 +514,9 @@ void rt_init_thread_entry(void* parameter)
 #endif
 	g_mute=1;
 
-	rt_kprintf("==========================================\r\n\r\n");
-	rt_kprintf("\t\tUPGRADE Version\r\n");
-	rt_kprintf("\r\n==========================================\r\n\r\n");
+	//rt_kprintf("==========================================\r\n\r\n");
+	//rt_kprintf("\t\tUPGRADE Version\r\n");
+	//rt_kprintf("\r\n==========================================\r\n\r\n");
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_mutex_init(&(g_stm32_lock),	"stm32_lock",	RT_IPC_FLAG_FIFO);
 	Wtn6_Init();

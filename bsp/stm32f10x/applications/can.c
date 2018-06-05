@@ -327,7 +327,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
 					rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
 					rt_kprintf("addr\t\t%x\r\n", resp[2]);
-					rt_kprintf("status\t\t%d\r\n", cmd[3]);
+					rt_kprintf("status\t\t%s\r\n", (cmd[3]==0)?"che fang":"bu fang");
 					rt_kprintf("alarm\t\t%s\r\n", cmd_sub_type(resp[3]));
                     can_send(resp[2],cmd,8);
 					handle_wire_alarm(addr);
