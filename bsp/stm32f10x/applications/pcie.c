@@ -431,8 +431,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		ofs= 25;
 		need_read = 1;
 		rt_kprintf("alarm\t\t%02x%02x\r\n", cmd[15],cmd[16]);
-		rt_kprintf("time\t\t%s\r\n",ctime(&cur_time));
-		rt_kprintf("alarm fq\t\t%d\r\n", g_alarm_fq);
+		rt_kprintf("time\t\t%s",ctime(&cur_time));
+		rt_kprintf("alarm fq\t%d\r\n", g_alarm_fq);
 		rt_kprintf("battery\t\t%d\r\n",battery);
 		rt_kprintf("signal\t\t%d\r\n",cmd[24]);
 	} else if (type == CMD_MAIN_EVENT) {

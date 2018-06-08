@@ -157,6 +157,7 @@ rt_uint8_t g_module_type = 0;
 extern rt_uint16_t g_app_v;
 extern struct rt_event g_info_event;
 rt_uint8_t need_read = 0;
+rt_uint32_t bak_server_len_ec20=0;
 void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 {
 		static rt_bool_t flag = RT_FALSE;
@@ -230,6 +231,8 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 					rt_memcpy(server_buf_ec20,pos+i,server_len_ec20);
 				else
 				{
+					
+					bak_server_len_ec20 = server_len_ec20;
 					server_len_ec20 = i+server_len_ec20-len;
 					rt_memcpy(server_buf_ec20,pos+i,server_len_ec20);
 				}
@@ -267,6 +270,8 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 			while(i<len && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
 			{
 				server_buf_ec20[server_len_ec20++] = pos[i++];
+				if (server_len_ec20 == bak_server_len_ec20)
+					break;
 			}
 	
 			if (match_bin((rt_uint8_t *)pos, len,"OK",2)!=-1)

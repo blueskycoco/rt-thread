@@ -39,6 +39,9 @@ extern rt_uint16_t g_alarm_reason;
 extern rt_uint16_t g_sub_event_code;
 rt_uint8_t r_signal = 0x00;
 extern rt_uint8_t g_remote_protect;
+extern rt_uint8_t g_fq_index;
+extern rt_uint8_t  	g_operationType;
+extern rt_uint8_t  	g_voiceType;
 
 char *cmd_type(rt_uint16_t type)
 {
@@ -130,18 +133,27 @@ void delete_fq(rt_uint8_t index, rt_uint8_t type)
 			memset(&(fangqu_wireless[index-2]),0,sizeof(struct FangQu));
 	} else {
 		if (index > 50 && index < 80)
-			memset(&(fangqu_wire[index-WIRELESS_MAX-1]),0,sizeof(struct FangQu));
+			memset(&(fangqu_wire[index-WIRELESS_MAX]),0,sizeof(struct FangQu));
 	}
 }
 void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
 {
 	//if (list[index].index !=0) {
 		if ((param0 & 0x20) == 0x20)
+		{	
 			list[index].operationType = TYPE_24;
+			list[index].status = TYPE_PROTECT_ON;
+		}
 		else if ((param0 & 0x10) == 0x10)
+		{
 			list[index].operationType = TYPE_DELAY;
+			list[index].status = cur_status+1;
+		}
 		else
+		{
 			list[index].operationType = TYPE_NOW;
+			list[index].status = cur_status+1;
+		}
 		list[index].alarmType = param0 & 0x0f;
 		rt_kprintf("param %x %x %x\r\n",index,param0,param1);
 		if ((param1 & 0x80))
@@ -175,7 +187,7 @@ void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
 		}
 	} else {
 		if (index >= 50 && index < 80)
-			edit_fq_detail(fangqu_wire,index-WIRELESS_MAX-1,param0,param1);
+			edit_fq_detail(fangqu_wire,index-WIRELESS_MAX,param0,param1);
 	}
 }
 void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
@@ -484,11 +496,19 @@ void handle_alarm()
 		/*emergency alarm*/
 		if (sub_cmd_type == 2)
 			s1=1;				//protect switch		
+			
+			g_fq_index = fangqu_wireless[g_index_sub].index;
+			g_operationType = fangqu_wireless[g_index_sub].operationType;
+			g_voiceType = fangqu_wireless[g_index_sub].voiceType;
 		rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);				
 	} else {
 		/*normal alarm*/
-		if (cur_status && !fangqu_wireless[g_index_sub].isBypass) {				
+		if (cur_status && !fangqu_wireless[g_index_sub].isBypass) {	
+			
+			g_fq_index = fangqu_wireless[g_index_sub].index;
+			g_operationType = fangqu_wireless[g_index_sub].operationType;
+			g_voiceType = fangqu_wireless[g_index_sub].voiceType;
 			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);										
 		}

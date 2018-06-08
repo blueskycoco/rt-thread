@@ -480,3 +480,11 @@ void alarm_flow(void)
 		flag = 1;
 	}
 }
+void show_memory_info(void)
+{
+	rt_uint32_t total,used,maxused;
+	rt_memory_info(total,used,maxused);
+    rt_kprintf("total memory: %d\n", total);
+    rt_kprintf("used memory : %d\n", used);
+    rt_kprintf("maximum allocated memory: %d\n", maxused);
+}

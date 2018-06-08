@@ -107,13 +107,15 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 			rt_kprintf("voiceType \t%d\r\n",v2[i].voiceType);
 			rt_kprintf("alarmType \t%d\r\n",v2[i].alarmType);
 			rt_kprintf("isBypass \t%d\r\n",v2[i].isBypass);			
-			rt_kprintf("isStay \t%d\r\n",v2[i].isStay);
-			rt_kprintf("status \t%d\r\n",v2[i].status);
+			rt_kprintf("isStay \t\t%d\r\n",v2[i].isStay);
+			rt_kprintf("status \t\t%d\r\n",v2[i].status);
 			rt_kprintf("slave_delay \t%d\r\n",v2[i].slave_delay);
 			rt_kprintf("slave_type \t%x\r\n",v2[i].slave_type);
 			rt_kprintf("slave_model \t%x\r\n",v2[i].slave_model);
 			rt_kprintf("slave_batch \t%x\r\n",v2[i].slave_batch);
 			rt_kprintf("slave_sn \t%08x\r\n",v2[i].slave_sn);
+			if (v2[i].alarmType == TYPE_24)
+				v2[i].status = TYPE_PROTECT_ON;
 		}
 	}
 
@@ -128,13 +130,15 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 			rt_kprintf("voiceType \t%d\r\n",v3[i].voiceType);
 			rt_kprintf("alarmType \t%d\r\n",v3[i].alarmType);
 			rt_kprintf("isBypass \t%d\r\n",v3[i].isBypass);			
-			rt_kprintf("isStay \t%d\r\n",v3[i].isStay);
-			rt_kprintf("status \t%d\r\n",v3[i].status);
+			rt_kprintf("isStay \t\t%d\r\n",v3[i].isStay);
+			rt_kprintf("status \t\t%d\r\n",v3[i].status);
 			rt_kprintf("slave_delay \t%d\r\n",v3[i].slave_delay);
 			rt_kprintf("slave_type \t%x\r\n",v3[i].slave_type);
 			rt_kprintf("slave_model \t%x\r\n",v3[i].slave_model);
 			rt_kprintf("slave_batch \t%x\r\n",v3[i].slave_batch);
-			rt_kprintf("slave_sn \t%08x\r\n",v3[i].slave_sn);
+			rt_kprintf("slave_sn \t%08x\r\n",v3[i].slave_sn);			
+			if (v3[i].alarmType == TYPE_24)
+				v3[i].status = TYPE_PROTECT_ON;
 		}
 	}
 }

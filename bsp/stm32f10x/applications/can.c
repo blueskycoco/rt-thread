@@ -25,6 +25,13 @@ uint16_t 							local_addr = 0x02;
 #define GPIO_Remapping_CAN	   		GPIO_Remap1_CAN1
 #define GPIO_Pin_CAN_RX 	   		GPIO_Pin_11
 #define GPIO_Pin_CAN_TX 	   		GPIO_Pin_12
+extern rt_uint8_t g_alarmType;
+extern rt_uint8_t 	cur_status;
+extern rt_uint8_t 	s1;
+extern rt_uint8_t g_fq_index;
+extern rt_uint8_t  	g_operationType;
+extern rt_uint8_t  	g_voiceType;
+
 int poll_can()
 {
 	int i=0;
@@ -209,6 +216,33 @@ char *can_cmd_type(rt_uint16_t cmdtype)
 	}
 	return "unknown";
 }
+void handle_wire_alarm(rt_uint8_t addr)
+{
+	g_num = addr+WIRELESS_MAX;
+	g_alarmType = fangqu_wire[addr].alarmType;
+	rt_kprintf("proc wire alarm %d %d\r\n",fangqu_wire[addr].operationType,
+		cur_status);
+	if (fangqu_wire[addr].operationType==2 /*24 hour*/
+		) {
+		g_fq_index = fangqu_wire[addr].index;
+		g_operationType = fangqu_wire[addr].operationType;
+		g_voiceType = fangqu_wire[addr].voiceType;
+		rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);				
+		rt_kprintf("wire emergency alarm\r\n");
+	} else {
+		/*normal alarm*/
+		if (cur_status && !fangqu_wire[addr].isBypass) {					
+			g_fq_index = fangqu_wire[addr].index;
+			g_operationType = fangqu_wire[addr].operationType;
+			g_voiceType = fangqu_wire[addr].voiceType;
+			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);										
+			rt_kprintf("wire normal alarm\r\n");
+		}
+	}
+}
+
 void save_fq_wire(int addr, rt_uint8_t type, rt_uint32_t fact_time)
 {
 	if (fangqu_wire[addr].slave_batch == 0) {
@@ -270,8 +304,8 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 						return;
                     addr = resp[2] - WIRELESS_MAX;
 					if (g_main_state ==1)
-					save_fq_wire(addr, resp[3], (resp[4]<<24)|(resp[5]<<16)|(resp[6]<<8)|resp[7]);
-                    rt_kprintf("id\t\t%08x\r\naddr\t%x\r\nfact_time\t%x\r\ntype\t%x\r\n",
+						save_fq_wire(addr, resp[3], (resp[4]<<24)|(resp[5]<<16)|(resp[6]<<8)|resp[7]);
+                    rt_kprintf("id\t\t%08x\r\naddr\t\t%x\r\nfact_time\t%x\r\ntype\t\t%x\r\n",
                     	fangqu_wire[addr].slave_sn,resp[2],fangqu_wire[addr].slave_batch,resp[3]);
                     cmd[0] = 0x00;cmd[1]=0x03;
                     cmd[2] = 0;cmd[3] = fangqu_wire[addr].status-1;
@@ -293,9 +327,10 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
 					rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
 					rt_kprintf("addr\t\t%x\r\n", resp[2]);
-					rt_kprintf("status\t\t%d\r\n", cmd[3]);
+					rt_kprintf("status\t\t%s\r\n", (cmd[3]==0)?"che fang":"bu fang");
 					rt_kprintf("alarm\t\t%s\r\n", cmd_sub_type(resp[3]));
                     can_send(resp[2],cmd,8);
+					handle_wire_alarm(addr);
                 } else if (resp[0] == 0x00 && resp[1] == 0x10) {
                     //curr status
                     if (resp[2] < WIRELESS_MAX)
@@ -309,7 +344,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
 					rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
 					rt_kprintf("addr\t\t%x\r\n", resp[2]);
-					rt_kprintf("status\t\t%d\r\n", cmd[3]);
+					rt_kprintf("status\t\t%s\r\n", (cmd[3]==0)?"che fang":"bu fang");
                     can_send(resp[2],cmd,8);
                 }
 				rt_kprintf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$>\r\n");

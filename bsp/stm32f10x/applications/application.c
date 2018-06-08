@@ -514,9 +514,9 @@ void rt_init_thread_entry(void* parameter)
 #endif
 	g_mute=1;
 
-	rt_kprintf("==========================================\r\n\r\n");
-	rt_kprintf("\t\tUPGRADE Version\r\n");
-	rt_kprintf("\r\n==========================================\r\n\r\n");
+	//rt_kprintf("==========================================\r\n\r\n");
+	//rt_kprintf("\t\tUPGRADE Version\r\n");
+	//rt_kprintf("\r\n==========================================\r\n\r\n");
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_mutex_init(&(g_stm32_lock),	"stm32_lock",	RT_IPC_FLAG_FIFO);
 	Wtn6_Init();
@@ -593,7 +593,7 @@ void rt_init_thread_entry(void* parameter)
 		SetErrorCode(err_code);
 	}
 	rt_kprintf("cc1101 init done , err 0x%08x\r\n",err_code);
-	//can_init();
+	can_init();
 	if (!load_param()) {
 		rt_kprintf("load param failed\r\n");
 		dfs_mkfs("elm","sd0");
