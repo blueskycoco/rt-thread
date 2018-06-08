@@ -261,7 +261,12 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 					i++;
 				}
 				//server_len_ec20 = get_len(pos+i,len-i);
-				//rt_kprintf("server len %d\r\n", server_len_m26);
+				rt_kprintf("server len %d\r\n", server_len_m26);
+				if (len > server_len_m26) {
+					if ((len - server_len_m26) != 44)
+						rt_kprintf("cut-short message\r\n");
+				} else
+					rt_kprintf("short-cut message %d %d\r\n", len, server_len_m26);
 				server_buf_m26 = (uint8_t *)rt_malloc(server_len_m26 * sizeof(uint8_t));
 				if (server_buf_m26 == RT_NULL)
 					rt_kprintf("malloc buf 26 failed\r\n");
@@ -274,6 +279,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 				{
 					server_len_m26 = i+server_len_m26-len;
 					rt_memcpy(server_buf_m26,pos+i,server_len_m26);
+					rt_kprintf("copy1 %d byte\r\n",server_len_m26);
 				}
 				/*while(i<len && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
 				{
@@ -303,12 +309,12 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 	else if (flag){	
 		int i=0;
 		uint8_t *pos = (uint8_t *)last_data_ptr;
-		while(i<strlen(pos) && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
+		while(i<len && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
 		{
 			server_buf_m26[server_len_m26++] = pos[i++];
 		}
 
-		if (strstr(pos, "OK")!=RT_NULL)
+		if (match_bin((rt_uint8_t *)pos, len,"OK",2)!=-1)
 		{
 			rt_data_queue_push(&g_data_queue[3], server_buf_m26, server_len_m26, RT_WAITING_FOREVER);
 			if (server_len_m26 == 1500) {
