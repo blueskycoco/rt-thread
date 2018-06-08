@@ -219,6 +219,7 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 				server_buf_ec20 = (uint8_t *)rt_malloc(server_len_ec20 * sizeof(uint8_t));
 				if (server_buf_ec20 == RT_NULL)
 				{
+					show_memory_info();
 					rt_kprintf("malloc buf ec20 failed %d\r\n",server_len_ec20);
 					g_ec20_state = EC20_STATE_DATA_PROCESSING;
 					gprs_at_cmd(g_dev_ec20,at_csq);		
@@ -683,6 +684,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 							tmp_stm32_bin = (rt_uint8_t *)rt_malloc(1500*sizeof(rt_uint8_t));
 							if (tmp_stm32_bin == RT_NULL)
 							{
+								show_memory_info();
 								rt_kprintf("malloc tmp ec20 failed\r\n");
 							}
 							rt_memset(tmp_stm32_bin,0,1500);

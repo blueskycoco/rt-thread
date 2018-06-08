@@ -488,7 +488,7 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 	}
 	if (g_heart_cnt > 1)
 		g_heart_cnt--;
-	
+	show_memory_info();
 }
 void handle_t_common_ack(rt_uint8_t *cmd)
 {

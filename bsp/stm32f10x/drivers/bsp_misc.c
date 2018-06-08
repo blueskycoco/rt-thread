@@ -51,6 +51,7 @@ unsigned int CRC_check_file(unsigned char *file)
 	Data = (unsigned char *)rt_malloc(1024*sizeof(unsigned char));
 	if (Data == RT_NULL) {
 		rt_kprintf("CRC check file , malloc failed\r\n");
+		show_memory_info();
 		return 0;
 	}
 
@@ -98,7 +99,8 @@ void cat_file(unsigned char *file)
 	}
 	Data = (unsigned char *)rt_malloc(1024*sizeof(unsigned char));
 	if (Data == RT_NULL) {
-		rt_kprintf("CRC check file , malloc failed\r\n");
+		rt_kprintf("cat file , malloc failed\r\n");
+		show_memory_info();
 		return ;
 	}
 	rt_kprintf("%s \r\n",file);
@@ -483,8 +485,10 @@ void alarm_flow(void)
 void show_memory_info(void)
 {
 	rt_uint32_t total,used,maxused;
-	rt_memory_info(total,used,maxused);
+	rt_memory_info(&total,&used,&maxused);
+	rt_kprintf("++++++++++++++++++++++++++++++++++++++++++++++++\r\n");
     rt_kprintf("total memory: %d\n", total);
     rt_kprintf("used memory : %d\n", used);
-    rt_kprintf("maximum allocated memory: %d\n", maxused);
+    rt_kprintf("maximum allocated memory: %d\n", maxused);	
+	rt_kprintf("++++++++++++++++++++++++++++++++++++++++++++++++\r\n");
 }

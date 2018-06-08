@@ -693,7 +693,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_m26,qiftp_read_file);	
 						tmp_stm32_bin = (rt_uint8_t *)rt_malloc(1500*sizeof(rt_uint8_t));
 						if (tmp_stm32_bin == RT_NULL)
-							rt_kprintf("stm32 bin malloc failed\r\n");
+						{	rt_kprintf("stm32 bin malloc failed\r\n");
+						show_memory_info();}
 						rt_memset(tmp_stm32_bin,0,1500);
 						tmp_stm32_len=0;
 					}		
