@@ -423,7 +423,11 @@ void update_ip_list(rt_uint8_t *ip, rt_uint8_t len)
 	rt_uint8_t newip[25]={0};
 	rt_uint8_t *local_ip = (rt_uint8_t *)rt_malloc(len+1);
 	if (local_ip == RT_NULL)
+	{
 		rt_kprintf("malloc failed local ip\r\n");
+		show_memory_info();
+		return;
+	}
 	local_ip[len]='\0';
 	rt_memcpy(local_ip,ip,len);
 	for (i=MAX_IP_LIST-1; i>0; i--)

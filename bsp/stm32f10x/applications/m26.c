@@ -1025,7 +1025,6 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_BEGIN_WRITE)) {
 					g_m26_state = M26_STATE_DATA_WRITE;
 					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_m26, send_size_m26);	
-					rt_free(send_data_ptr_m26);
 				}
 				else if(have_str(last_data_ptr, STR_ERROR))
 				{
@@ -1034,7 +1033,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				if (have_str(last_data_ptr, STR_QIRDI)||have_str(last_data_ptr, STR_QIURC))
 					g_data_in_m26 = RT_TRUE;
-				
+				if (send_data_ptr_m26) {
+					rt_free(send_data_ptr_m26);
+					send_data_ptr_m26 = RT_NULL;
+				}
 				break;
 			case M26_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_SEND_OK)) {
