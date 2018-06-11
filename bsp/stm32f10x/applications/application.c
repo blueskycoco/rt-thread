@@ -412,17 +412,17 @@ static void led_thread_entry(void* parameter)
 						if (g_remote_protect != 1)
 					{	
 					if (!time_protect) {
-						rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
-						Wtn6_JoinPlay(voice,2,1);
+						//rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+						//Wtn6_JoinPlay(voice,2,1);
 						} else {
 						time_protect=0;
-						Wtn6_Play(VOICE_BUFANG,ONCE);
+						//Wtn6_Play(VOICE_BUFANG,ONCE);
 					}
 					} else {
-						rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
-						Wtn6_JoinPlay(voice,2,1);
+						//rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+						//Wtn6_JoinPlay(voice,2,1);
 					   }
-					rt_thread_delay(200);
+					//rt_thread_delay(200);
 						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 						}
 					g_delay_out -=1;
@@ -434,15 +434,15 @@ static void led_thread_entry(void* parameter)
 				if (g_remote_protect != 1)
 				{	
 					if (!time_protect) {
-					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
-					Wtn6_JoinPlay(voice,2,1);
+					//rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+					//Wtn6_JoinPlay(voice,2,1);
 					} else {
 						time_protect=0;
-						Wtn6_Play(VOICE_BUFANG,ONCE);
+						//Wtn6_Play(VOICE_BUFANG,ONCE);
 					}
 				} else {
-					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
-					Wtn6_JoinPlay(voice,2,1);
+					//rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+					//Wtn6_JoinPlay(voice,2,1);
 				   }
 				rt_thread_delay(200);
 			g_delay_out = 0;

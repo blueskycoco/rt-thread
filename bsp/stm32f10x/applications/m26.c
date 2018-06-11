@@ -274,6 +274,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 						gprs_at_cmd(g_dev_m26,at_csq);
 						show_memory_info();
 					rt_kprintf("malloc buf 26 failed %d\r\n",server_len_m26);
+					return ;
 				}
 				rt_memset(server_buf_m26,0,server_len_m26);
 				//server_len_ec20 = 0;

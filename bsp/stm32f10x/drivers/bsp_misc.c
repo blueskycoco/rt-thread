@@ -247,14 +247,16 @@ void show_signal(int csq)
 	int level = 0;
 	if (csq <= 2 || csq == 99) 
 		level = 0;	
-	else if (csq >= 12) 
+	else if (csq >= 25) 
 		level = 5;	
-	else if (csq >= 8)	
+	else if (csq >= 20)	
 		level = 4;	
-	else if (csq >= 5)	
+	else if (csq >= 13)	
 		level = 3;	
+	else if (csq >= 6)	
+		level = 2;	
 	else 
-		level = 2;
+		level = 1;
 	SetSignalIco(level);
 }
 void show_battery(int v)

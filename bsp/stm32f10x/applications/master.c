@@ -229,7 +229,6 @@ void info_user(void *param)
 			g_yanshi = 0;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
-			Wtn6_Play(VOICE_YANSHIBF,LOOP);
 			g_delay_out = fqp.delya_out;
 			g_alarm_voice = fqp.alarm_voice_time;
 			g_yanshi = 1;
@@ -250,26 +249,33 @@ void info_user(void *param)
 					else
 						g_operate_platform = 0xfd;
 				   	//time_protect = 0;
+				   	Wtn6_Play(VOICE_BUFANG,ONCE);
 					} else {
 					command_type = 0;
 					memset(g_operater,0,6);
 					g_operater[0] =  0x10+fangqu_wireless[g_index_sub].index;
 					g_operate_platform = 0xff;
+					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+					Wtn6_JoinPlay(voice,2,1);
 					}
-					//rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
-					//Wtn6_JoinPlay(voice,2,1);
 					upload_server(CMD_SUB_EVENT);
 				} else {
-					//rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
-					//Wtn6_JoinPlay(voice,2,1);			   
+					
 				   if (time_protect) {
+				   	Wtn6_Play(VOICE_BUFANG,ONCE);
 				   		g_operate_platform = 0xfd;
 				  	 memset(g_operater,0,6);
 	  			   	g_operater[0] =  0x10;
 				   	//time_protect = 0;
 				   	upload_server(CMD_SUB_EVENT);
-				   }
+				   } else
+				   	{
+				   	rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+					Wtn6_JoinPlay(voice,2,1);			   
+				   	}
 				}
+			rt_thread_delay(200);
+			Wtn6_Play(VOICE_YANSHIBF,LOOP);
 			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);			
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
@@ -647,6 +653,7 @@ void handle_proc_main(rt_uint8_t *cmd)
 void handle_proc_sub(rt_uint8_t *cmd)
 {
 	int ofs;
+	rt_uint8_t flag = 0;
 	rt_kprintf("cmd_type \tproc sub\r\n");
 	rt_kprintf("proc code \t%x\r\n", cmd[0]);
 	rt_kprintf("fq len \t\t%d\r\n", cmd[1]);
@@ -683,12 +690,18 @@ void handle_proc_sub(rt_uint8_t *cmd)
 					fqp.status=cur_status;
 					s1=0;
 					handle_protect_off();
+				} else {
+					flag=1;
+					Wtn6_Play(VOICE_ERRORTIP,ONCE);
 				}
 			} else if (cmd[0] == 0x02) {
 				if (!cur_status && g_delay_out==0)
 				{
 					g_sub_event_code = 0x2002;
 					handle_protect_on();
+				} else {
+					flag = 1;
+					Wtn6_Play(VOICE_ERRORTIP,ONCE);
 				}
 			}
 		} else {
@@ -716,7 +729,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		g_sub_event_code = 0x200D;
 	else if (cmd[0] == 6)
 		g_sub_event_code = 0x2005;
-	if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03))
+	if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
 	upload_server(CMD_SUB_EVENT);
 }
 

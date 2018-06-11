@@ -266,7 +266,7 @@ void *rt_malloc(rt_size_t size)
     if (size > mem_size_aligned)
     {
         RT_DEBUG_LOG(RT_DEBUG_MEM, ("no memory\n"));
-
+		rt_kprintf("<no memory %d %d>\r\n",size, mem_size_aligned);
         return RT_NULL;
     }
 
@@ -371,6 +371,7 @@ void *rt_malloc(rt_size_t size)
     }
 
     rt_sem_release(&heap_sem);
+	rt_kprintf("<no memory 2>\r\n");
 
     return RT_NULL;
 }
