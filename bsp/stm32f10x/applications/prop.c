@@ -317,7 +317,7 @@ int load_param()
 	fqp.alarm_voice_time=30;
 	fqp.is_alarm_voice =1;
 	fqp.is_lamp = 0x04;
-	mp.socketAddress[0].port = 1122;
+	//mp.socketAddress[0].port = 1122;
 	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	return 1;
 }
