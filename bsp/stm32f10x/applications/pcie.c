@@ -664,10 +664,13 @@ void send_process(void* parameter)
 void upload_server(rt_uint16_t cmdType)
 {
 	char *cmd = RT_NULL;
+	int len = 32;
 	//if (g_net_state != NET_STATE_LOGED)
 	//	return;
+	if (cmdType == CMD_ASK_SUB_ACK)
+		len = 400;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
-	cmd = (char *)rt_malloc(400);
+	cmd = (char *)rt_malloc(len);
 	if (cmd != RT_NULL) {
 	int send_len = build_cmd(cmd,cmdType);
 	//rt_kprintf("send cmd %d to server\r\n",cmdType);

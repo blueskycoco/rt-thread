@@ -190,11 +190,12 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 			if (cnt == 30) {
 				g_m26_state = M26_STATE_DATA_PROCESSING;
 				gprs_at_cmd(g_dev_m26,at_csq);
+				g_data_in_m26 = RT_FALSE;
 			} else {
 				gprs_at_cmd(g_dev_m26,qird);
+				g_data_in_m26 = RT_TRUE;
 			}
 			server_len_m26 = 0;
-			g_data_in_m26 = RT_TRUE;
 		//	}
 		return ;
 		}
