@@ -371,7 +371,7 @@ void *rt_malloc(rt_size_t size)
     }
 
     rt_sem_release(&heap_sem);
-	rt_kprintf("<no memory 2>\r\n");
+	rt_kprintf("*no memory* %d>\r\n",size);
 
     return RT_NULL;
 }

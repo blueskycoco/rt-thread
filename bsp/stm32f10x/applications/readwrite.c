@@ -9,6 +9,7 @@ int readwrite()
 	int fd;
 	int index, length;
 
+	rt_kprintf("begin test read/write.\n");
 
 	fd = open(TEST_FN, O_WRONLY | O_CREAT | O_TRUNC, 0);
 	if (fd < 0)

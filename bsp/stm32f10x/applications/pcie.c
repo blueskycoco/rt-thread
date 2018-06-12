@@ -76,7 +76,7 @@ static void pcie1_rcv(void* parameter)
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || strchr(buf,'>')!=RT_NULL) {
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
 			if (rcv == RT_NULL) {
-				rt_kprintf("no memory\r\n");
+				rt_kprintf("*no memory* %d\r\n",total_len);
 				show_memory_info();
 				while((rcv = (uint8_t *)rt_malloc(total_len+1)) == RT_NULL)
 					rt_thread_delay(10);
@@ -115,7 +115,7 @@ static void pcie0_rcv(void* parameter)
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
 			
 			if (rcv == RT_NULL) {
-				rt_kprintf("no memory\r\n");
+				rt_kprintf("*no memory* %d\r\n",total_len);
 				show_memory_info();
 				while((rcv = (uint8_t *)rt_malloc(total_len+1)) == RT_NULL)
 					rt_thread_delay(10);
@@ -619,7 +619,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 }
 void send_process(void* parameter)
 {
-	char *cmd = {0};
+	char *cmd = RT_NULL;
 	int send_len = 0;
 	
 	while(1)	{
@@ -663,7 +663,7 @@ void send_process(void* parameter)
 }
 void upload_server(rt_uint16_t cmdType)
 {
-	char *cmd = {0};
+	char *cmd = RT_NULL;
 	//if (g_net_state != NET_STATE_LOGED)
 	//	return;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
@@ -671,7 +671,11 @@ void upload_server(rt_uint16_t cmdType)
 	if (cmd != RT_NULL) {
 	int send_len = build_cmd(cmd,cmdType);
 	//rt_kprintf("send cmd %d to server\r\n",cmdType);
-	rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND);
+	if (RT_EOK != rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND))
+	{
+		rt_kprintf("pipe cmd failed %d,%d\r\n", cmdType,send_len);
+		rt_free(cmd);
+	}
 //	gprs_wait_event(RT_WAITING_FOREVER);	
 	rt_mutex_release(&(g_pcie[g_index]->lock));
 	//rt_kprintf("send buf done\r\n");
