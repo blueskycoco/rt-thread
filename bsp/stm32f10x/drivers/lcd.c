@@ -1,5 +1,8 @@
 #include "lcd.h"
+#include <rtdevice.h>
+
 //#include "delay.h"
+struct rt_mutex g_lcd_lock;
 
 //-------------------------------------内部方法-----------------------------------------
 static void HTB_SetNumberValue(u8 *num,u8 value);                      /*设置数码*/
@@ -48,6 +51,7 @@ void HtbLcdShow()
    */
 void SetErrorCode(u8 value)
 {
+  rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
   u8 height=value/10;
   u8 low=value%10;
   HTB_SetNumberValue(&htbRam.num_seg0_1,height);
@@ -63,6 +67,7 @@ void SetErrorCode(u8 value)
   HTB_Write_Address(2);
   HTB_Write_8bitData(htbRam.num_seg2_3);
   GPIO_Pin_Set(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&g_lcd_lock);
 }
 /**
    * @brief 设置电池
@@ -72,6 +77,8 @@ void SetErrorCode(u8 value)
    */
 void SetBatteryIco(u8 value)
 {
+	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
+
   u8 level=value%5;
   GPIO_Pin_ReSet(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
@@ -79,6 +86,7 @@ void SetBatteryIco(u8 value)
   HTB_SetBatteryIco((HTB_LEVEL)level);
   HTB_Write_H4bitData(htbRam.ico_seg4_5);
   GPIO_Pin_Set(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&g_lcd_lock);
 }
 
 /**
@@ -89,6 +97,8 @@ void SetBatteryIco(u8 value)
    */
 void SetSignalIco(u8 value)
 {
+	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
+
   u8 level=value%6;
   GPIO_Pin_ReSet(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
@@ -96,6 +106,7 @@ void SetSignalIco(u8 value)
   HTB_SetSignalIco((HTB_LEVEL)level);
   HTB_Write_8bitData(htbRam.ico_seg7_8);
   GPIO_Pin_Set(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&g_lcd_lock);
 }
 /**
    * @brief 设置网络制式 2G 、NB等图标
@@ -109,6 +120,8 @@ void SetSignalIco(u8 value)
    */
 void SetSimTypeIco(u8 value)
 {
+	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
+
   u8 level=value%5;
   GPIO_Pin_ReSet(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
@@ -136,6 +149,7 @@ void SetSimTypeIco(u8 value)
   HTB_SetSimTypeIco(sim);
   HTB_Write_L4bitData(htbRam.ico_seg69);
   GPIO_Pin_Set(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&g_lcd_lock);
 }
 /**
    * @brief 设置状态图标
@@ -154,6 +168,8 @@ void SetSimTypeIco(u8 value)
    */
 void SetStateIco(u8 value,HTB_ICO_STATE ico_state)
 {
+	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
+
   u8 level=value%10;
   HTB_ICO sim;
   switch(level)
@@ -222,6 +238,7 @@ void SetStateIco(u8 value,HTB_ICO_STATE ico_state)
       break;
   }
   GPIO_Pin_Set(LCD_GPIOE,LCD_PIN_CS);
+  rt_mutex_release(&g_lcd_lock);
 }
 
 void HTB_Lcd_Clr() 
@@ -475,6 +492,7 @@ void GPIO_Lcd_Init()
 	
   HTB_Lcd_Clr();
   HTB_Lcd_Init();
+  rt_mutex_init(&(g_lcd_lock),	"lcd_lock",	RT_IPC_FLAG_FIFO);
 }
 
 void HTB_Lcd_Init()

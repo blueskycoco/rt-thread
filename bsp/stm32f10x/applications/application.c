@@ -345,7 +345,7 @@ static void led_thread_entry(void* parameter)
 		/*pgm ctl*/
 		if (pgm0_cnt >0 || pgm1_cnt >0)
 		{
-			rt_kprintf("pgm3 %d,pgm4 %d\r\n",pgm0_cnt,pgm1_cnt);
+			//rt_kprintf("pgm3 %d,pgm4 %d\r\n",pgm0_cnt,pgm1_cnt);
 			if (pgm0_cnt>0) {
 				pgm0_cnt -=1;
 				if (pgm0_cnt == 1) {		
