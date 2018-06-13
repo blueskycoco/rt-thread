@@ -482,9 +482,11 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 				break;
 			case 0x02:			
 				rt_kprintf("new SokcetIP version: \t%d",v);
+				mp.socketAddressVersion = v;
 				break;
 			case 0x03:			
 				rt_kprintf("new UpdateIP version: \t%d",v);
+				mp.updateAddressVersion = v;
 				break;
 		}
 		if (cmd[4] == 2 || cmd[4] == 3) {

@@ -250,7 +250,7 @@ static void led_thread_entry(void* parameter)
 		//buzzer_ctl(1);
 		/*heart cnt*/
 		heart_time++;
-		if (heart_time == 60) {
+		if (heart_time == 6) {
 			if (g_net_state == NET_STATE_LOGED)
 				rt_event_send(&(g_pcie[g_index]->event), 1);
 			else if (g_net_state == NET_STATE_LOGIN) {

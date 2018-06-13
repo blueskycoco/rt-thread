@@ -56,7 +56,7 @@ static void pcie1_rcv(void* parameter)
 	uint8_t *buf = rt_malloc(1600);
 	if (buf == RT_NULL){
 		rt_kprintf("pcie 1 malloc failed\r\n");
-	show_memory_info();
+		show_memory_info();
 	}
 	while(1)	
 	{			
@@ -94,8 +94,8 @@ static void pcie0_rcv(void* parameter)
 	uint8_t *buf = rt_malloc(1600);
 	if (buf == RT_NULL) {
 		rt_kprintf("pcie 0 malloc failed\r\n");
-	show_memory_info();
-		}
+		show_memory_info();
+	}
 	while(1)	
 	{			
 		rt_sem_take(&(g_pcie[0]->sem), RT_WAITING_FOREVER);
@@ -113,9 +113,8 @@ static void pcie0_rcv(void* parameter)
 		//rt_kprintf("==>%s", buf);
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || strchr(buf,'>')!=RT_NULL) {
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
-			
 			if (rcv == RT_NULL) {
-				rt_kprintf("*no memory* %d\r\n",total_len);
+				rt_kprintf("*no memory* %d$\r\n",total_len);
 				show_memory_info();
 				while((rcv = (uint8_t *)rt_malloc(total_len+1)) == RT_NULL)
 					rt_thread_delay(10);
@@ -135,13 +134,13 @@ void pcie1_sm(void* parameter)
 	rt_size_t data_size;
 	const void *last_data_ptr = RT_NULL;
 	rt_kprintf("pcie1 sm %x\r\n", g_type1);
-	#ifdef M26_INIT
+#ifdef M26_INIT
 	rt_thread_delay(1000);
 	gprs_at_cmd(g_dev_m26,"AT+IPR=115200;&W\r\n");
 	rt_thread_delay(200);
 	gprs_at_cmd(g_dev_m26,"AT&W\r\n");
 	rt_thread_delay(200);
-	#endif
+#endif
 	while (1) 
 	{
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[1], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
@@ -249,7 +248,7 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 			cnt++;
 		}
 	}
-	
+
 }
 void server_proc(void* parameter)
 {	
@@ -259,7 +258,7 @@ void server_proc(void* parameter)
 	while (1) {
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[3], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
 		rt_kprintf("<<%d ",data_size);
-		#if 0
+#if 0
 		tmp_buf = (rt_uint8_t *)rt_malloc((data_size/2)*sizeof(rt_uint8_t));
 		for (int i=0; i<data_size;i=i+2)
 		{
@@ -275,7 +274,7 @@ void server_proc(void* parameter)
 			{
 				tmp_buf[i/2]=((char *)last_data_ptr)[i]-'0';
 			}
-			
+
 			if (((char *)last_data_ptr)[i+1] >= 'a' && ((char *)last_data_ptr)[i+1] <= 'z')
 			{
 				tmp_buf[i/2]=(tmp_buf[i/2] << 4)|(((char *)last_data_ptr)[i+1]-'a'+10);
@@ -293,12 +292,12 @@ void server_proc(void* parameter)
 		rt_kprintf(">>\r\n");
 		handle_server((rt_uint8_t *)tmp_buf,data_size/2);
 		rt_free(tmp_buf);
-		#else
+#else
 		for (int i=0;i<data_size;i++)
 			rt_kprintf("%02x ", ((char *)last_data_ptr)[i]);
 		rt_kprintf(">>\r\n");
 		handle_server((rt_uint8_t *)last_data_ptr,data_size);
-		#endif
+#endif
 		rt_free((void *)last_data_ptr);
 	}
 }
@@ -340,13 +339,13 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		ofs = 31;
 		//rt_kprintf("login %d %d %d\r\n", g_index,g_type1,g_type0);
 		if ((g_index == 1 && g_type1 == PCIE_2_M26) ||
-			(g_index == 0 && g_type0 == PCIE_1_M26))
+				(g_index == 0 && g_type0 == PCIE_1_M26))
 		{	
 			cmd[30] |= 0x20; 
 			rt_kprintf("interface\tm26\r\n");
 		}
 		if ((g_index == 1 && g_type1 == PCIE_2_EC20) ||
-			(g_index == 0 && g_type0 == PCIE_1_EC20))
+				(g_index == 0 && g_type0 == PCIE_1_EC20))
 		{
 			cmd[30] |= 0x10;
 			rt_kprintf("interface\tec20\r\n");
@@ -361,7 +360,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			rt_kprintf("lac_ci\t\t%08x\r\n",g_pcie[g_index]->lac_ci);
 		}
 		if (rt_memcmp(g_pcie[g_index]->qccid,zero_array,10) !=0 &&
-			rt_memcmp(g_pcie[g_index]->qccid,mp.qccid,10) !=0 )
+				rt_memcmp(g_pcie[g_index]->qccid,mp.qccid,10) !=0 )
 		{
 			rt_memcpy(mp.qccid, g_pcie[g_index]->qccid, 10);
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
@@ -459,7 +458,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		rt_kprintf("time\t\t%s\r\n",ctime(&cur_time));
 		rt_kprintf("platform\t%x\r\n",g_operate_platform);
 		rt_kprintf("operator\t%02x%02x%02x%02x%02x%02x\r\n",
-			cmd[22],cmd[23],cmd[24],cmd[25],cmd[26],cmd[27]);
+				cmd[22],cmd[23],cmd[24],cmd[25],cmd[26],cmd[27]);
 	} else if (type == CMD_SUB_EVENT) {
 		rt_kprintf("\r\n<CMD SUB EVENT Packet>\r\n");
 		cmd[5]=(CMD_SUB_EVENT >> 8) & 0xff;//main event
@@ -485,14 +484,14 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		memcpy(cmd+ofs,g_operater,6);
 		ofs += 6;
 		if ((g_sub_event_code == 0x2001||
-			g_sub_event_code == 0x2002) &&
-			(g_operate_platform == 0xff ||
-			g_operate_platform == 0xfe))
-			{				
-				cmd[ofs++] = (battery>>8) & 0xff;
-				cmd[ofs++] = (battery) & 0xff;
-				cmd[ofs++] = con_rssi(r_signal);
-			}
+					g_sub_event_code == 0x2002) &&
+				(g_operate_platform == 0xff ||
+				 g_operate_platform == 0xfe))
+		{				
+			cmd[ofs++] = (battery>>8) & 0xff;
+			cmd[ofs++] = (battery) & 0xff;
+			cmd[ofs++] = con_rssi(r_signal);
+		}
 		need_read = 1;
 	} else if (type == CMD_ASK_ADDR) {
 		rt_kprintf("req\t\tCMD ASK ADDR Packet\r\n");
@@ -571,7 +570,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[17]=(fqp.PGM0<<4)|(fqp.PGM1&0x0f);
 		cmd[18]=0x00;
 		if (fqp.is_check_AC)
-		cmd[18]|= 0x80;
+			cmd[18]|= 0x80;
 		if (fqp.is_check_DC)
 			cmd[18]|=0x40;
 		if (fqp.is_alarm_voice)
@@ -599,8 +598,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		rt_kprintf("auto_chefang\t%04x\r\n",fqp.auto_chefang);
 		rt_kprintf("platform\t%x\r\n",g_operate_platform);		
 		rt_kprintf("operator\t%02x%02x%02x%02x%02x%02x\r\n",
-			g_operater[0],g_operater[1],g_operater[2],g_operater[3],
-			g_operater[4],g_operater[5]);
+				g_operater[0],g_operater[1],g_operater[2],g_operater[3],
+				g_operater[4],g_operater[5]);
 	}
 	//rt_kprintf("ofs is %d\r\n", ofs);
 	cmd[3]=ofs+2;
@@ -610,7 +609,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 	cmd[ofs++]=crc&0xff;
 	for(i=0;i<ofs;i++)
 		rt_kprintf("%02x ",cmd[i]);
-	
+
 	if (flow_cnt == 255)
 		flow_cnt=0;
 	net_flow();
@@ -621,7 +620,7 @@ void send_process(void* parameter)
 {
 	char *cmd = RT_NULL;
 	int send_len = 0;
-	
+
 	while(1)	{
 		//rt_kprintf("wait for event\r\n");
 		gprs_wait_event(RT_WAITING_FOREVER);
@@ -629,9 +628,11 @@ void send_process(void* parameter)
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);		
 		cmd = (char *)rt_malloc(50);
 		if (cmd == RT_NULL){
-			rt_kprintf("build cmd failed\r\n");
-		show_memory_info();
-			}
+			rt_kprintf("build cmd failed %d %d\r\n",g_net_state,heart_time);
+			show_memory_info();
+			rt_mutex_release(&(g_pcie[g_index]->lock));
+			continue;
+		}
 		//rt_kprintf("begin send cmd, %d\r\n",g_net_state);
 		if (g_net_state == NET_STATE_INIT) {
 			SetStateIco(7,1);
@@ -639,7 +640,7 @@ void send_process(void* parameter)
 			send_len = build_cmd(cmd,CMD_LOGIN);
 			g_net_state = NET_STATE_LOGIN;
 			heart_time = 0;
-		} else if (g_net_state == NET_STATE_LOGED && heart_time == 60) {
+		} else if (g_net_state == NET_STATE_LOGED && heart_time == 6) {
 			send_len = build_cmd(cmd,CMD_HEART);
 			rt_kprintf("heart cnt %d\r\n",g_heart_cnt);
 			g_heart_cnt++;
@@ -647,6 +648,8 @@ void send_process(void* parameter)
 				g_heart_cnt=0;
 				g_net_state = NET_STATE_UNKNOWN;
 				pcie_switch(g_module_type);
+				rt_free(cmd);
+				continue;
 			}
 		} else {
 			heart_time = 0;
@@ -656,6 +659,7 @@ void send_process(void* parameter)
 			continue;
 		}
 		heart_time = 0;
+		rt_kprintf("send to server size %d\r\n",send_len);
 		rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_WAITING_FOREVER);
 		//gprs_wait_event(RT_WAITING_FOREVER);
 		rt_mutex_release(&(g_pcie[g_index]->lock));
@@ -672,18 +676,18 @@ void upload_server(rt_uint16_t cmdType)
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
 	cmd = (char *)rt_malloc(len);
 	if (cmd != RT_NULL) {
-	int send_len = build_cmd(cmd,cmdType);
-	//rt_kprintf("send cmd %d to server\r\n",cmdType);
-	if (RT_EOK != rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND))
-	{
-		rt_kprintf("pipe cmd failed %d,%d\r\n", cmdType,send_len);
-		rt_free(cmd);
-	}
-//	gprs_wait_event(RT_WAITING_FOREVER);	
-	rt_mutex_release(&(g_pcie[g_index]->lock));
-	//rt_kprintf("send buf done\r\n");
+		int send_len = build_cmd(cmd,cmdType);
+		rt_kprintf("send cmd %d to server,size %d\r\n",cmdType,send_len);
+		if (RT_EOK != rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND))
+		{
+			rt_kprintf("pipe cmd failed %d,%d\r\n", cmdType,send_len);
+			rt_free(cmd);
+		}
+		//	gprs_wait_event(RT_WAITING_FOREVER);	
+		rt_mutex_release(&(g_pcie[g_index]->lock));
+		//rt_kprintf("send buf done\r\n");
 	} else {
-		rt_kprintf("not enough mem\r\n");
+		rt_kprintf("not enough mem %d\r\n",len);
 		show_memory_info();
 		rt_mutex_release(&(g_pcie[g_index]->lock));
 	}
@@ -715,10 +719,10 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	}
 	g_data_queue = (struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*4);
 	/*  g_data_queue 0 pcie0 rxd
-	  *  g_data_queue 1 pcie1 rxd
-	  *  g_data_queue 2 to server
-	  *  g_data_queue 3 from server
-	*/
+	 *  g_data_queue 1 pcie1 rxd
+	 *  g_data_queue 2 to server
+	 *  g_data_queue 3 from server
+	 */
 	for (index = 0; index < 4; index++)
 		rt_data_queue_init(&g_data_queue[index],64,4,RT_NULL);
 
@@ -810,20 +814,20 @@ rt_uint8_t check_type(rt_uint8_t pcie_index)
 	}
 
 	if (!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
-		!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
-		GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+			!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+			GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
 		result = PCIE_1_EC20;
 	else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
-		GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
-		!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+			GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+			!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
 		result = PCIE_1_M26;
 	else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
-		!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
-		!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+			!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+			!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
 		result = PCIE_1_IP;
 	else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
-		GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
-		GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+			GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+			GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
 		result = PCIE_1_NBIOT;
 
 	if (pcie_index == 1)
