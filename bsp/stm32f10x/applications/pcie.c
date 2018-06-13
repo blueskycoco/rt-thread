@@ -76,10 +76,12 @@ static void pcie1_rcv(void* parameter)
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || strchr(buf,'>')!=RT_NULL) {
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
 			if (rcv == RT_NULL) {
-				rt_kprintf("*no memory* %d\r\n",total_len);
+				rt_kprintf("22*no memory*22 %d\r\n",total_len);
 				show_memory_info();
-				while((rcv = (uint8_t *)rt_malloc(total_len+1)) == RT_NULL)
-					rt_thread_delay(10);
+				//while((rcv = (uint8_t *)rt_malloc(total_len+1)) == RT_NULL)
+				//	rt_thread_delay(10);
+				total_len=0;
+				continue;
 			}
 			rt_memcpy(rcv, buf, total_len);
 			rcv[total_len] = '\0';
@@ -114,10 +116,12 @@ static void pcie0_rcv(void* parameter)
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || strchr(buf,'>')!=RT_NULL) {
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
 			if (rcv == RT_NULL) {
-				rt_kprintf("*no memory* %d$\r\n",total_len);
+				rt_kprintf("11*no memory*11 %d\r\n",total_len);
 				show_memory_info();
-				while((rcv = (uint8_t *)rt_malloc(total_len+1)) == RT_NULL)
-					rt_thread_delay(10);
+				//while((rcv = (uint8_t *)rt_malloc(total_len+1)) == RT_NULL)
+				//	rt_thread_delay(10);
+				total_len=0;
+				continue;
 			}
 			rt_memcpy(rcv, buf, total_len);
 			rcv[total_len] = '\0';
