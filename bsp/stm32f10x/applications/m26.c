@@ -165,6 +165,7 @@ extern rt_uint8_t ftp_rty;
 rt_uint16_t g_app_v=0;
 extern struct rt_event g_info_event;
 rt_uint32_t bak_server_len_m26 = 0;
+rt_uint8_t test_buf[128] = {0};
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -401,6 +402,7 @@ void m26_start(int index)
 	//strcpy(ftp_addr,"47.93.48.167");
 	strcpy(ftp_user,"minfei");
 	strcpy(ftp_passwd,"minfei123");
+	g_m26_state = M26_STATE_INIT;
 }
 
 void m26_proc(void *last_data_ptr, rt_size_t data_size)
@@ -937,7 +939,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case M26_STATE_DATA_PROCESSING:
 				if (have_str(last_data_ptr, STR_QIRDI)||
-						have_str(last_data_ptr, STR_QIURC)) {
+						have_str(last_data_ptr, STR_QIURC) ||g_data_in_m26) {
 					/*server data in */					
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
 					g_m26_state = M26_STATE_DATA_READ;
@@ -967,10 +969,12 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			}
 
 			/*check have data to send */
-			if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_m26,&send_size_m26) == RT_EOK)
+			//if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_m26,&send_size_m26) == RT_EOK)
+			if (rt_data_queue_pop(&g_data_queue[2], (const void **)&send_data_ptr_m26, &send_size_m26, 0) == RT_EOK)
 			{	
-				rt_data_queue_pop(&g_data_queue[2], (const void **)&send_data_ptr_m26, &send_size_m26, RT_WAITING_FOREVER);
-				//rt_kprintf("should send data %d\r\n", send_size_m26);
+				//rt_data_queue_pop(&g_data_queue[2], (const void **)&send_data_ptr_m26, &send_size_m26, RT_WAITING_FOREVER);
+				//rt_kprintf("should send data %d\r\n", send_size_m26);			
+				rt_memcpy(test_buf, send_data_ptr_m26,send_size_m26);
 				rt_sprintf(qisend_m26, "AT+QISEND=%d\r\n", send_size_m26);
 				gprs_at_cmd(g_dev_m26,qisend_m26);
 				g_m26_state = M26_STATE_DATA_PRE_WRITE;
@@ -1033,7 +1037,17 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			case M26_STATE_DATA_PRE_WRITE:
 		if (have_str(last_data_ptr, STR_BEGIN_WRITE)) {
 			g_m26_state = M26_STATE_DATA_WRITE;
-			rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_m26, send_size_m26);	
+			if (((rt_uint8_t *)send_data_ptr_m26)[0] != 0xad ||
+				((rt_uint8_t *)send_data_ptr_m26)[1] != 0xac) {
+				rt_kprintf("\r\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n");
+				for (int n=0; n<send_size_m26; n++)
+					rt_kprintf("%02x ", ((rt_uint8_t *)send_data_ptr_m26)[n]);
+				rt_kprintf("\r\n");
+				for (int n=0; n<send_size_m26; n++)
+					rt_kprintf("%02x ", test_buf[n]);
+				rt_kprintf("\r\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n");
+				}
+			rt_device_write(g_pcie[g_index]->dev, 0, test_buf, send_size_m26);	
 		}
 		else if(have_str(last_data_ptr, STR_ERROR))
 		{
@@ -1060,35 +1074,23 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				gprs_at_cmd(g_dev_m26,qistat);
 			}
 		}
-		if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_m26)
-		{
-			g_m26_state = M26_STATE_DATA_READ;
-			gprs_at_cmd(g_dev_m26,qird);
-			server_len_m26 = 0;
-			rt_time_t cur_time = time(RT_NULL);
-			rt_kprintf("send server ok %s\r\n",ctime(&cur_time));
-			rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
-		}
+		if (have_str(last_data_ptr, STR_QIRDI)||have_str(last_data_ptr, STR_QIURC))
+			g_data_in_m26 = RT_TRUE;
 		break;
 			case M26_STATE_DATA_ACK:
-		if (have_str(last_data_ptr, STR_QISACK)) {
-			g_m26_state = M26_STATE_DATA_PROCESSING;
-			if (g_data_in_m26 || have_str(last_data_ptr, STR_QIRDI)) {
-				g_m26_state = M26_STATE_DATA_READ;
-				gprs_at_cmd(g_dev_m26,qird);
-				server_len_m26 = 0;
-			} else {
-				gprs_at_cmd(g_dev_m26,at_csq);
-			}
-		} else if (have_str(last_data_ptr, STR_QIRDI))
-			g_data_in_m26 = RT_TRUE;
+		g_m26_state = M26_STATE_DATA_PROCESSING;		
+		if (have_str(last_data_ptr, STR_QISACK) ||have_str(last_data_ptr, STR_QIRDI)) {
+			gprs_at_cmd(g_dev_m26,at_csq);						
+			if (have_str(last_data_ptr, STR_QIRDI)) 
+				g_data_in_m26 = RT_TRUE;
+		}
 		else{
 			g_m26_state = M26_STATE_CHECK_QISTAT;
 			gprs_at_cmd(g_dev_m26,qistat);
 		}				
 		rt_time_t cur_time = time(RT_NULL);
 		rt_kprintf("send server ok %s\r\n",ctime(&cur_time));
-		rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
+		//rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 		break;		
 		}
 	}

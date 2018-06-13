@@ -667,30 +667,26 @@ void send_process(void* parameter)
 }
 void upload_server(rt_uint16_t cmdType)
 {
-	char *cmd = RT_NULL;
-	int len = 32;
-	//if (g_net_state != NET_STATE_LOGED)
-	//	return;
-	if (cmdType == CMD_ASK_SUB_ACK)
-		len = 400;
+	char buf[400] = {0};	
+	if (g_net_state != NET_STATE_LOGED)
+		return ;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
-	cmd = (char *)rt_malloc(len);
+	int send_len = build_cmd(buf,cmdType);
+
+	char *cmd = (char *)rt_malloc(send_len);
 	if (cmd != RT_NULL) {
-		int send_len = build_cmd(cmd,cmdType);
+		rt_memcpy(cmd, buf, send_len);
 		rt_kprintf("send cmd %d to server,size %d\r\n",cmdType,send_len);
 		if (RT_EOK != rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND))
 		{
 			rt_kprintf("pipe cmd failed %d,%d\r\n", cmdType,send_len);
 			rt_free(cmd);
 		}
-		//	gprs_wait_event(RT_WAITING_FOREVER);	
-		rt_mutex_release(&(g_pcie[g_index]->lock));
-		//rt_kprintf("send buf done\r\n");
 	} else {
-		rt_kprintf("not enough mem %d\r\n",len);
+		rt_kprintf("not enough mem %d\r\n",send_len);
 		show_memory_info();
-		rt_mutex_release(&(g_pcie[g_index]->lock));
 	}
+	rt_mutex_release(&(g_pcie[g_index]->lock));
 }
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 {
