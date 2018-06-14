@@ -352,9 +352,9 @@ void cmd_dump(rt_uint8_t *data,rt_uint8_t flag)
 {
 	/*check subdevice id = local device id*/
 	memcpy(stm32_id, data+5, 6);
+	sub_id= data[11]<<24|data[12]<<16|data[13]<<8|data[14];
 	if (flag == 0)
 		return;
-	sub_id= data[11]<<24|data[12]<<16|data[13]<<8|data[14];
 	command_type = data[15]<<8|data[16];
 	rt_kprintf("<== \r\nSTM32 ID :\t%02x%02x%02x%02x%02x%02x\r\n", data[5],data[6],data[7],data[8],data[9],data[10]);
 	rt_kprintf("Sub ID :\t%02x%02x%02x%02x\r\n", data[11],data[12],data[13],data[14]);
@@ -549,7 +549,6 @@ void handleSub(rt_uint8_t *data)
 		rt_kprintf("command not for me\r\n"); 
 		return ;
 	}
-	cmd_dump(data,1);
 
 	/*check sub id in fangqu list && non-coding mode*/
 	if (!check_sub_id(sub_id, fangqu_wireless,WIRELESS_MAX)
@@ -557,6 +556,7 @@ void handleSub(rt_uint8_t *data)
 		rt_kprintf("sub id not in list , and not codeing mode\r\n");
 		return ;
 	}
+	cmd_dump(data,1);
 	if (dev_type != 0x01) {
 		resp[0] = data[1];
 		resp[1] = data[0];
