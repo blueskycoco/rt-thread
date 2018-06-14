@@ -41,6 +41,7 @@ extern rt_uint8_t need_read;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 rt_mp_t cmd_mp = RT_NULL;
+rt_mp_t pci_mp = RT_NULL;
 
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
@@ -75,7 +76,8 @@ static void pcie1_rcv(void* parameter)
 				break;			
 		}
 		//rt_kprintf("==>%s", buf);
-		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || strchr(buf,'>')!=RT_NULL) {
+		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || (strchr(buf,'>')!=RT_NULL && total_len > 0)) {
+			#if 0
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
 			if (rcv == RT_NULL) {
 				rt_kprintf("22*no memory*22 %d\r\n",total_len);
@@ -85,10 +87,17 @@ static void pcie1_rcv(void* parameter)
 				total_len=0;
 				continue;
 			}
-			rt_memcpy(rcv, buf, total_len);
-			rcv[total_len] = '\0';
-			rt_data_queue_push(&g_data_queue[1], rcv, total_len, RT_WAITING_FOREVER);
+			#else
+			if (total_len > 1024 || total_len == 0)
+				rt_kprintf("total len %d\r\n", total_len);
+			
+			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
+			rt_memcpy(rcv2, buf, total_len);			
+			rcv2[total_len]='\0';
+			rt_data_queue_push(&g_data_queue[1], rcv2, total_len, RT_WAITING_FOREVER);
 			total_len = 0;
+			rt_memset(buf,0,1600);
+			#endif
 		}
 	}
 }
@@ -171,7 +180,8 @@ void pcie1_sm(void* parameter)
 					break;				
 			}
 			if (last_data_ptr != RT_NULL) {
-				rt_free((void *)last_data_ptr);
+				//rt_free((void *)last_data_ptr);
+				rt_mp_free((void *)last_data_ptr);
 				last_data_ptr = RT_NULL;
 			}
 		}
@@ -678,10 +688,12 @@ void upload_server(rt_uint16_t cmdType)
 {
 	char buf[400] = {0};
 	char *cmd = RT_NULL;
+	rt_kprintf("net state %d\r\n",g_net_state);
 	if (g_net_state != NET_STATE_LOGED)
 		return ;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
 	int send_len = build_cmd(buf,cmdType);
+	rt_kprintf("send len %d\r\n", send_len);
 	if (send_len <= 64) {
 		rt_kprintf("2begin alloc buffer\r\n");
 		cmd = rt_mp_alloc(cmd_mp, RT_WAITING_FOREVER);
@@ -691,7 +703,7 @@ void upload_server(rt_uint16_t cmdType)
 	}
 	if (cmd != RT_NULL) {
 		rt_memcpy(cmd, buf, send_len);
-		rt_kprintf("send cmd %d to server,size %d\r\n",cmdType,send_len);
+		rt_kprintf("send cmd %x to server,size %d\r\n",cmdType,send_len);
 		if (RT_EOK != rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND))
 		{
 			rt_kprintf("pipe cmd failed %d,%d\r\n", cmdType,send_len);
@@ -712,6 +724,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	g_type0 = type0;
 	g_type1 = type1;
 	cmd_mp = rt_mp_create("mp_cmd", 100,64);
+	pci_mp = rt_mp_create("pci_cmd", 2,1024);
 	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {
 		g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));

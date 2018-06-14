@@ -348,10 +348,12 @@ void save_fq(struct FangQu *list, int len)
 	}
 	/*play wrong audio here*/
 }
-void cmd_dump(rt_uint8_t *data)
+void cmd_dump(rt_uint8_t *data,rt_uint8_t flag)
 {
 	/*check subdevice id = local device id*/
 	memcpy(stm32_id, data+5, 6);
+	if (flag == 0)
+		return;
 	sub_id= data[11]<<24|data[12]<<16|data[13]<<8|data[14];
 	command_type = data[15]<<8|data[16];
 	rt_kprintf("<== \r\nSTM32 ID :\t%02x%02x%02x%02x%02x%02x\r\n", data[5],data[6],data[7],data[8],data[9],data[10]);
@@ -539,7 +541,7 @@ void handleSub(rt_uint8_t *data)
 		rt_kprintf("crc failed %x %x\r\n", crc, (data[len+3] << 8 | data[len+4]));
 		return ;
 	}
-	cmd_dump(data);
+	cmd_dump(data,0);
 	/*check stm32 id == mp.sn || stm32 id == 0*/
 	if (memcmp(stm32_id, mp.roProperty.sn, 6) != 0 
 		&& memcmp(stm32_id, stm32_zero, 6) != 0)
@@ -547,6 +549,7 @@ void handleSub(rt_uint8_t *data)
 		rt_kprintf("command not for me\r\n"); 
 		return ;
 	}
+	cmd_dump(data,1);
 
 	/*check sub id in fangqu list && non-coding mode*/
 	if (!check_sub_id(sub_id, fangqu_wireless,WIRELESS_MAX)
