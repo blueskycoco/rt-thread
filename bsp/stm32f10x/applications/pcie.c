@@ -42,7 +42,7 @@ extern rt_uint8_t need_read;
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 rt_mp_t cmd_mp = RT_NULL;
 rt_mp_t pci_mp = RT_NULL;
-
+rt_mp_t server_mp = RT_NULL;
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&(g_pcie[0]->sem));
@@ -314,7 +314,8 @@ void server_proc(void* parameter)
 		rt_kprintf(">>\r\n");
 		handle_server((rt_uint8_t *)last_data_ptr,data_size);
 #endif
-		rt_free((void *)last_data_ptr);
+		//rt_free((void *)last_data_ptr);
+		rt_mp_free((void *)last_data_ptr);
 	}
 }
 rt_err_t gprs_wait_event(int timeout)
@@ -725,6 +726,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	g_type1 = type1;
 	cmd_mp = rt_mp_create("mp_cmd", 100,64);
 	pci_mp = rt_mp_create("pci_cmd", 2,1024);
+	server_mp = rt_mp_create("server_cmd", 10,512);
 	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {
 		g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));

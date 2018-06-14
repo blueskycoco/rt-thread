@@ -166,6 +166,7 @@ rt_uint16_t g_app_v=0;
 extern struct rt_event g_info_event;
 rt_uint32_t bak_server_len_m26 = 0;
 rt_uint8_t test_buf[128] = {0};
+extern rt_mp_t server_mp;
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -277,7 +278,9 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 				rt_kprintf("cut-short message\r\n");
 		} else
 			rt_kprintf("short-cut message %d %d\r\n", len, server_len_m26);
-		server_buf_m26 = (uint8_t *)rt_malloc(server_len_m26 * sizeof(uint8_t));
+		//server_buf_m26 = (uint8_t *)rt_malloc(server_len_m26 * sizeof(uint8_t));
+		
+		server_buf_m26 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
 		if (server_buf_m26 == RT_NULL)
 		{
 			g_m26_state = M26_STATE_DATA_PROCESSING;
