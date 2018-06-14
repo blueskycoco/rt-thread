@@ -1057,7 +1057,11 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 		if (have_str(last_data_ptr, STR_QIRDI)||have_str(last_data_ptr, STR_QIURC))
 			g_data_in_m26 = RT_TRUE;
 		if (send_data_ptr_m26) {
-			rt_free(send_data_ptr_m26);
+			if (send_size_m26 <= 64) {
+				rt_mp_free(send_data_ptr_m26);
+			} else {
+				rt_free(send_data_ptr_m26);
+			}
 			send_data_ptr_m26 = RT_NULL;
 		}
 		break;

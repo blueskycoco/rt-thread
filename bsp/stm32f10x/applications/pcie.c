@@ -40,6 +40,8 @@ extern rt_uint8_t g_module_type;
 extern rt_uint8_t need_read;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
+rt_mp_t cmd_mp = RT_NULL;
+
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&(g_pcie[0]->sem));
@@ -630,7 +632,10 @@ void send_process(void* parameter)
 		gprs_wait_event(RT_WAITING_FOREVER);
 		//rt_kprintf("wait lock\r\n");
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);		
-		cmd = (char *)rt_malloc(50);
+		//cmd = (char *)rt_malloc(50);
+		rt_kprintf("1begin alloc buffer\r\n");
+		cmd = rt_mp_alloc(cmd_mp, RT_WAITING_FOREVER);
+		rt_kprintf("1alloc buffer ok\r\n");
 		if (cmd == RT_NULL){
 			rt_kprintf("build cmd failed %d %d\r\n",g_net_state,heart_time);
 			show_memory_info();
@@ -652,12 +657,12 @@ void send_process(void* parameter)
 				g_heart_cnt=0;
 				g_net_state = NET_STATE_UNKNOWN;
 				pcie_switch(g_module_type);
-				rt_free(cmd);
+				rt_mp_free(cmd);
 				continue;
 			}
 		} else {
 			heart_time = 0;
-			rt_free(cmd);
+			rt_mp_free(cmd);
 			rt_mutex_release(&(g_pcie[g_index]->lock));
 			//rt_kprintf("unknown state ,ignore\r\n");
 			continue;
@@ -671,20 +676,29 @@ void send_process(void* parameter)
 }
 void upload_server(rt_uint16_t cmdType)
 {
-	char buf[400] = {0};	
+	char buf[400] = {0};
+	char *cmd = RT_NULL;
 	if (g_net_state != NET_STATE_LOGED)
 		return ;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
 	int send_len = build_cmd(buf,cmdType);
-
-	char *cmd = (char *)rt_malloc(send_len);
+	if (send_len <= 64) {
+		rt_kprintf("2begin alloc buffer\r\n");
+		cmd = rt_mp_alloc(cmd_mp, RT_WAITING_FOREVER);
+		rt_kprintf("2alloc buffer ok\r\n");
+	} else {
+		cmd = (char *)rt_malloc(send_len);
+	}
 	if (cmd != RT_NULL) {
 		rt_memcpy(cmd, buf, send_len);
 		rt_kprintf("send cmd %d to server,size %d\r\n",cmdType,send_len);
 		if (RT_EOK != rt_data_queue_push(&g_data_queue[2], cmd, send_len, RT_TICK_PER_SECOND))
 		{
 			rt_kprintf("pipe cmd failed %d,%d\r\n", cmdType,send_len);
-			rt_free(cmd);
+			if (send_len <= 64)
+				rt_mp_free(cmd);
+			else
+				rt_free(cmd);
 		}
 	} else {
 		rt_kprintf("not enough mem %d\r\n",send_len);
@@ -697,6 +711,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	rt_uint8_t index;
 	g_type0 = type0;
 	g_type1 = type1;
+	cmd_mp = rt_mp_create("mp_cmd", 100,64);
 	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {
 		g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));
@@ -724,7 +739,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	 *  g_data_queue 3 from server
 	 */
 	for (index = 0; index < 4; index++)
-		rt_data_queue_init(&g_data_queue[index],64,4,RT_NULL);
+		rt_data_queue_init(&g_data_queue[index],8,4,RT_NULL);
 
 	if (type0) {
 		rt_device_set_rx_indicate(g_pcie[0]->dev, pcie0_rx_ind);

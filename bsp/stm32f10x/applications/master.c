@@ -745,7 +745,7 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 	net_flow();
 	memcpy(stm32_id, data+5,6);
 	rt_time_t cur_time = time(RT_NULL);
-	rt_kprintf("recv server ok ========> %s\r\n",ctime(&cur_time));
+	rt_kprintf("\r\nrecv server ok ========> %s\r\n",ctime(&cur_time));
 	rt_kprintf("=================================================>\r\nwater no \t%d\r\n", water_no);
 	rt_kprintf("pacet type \t%x\r\n", packet_type);
 	rt_kprintf("protol version \t%d\r\n", protocl_v);
