@@ -88,8 +88,11 @@ static void pcie1_rcv(void* parameter)
 				continue;
 			}
 			#else
-			if (total_len > 128 || total_len == 0)
+			if (total_len > 128)
+			{
 				rt_kprintf("total len %d\r\n", total_len);
+				total_len = 128;
+			}
 			
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
 			rt_memcpy(rcv2, buf, total_len);			
