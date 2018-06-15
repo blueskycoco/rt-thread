@@ -91,7 +91,7 @@ static void pcie1_rcv(void* parameter)
 			if (total_len > 1024)
 			{
 				rt_kprintf("total len %d\r\n", total_len);
-				total_len = 1024;
+				//total_len = 1024;
 			}
 			
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
@@ -728,7 +728,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	g_type0 = type0;
 	g_type1 = type1;
 	cmd_mp = rt_mp_create("mp_cmd", 100,64);
-	pci_mp = rt_mp_create("pci_cmd", 4,1024);
+	pci_mp = rt_mp_create("pci_cmd", 2,1024);
 	server_mp = rt_mp_create("server_cmd", 10,512);
 	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {
