@@ -92,14 +92,12 @@ static void pcie1_rcv(void* parameter)
 			if (total_len > 1024)
 			{
 				rt_kprintf("1total len %d\r\n", total_len);
-				copy_len = 1024;
-			}else
-				copy_len = total_len;
+			}
 			
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
-			rt_memcpy(rcv2, buf, copy_len);			
-			rcv2[copy_len]='\0';
-			rt_data_queue_push(&g_data_queue[1], rcv2, copy_len, RT_WAITING_FOREVER);
+			rt_memcpy(rcv2, buf, total_len);			
+			rcv2[total_len]='\0';
+			rt_data_queue_push(&g_data_queue[1], rcv2, total_len, RT_WAITING_FOREVER);
 			total_len = 0;
 			rt_memset(buf,0,1600);
 			#endif
@@ -148,13 +146,11 @@ static void pcie0_rcv(void* parameter)
 			if (total_len > 1024)
 			{
 				rt_kprintf("0total len %d\r\n", total_len);
-				copy_len = 1024;
-			} else
-				copy_len = total_len;
+			}
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
-			rt_memcpy(rcv2, buf, copy_len);			
-			rcv2[copy_len]='\0';
-			rt_data_queue_push(&g_data_queue[0], rcv2, copy_len, RT_WAITING_FOREVER);
+			rt_memcpy(rcv2, buf, total_len);			
+			rcv2[total_len]='\0';
+			rt_data_queue_push(&g_data_queue[0], rcv2, total_len, RT_WAITING_FOREVER);
 			total_len = 0;
 			rt_memset(buf,0,1600);
 			#endif
@@ -236,7 +232,8 @@ void pcie0_sm(void* parameter)
 					break;				
 			}
 			if (last_data_ptr != RT_NULL) {
-				rt_free((void *)last_data_ptr);
+				//rt_free((void *)last_data_ptr);
+				rt_mp_free((void *)last_data_ptr);
 				last_data_ptr = RT_NULL;
 			}
 		}
