@@ -340,6 +340,7 @@ void info_user(void *param)
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
+			rt_kprintf("ALARM command type %d\r\n", command_type);
 			if (command_type == 4)
 				continue;
 			g_alarm_reason = 0x1001;
@@ -494,8 +495,9 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 			upload_server(CMD_ASK_ADDR);
 		}		
 	}
-	if (g_heart_cnt > 1)
-		g_heart_cnt--;
+	//if (g_heart_cnt > 1)
+	//	g_heart_cnt--;
+	g_heart_cnt = 0;
 	show_memory_info();
 }
 void handle_t_common_ack(rt_uint8_t *cmd)

@@ -38,6 +38,7 @@ extern rt_uint8_t r_signal;
 extern rt_uint16_t battery;
 extern rt_uint8_t g_module_type;
 extern rt_uint8_t need_read;
+extern rt_uint8_t entering_ftp_mode;
 //rt_uint8_t pcie_init(rt_uint8_t type);
 //rt_uint8_t pcie_switch(rt_uint8_t type);
 rt_mp_t cmd_mp = RT_NULL;
@@ -55,7 +56,7 @@ static rt_err_t pcie1_rx_ind(rt_device_t dev, rt_size_t size)
 }
 static void pcie1_rcv(void* parameter)
 {	
-	uint32_t len = 0, total_len = 0;
+	uint32_t len = 0, total_len = 0,copy_len;
 	uint8_t *buf = rt_malloc(1600);
 	if (buf == RT_NULL){
 		rt_kprintf("pcie 1 malloc failed\r\n");
@@ -90,14 +91,15 @@ static void pcie1_rcv(void* parameter)
 			#else
 			if (total_len > 1024)
 			{
-				rt_kprintf("total len %d\r\n", total_len);
-				//total_len = 1024;
-			}
+				rt_kprintf("1total len %d\r\n", total_len);
+				copy_len = 1024;
+			}else
+				copy_len = total_len;
 			
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
-			rt_memcpy(rcv2, buf, total_len);			
-			rcv2[total_len]='\0';
-			rt_data_queue_push(&g_data_queue[1], rcv2, total_len, RT_WAITING_FOREVER);
+			rt_memcpy(rcv2, buf, copy_len);			
+			rcv2[copy_len]='\0';
+			rt_data_queue_push(&g_data_queue[1], rcv2, copy_len, RT_WAITING_FOREVER);
 			total_len = 0;
 			rt_memset(buf,0,1600);
 			#endif
@@ -106,7 +108,7 @@ static void pcie1_rcv(void* parameter)
 }
 static void pcie0_rcv(void* parameter)
 {	
-	uint32_t len = 0, total_len = 0;
+	uint32_t len = 0, total_len = 0,copy_len;
 	uint8_t *buf = rt_malloc(1600);
 	if (buf == RT_NULL) {
 		rt_kprintf("pcie 0 malloc failed\r\n");
@@ -127,7 +129,8 @@ static void pcie0_rcv(void* parameter)
 				break;			
 		}
 		//rt_kprintf("==>%s", buf);
-		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || strchr(buf,'>')!=RT_NULL) {
+		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || (strchr(buf,'>')!=RT_NULL && total_len > 0)) {
+			#if 0
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
 			if (rcv == RT_NULL) {
 				rt_kprintf("11*no memory*11 %d\r\n",total_len);
@@ -141,6 +144,20 @@ static void pcie0_rcv(void* parameter)
 			rcv[total_len] = '\0';
 			rt_data_queue_push(&g_data_queue[0], rcv, total_len, RT_WAITING_FOREVER);
 			total_len = 0;
+			#else
+			if (total_len > 1024)
+			{
+				rt_kprintf("0total len %d\r\n", total_len);
+				copy_len = 1024;
+			} else
+				copy_len = total_len;
+			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
+			rt_memcpy(rcv2, buf, copy_len);			
+			rcv2[copy_len]='\0';
+			rt_data_queue_push(&g_data_queue[0], rcv2, copy_len, RT_WAITING_FOREVER);
+			total_len = 0;
+			rt_memset(buf,0,1600);
+			#endif
 		}
 	}
 }
@@ -644,7 +661,9 @@ void send_process(void* parameter)
 	while(1)	{
 		//rt_kprintf("wait for event\r\n");
 		gprs_wait_event(RT_WAITING_FOREVER);
-		//rt_kprintf("wait lock\r\n");
+		//rt_kprintf("wait lock\r\n");		
+		if (entering_ftp_mode)
+			continue;
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);		
 		//cmd = (char *)rt_malloc(50);
 		rt_kprintf("1begin alloc buffer\r\n");
@@ -663,7 +682,7 @@ void send_process(void* parameter)
 			send_len = build_cmd(cmd,CMD_LOGIN);
 			g_net_state = NET_STATE_LOGIN;
 			heart_time = 0;
-		} else if (g_net_state == NET_STATE_LOGED && heart_time == 6) {
+		} else if (g_net_state == NET_STATE_LOGED && heart_time == 60) {
 			send_len = build_cmd(cmd,CMD_HEART);
 			rt_kprintf("heart cnt %d\r\n",g_heart_cnt);
 			g_heart_cnt++;
@@ -693,7 +712,7 @@ void upload_server(rt_uint16_t cmdType)
 	char buf[400] = {0};
 	char *cmd = RT_NULL;
 	rt_kprintf("net state %d\r\n",g_net_state);
-	if (g_net_state != NET_STATE_LOGED)
+	if (g_net_state != NET_STATE_LOGED || entering_ftp_mode)
 		return ;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
 	int send_len = build_cmd(buf,cmdType);

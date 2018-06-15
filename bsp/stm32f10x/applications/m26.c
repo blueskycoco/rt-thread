@@ -260,7 +260,7 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 		uint8_t *pos = (uint8_t *)last_data_ptr;
 		//for(i=0;i<256;i++)
 		//	rt_kprintf("%c",pos[i]);
-		//rt_kprintf("ofs is %d\r\n",ofs);
+		rt_kprintf("ofs is %d\r\n",ofs);
 		//if (pos != RT_NULL) {
 		int i = 4+ofs;
 		//rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
@@ -981,6 +981,14 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				rt_sprintf(qisend_m26, "AT+QISEND=%d\r\n", send_size_m26);
 				gprs_at_cmd(g_dev_m26,qisend_m26);
 				g_m26_state = M26_STATE_DATA_PRE_WRITE;
+				if (send_data_ptr_m26) {
+					if (send_size_m26 <= 64) {
+						rt_mp_free(send_data_ptr_m26);
+					} else {
+						rt_free(send_data_ptr_m26);
+					}
+					send_data_ptr_m26 = RT_NULL;
+				}
 			} else {								
 				rt_thread_delay(100);
 				gprs_at_cmd(g_dev_m26,at_csq);
@@ -1022,11 +1030,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			rt_kprintf("LAC_CI %08x\r\n", g_pcie[g_index]->lac_ci);
 			gprs_at_cmd(g_dev_m26,at_csq);
 		} 
-		/*else {
-		  g_m26_state = M26_STATE_CHECK_QISTAT;
-		  gprs_at_cmd(g_dev_m26,qistat);
-		  rt_hw_led_off(NET_LED);
-		  }*/
+		else {
+			rt_thread_delay(100);
+		  	gprs_at_cmd(g_dev_m26,at_csq);
+		  }
 
 		break;
 			case M26_STATE_DATA_READ:
@@ -1040,7 +1047,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			case M26_STATE_DATA_PRE_WRITE:
 		if (have_str(last_data_ptr, STR_BEGIN_WRITE)) {
 			g_m26_state = M26_STATE_DATA_WRITE;
-			if (((rt_uint8_t *)send_data_ptr_m26)[0] != 0xad ||
+			/*if (((rt_uint8_t *)send_data_ptr_m26)[0] != 0xad ||
 				((rt_uint8_t *)send_data_ptr_m26)[1] != 0xac) {
 				rt_kprintf("\r\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n");
 				for (int n=0; n<send_size_m26; n++)
@@ -1049,7 +1056,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				for (int n=0; n<send_size_m26; n++)
 					rt_kprintf("%02x ", test_buf[n]);
 				rt_kprintf("\r\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n");
-				}
+				}*/
 			rt_device_write(g_pcie[g_index]->dev, 0, test_buf, send_size_m26);	
 		}
 		else if(have_str(last_data_ptr, STR_ERROR))
@@ -1059,14 +1066,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 		}
 		if (have_str(last_data_ptr, STR_QIRDI)||have_str(last_data_ptr, STR_QIURC))
 			g_data_in_m26 = RT_TRUE;
-		if (send_data_ptr_m26) {
-			if (send_size_m26 <= 64) {
-				rt_mp_free(send_data_ptr_m26);
-			} else {
-				rt_free(send_data_ptr_m26);
-			}
-			send_data_ptr_m26 = RT_NULL;
-		}
+		
 		break;
 			case M26_STATE_DATA_WRITE:
 		if (have_str(last_data_ptr, STR_SEND_OK)) {
