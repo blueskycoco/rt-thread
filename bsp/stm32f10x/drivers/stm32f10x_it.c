@@ -51,6 +51,7 @@ extern rt_uint8_t g_delay_in;
 extern rt_uint8_t s1;
 extern rt_uint8_t time_protect;
 rt_uint8_t duima_key=0;
+extern rt_uint8_t g_remote_protect;
 /**
   * @brief   This function handles NMI exception.
   * @param  None
@@ -252,6 +253,7 @@ void EXTI9_5_IRQHandler(void)
 							s1=0;
 							time_protect = 1;
 							duima_key=1;
+							g_remote_protect=0;
 							rt_kprintf("switch protect off\r\n");
 							handle_protect_off();
 						}
@@ -259,6 +261,7 @@ void EXTI9_5_IRQHandler(void)
 						if (!cur_status && g_delay_out==0)
 						{
 							rt_kprintf("switch protect on\r\n");
+							g_remote_protect=0;
 							g_sub_event_code = 0x2002;
 							time_protect = 1;
 							duima_key=1;

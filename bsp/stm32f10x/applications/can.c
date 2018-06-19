@@ -320,7 +320,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 						return;
                     addr = resp[2] - WIRELESS_MAX;
                     cmd[0] = 0x00;cmd[1]=0x07;
-                    cmd[2] = 0x00;cmd[3] = fangqu_wire[addr].status-1;
+                    cmd[2] = resp[3];cmd[3] = fangqu_wire[addr].status-1;
 					cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;

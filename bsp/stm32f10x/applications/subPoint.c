@@ -645,6 +645,7 @@ void handleSub(rt_uint8_t *data)
 			g_delay_in = 0;
 			fqp.status=cur_status;
 			s1=0;
+			g_remote_protect=0;
 			handle_protect_off();
 		} else if (command_type == 0x0006) {
 		
