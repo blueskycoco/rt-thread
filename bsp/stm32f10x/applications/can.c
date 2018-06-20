@@ -352,7 +352,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 #else
             handle_can_resp();
 #endif
-       // CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
+       CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
     }
 }
 
