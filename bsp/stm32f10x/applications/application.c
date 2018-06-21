@@ -84,7 +84,7 @@ rt_uint8_t time_protect=0;
 extern rt_uint8_t g_remote_protect;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
-	static rt_uint8_t led_stack[ 512 ];
+	static rt_uint8_t led_stack[ 1024 ];
 	static struct rt_thread led_thread;
 static void led_thread_entry1(void* parameter)
 {
