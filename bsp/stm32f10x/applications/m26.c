@@ -167,6 +167,7 @@ extern struct rt_event g_info_event;
 rt_uint32_t bak_server_len_m26 = 0;
 rt_uint8_t test_buf[128] = {0};
 extern rt_mp_t server_mp;
+extern rt_uint8_t 	cur_status;
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -401,7 +402,7 @@ void m26_start(int index)
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
 	rt_kprintf("m26 power on done\r\n");
 
-	strcpy(ftp_addr,"u.110LW.com");
+	strcpy(ftp_addr,mp.updateDomainAddress.domain);//"u.110LW.com");
 	//strcpy(ftp_addr,"47.93.48.167");
 	strcpy(ftp_user,"minfei");
 	strcpy(ftp_passwd,"minfei123");
@@ -423,7 +424,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 	if (!have_str(last_data_ptr,STR_CSQ)) {
 		rt_kprintf("\r\n<== (M26 %d %d)\r\n",g_m26_state, data_size);
 		for (i=0; i<data_size; i++)
-			if (isascii(tmp[i]))
+			if (isascii(tmp[i]) && (g_m26_state != M26_STATE_READ_FILE))
 				rt_kprintf("%c", tmp[i]);
 			else
 				break;
@@ -637,7 +638,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_sprintf(qiftp_m26,"AT+QFTPPASS=\"%s\"\r\n", ftp_passwd);
 						gprs_at_cmd(g_dev_m26,qiftp_m26);
 					} else if (ftp_cfg_step == 1) {
-						rt_sprintf(qiftp_m26,"AT+QFTPOPEN=\"%s\",21\r\n", ftp_addr);
+						rt_sprintf(qiftp_m26,"AT+QFTPOPEN=\"%s\",%d\r\n", ftp_addr,mp.updateDomainAddress.port);
 						gprs_at_cmd(g_dev_m26,qiftp_m26);
 						g_m26_state = M26_STATE_OPEN_FTP;
 					}
@@ -766,6 +767,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						mp.firmVersion = g_app_v;
 					mp.firmLength = stm32_len;
 					rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+					if (!cur_status) {
+					rt_thread_sleep(500);
+					NVIC_SystemReset();
+					}
 					gprs_at_cmd(g_dev_m26,qiftp_close);
 					g_m26_state = M26_STATE_SET_QIACT;
 					entering_ftp_mode=0;

@@ -508,15 +508,14 @@ static void led_thread_entry(void* parameter)
 }
 void rt_init_thread_entry(void* parameter)
 {
+	rt_kprintf("==========================================\r\n\r\n");
 #ifdef RT_USING_COMPONENTS_INIT
 	/* initialization RT-Thread Components */
 	rt_components_init();
 #endif
 	g_mute=1;
 
-	//rt_kprintf("==========================================\r\n\r\n");
-	//rt_kprintf("\t\tUPGRADE Version\r\n");
-	//rt_kprintf("\r\n==========================================\r\n\r\n");
+	rt_kprintf("\t\tUPGRADE Version\r\n");
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_mutex_init(&(g_stm32_lock),	"stm32_lock",	RT_IPC_FLAG_FIFO);
 	Wtn6_Init();
@@ -525,6 +524,8 @@ void rt_init_thread_entry(void* parameter)
 	rt_thread_startup(rt_thread_create("7info",info_user, 0,4096, 20, 10));
 
 	button_init();
+
+	rt_kprintf("\r\n==========================================\r\n\r\n");
 
 	/* Filesystem Initialization */
 #if defined(RT_USING_DFS) && defined(RT_USING_DFS_ELMFAT)
@@ -648,6 +649,7 @@ void rt_init_thread_entry(void* parameter)
 	}
 	if (check_ac())
 		SetStateIco(4,1);	
+	show_signal(0);
 	rt_hw_led_off(CODE_LED);	
 	rt_hw_led_off(WIRE_LED);
 	rt_hw_led_off(ALARM_LED);
