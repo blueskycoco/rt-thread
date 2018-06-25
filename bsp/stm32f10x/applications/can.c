@@ -303,7 +303,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
                     if (resp[2] < WIRELESS_MAX)
 						return;
                     addr = resp[2] - WIRELESS_MAX;
-					if (g_main_state ==1)
+					//if (g_main_state ==1)
 						save_fq_wire(addr, resp[3], (resp[4]<<24)|(resp[5]<<16)|(resp[6]<<8)|resp[7]);
                     rt_kprintf("id\t\t%08x\r\naddr\t\t%x\r\nfact_time\t%x\r\ntype\t\t%x\r\n",
                     	fangqu_wire[addr].slave_sn,resp[2],fangqu_wire[addr].slave_batch,resp[3]);
@@ -352,7 +352,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 #else
             handle_can_resp();
 #endif
-       CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
+       //CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
     }
 }
 

@@ -312,7 +312,7 @@ int load_param()
 		close(fd);
 	}
 
-	fqp.delya_out=30;
+	fqp.delya_out=0;
 	fqp.delay_in=30;
 	fqp.alarm_voice_time=30;
 	fqp.is_alarm_voice =1;

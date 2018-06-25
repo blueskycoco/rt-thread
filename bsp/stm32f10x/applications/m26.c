@@ -693,10 +693,16 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_QFTPGET_M26)) {					
 					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET_M26)+strlen(STR_QFTPGET_M26),data_size-strlen(STR_QFTPGET_M26));
 					rt_kprintf("get stm32 len %d\r\n", stm32_len);		
-					sprintf(qiftp_m26_ram,"AT+QFOPEN=\"RAM:stm32_%d.bin\",0\r\n",m26_cnt);
-					gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
-					g_m26_state = M26_STATE_READ_FILE;
-					stm32_fd=0;			
+					if (stm32_len <= 0) {
+						gprs_at_cmd(g_dev_m26,qiftp_clean_ram);
+						g_m26_state = M26_STATE_CLEAN_RAM;
+						m26_cnt = 0;
+					} else {
+						sprintf(qiftp_m26_ram,"AT+QFOPEN=\"RAM:stm32_%d.bin\",0\r\n",m26_cnt);
+						gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
+						g_m26_state = M26_STATE_READ_FILE;
+						stm32_fd=0;	
+					}
 				}
 				break;
 			case M26_STATE_READ_FILE:

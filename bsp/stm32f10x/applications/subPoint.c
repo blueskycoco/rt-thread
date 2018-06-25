@@ -563,6 +563,11 @@ void handleSub(rt_uint8_t *data)
 		rt_memcpy(resp+2, data+2,13);
 		rt_memcpy(resp+5, mp.roProperty.sn, 6);
 		resp[15]=0x00;resp[16]=data[16]+0x01;resp[17]=data[17];
+		if (g_main_state == 1 && dev_type == 0x43)
+		{
+			save_fq(fangqu_wireless,WIRELESS_MAX);
+			return ;
+		}
 		if (0 == command_type)
 		{	/*require cc1101 addr*/
 			resp[18] = get_addr(data[11]<<24|data[12]<<16|data[13]<<8|data[14],fangqu_wireless,WIRELESS_MAX);
