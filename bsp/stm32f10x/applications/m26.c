@@ -50,7 +50,7 @@
 #define M26_STATE_V				34
 #define M26_STATE_CLEAN_RAM		35
 #define M26_STATE_CLOSE_FILE	36
-
+#define STR_PDP_DEACT	"+PDP DEACT"
 #define STR_CFUN					"+CFUN:"
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -431,13 +431,14 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 	}
 #endif
 	if (data_size >= 2) {
-		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED))
+		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
 		{
 			g_m26_state = M26_STATE_INIT;
 		}
 		switch (g_m26_state) {
 			case M26_STATE_INIT:
-				if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)) {
+				if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)
+					||have_str(last_data_ptr,STR_PDP_DEACT)) {
 					g_m26_state = M26_STATE_ATE0;
 					gprs_at_cmd(g_dev_m26,e0);	
 				}
