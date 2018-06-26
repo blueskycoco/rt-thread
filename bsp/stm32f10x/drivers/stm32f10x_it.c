@@ -313,15 +313,15 @@ void EXTI1_IRQHandler(void)
 	rt_interrupt_leave();
 }
 #endif
-void EXTI3_IRQHandler(void)
+void EXTI0_IRQHandler(void)
 {
     extern void factory_isr(void);
 	/* enter interrupt */
 	rt_interrupt_enter();
-	if(EXTI_GetITStatus(EXTI_Line3))
+	if(EXTI_GetITStatus(EXTI_Line0))
 	{	
 		rt_kprintf("factory button int\r\n");
-		EXTI_ClearITPendingBit(EXTI_Line3);
+		EXTI_ClearITPendingBit(EXTI_Line0);
 	}
 	/* leave interrupt */
 	rt_interrupt_leave();

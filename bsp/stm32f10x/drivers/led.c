@@ -91,14 +91,14 @@ void rt_hw_led_init(void)
     GPIO_InitStructure.GPIO_Pin   = led1_pin;
     GPIO_Init(led1_gpio, &GPIO_InitStructure);
 
-    GPIO_InitStructure.GPIO_Pin   = ARM_LED_pin;
-    GPIO_Init(ARM_LED_gpio, &GPIO_InitStructure);
+   // GPIO_InitStructure.GPIO_Pin   = ARM_LED_pin;
+   // GPIO_Init(ARM_LED_gpio, &GPIO_InitStructure);
 	
-    GPIO_InitStructure.GPIO_Pin   = WIRE_LED_pin;
-    GPIO_Init(WIRE_LED_gpio, &GPIO_InitStructure);
+   // GPIO_InitStructure.GPIO_Pin   = WIRE_LED_pin;
+   // GPIO_Init(WIRE_LED_gpio, &GPIO_InitStructure);
 
-    GPIO_InitStructure.GPIO_Pin   = ALARM_LED_pin;
-    GPIO_Init(ALARM_LED_gpio, &GPIO_InitStructure);
+  //  GPIO_InitStructure.GPIO_Pin   = ALARM_LED_pin;
+   // GPIO_Init(ALARM_LED_gpio, &GPIO_InitStructure);
 	
     GPIO_InitStructure.GPIO_Pin   = WIRELESS_LED_pin;
     GPIO_Init(WIRELESS_LED_gpio, &GPIO_InitStructure);
@@ -133,15 +133,15 @@ void rt_hw_led_on(rt_uint32_t n)
         break;
 		
     case ARM_LED:
-        GPIO_SetBits(ARM_LED_gpio, ARM_LED_pin);
+      //  GPIO_SetBits(ARM_LED_gpio, ARM_LED_pin);
         break;
 		
 	case WIRE_LED:
-		GPIO_SetBits(WIRE_LED_gpio, WIRE_LED_pin);
+		//GPIO_SetBits(WIRE_LED_gpio, WIRE_LED_pin);
 		break;
 	
 	case ALARM_LED:
-		GPIO_SetBits(ALARM_LED_gpio, ALARM_LED_pin);
+	//	GPIO_SetBits(ALARM_LED_gpio, ALARM_LED_pin);
 		break;
 	
 	case WIRELESS_LED:
@@ -187,15 +187,15 @@ void rt_hw_led_off(rt_uint32_t n)
         break;
 		
 	case ARM_LED:
-		GPIO_ResetBits(ARM_LED_gpio, ARM_LED_pin);
+		//GPIO_ResetBits(ARM_LED_gpio, ARM_LED_pin);
 		break;
 		
 	case WIRE_LED:
-		GPIO_ResetBits(WIRE_LED_gpio, WIRE_LED_pin);
+		//GPIO_ResetBits(WIRE_LED_gpio, WIRE_LED_pin);
 		break;
 	
 	case ALARM_LED:
-		GPIO_ResetBits(ALARM_LED_gpio, ALARM_LED_pin);
+		//GPIO_ResetBits(ALARM_LED_gpio, ALARM_LED_pin);
 		break;
 	
 	case WIRELESS_LED:

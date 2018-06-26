@@ -162,9 +162,9 @@ void info_user(void *param)
 			pgm_ctl(5);
 			if (fqp.is_alarm_voice)
 			{
-				GPIO_SetBits(GPIOC, GPIO_Pin_13);
+				GPIO_SetBits(GPIOE, GPIO_Pin_11);
 				rt_thread_delay(100);
-				GPIO_ResetBits(GPIOC, GPIO_Pin_13);
+				GPIO_ResetBits(GPIOE, GPIO_Pin_11);
 			}
 			
 			fqp.status=cur_status;
@@ -292,9 +292,9 @@ void info_user(void *param)
 			rt_hw_led_off(PGM4_LED);
 			if (fqp.is_alarm_voice)
 			{
-				GPIO_SetBits(GPIOC, GPIO_Pin_13);
+				GPIO_SetBits(GPIOE, GPIO_Pin_11);
 				rt_thread_delay(100);
-				GPIO_ResetBits(GPIOC, GPIO_Pin_13);
+				GPIO_ResetBits(GPIOE, GPIO_Pin_11);
 			}		
 			rt_kprintf("\r\n\r\nnow stm32 is protect off\r\n\r\n");
 			g_sub_event_code = 0x2001;

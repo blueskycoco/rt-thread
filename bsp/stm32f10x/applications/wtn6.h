@@ -7,9 +7,9 @@
 //#define CLK    PBin(1)			//时钟
 //#define DATA   PBin(2)			//数据
 
-#define wtn_BUSY   GPIO_Pin_2			//芯片状态输出
-#define wtn_CLK    GPIO_Pin_1			//时钟pa15
-#define wtn_DATA   GPIO_Pin_0			//数据pb4
+#define wtn_BUSY   GPIO_Pin_15			//芯片状态输出
+#define wtn_CLK    GPIO_Pin_14			//时钟pa15
+#define wtn_DATA   GPIO_Pin_13			//数据pb4
 
 #define wtn_BUSY_PORT GPIOD
 #define wtn_CLK_PORT GPIOD

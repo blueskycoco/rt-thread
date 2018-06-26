@@ -21,10 +21,10 @@
 #define MODE_COM                0
 #define MODE_DATA               1
 
-#define LCD_PIN_CS              GPIO_Pin_9//GPIO_PIN_7
-#define LCD_PIN_RD              GPIO_Pin_8
-#define LCD_PIN_WR              GPIO_Pin_7//GPIO_PIN_9
-#define LCD_PIN_DATA            GPIO_Pin_2//GPIO_PIN_10
+#define LCD_PIN_CS              GPIO_Pin_1//GPIO_PIN_7
+#define LCD_PIN_RD              GPIO_Pin_2
+#define LCD_PIN_WR              GPIO_Pin_3//GPIO_PIN_9
+#define LCD_PIN_DATA            GPIO_Pin_4//GPIO_PIN_10
 
 #define COMMAND_SYS_DIS         ((uint8_t)0x00) /*关闭系统振荡器和LCD 偏压发生器*/
 #define COMMAND_SYS_EN          ((uint8_t)0x01) /*打开系统振荡器*/
@@ -55,7 +55,7 @@
 #define COMMAND_TNORMAL         ((uint8_t)0xE3) /*普通模式*/
 
 #define LCD_GPIOE               GPIOE
-#define LCD_GPIOB               GPIOB
+#define LCD_GPIOB               GPIOE
 #define DELAY_MS                5000
 
 typedef enum

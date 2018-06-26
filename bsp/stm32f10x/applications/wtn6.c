@@ -55,6 +55,7 @@ void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne)
 */
 void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType)
 {
+	speaker_ctl(1);
 	Send_Command(voice);
 	if(PlayType==LOOP)
 	{
@@ -125,6 +126,7 @@ void Stop_Playing(void)
 	{
 		Send_Command(CMD_Stop);
 	}
+	speaker_ctl(0);
 }
 static void delay_us(unsigned long ms)
 {

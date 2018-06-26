@@ -370,12 +370,12 @@ void m26_start(int index)
 	g_index = index;
 	g_dev_m26 = g_pcie[index]->dev;
 	if (index) {
-		power_rcc = RCC_APB2Periph_GPIOE;
-		pwr_key_rcc = RCC_APB2Periph_GPIOE;
-		power_pin = GPIO_Pin_14;
-		pwr_key_pin = GPIO_Pin_14;
-		GPIO_power = GPIOE;
-		GPIO_pwr = GPIOE;
+		power_rcc = RCC_APB2Periph_GPIOB;
+		pwr_key_rcc = RCC_APB2Periph_GPIOB;
+		power_pin = GPIO_Pin_5;
+		pwr_key_pin = GPIO_Pin_5;
+		GPIO_power = GPIOB;
+		GPIO_pwr = GPIOB;
 	} else {
 		power_rcc = RCC_APB2Periph_GPIOC;
 		pwr_key_rcc = RCC_APB2Periph_GPIOC;
