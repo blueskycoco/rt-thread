@@ -92,6 +92,8 @@ static void pcie1_rcv(void* parameter)
 			if (total_len > 1024)
 			{
 				rt_kprintf("1total len %d\r\n", total_len);
+				total_len = 0;
+				continue;
 			}
 			
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
@@ -146,6 +148,8 @@ static void pcie0_rcv(void* parameter)
 			if (total_len > 1024)
 			{
 				rt_kprintf("0total len %d\r\n", total_len);
+				total_len = 0;
+				continue;
 			}
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
 			rt_memcpy(rcv2, buf, total_len);			

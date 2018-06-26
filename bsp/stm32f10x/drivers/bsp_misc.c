@@ -339,6 +339,7 @@ rt_uint16_t ADC_Get_aveg(void)
 		ad_sum += Get_val(ADC_Channel_14);
 		rt_thread_delay(1); 
 	} 
+	//rt_kprintf("battery is %d \r\n", ad_sum/10);
 	return (ad_sum / 10);
 }
 void led_blink(int times)
