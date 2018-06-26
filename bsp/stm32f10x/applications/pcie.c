@@ -366,12 +366,12 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[5]=(CMD_LOGIN >> 8) & 0xff;//login
 		cmd[6]=CMD_LOGIN&0xff;		
 		cmd[15]=g_pcie[g_index]->csq;
-		cmd[16]='W';
-		cmd[17]='E';
-		cmd[18]='A';
-		cmd[19]='D';
-		cmd[20]='F';
-		cmd[21]='E'; 	
+		cmd[16]=mp.roProperty.CAPTCHA[0];//'W';
+		cmd[17]=mp.roProperty.CAPTCHA[1];//'E';
+		cmd[18]=mp.roProperty.CAPTCHA[2];//'A';
+		cmd[19]=mp.roProperty.CAPTCHA[3];//'D';
+		cmd[20]=mp.roProperty.CAPTCHA[4];//'F';
+		cmd[21]=mp.roProperty.CAPTCHA[5];//'E'; 	
 		memcpy(cmd+22,g_pcie[g_index]->imei,8);
 		cmd[30] = 0;
 		ofs = 31;

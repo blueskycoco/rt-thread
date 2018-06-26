@@ -431,13 +431,13 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 	}
 #endif
 	if (data_size >= 2) {
-		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN))
+		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED))
 		{
 			g_m26_state = M26_STATE_INIT;
 		}
 		switch (g_m26_state) {
 			case M26_STATE_INIT:
-				if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)) {
+				if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)) {
 					g_m26_state = M26_STATE_ATE0;
 					gprs_at_cmd(g_dev_m26,e0);	
 				}
