@@ -464,6 +464,11 @@ void handle_login_ack(rt_uint8_t *cmd)
 	}
 	rt_kprintf("\r\n");
 	
+	if (cmd[0] != 0) {
+		g_num = cmd[0] + 0x10;		
+		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);	
+		SetStateIco(3,1);
+	}
 }
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
