@@ -55,14 +55,14 @@ int can_send(unsigned short id, unsigned char *payload,
 	TxMessage.StdId = id;
 	memcpy(TxMessage.Data, payload, 8);
 	//CAN_ClearFlag(CAN1,0xffffffff);
-#if 1
+#if 0
 	rt_kprintf("CAN send ID %x:\r\n", id);
 	for (i=0;i<payload_len;i++)
 		rt_kprintf("%02x ", payload[i]);
 	rt_kprintf("\r\n");
 #endif
 	TransmitMailbox = CAN_Transmit(CANx, &TxMessage);
-	rt_kprintf("can send error %x\r\n",CAN_GetLastErrorCode(CANx));
+	//rt_kprintf("can send error %x\r\n",CAN_GetLastErrorCode(CANx));
 	if (TransmitMailbox == CAN_TxStatus_NoMailBox) {
 		return 0;
 	}
@@ -97,7 +97,7 @@ int can_read(unsigned char *buf, unsigned char *buf_len)
 	{
 		memcpy(buf, RxMessage.Data, 8);
 		*buf_len = 8;
-#if 1
+#if 0
 		rt_kprintf("we got message %02x %02x %02x %02x %02x %02x %02x %02x\r\n", 
 				RxMessage.Data[0],RxMessage.Data[1],RxMessage.Data[2],
 				RxMessage.Data[3],RxMessage.Data[4],RxMessage.Data[5],
@@ -277,9 +277,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
     unsigned short stdid = 0;
     uint16_t addr;
     uint32_t id;
-            if ((stdid = can_read(resp, &len)) != 0) {
-				rt_kprintf("<$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\r\n");
-				rt_kprintf("CMD\t\t%s\r\n", can_cmd_type(resp[0]<<8|resp[1]));				
+            if ((stdid = can_read(resp, &len)) != 0) {		
                 if (resp[0] == 0x00 && resp[1] == 0x00)
                 {   //assign can addr
 	                id = resp[4];
@@ -290,9 +288,9 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					fangqu_wire[addr - WIRELESS_MAX].index = addr;
 					fangqu_wire[addr - WIRELESS_MAX].slave_sn = id;
 					fangqu_wire[addr - WIRELESS_MAX].slave_model = (resp[2]<<8)|resp[3];
-                	rt_kprintf("id\t\t%08x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_sn);
-					rt_kprintf("model\t\t%04x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_model);
-					rt_kprintf("assign addr\t%0x\r\n",fangqu_wire[addr - WIRELESS_MAX].index);
+                	//rt_kprintf("id\t\t%08x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_sn);
+					//rt_kprintf("model\t\t%04x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_model);
+					//rt_kprintf("assign addr\t%0x\r\n",fangqu_wire[addr - WIRELESS_MAX].index);
                     cmd[0] = 0x00;cmd[1]=0x01;
                     cmd[2] = (addr >> 8) & 0xff;
                     cmd[3] = addr&0xff;
@@ -305,8 +303,8 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
                     addr = resp[2] - WIRELESS_MAX;
 					//if (g_main_state ==1)
 						save_fq_wire(addr, resp[3], (resp[4]<<24)|(resp[5]<<16)|(resp[6]<<8)|resp[7]);
-                    rt_kprintf("id\t\t%08x\r\naddr\t\t%x\r\nfact_time\t%x\r\ntype\t\t%x\r\n",
-                    	fangqu_wire[addr].slave_sn,resp[2],fangqu_wire[addr].slave_batch,resp[3]);
+                    //rt_kprintf("id\t\t%08x\r\naddr\t\t%x\r\nfact_time\t%x\r\ntype\t\t%x\r\n",
+                    //	fangqu_wire[addr].slave_sn,resp[2],fangqu_wire[addr].slave_batch,resp[3]);
                     cmd[0] = 0x00;cmd[1]=0x03;
                     cmd[2] = 0;cmd[3] = fangqu_wire[addr].status-1;
 					cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
@@ -325,12 +323,15 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
 					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
+				rt_kprintf("<$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\r\n");
+				rt_kprintf("CMD\t\t%s\r\n", can_cmd_type(resp[0]<<8|resp[1]));		
 					rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
 					rt_kprintf("addr\t\t%x\r\n", resp[2]);
 					rt_kprintf("status\t\t%s\r\n", (cmd[3]==0)?"che fang":"bu fang");
 					rt_kprintf("alarm\t\t%s\r\n", cmd_sub_type(resp[3]));
                     can_send(resp[2],cmd,8);
 					handle_wire_alarm(addr);
+				rt_kprintf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$>\r\n");
                 } else if (resp[0] == 0x00 && resp[1] == 0x10) {
                     //curr status
                     if (resp[2] < WIRELESS_MAX)
@@ -342,12 +343,11 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
 					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
-					rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
-					rt_kprintf("addr\t\t%x\r\n", resp[2]);
-					rt_kprintf("status\t\t%s\r\n", (cmd[3]==0)?"che fang":"bu fang");
+					//rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
+					//rt_kprintf("addr\t\t%x\r\n", resp[2]);
+					//rt_kprintf("status\t\t%s\r\n", (cmd[3]==0)?"che fang":"bu fang");
                     can_send(resp[2],cmd,8);
                 }
-				rt_kprintf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$>\r\n");
             }
 #else
             handle_can_resp();

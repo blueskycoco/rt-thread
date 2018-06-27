@@ -51,7 +51,8 @@ extern rt_uint8_t duima_key;
 rt_uint8_t g_fq_index;
 rt_uint8_t  	g_operationType;
 rt_uint8_t  	g_voiceType;
-
+rt_uint16_t g_crc;
+rt_uint8_t *g_ftp;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -483,6 +484,13 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 			case 0x01:			
 				rt_kprintf("new APP version: \t%d",v);
 				g_app_v = v;
+				g_crc = (cmd[7] << 8)|cmd[8];
+				g_ftp = rt_malloc((cmd[9] + 1)*sizeof(rt_uint8_t));
+				rt_kprintf("server crc\t %x\r\n",g_crc);
+				rt_kprintf("len %d\r\n", cmd[9]);
+				rt_memset(g_ftp,0,cmd[9]+1);
+				memcpy(g_ftp,cmd+10,cmd[9]);
+				rt_kprintf("ftp addrss %s\r\n",g_ftp);
 				if (!cur_status)
 					entering_ftp_mode = 1;
 				break;

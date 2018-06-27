@@ -127,7 +127,7 @@ uint8_t 	  qiopen_m26[64]			= {0};
 uint8_t 	  qisend_m26[32] 			= {0};
 uint8_t 	  qiftp_set_resuming[32] 	= {0};
 uint8_t 	  qiftp_m26_ram[32]			= {0};
-uint8_t		  qiftp_get_m26[32]			= {0};
+uint8_t		  qiftp_get_m26[128]			= {0};
 #define qiregapp "AT+QIREGAPP\r\n"
 #define qiact "AT+QIACT\r\n"
 rt_bool_t g_data_in_m26 = RT_FALSE;
@@ -168,6 +168,9 @@ rt_uint32_t bak_server_len_m26 = 0;
 rt_uint8_t test_buf[128] = {0};
 extern rt_mp_t server_mp;
 extern rt_uint8_t 	cur_status;
+extern rt_uint16_t g_crc;
+extern rt_uint8_t *g_ftp;
+
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -678,7 +681,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;
 			case M26_STATE_CLEAN_RAM:
-				sprintf(qiftp_get_m26, "AT+QFTPGET=\"stm32_%d.bin\"\r\n",m26_cnt);
+				sprintf(qiftp_get_m26, "AT+QFTPGET=\"%sstm32_%d.bin\"\r\n",g_ftp,m26_cnt);
 				gprs_at_cmd(g_dev_m26, qiftp_get_m26);
 				g_m26_state = M26_STATE_GET_FILE;
 				break;
@@ -770,6 +773,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				{
 					close(down_fd);
 					mp.firmCRC = CRC_check_file("/stm32.bin");
+					if (mp.firmCRC != g_crc)
+						rt_kprintf("App download failed\r\n",mp.firmCRC,g_crc);
+					else
+						rt_kprintf("App donwload ok\r\n");
 					if (g_app_v!=0)
 						mp.firmVersion = g_app_v;
 					mp.firmLength = stm32_len;
