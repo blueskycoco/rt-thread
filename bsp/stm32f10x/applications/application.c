@@ -82,6 +82,8 @@ extern rt_uint16_t g_alarm_reason;
 rt_uint16_t should_upload_bat = 0;
 rt_uint8_t time_protect=0;
 extern rt_uint8_t g_remote_protect;
+extern rt_uint8_t g_fq_index;
+extern rt_uint8_t		g_operationType;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 1024 ];
@@ -337,7 +339,7 @@ static void led_thread_entry(void* parameter)
 		{
 			rt_kprintf("alarm voice %d\r\n",g_alarm_voice);
 			g_alarm_voice -=1;
-			if (g_alarm_voice == 1) {		
+			if (g_alarm_voice == 1 || g_alarm_voice == 0) {		
 			bell_ctl(0);		
 			//Stop_Playing();
 			}
@@ -374,7 +376,7 @@ static void led_thread_entry(void* parameter)
 			else if (g_delay_in >0 && g_delay_in <= 10){
 				rt_kprintf("last count %d\r\n",g_delay_in);
 				if (g_delay_in == 10) {
-					Wtn6_Play(VOICE_COUNTDOWN,ONCE);
+					//Wtn6_Play(VOICE_COUNTDOWN,ONCE);
 					rt_thread_delay(300);
 				}
 				g_delay_in -= 1;
@@ -389,6 +391,10 @@ static void led_thread_entry(void* parameter)
 					bell_ctl(1);				
 					Wtn6_Play(VOICE_ALARM1,LOOP);
 					g_alarm_voice = fqp.alarm_voice_time;
+				}
+				if (cur_status && g_operationType == 1) {
+					g_alarm_fq = g_fq_index;
+					upload_server(CMD_ALARM);
 				}
 			}
 		}

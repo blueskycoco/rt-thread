@@ -774,16 +774,19 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					close(down_fd);
 					mp.firmCRC = CRC_check_file("/stm32.bin");
 					if (mp.firmCRC != g_crc)
-						rt_kprintf("App download failed\r\n",mp.firmCRC,g_crc);
-					else
+					{
+						rt_kprintf("App download failed %x %x\r\n",mp.firmCRC,g_crc);
+					}
+					else {
 						rt_kprintf("App donwload ok\r\n");
-					if (g_app_v!=0)
-						mp.firmVersion = g_app_v;
-					mp.firmLength = stm32_len;
-					rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
-					if (!cur_status) {
-					rt_thread_sleep(500);
-					NVIC_SystemReset();
+						if (g_app_v!=0)
+							mp.firmVersion = g_app_v;
+						mp.firmLength = stm32_len;
+						rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+						if (!cur_status) {
+						rt_thread_sleep(500);
+						NVIC_SystemReset();
+						}
 					}
 					gprs_at_cmd(g_dev_m26,qiftp_close);
 					g_m26_state = M26_STATE_SET_QIACT;

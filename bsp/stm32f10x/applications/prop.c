@@ -314,7 +314,7 @@ int load_param()
 
 	fqp.delya_out=0;
 	fqp.delay_in=30;
-	fqp.alarm_voice_time=30;
+	fqp.alarm_voice_time=1;
 	fqp.is_alarm_voice =1;
 	fqp.is_lamp = 0x04;
 	//mp.socketAddress[0].port = 1122;

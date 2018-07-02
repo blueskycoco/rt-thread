@@ -52,7 +52,7 @@ rt_uint8_t g_fq_index;
 rt_uint8_t  	g_operationType;
 rt_uint8_t  	g_voiceType;
 rt_uint16_t g_crc;
-rt_uint8_t *g_ftp;
+rt_uint8_t *g_ftp = RT_NULL;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -426,7 +426,9 @@ void info_user(void *param)
 					Wtn6_Play(VOICE_ALARM2,LOOP);
 				}*/
 				g_alarm_fq = /*fangqu_wireless[g_index_sub].*/g_fq_index;
-				upload_server(CMD_ALARM);				
+				if (g_operationType != 1) {
+						upload_server(CMD_ALARM);				
+				}
 		}
 		
 		if (ev & INFO_EVENT_SHOW_NUM) {
@@ -485,6 +487,8 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 				rt_kprintf("new APP version: \t%d",v);
 				g_app_v = v;
 				g_crc = (cmd[7] << 8)|cmd[8];
+				if (g_ftp != RT_NULL)
+					rt_free(g_ftp);
 				g_ftp = rt_malloc((cmd[9] + 1)*sizeof(rt_uint8_t));
 				rt_kprintf("server crc\t %x\r\n",g_crc);
 				rt_kprintf("len %d\r\n", cmd[9]);
