@@ -145,6 +145,12 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 void default_fqp()
 {
 	int i;
+	
+	fqp.delya_out=30;
+	fqp.delay_in=0;
+	fqp.alarm_voice_time=1;
+	fqp.is_alarm_voice =1;
+	fqp.is_lamp = 0x04;
 	for(i=0;i<WIRE_MAX;i++)
 	{
 		if(fangqu_wire[i].index != 0) {
@@ -312,11 +318,6 @@ int load_param()
 		close(fd);
 	}
 
-	fqp.delya_out=0;
-	fqp.delay_in=30;
-	fqp.alarm_voice_time=1;
-	fqp.is_alarm_voice =1;
-	fqp.is_lamp = 0x04;
 	//mp.socketAddress[0].port = 1122;
 	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	return 1;
