@@ -341,7 +341,7 @@ void info_user(void *param)
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
-			rt_kprintf("ALARM command type %d\r\n", command_type);
+			rt_kprintf("ALARM command type %d %d\r\n", command_type,g_operationType);
 			if (command_type == 4)
 				continue;
 			g_alarm_reason = 0x1001;
@@ -377,9 +377,9 @@ void info_user(void *param)
 						rt_kprintf("non-emergency audio play\r\n");
 						if (/*fangqu_wireless[g_index_sub].*/g_operationType == 1 && fqp.delay_in > 0) { //delay mode
 							//g_alarm_voice = fqp.alarm_voice_time;
-							rt_kprintf("non-emergency audio delay mode\r\n");
 							g_flag=0;
 							g_delay_in = fqp.delay_in;
+							rt_kprintf("non-emergency audio delay mode %d %d\r\n",fqp.delay_in,g_flag);
 							Wtn6_Play(VOICE_ALARM2,LOOP);
 						} else {
 							rt_kprintf("non-emergency audio normal mode\r\n");
@@ -426,7 +426,7 @@ void info_user(void *param)
 					Wtn6_Play(VOICE_ALARM2,LOOP);
 				}*/
 				g_alarm_fq = /*fangqu_wireless[g_index_sub].*/g_fq_index;
-				if (g_operationType != 1) {
+				if (g_operationType != 1 || fqp.delay_in == 0) {
 						upload_server(CMD_ALARM);				
 				}
 		}

@@ -31,7 +31,7 @@ extern rt_uint8_t 	s1;
 extern rt_uint8_t g_fq_index;
 extern rt_uint8_t  	g_operationType;
 extern rt_uint8_t  	g_voiceType;
-
+extern rt_uint16_t command_type;
 int poll_can()
 {
 	int i=0;
@@ -220,7 +220,7 @@ void handle_wire_alarm(rt_uint8_t addr)
 {
 	g_num = addr+WIRELESS_MAX;
 	g_alarmType = fangqu_wire[addr].alarmType;
-	rt_kprintf("proc wire alarm %d %d\r\n",fangqu_wire[addr].operationType,
+	rt_kprintf("proc wire alarm %d %d %d\r\n",addr,fangqu_wire[addr].operationType,
 		cur_status);
 	if (fangqu_wire[addr].operationType==2 /*24 hour*/
 		) {
@@ -229,7 +229,7 @@ void handle_wire_alarm(rt_uint8_t addr)
 		g_voiceType = fangqu_wire[addr].voiceType;
 		rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);				
-		rt_kprintf("wire emergency alarm\r\n");
+		rt_kprintf("wire emergency alarm %d\r\n",g_operationType);
 	} else {
 		/*normal alarm*/
 		if (cur_status && !fangqu_wire[addr].isBypass) {					
@@ -238,7 +238,7 @@ void handle_wire_alarm(rt_uint8_t addr)
 			g_voiceType = fangqu_wire[addr].voiceType;
 			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);										
-			rt_kprintf("wire normal alarm\r\n");
+			rt_kprintf("wire normal alarm %d\r\n",g_operationType);
 		}
 	}
 }
@@ -323,6 +323,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
 					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
+					command_type = (resp[0]<<8|resp[1]);
 				rt_kprintf("<$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\r\n");
 				rt_kprintf("CMD\t\t%s\r\n", can_cmd_type(resp[0]<<8|resp[1]));		
 					rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
