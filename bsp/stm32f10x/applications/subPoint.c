@@ -396,8 +396,11 @@ void cmd_dump(rt_uint8_t *data,rt_uint8_t flag)
 		rt_kprintf("Dev build time :%06x\r\n", dev_time);
 	}
 	g_num = data[1];
+	if (g_num == 0 && command_type == 0x0006) {
+		g_num = get_addr(sub_id,fangqu_wireless,WIRELESS_MAX);
+	}
 	rt_kprintf("Battery :\t%d\r\n",battery);
-	rt_kprintf("Protect Zone :\t%02x\r\n", data[1]);
+	rt_kprintf("Protect Zone :\t%02x\r\n", g_num);
 
 	rt_kprintf("STM32 Param sn: %02x%02x%02x%02x%02x%02x\r\n", 
 		mp.roProperty.sn[0],

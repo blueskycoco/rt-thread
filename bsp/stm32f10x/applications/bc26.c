@@ -106,7 +106,7 @@
 #define cregr "AT+CREG?\r\n"
 #define at_csq "AT+CSQ\r\n"
 #define at_qccid "AT+QCCID\r\n"
-#define gsn "AT+GSN\r\n"
+#define gsn "AT+CGSN=1\r\n"
 
 #define cimi "AT+CIMI\r\n"
 #define cpin "AT+CPIN?\r\n"
