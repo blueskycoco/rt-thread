@@ -43,7 +43,7 @@ extern rt_uint8_t g_heart_cnt;
 extern rt_uint8_t g_addr_type;
 extern struct rt_mutex g_stm32_lock;
 extern rt_uint8_t entering_ftp_mode;
-extern rt_uint16_t g_app_v;
+rt_uint16_t g_app_v=0;
 extern rt_uint8_t time_protect;
 rt_uint8_t g_yanshi = 0;
 rt_uint8_t g_remote_protect = 0;

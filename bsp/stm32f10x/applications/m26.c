@@ -125,14 +125,14 @@
 uint8_t 	  qicsgp_m26[32]			= {0};
 uint8_t 	  qiopen_m26[64]			= {0};
 uint8_t 	  qisend_m26[32] 			= {0};
-uint8_t 	  qiftp_set_resuming[32] 	= {0};
+//uint8_t 	  qiftp_set_resuming[32] 	= {0};
 uint8_t 	  qiftp_m26_ram[32]			= {0};
 uint8_t		  qiftp_get_m26[128]			= {0};
 #define qiregapp "AT+QIREGAPP\r\n"
 #define qiact "AT+QIACT\r\n"
 rt_bool_t g_data_in_m26 = RT_FALSE;
 extern int g_index;
-rt_uint32_t ftp_ofs = 0;
+//rt_uint32_t ftp_ofs = 0;
 rt_device_t g_dev_m26;
 uint8_t g_m26_state 				= M26_STATE_INIT;
 uint32_t server_len_m26 = 0;
@@ -162,7 +162,7 @@ uint8_t 	  qiftp_m26[64];
 extern uint8_t		  qiftp_read_file[32];//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
 extern uint8_t			qiftp_close_file[32];
 extern rt_uint8_t ftp_rty;
-rt_uint16_t g_app_v=0;
+extern rt_uint16_t g_app_v;
 extern struct rt_event g_info_event;
 rt_uint32_t bak_server_len_m26 = 0;
 rt_uint8_t test_buf[128] = {0};

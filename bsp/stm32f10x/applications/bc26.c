@@ -49,16 +49,18 @@
 #define BC26_STATE_V				34
 #define BC26_STATE_CLEAN_RAM		35
 #define BC26_STATE_CLOSE_FILE	36
+#define BC26_STATE_CGATT		37
 
+#define STR_CGATT_OK				"+CGATT:1"
 #define STR_CFUN					"+CFUN:"
-#define STR_RDY						"RDY"
+#define STR_RDY						"+CPIN: READY"
 #define STR_CPIN					"+CPIN:"
 #define STR_CSQ						"+CSQ:"
 #define STR_CREG					"+CREG:"
 #define STR_CPIN_READY				"+CPIN: READY"
-#define STR_CGREG					"+CGREG: 0,"
-#define STR_CGREG_READY				"+CGREG: 0,1"
-#define STR_CGREG_READY1			"+CGREG: 0,5"
+#define STR_CGREG					"+CEREG: 0,"
+#define STR_CGREG_READY				"+CEREG: 0,1"
+#define STR_CGREG_READY1			"+CEREG: 0,5"
 #define STR_STAT_INIT				"IP INITIAL"
 #define STR_STAT_IND				"IP IND"
 #define STR_STAT_CLOSE				"IP CLOSE"
@@ -99,7 +101,7 @@
 #define qilocip "AT+QILOCIP\r\n"
 #define qilport "AT+QILPORT?\r\n"
 #define e0 "ATE0\r\n"
-#define cgreg "AT+CGREG?\r\n"
+#define cgreg "AT+CEREG?\r\n"
 #define cregs "AT+CREG=2\r\n"
 #define cregr "AT+CREG?\r\n"
 #define at_csq "AT+CSQ\r\n"
@@ -118,20 +120,21 @@
 #define qird "AT+QIRD=0,1,0,1500\r\n"
 #define qisack "AT+QISACK\r\n"
 #define qiat "AT\r\n"
+#define cgatt	"AT+CGATT?\r\n"
 #define qiftp_set_path	"AT+QFTPPATH=\"/\"\r\n"
 #define qiftp_file_size	"AT+QFTPSIZE=\"stm32_0.bin\"\r\n"
 #define qiftp_clean_ram "AT+QFDEL=\"RAM:*\"\r\n"
 uint8_t 	  qicsgp_bc26[32]			= {0};
 uint8_t 	  qiopen_bc26[64]			= {0};
 uint8_t 	  qisend_bc26[32] 			= {0};
-uint8_t 	  qiftp_set_resuming[32] 	= {0};
+//uint8_t 	  qiftp_set_resuming[32] 	= {0};
 uint8_t 	  qiftp_bc26_ram[32]			= {0};
 uint8_t		  qiftp_get_bc26[32]			= {0};
 #define qiregapp "AT+QIREGAPP\r\n"
 #define qiact "AT+QIACT\r\n"
 rt_bool_t g_data_in_bc26 = RT_FALSE;
 extern int g_index;
-rt_uint32_t ftp_ofs = 0;
+//rt_uint32_t ftp_ofs = 0;
 rt_device_t g_dev_bc26;
 uint8_t g_bc26_state 				= BC26_STATE_INIT;
 uint32_t server_len_bc26 = 0;
@@ -161,7 +164,7 @@ uint8_t 	  qiftp_bc26[64];
 extern uint8_t		  qiftp_read_file[32];//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
 extern uint8_t			qiftp_close_file[32];
 extern rt_uint8_t ftp_rty;
-rt_uint16_t g_app_v=0;
+extern rt_uint16_t g_app_v;
 extern struct rt_event g_info_event;
 
 void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
@@ -352,6 +355,7 @@ void bc26_start(int index)
 		GPIO_pwr = GPIOC;
 		rt_kprintf("use pcie0 gpioc pin 7\r\n");
 	}
+	g_bc26_state = BC26_STATE_INIT;
 	RCC_APB2PeriphClockCmd(power_rcc|pwr_key_rcc,ENABLE);
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -386,13 +390,13 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 		else
 			rt_kprintf("\r\n(BC26<= %d %d %d)\r\n",g_bc26_state, data_size, rt_strlen(last_data_ptr));
 	if (data_size >= 2) {
-		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN))
+		if (have_str(last_data_ptr,STR_RDY))
 		{
 			g_bc26_state = BC26_STATE_INIT;
 		}
 		switch (g_bc26_state) {
 			case BC26_STATE_INIT:
-				if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)) {
+				if (have_str(last_data_ptr,STR_RDY)) {
 				g_bc26_state = BC26_STATE_ATE0;
 				gprs_at_cmd(g_dev_bc26,e0);	
 				}
@@ -409,10 +413,20 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 			case BC26_STATE_V:
 				if (have_str(last_data_ptr,STR_OK)) {
 					g_pcie[g_index]->cpin_cnt=0;
-					g_bc26_state = BC26_STATE_CHECK_CPIN;
-					gprs_at_cmd(g_dev_bc26,cpin);
+					g_bc26_state = BC26_STATE_CGATT;
+					gprs_at_cmd(g_dev_bc26,cgatt);
 				}
 				break;
+			case BC26_STATE_CGATT:
+				if (have_str(last_data_ptr, STR_CGATT_OK)) {
+					g_bc26_state = BC26_STATE_CHECK_CGREG;
+					gprs_at_cmd(g_dev_bc26,cgreg);
+				} else {
+					rt_thread_delay(RT_TICK_PER_SECOND);
+					gprs_at_cmd(g_dev_bc26,cgatt);
+				}
+				break;	
+				#if 0
 			case BC26_STATE_CHECK_CPIN:
 				if (have_str(last_data_ptr,STR_CPIN_READY)) {
 					g_pcie[g_index]->cpin_cnt=0;
@@ -434,6 +448,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_bc26,cpin);
 				}
 				break;
+				#endif
 			case BC26_STATE_CSQ:
 				if (have_str(last_data_ptr,STR_CSQ)) {
 					if (tmp[9] == 0x2c)
@@ -552,8 +567,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_bc26,qistat);
 					break;
 			case BC26_STATE_CHECK_CGREG:
-				if (have_str(last_data_ptr, STR_CGREG_READY) ||
-						have_str(last_data_ptr, STR_CGREG_READY1)) {
+				if (have_str(last_data_ptr, STR_CGREG_READY)||have_str(last_data_ptr, STR_CGREG_READY1)) {
 					//g_bc26_state = BC26_STATE_CHECK_QISTAT;
 					g_bc26_state = BC26_STATE_CSQ;
 					gprs_at_cmd(g_dev_bc26,at_csq);
@@ -602,6 +616,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case BC26_STATE_OPEN_FTP:
 				{
+					#if 0
 					if (have_str(last_data_ptr, STR_FTP_OK_BC26)) {
 						rt_kprintf("login ftp ok\r\n");
 						bc26_cnt = 0;
@@ -623,6 +638,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 							}
 						}
 					}
+					#endif
 				}
 				break;
 			case BC26_STATE_SET_LOCATION:
@@ -645,6 +661,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;
 			case BC26_STATE_GET_FILE:
+				#if 0
 				if (have_str(last_data_ptr, STR_QFTPGET_BC26)) {					
 					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET_BC26)+strlen(STR_QFTPGET_BC26),data_size-strlen(STR_QFTPGET_BC26));
 					rt_kprintf("get stm32 len %d\r\n", stm32_len);		
@@ -653,6 +670,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_bc26_state = BC26_STATE_READ_FILE;
 					stm32_fd=0;			
 				}
+				#endif
 				break;
 			case BC26_STATE_READ_FILE:
 				if (stm32_fd == 0) {

@@ -717,6 +717,18 @@ void rt_init_thread_entry(void* parameter)
 		pcie_init(0,PCIE_2_EC20);
 		pcie_switch(PCIE_2_EC20);
 		SetStateIco(6,1);
+		SetStateIco(5,0);		
+	}else if(pcie_status & PCIE_2_NBIOT) {
+		SetSimTypeIco(2);
+		pcie_init(0,PCIE_2_NBIOT);
+		pcie_switch(PCIE_2_NBIOT);
+		SetStateIco(6,1);
+		SetStateIco(5,0);
+	} else if(pcie_status & PCIE_1_NBIOT) {
+		SetSimTypeIco(2);
+		pcie_init(PCIE_1_NBIOT,0);
+		pcie_switch(PCIE_1_NBIOT);
+		SetStateIco(6,1);
 		SetStateIco(5,0);
 	} else {
 		/*play audio here*/

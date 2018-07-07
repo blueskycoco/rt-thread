@@ -4,7 +4,7 @@
 #include "led.h"
 #include <string.h>
 #include "m26.h"
-//#include "bc26.h"
+#include "bc26.h"
 #include "ec20.h"
 //#include "nb_iot.h"
 //#include "ip_module.h"
@@ -193,7 +193,7 @@ void pcie1_sm(void* parameter)
 					ec20_proc(last_data_ptr, data_size);
 					break;
 				case PCIE_2_NBIOT:
-					//bc26_proc(last_data_ptr, data_size);
+					bc26_proc(last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie1 unknown sm\r\n");
@@ -229,7 +229,7 @@ void pcie0_sm(void* parameter)
 					ec20_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_1_NBIOT:
-					//bc26_proc(last_data_ptr, data_size);
+					bc26_proc(last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie0 unknown sm\r\n");
@@ -826,7 +826,11 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			ec20_start(0);
 			break;
 		case PCIE_1_NBIOT:
-			//nb_iot_start(0);
+			switch_pcie_power(1);
+			rt_thread_delay(10);
+			switch_pcie_power(0);
+			rt_thread_delay(10);
+			bc26_start(0);
 			break;
 		case PCIE_2_IP:
 			//ip_module_start(1);
@@ -840,7 +844,11 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			ec20_start(1);
 			break;
 		case PCIE_2_NBIOT:
-			//nb_iot_start(1);
+			switch_pcie_power(0);
+			rt_thread_delay(10);
+			switch_pcie_power(1);
+			rt_thread_delay(10);
+			bc26_start(1);
 			break;
 		default:
 			rt_kprintf("uninsert module on pcie\r\n");
