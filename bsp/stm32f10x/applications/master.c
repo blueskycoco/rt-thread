@@ -695,47 +695,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		cmd[ofs+1],cmd[ofs+2],cmd[ofs+3],cmd[ofs+4],cmd[ofs+5],cmd[ofs+6]);
 	g_operate_platform = cmd[ofs];
 	memcpy(g_operater,cmd+ofs+1,6);
-	g_remote_protect = 1;
-	/*execute cmd*/
-	if (cmd[1] == 1) {
-		if (cmd[2] == 0xff) {
-			/*proc stm32*/
-			if (cmd[0] == 0x01) {
-				if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
-				{
-					cur_status = 0;
-					g_alarmType =0;
-					g_delay_out = 0;
-					g_alarm_voice = 0;
-					g_delay_in = 0;
-					fqp.status=cur_status;
-					s1=0;
-					handle_protect_off();
-				} else {
-					flag=1;
-					Wtn6_Play(VOICE_ERRORTIP,ONCE);
-				}
-			} else if (cmd[0] == 0x02) {
-				if (!cur_status && g_delay_out==0)
-				{
-					g_sub_event_code = 0x2002;
-					handle_protect_on();
-				} else {
-					flag = 1;
-					Wtn6_Play(VOICE_ERRORTIP,ONCE);
-				}
-			}
-		} else {
-			/*proc signle fq*/
-			//proc_fq(cmd+2, 1, cmd[0]);
-			proc_detail_fq(cmd[2], cmd[0]);
-		}
-	} else {
-		/*proc multi fq*/
-		proc_fq(cmd+2, 10, cmd[0]);
-	}
-	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
-	rt_thread_delay(100);
+	g_remote_protect = 1;	
 	/*build proc sub ack*/
 	g_fq_len=cmd[1];
 	if (cmd[0] == 1)
@@ -750,8 +710,54 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		g_sub_event_code = 0x200D;
 	else if (cmd[0] == 6)
 		g_sub_event_code = 0x2005;
-	if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
-	upload_server(CMD_SUB_EVENT);
+	/*execute cmd*/
+	if (cmd[1] == 1) {
+		if (cmd[2] == 0xff) {
+			/*proc stm32*/
+			if (cmd[0] == 0x01) {
+				if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
+				{
+					cur_status = 0;
+					g_alarmType =0;
+					g_delay_out = 0;
+					g_alarm_voice = 0;
+					g_delay_in = 0;
+					fqp.status=cur_status;
+					s1=0;
+					upload_server(CMD_SUB_EVENT);
+					handle_protect_off();
+				} else {
+					flag=1;
+					//Wtn6_Play(VOICE_ERRORTIP,ONCE);
+				}
+			} else if (cmd[0] == 0x02) {
+				if (!cur_status && g_delay_out==0)
+				{
+					//g_sub_event_code = 0x2002;
+					upload_server(CMD_SUB_EVENT);
+					handle_protect_on();
+				} else {
+					flag = 1;
+					//Wtn6_Play(VOICE_ERRORTIP,ONCE);
+				}
+			}
+		} else {
+			/*proc signle fq*/
+			//proc_fq(cmd+2, 1, cmd[0]);
+			proc_detail_fq(cmd[2], cmd[0]);
+			if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
+				upload_server(CMD_SUB_EVENT);
+		}
+	} else {
+		/*proc multi fq*/
+		proc_fq(cmd+2, 10, cmd[0]);
+		if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
+			upload_server(CMD_SUB_EVENT);
+	}
+	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
+	rt_thread_delay(100);
+	//if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
+	//upload_server(CMD_SUB_EVENT);
 }
 
 rt_uint8_t handle_packet(rt_uint8_t *data)

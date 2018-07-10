@@ -318,7 +318,7 @@ int load_param()
 		close(fd);
 	}
 
-	//mp.socketAddress[0].port = 1122;
+	mp.socketAddress[0].port = 1705;
 	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	return 1;
 }

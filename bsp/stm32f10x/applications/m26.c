@@ -398,10 +398,10 @@ void m26_start(int index)
 	/*open pciex power*/
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
 	//GPIO_ResetBits(GPIO_power, power_pin);
-	rt_thread_delay(RT_TICK_PER_SECOND);
+	rt_thread_delay(RT_TICK_PER_SECOND/3);
 	GPIO_SetBits(GPIO_power, power_pin);
 	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
-	rt_thread_delay(RT_TICK_PER_SECOND);
+	rt_thread_delay(RT_TICK_PER_SECOND*2);
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
 	rt_kprintf("m26 power on done\r\n");
 
@@ -431,6 +431,11 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				rt_kprintf("%c", tmp[i]);
 			else
 				break;
+		if (have_str(last_data_ptr, STR_QIRDI)) {
+			rt_time_t cur_time = time(RT_NULL);
+			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
+		
+		}
 	}
 #endif
 	if (data_size >= 2) {

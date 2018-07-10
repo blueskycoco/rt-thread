@@ -105,6 +105,7 @@ char *cmd_dev_type(rt_uint8_t type)
 char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 {
 	int i;
+	rt_kprintf("to get addr\r\n");
 	for (i=0;i<len;i++)
 	{
 		rt_kprintf("%d subId %08x, sn %08x, addr %x\r\n",
@@ -568,6 +569,7 @@ void handleSub(rt_uint8_t *data)
 		resp[15]=0x00;resp[16]=data[16]+0x01;resp[17]=data[17];
 		if (g_main_state == 1 && dev_type == 0x43)
 		{
+			rt_kprintf("to save wireless door\r\n");
 			save_fq(fangqu_wireless,WIRELESS_MAX);
 			return ;
 		}

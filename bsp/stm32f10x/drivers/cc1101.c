@@ -298,7 +298,7 @@ void MRFI_RSSI_VALID_WAIT()
 {                                                                             
   uint16_t delay = MRFI_RSSI_VALID_DELAY_US;                                   
   unsigned char status;	
- // rt_kprintf("st 1\r\n");
+  rt_kprintf("st 1\r\n");
   do                                                                    
   {	
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
@@ -306,15 +306,15 @@ void MRFI_RSSI_VALID_WAIT()
     {
       break;                                                                  
     }
-    //__delay_cycles(64);
+    __delay_cycles(64);
 	trxSpiCmdStrobe( RF_SRX );
-    rt_thread_delay(1);
+   // rt_thread_delay(1);
 	if (delay>64)
     	delay -= 64; 
 	else
 		break;
   }while (delay>0);
-	//rt_kprintf("st %x %d\r\n", status,delay);
+	rt_kprintf("st %x %d\r\n", status,delay);
 }        
 
 static void cc1101_set_tx_mode(void)  
@@ -457,8 +457,8 @@ static void cc1101_write_tx_buf(void *_buf, int count)
     int i;  
     for(i = 0; i < count; i++)  
     {  
-        while(((rf_dev.tx_wr+1) % TX_BUF_SIZE) == rf_dev.tx_rd);
-		//	rt_kprintf("waiting here\r\n");  
+        while(((rf_dev.tx_wr+1) % TX_BUF_SIZE) == rf_dev.tx_rd)
+			rt_kprintf("waiting here\r\n");  
         rf_dev.tx_buf[rf_dev.tx_wr++] = buf[i];  
         rf_dev.tx_wr %= TX_BUF_SIZE;  
     }  
@@ -502,7 +502,7 @@ static void cc1101_send(void*_buf, unsigned short count)
 {  
     unsigned char *buf = (unsigned char *)_buf;  
     unsigned char buf_tmp[TX_BUF_SIZE];  
-  
+  rt_kprintf("cc1101 send 0 %d\r\n",count);
     if(count == 0 || count > TX_BUF_SIZE)  
     {  
         return;  
@@ -515,24 +515,28 @@ static void cc1101_send(void*_buf, unsigned short count)
        
       if device is receive mode, tx buf free size is TX_BUF_SIZE 
     */  
-  
+  rt_kprintf("cc1101 send 1\r\n");
     cc1101_write_tx_buf(buf, count);  
-  
+  rt_kprintf("cc1101 send 2\r\n");
     if(rf_dev.mode == MODE_RX)  
     {  
+    	rt_kprintf("cc1101 send 3\r\n");
         if(count < MAX_FIFO_SIZE)  
         {  
             cc1101_read_tx_buf(buf_tmp, count);  
             cc1101_send_packet(buf_tmp, count);  
+			rt_kprintf("cc1101 send 4\r\n");
         }  
         else if(count >= MAX_FIFO_SIZE)  
         {  
             cc1101_read_tx_buf(buf_tmp, MAX_FIFO_SIZE);  
             cc1101_send_packet(buf_tmp, MAX_FIFO_SIZE);  
+			rt_kprintf("cc1101 send 5\r\n");
         }  
-  
+  		rt_kprintf("cc1101 send 6\r\n");
         cc1101_set_tx_mode();  
     }  
+	rt_kprintf("cc1101 send 7\r\n");
 }  
 void cc1101_send_write(void*_buf, unsigned short count)  
 {  
