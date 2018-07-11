@@ -650,7 +650,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 
 	if (flow_cnt == 255)
 		flow_cnt=0;
-	net_flow();
+	//net_flow();
 	rt_kprintf("\r\n******************************************************\r\n");
 	return ofs;
 }

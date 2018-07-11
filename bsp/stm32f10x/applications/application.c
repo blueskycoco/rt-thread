@@ -249,6 +249,10 @@ static void led_thread_entry(void* parameter)
 #ifndef RT_USING_FINSH
 		// rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
+		//if (net_flow_flag) {
+		//	net_flow();
+		//	net_flow_flag=0;
+		//}
 		//buzzer_ctl(1);
 		/*heart cnt*/
 		heart_time++;
@@ -767,6 +771,7 @@ void rt_init_thread_entry(void* parameter)
 			rt_kprintf("\r\ncc1101 recv data %d:",len);
 			cc1101_hex_printf1(buf1,len);
 			rt_kprintf("\r\n");
+			print_ts("CC1101");
 			handleSub(buf1);				
 			rt_mutex_release(&g_stm32_lock);
 			count++;

@@ -53,6 +53,7 @@ rt_uint8_t  	g_operationType;
 rt_uint8_t  	g_voiceType;
 rt_uint16_t g_crc;
 rt_uint8_t *g_ftp = RT_NULL;
+//rt_uint8_t net_flow_flag=0;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -767,7 +768,8 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 	rt_uint16_t packet_type = (data[1]<<8)|data[2];
 	rt_uint16_t protocl_v = (data[3]<<8)|data[4];
 	rt_uint8_t stm32_id[6];	
-	net_flow();
+	//net_flow();
+	//net_flow_flag=1;
 	memcpy(stm32_id, data+5,6);
 	rt_time_t cur_time = time(RT_NULL);
 	rt_kprintf("\r\nrecv server ok ========> %s\r\n",ctime(&cur_time));

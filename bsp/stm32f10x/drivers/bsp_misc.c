@@ -499,3 +499,8 @@ void show_memory_info(void)
     rt_kprintf("maximum allocated memory: %d\n", maxused);	
 	rt_kprintf("++++++++++++++++++++++++++++++++++++++++++++++++\r\n");
 }
+void print_ts(rt_uint8_t *ptr)
+{
+	rt_time_t cur_time = time(RT_NULL);
+	rt_kprintf(" %s %s\r\n",ptr,ctime(&cur_time));
+}
