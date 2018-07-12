@@ -53,6 +53,7 @@ rt_uint8_t  	g_operationType;
 rt_uint8_t  	g_voiceType;
 rt_uint16_t g_crc;
 rt_uint8_t *g_ftp = RT_NULL;
+extern rt_uint8_t s_bufang;
 //rt_uint8_t net_flow_flag=0;
 void handle_led(int type)
 {
@@ -153,6 +154,7 @@ void info_user(void *param)
 			NVIC_SystemReset();
 		}
 		if (ev & INFO_EVENT_PROTECT_ON) {
+			rt_kprintf("liji protect\r\n");
 			SetStateIco(1,0);
 			SetStateIco(0,1);
 			rt_hw_led_on(ARM_LED);
@@ -231,10 +233,13 @@ void info_user(void *param)
 			g_yanshi = 0;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
+			SetStateIco(1,0);
+			SetStateIco(0,1);
 			g_delay_out = fqp.delya_out;
-			g_alarm_voice = fqp.alarm_voice_time;
+			g_alarm_voice = fqp.alarm_voice_time*60;
 			g_yanshi = 1;
-			g_flag = 1;
+			g_flag = 1;	
+			s_bufang=1;		
 			g_sub_event_code = 0x2002;
 			if (g_remote_protect != 1)
 				{	
@@ -278,7 +283,7 @@ void info_user(void *param)
 				}
 			rt_thread_delay(200);
 			Wtn6_Play(VOICE_YANSHIBF,LOOP);
-			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);			
+			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
 			alarm_led=0;
@@ -366,7 +371,7 @@ void info_user(void *param)
 					if (/*fangqu_wireless[g_index_sub].voiceType*/g_voiceType == 0 && fqp.is_alarm_voice && fqp.alarm_voice_time>0)
 					{
 						if ( /*fangqu_wireless[g_index_sub].*/g_operationType==0 || g_alarmType == 2)
-							g_alarm_voice = fqp.alarm_voice_time;
+							g_alarm_voice = fqp.alarm_voice_time*60;
 						
 						if (/*fangqu_wireless[g_index_sub].*/g_operationType != 1)
 							bell_ctl(1);
@@ -384,7 +389,7 @@ void info_user(void *param)
 							Wtn6_Play(VOICE_ALARM2,LOOP);
 						} else {
 							rt_kprintf("non-emergency audio normal mode\r\n");
-							g_alarm_voice = fqp.alarm_voice_time;
+							g_alarm_voice = fqp.alarm_voice_time*60;
 							Wtn6_Play(VOICE_ALARM1,LOOP);
 						}
 					} else {
@@ -395,7 +400,7 @@ void info_user(void *param)
 							Wtn6_Play(VOICE_FCALARM,ONCE);
 						} else {
 							rt_kprintf("non-s1 audio \r\n");
-							g_alarm_voice = fqp.alarm_voice_time;
+							g_alarm_voice = fqp.alarm_voice_time*60;
 							rt_uint8_t action = ONCE;
 							if (g_alarm_voice >0)
 								action = LOOP;

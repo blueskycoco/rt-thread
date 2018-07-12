@@ -32,6 +32,7 @@ extern rt_uint8_t g_fq_index;
 extern rt_uint8_t  	g_operationType;
 extern rt_uint8_t  	g_voiceType;
 extern rt_uint16_t command_type;
+extern rt_uint8_t 	g_mute;
 int poll_can()
 {
 	int i=0;
@@ -222,6 +223,7 @@ void handle_wire_alarm(rt_uint8_t addr)
 	g_alarmType = fangqu_wire[addr].alarmType;
 	rt_kprintf("proc wire alarm %d %d %d\r\n",addr,fangqu_wire[addr].operationType,
 		cur_status);
+	g_mute=0;
 	if (fangqu_wire[addr].operationType==2 /*24 hour*/
 		) {
 		g_fq_index = fangqu_wire[addr].index;

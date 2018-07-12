@@ -52,6 +52,8 @@ extern rt_uint8_t s1;
 extern rt_uint8_t time_protect;
 rt_uint8_t duima_key=0;
 extern rt_uint8_t g_remote_protect;
+extern rt_uint8_t 	g_mute;
+rt_uint8_t s_bufang=0;
 /**
   * @brief   This function handles NMI exception.
   * @param  None
@@ -253,6 +255,7 @@ void EXTI9_5_IRQHandler(void)
 							s1=0;
 							time_protect = 1;
 							duima_key=1;
+							g_mute=0;
 							g_remote_protect=0;
 							rt_kprintf("switch protect off\r\n");
 							handle_protect_off();
@@ -265,13 +268,23 @@ void EXTI9_5_IRQHandler(void)
 							g_sub_event_code = 0x2002;
 							time_protect = 1;
 							duima_key=1;
+							//s_bufang=1;
 							handle_protect_on();
 						}
 					}
 				}
 			}
 			else
+			{
 				short_press=0;
+				rt_kprintf("GGGGG %d %d %d\r\n",g_mute,cur_status,s_bufang);
+				if (s_bufang) {
+					g_mute=1;
+					s_bufang=0;
+					rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
+					rt_kprintf("got key mute\r\n");
+				}
+			}
 		} else {
 			e_cnt =rt_tick_get(); 
 			diff = e_cnt - s_cnt;

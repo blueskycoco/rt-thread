@@ -374,7 +374,7 @@ static void led_thread_entry(void* parameter)
 				//g_alarm_voice =0;				
 			}
 		} else {
-		//	rt_kprintf("delay in %d\r\n", g_delay_in);
+			//rt_kprintf("delay alarm %d\r\n", g_delay_in);
 			if (g_delay_in > 10)
 				g_delay_in -= 1;
 			else if (g_delay_in >0 && g_delay_in <= 10){
@@ -394,7 +394,7 @@ static void led_thread_entry(void* parameter)
 					rt_kprintf("open delay fq bell\r\n");
 					bell_ctl(1);				
 					Wtn6_Play(VOICE_ALARM1,LOOP);
-					g_alarm_voice = fqp.alarm_voice_time;
+					g_alarm_voice = fqp.alarm_voice_time*60;
 				}
 				if (cur_status && g_operationType == 1) {
 					g_alarm_fq = g_fq_index;
@@ -406,9 +406,11 @@ static void led_thread_entry(void* parameter)
 			g_delay_in = 0;
 			g_alarm_voice =0;				
 			Stop_Playing();
+			//rt_kprintf("delay alarm stop\r\n");
 		}
 		/*delay protect on*/
 		if (!g_mute) {
+				//rt_kprintf("delay protect %d\r\n", g_delay_out);
 				if (g_delay_out > 10)
 					g_delay_out -= 1;
 				else if (g_delay_out >0 && g_delay_out <= 10){
@@ -438,6 +440,7 @@ static void led_thread_entry(void* parameter)
 					g_delay_out -=1;
 				}
 		} else {			
+			//rt_kprintf("delay protect close\r\n");
 			Stop_Playing();
 			if (g_delay_out || g_alarm_voice) {
 				rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);

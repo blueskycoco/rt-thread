@@ -42,7 +42,7 @@ extern rt_uint8_t g_remote_protect;
 extern rt_uint8_t g_fq_index;
 extern rt_uint8_t  	g_operationType;
 extern rt_uint8_t  	g_voiceType;
-
+extern rt_uint8_t s_bufang;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -665,6 +665,7 @@ void handleSub(rt_uint8_t *data)
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		} else if (command_type == 0x000e) {
 			g_mute=1;
+			//s_bufang=1;
 			rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
 			rt_kprintf("got mute\r\n");
 		} else {

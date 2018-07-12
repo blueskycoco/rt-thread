@@ -1,6 +1,6 @@
 #include "wtn6.h"
 //#include "delay.h"
-
+uint8_t state_play = 0;
 /*
 *外部接口，初始化IO接口
 #define BUSY   PBout(0)			//芯片状态输出
@@ -60,6 +60,7 @@ void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType)
 	{
 		Set_Loop();
 	}
+	state_play=1;
 }
 /*
 *外部接口，播放多段语音
@@ -100,6 +101,7 @@ void Wtn6_JoinPlay(u8 voices[],u8 size,u8 muteTimes)
 			Send_Command(muteTimes);
 		}
 	}
+	state_play=1;
 }
 
 /*
@@ -121,10 +123,11 @@ u8 Is_Playing(void)
 */
 void Stop_Playing(void)
 {
-	//if(Is_Playing())
+	if(state_play==1)
 	{
 		Send_Command(CMD_Stop);
 	}
+	state_play=0;
 }
 static void delay_us(unsigned long ms)
 {
