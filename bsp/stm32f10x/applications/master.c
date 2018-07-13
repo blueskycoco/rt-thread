@@ -343,7 +343,9 @@ void info_user(void *param)
 					upload_server(CMD_SUB_EVENT);
 				}
 			}
-			//entering_ftp_mode	=1;		
+			//entering_ftp_mode	=1;
+			g_num=0;
+			SetErrorCode(g_num);
 		}
 
 		if (ev & INFO_EVENT_ALARM) {

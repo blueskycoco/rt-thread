@@ -409,7 +409,7 @@ static void led_thread_entry(void* parameter)
 			//rt_kprintf("delay alarm stop\r\n");
 		}
 		/*delay protect on*/
-		if (!g_mute) {
+		//if (!g_mute) {
 				//rt_kprintf("delay protect %d\r\n", g_delay_out);
 				if (g_delay_out > 10)
 					g_delay_out -= 1;
@@ -439,7 +439,10 @@ static void led_thread_entry(void* parameter)
 						}
 					g_delay_out -=1;
 				}
-		} else {			
+		//} 
+
+#if 0
+		else {			
 			//rt_kprintf("delay protect close\r\n");
 			Stop_Playing();
 			if (g_delay_out || g_alarm_voice) {
@@ -462,6 +465,7 @@ static void led_thread_entry(void* parameter)
 			g_alarm_voice =0;	
 			}
 		}
+		#endif
 		if (alarm_led)
 			alarm_flow();
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */

@@ -277,6 +277,7 @@ void EXTI9_5_IRQHandler(void)
 			else
 			{
 				short_press=0;
+#if 0
 				rt_kprintf("GGGGG %d %d %d\r\n",g_mute,cur_status,s_bufang);
 				if (s_bufang) {
 					g_mute=1;
@@ -284,6 +285,7 @@ void EXTI9_5_IRQHandler(void)
 					rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
 					rt_kprintf("got key mute\r\n");
 				}
+#endif
 			}
 		} else {
 			e_cnt =rt_tick_get(); 
