@@ -39,7 +39,7 @@
 #define BC26_STATE_ICCID				24
 #define BC26_STATE_IMEI				25
 #define BC26_STATE_LACR				26
-#define BC26_STATE_IFGCNT			27
+#define BC26_STATE_CSCON			27
 #define BC26_STATE_CFG_FTP		28
 #define BC26_STATE_OPEN_FTP		29
 #define BC26_STATE_GET_FILE		30
@@ -51,7 +51,7 @@
 #define BC26_STATE_CLOSE_FILE	36
 #define BC26_STATE_CGATT		37
 
-#define STR_CGATT_OK				"+CGATT:1"
+#define STR_CGATT_OK				"+CGATT: 1"
 #define STR_CFUN					"+CFUN:"
 #define STR_RDY						"+CPIN: READY"
 #define STR_CPIN					"+CPIN:"
@@ -96,6 +96,7 @@
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
 
+#define cscon	"AT+CSCON?\r\n"
 #define qistat 				"AT+QISTAT\r\n"
 #define qiclose "AT+QICLOSE\r\n"
 #define qilocip "AT+QILOCIP\r\n"
@@ -459,11 +460,11 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					show_signal(g_pcie[g_index]->csq);
 					//g_bc26_state = BC26_STATE_LAC;
 					//gprs_at_cmd(g_dev_bc26,cregs);
-					gprs_at_cmd(g_dev_bc26,qifgcnt);
-					g_bc26_state = BC26_STATE_IFGCNT;
+					gprs_at_cmd(g_dev_bc26,cscon);
+					g_bc26_state = BC26_STATE_CSCON;
 				} 
 				break;
-			case BC26_STATE_IFGCNT:
+			case BC26_STATE_CSCON:
 					g_bc26_state = BC26_STATE_LAC;
 					gprs_at_cmd(g_dev_bc26,cregs);
 					break;
@@ -544,22 +545,22 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 			case BC26_STATE_IMEI:
 				g_pcie[g_index]->imei[0]=0x0;
 				i=2;//866159032379171
-				while(tmp[i]!='\r' && i<17)
+				while(tmp[i+8]!='\r' && i<17)
 				{
-					if (tmp[i]>='0' && tmp[i]<='9')
-						g_pcie[g_index]->imei[i/2-1] += (tmp[i]-0x30);
-					else if (tmp[i]>='a' && tmp[i]<='f')
-						g_pcie[g_index]->imei[i/2-1] += (tmp[i]-'a'+10);
-					else if (tmp[i]>='A' && tmp[i]<='F')
-						g_pcie[g_index]->imei[i/2-1] += (tmp[i]-'A'+10);
+					if (tmp[i+8]>='0' && tmp[i+8]<='9')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i+8]-0x30);
+					else if (tmp[i]>='a' && tmp[i+8]<='f')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i+8]-'a'+10);
+					else if (tmp[i]>='A' && tmp[i+8]<='F')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i+8]-'A'+10);
 					rt_kprintf("imei[%d] = %02X\r\n",i/2,g_pcie[g_index]->imei[i/2-1]);
 					//i+=2;
-					if (tmp[i+1]>='0' && tmp[i+1]<='9')
-						g_pcie[g_index]->imei[i/2] = (tmp[i+1]-0x30)*16;
-					else if (tmp[i+1]>='a' && tmp[i+1]<='f')
-						g_pcie[g_index]->imei[i/2] = (tmp[i+1]-'a'+10)*16;
-					else if (tmp[i+1]>='A' && tmp[i+1]<='F')
-						g_pcie[g_index]->imei[i/2] = (tmp[i+1]-'A'+10)*16;
+					if (tmp[i+9]>='0' && tmp[i+9]<='9')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+9]-0x30)*16;
+					else if (tmp[i+1]>='a' && tmp[i+9]<='f')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+9]-'a'+10)*16;
+					else if (tmp[i+1]>='A' && tmp[i+9]<='F')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+9]-'A'+10)*16;
 				
 					i+=2;						
 				}					
