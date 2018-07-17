@@ -318,8 +318,13 @@ int load_param()
 		close(fd);
 	}
 
-	//mp.socketAddress[0].port = 1705;
-	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
+	/*mp.socketAddress[0].port = 8434;
+	
+	mp.socketAddress[0].IP[0] = 220;
+	mp.socketAddress[0].IP[1] = 180;
+	mp.socketAddress[0].IP[2] = 239;
+	mp.socketAddress[0].IP[3] = 212;
+	*/dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 	return 1;
 }
 
