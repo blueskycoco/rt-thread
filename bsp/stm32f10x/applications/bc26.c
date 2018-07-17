@@ -95,6 +95,7 @@
 #define STR_FTP_FILE_SIZE			"+QFTPSIZE:"
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
+#define STR_QCCID					"+QCCID:"
 
 #define cscon	"AT+CSCON?\r\n"
 #define qistat 				"AT+QISTAT\r\n"
@@ -520,27 +521,29 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				gprs_at_cmd(g_dev_bc26,at_qccid);
 				break;
 			case BC26_STATE_ICCID:
+				if (have_str(last_data_ptr, STR_QCCID)) {
 					i=2;
-					while(tmp[i]!='\r')
+					while(/*tmp[i]!='\r'*/i<20)
 					{
-						if (tmp[i]>='0' && tmp[i]<='9')
-							g_pcie[g_index]->qccid[i/2-1] = (tmp[i]-0x30)*16;
-						else if (tmp[i]>='a' && tmp[i]<='f')
-							g_pcie[g_index]->qccid[i/2-1] = (tmp[i]-'a'+10)*16;
-						else if (tmp[i]>='A' && tmp[i]<='F')
-							g_pcie[g_index]->qccid[i/2-1] = (tmp[i]-'A'+10)*16;
+						if (tmp[i+7]>='0' && tmp[i+7]<='9')
+							g_pcie[g_index]->qccid[i/2-1] = (tmp[i+7]-0x30)*16;
+						else if (tmp[i+7]>='a' && tmp[i+7]<='f')
+							g_pcie[g_index]->qccid[i/2-1] = (tmp[i+7]-'a'+10)*16;
+						else if (tmp[i+7]>='A' && tmp[i+7]<='F')
+							g_pcie[g_index]->qccid[i/2-1] = (tmp[i+7]-'A'+10)*16;
 
-						if (tmp[i+1]>='0' && tmp[i+1]<='9')
-							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+1]-0x30);
-						else if (tmp[i+1]>='a' && tmp[i+1]<='f')
-							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+1]-'a'+10);
-						else if (tmp[i+1]>='A' && tmp[i+1]<='F')
-							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+1]-'A'+10);
-						rt_kprintf("qccid[%d] = %02X\r\n",i/2,g_pcie[g_index]->qccid[i/2-1]);
+						if (tmp[i+8]>='0' && tmp[i+8]<='9')
+							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+8]-0x30);
+						else if (tmp[i+8]>='a' && tmp[i+8]<='f')
+							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+8]-'a'+10);
+						else if (tmp[i+8]>='A' && tmp[i+8]<='F')
+							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+8]-'A'+10);
+						rt_kprintf("qccid[%d] = %02X\r\n",i/2-1,g_pcie[g_index]->qccid[i/2-1]);
 						i+=2;						
 					}					
 					g_bc26_state = BC26_STATE_IMEI;
 					gprs_at_cmd(g_dev_bc26,gsn);
+					}
 					break;
 			case BC26_STATE_IMEI:
 				g_pcie[g_index]->imei[0]=0x0;
