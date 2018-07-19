@@ -186,6 +186,7 @@ void EXTI9_5_IRQHandler(void)
 	static rt_uint32_t e_cnt = 0;
 	static rt_uint8_t short_press=0;
 	rt_uint32_t diff = 0;
+	static rt_uint8_t flag = 0;
 	//extern void cc1101_isr(void);
 	extern rt_uint8_t g_main_state;
 	/* enter interrupt */
@@ -237,6 +238,7 @@ void EXTI9_5_IRQHandler(void)
 		}*/
 		if (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET) {
 			s_cnt = rt_tick_get();
+			flag=1;
 			rt_kprintf("S button press %d\r\n",s_cnt - e_cnt);
 			if (s_cnt - e_cnt < 40)
 			{
@@ -288,20 +290,23 @@ void EXTI9_5_IRQHandler(void)
 #endif
 			}
 		} else {
-			e_cnt =rt_tick_get(); 
-			diff = e_cnt - s_cnt;
-			rt_kprintf("S button relese %d\r\n", diff);
-			if (diff > 1000) {
-				short_press=0;
-				rt_kprintf("factory reset");
-				rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
-			} else if (diff > 50) {
-				short_press=0;
-				rt_kprintf("coding or not");
-				if (g_main_state==0)
-				rt_event_send(&(g_info_event), INFO_EVENT_CODING);
-				else					
-				rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
+			if (flag) {
+				flag=0;
+				e_cnt =rt_tick_get(); 
+				diff = e_cnt - s_cnt;
+				rt_kprintf("S button relese %d\r\n", diff);
+				if (diff > 1000) {
+					short_press=0;
+					rt_kprintf("factory reset");
+					rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
+				} else if (diff > 50) {
+					short_press=0;
+					rt_kprintf("coding or not");
+					if (g_main_state==0)
+					rt_event_send(&(g_info_event), INFO_EVENT_CODING);
+					else					
+					rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
+				}
 			}
 		}
 		#endif

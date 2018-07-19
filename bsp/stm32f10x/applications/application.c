@@ -769,7 +769,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
 	g_mute=0;
 	show_memory_info();
-	return;
+
 	while (1) {
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);

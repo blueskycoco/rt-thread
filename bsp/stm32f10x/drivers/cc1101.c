@@ -255,9 +255,9 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{FREQ1,		0xa7},
 	{FREQ0,		0x62},
 	#else
-	{FREQ2,		0x11},
-	{FREQ1,		0xec},
-	{FREQ0,		0x4e},
+	{FREQ2,		0x10},//0x11},
+	{FREQ1,		0xaa},//0xec},
+	{FREQ0,		0x1e},//0x4e},
 	#endif
 	{MDMCFG4,	0xf5},
 	{MDMCFG3,	0x83},
@@ -274,7 +274,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{FSCAL1,	0x00},
 	{FSCAL0,	0x1F},
 	{TEST0,		0x09},
-	{PATABLE,	0x60} 
+	{PATABLE,	0xCB} 
 };
 static void cc1101_set_rx_mode(void)  
 {  

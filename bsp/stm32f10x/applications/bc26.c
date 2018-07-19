@@ -88,7 +88,7 @@
 #define STR_CONNECT_OK				"+QIOPEN: 0,0"
 #define STR_CLOSE_OK				"CLOSE OK"
 #define STR_SEND_OK					"SEND OK"
-#define STR_QIRDI					"+QIRDI: 0,1,0"
+#define STR_QIRDI					"+QIURC: \"recv\",0" 
 #define STR_QISACK					"+QISACK"
 #define STR_SOCKET_BUSSY			"SOCKET BUSY"
 #define STR_CONNECT_FAIL			"CONNECT FAIL"
@@ -125,7 +125,7 @@
 #define qideact "AT+QIDEACT\r\n"
 #define ati	"ATI\r\n"
 #define qindi "AT+QINDI=1\r\n"
-#define qird "AT+QIRD=0,1,0,1500\r\n"
+#define qird "AT+QIRD=0,512\r\n"
 #define qisack "AT+QISACK\r\n"
 #define qiat "AT\r\n"
 #define cgatt	"AT+CGATT?\r\n"
@@ -174,104 +174,60 @@ extern uint8_t			qiftp_close_file[32];
 extern rt_uint8_t ftp_rty;
 extern rt_uint16_t g_app_v;
 extern struct rt_event g_info_event;
+void toHex(uint8_t *input, uint32_t len, uint8_t *output)
+{
+	int ix=0,iy=0;
+	for (ix=0; ix<len; ix++) {
+		output[iy] = (input[ix]&0xf0) >>4;
+		if(output[iy]>=10 && output[iy]<=15)
+		{
+			output[iy] = output[iy] + 'a' - 10;
+		}
+		else
+		{
+			output[iy] = output[iy] + '0';
+		}
+		iy++;
+		output[iy] = input[ix]&0x0f;
+		if(output[iy] >= 10 && output[iy] <= 15)
+		{
+			output[iy] = output[iy] + 'a' - 10;
+		}
+		else
+		{
+			output[iy] = output[iy] + '0';
+		}
+		iy++;
+	}
+	rt_kprintf("\r\nHexString:\r\n");
+	for (ix=0; ix<len*2; ix++)
+		rt_kprintf("%x",output[ix]);
+	rt_kprintf("\r\n");
+}
 
 void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
 	int i;
 	int ofs;
-	if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))!=-1) {
-				rt_kprintf("got another qirdi\r\n");
-				gprs_at_cmd(g_dev_bc26,qird);
-				server_len_bc26 = 0;
-				g_data_in_bc26 = RT_TRUE;
-				flag=RT_FALSE;
-				return ;
-		}
-	if (match_bin((rt_uint8_t *)last_data_ptr,len, STR_OK,rt_strlen(STR_OK)) != -1 && 
-		(match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)) == -1)&& 
-		!flag) {
-		//for (i=0;i<len;i++)
-		//	rt_kprintf("%c",((rt_uint8_t *)last_data_ptr)[i]);
-		//rt_kprintf("bc26 read again\r\n");
-		if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_CSQ,rt_strlen(STR_CSQ))==-1) {
-			gprs_at_cmd(g_dev_bc26,qird);
-			server_len_bc26 = 0;
-			g_data_in_bc26 = RT_TRUE;
-		}
-		return ;
-		}
-	
-	if (/*have_str(last_data_ptr, STR_TCP)*/(ofs = match_bin((rt_uint8_t *)last_data_ptr, len,STR_TCP,rt_strlen(STR_TCP)))!=-1)
+	if ((ofs = match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)))!=-1)
 	{	
-	#if 0
-		uint8_t *begin = (uint8_t *)strstr(last_data_ptr,STR_QIRD);
-		uint8_t *pos = RT_NULL;
-		if (begin == RT_NULL)
-			pos = (uint8_t *)strstr(last_data_ptr, STR_TCP);
-		else
-			pos = (uint8_t *)strstr(begin, STR_TCP);
-		if (pos != RT_NULL) {
-			int i = 4;
-			while (pos[i] != '\r' && pos[i+1] != '\n' && i<strlen(pos))
-			{
-				server_len_bc26 = server_len_bc26*10 + pos[i] - '0';
-				i++;
-			}
-			//rt_kprintf("server len bc26 is %d\r\n",server_len_bc26);
-			if(strlen(pos)<server_len_bc26)
-			{
-				g_bc26_state = BC26_STATE_DATA_PROCESSING;
-				gprs_at_cmd(g_dev_bc26,at_csq);
-				rt_mutex_release(&(g_pcie[g_index]->lock));
-				return;
-			}
-			server_buf_bc26 = (uint8_t *)rt_malloc(server_len_bc26 * sizeof(uint8_t));
-			rt_memset(server_buf_bc26,0,server_len_bc26);
-			server_len_bc26 = 0;
-			i+=2;
-			while(i<strlen(pos) && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
-			{
-
-				server_buf_bc26[server_len_bc26++] = pos[i++];
-				//rt_kprintf("%c",server_buf_bc26[server_len_bc26-1]);
-			}
-			if (strstr(pos, "OK")!=RT_NULL)
-			{
-				rt_data_queue_push(&g_data_queue[3], server_buf_bc26, server_len_bc26, RT_WAITING_FOREVER);
-				if (server_len_bc26 == 1500) {
-					g_bc26_state = BC26_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_bc26,qistat);
-				} else {
-					g_bc26_state = BC26_STATE_DATA_PROCESSING;
-					gprs_at_cmd(g_dev_bc26,at_csq);
-				}
-				if (!have_str(last_data_ptr, STR_QIRDI))
-					g_data_in_bc26 = RT_FALSE;
-				
-				rt_mutex_release(&(g_pcie[g_index]->lock));
-				flag = RT_FALSE;
-			}
-			else
-				flag = RT_TRUE;
-		}
-		#else
 			uint8_t *pos = (uint8_t *)last_data_ptr;
-			//for(i=0;i<256;i++)
-			//	rt_kprintf("%c",pos[i]);
-			//rt_kprintf("ofs is %d\r\n",ofs);
+		//	for(i=0;i<256;i++)
+	//			rt_kprintf("%02x",pos[i]);
+			rt_kprintf("ofs is %d\r\n",ofs);
 			//if (pos != RT_NULL) {
-				int i = 4+ofs;
-				//rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
-				//	pos[ofs],pos[ofs+1],pos[ofs+2],pos[ofs+3],pos[ofs+4],pos[ofs+5],pos[ofs+6],pos[ofs+7],
-				//	pos[ofs+8],pos[ofs+9],pos[ofs+10],pos[ofs+11]);
+				int i = 1+ofs;
+				rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
+					pos[ofs],pos[ofs+1],pos[ofs+2],pos[ofs+3],pos[ofs+4],pos[ofs+5],pos[ofs+6],pos[ofs+7],
+					pos[ofs+8],pos[ofs+9],pos[ofs+10],pos[ofs+11]);
 				while (pos[i] != '\r' && pos[i+1] != '\n' && i<len)
 				{
 					server_len_bc26 = server_len_bc26*10 + pos[i] - '0';
 					i++;
 				}
 				//server_len_ec20 = get_len(pos+i,len-i);
-				//rt_kprintf("server len %d\r\n", server_len_bc26);
+				rt_kprintf("server len %d\r\n", server_len_bc26);
 				server_buf_bc26 = (uint8_t *)rt_malloc(server_len_bc26 * sizeof(uint8_t));
 				if (server_buf_bc26 == RT_NULL)
 					rt_kprintf("malloc buf 26 failed\r\n");
@@ -308,7 +264,6 @@ void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
 				}
 				else
 					flag = RT_TRUE;
-		#endif
 	}
 	else if (flag){	
 		int i=0;
@@ -391,12 +346,20 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
-	if (data_size != 6 && strstr(last_data_ptr, STR_QIRD)==NULL && strstr(last_data_ptr, STR_QIURC)==NULL && 
-		!have_str(last_data_ptr,STR_CSQ))
-		if (!have_str(last_data_ptr,STR_CONNECT))
-			rt_kprintf("\r\n(BC26<= %d %d %d %s)\r\n",g_bc26_state, data_size,rt_strlen(last_data_ptr), last_data_ptr);
-		else
-			rt_kprintf("\r\n(BC26<= %d %d %d)\r\n",g_bc26_state, data_size, rt_strlen(last_data_ptr));
+	if (!have_str(last_data_ptr,STR_CSQ)) {
+		rt_kprintf("\r\n<== (BC26 %d %d)\r\n",g_bc26_state, data_size);
+		for (i=0; i<data_size; i++)
+			if (isascii(tmp[i]) && (g_bc26_state != BC26_STATE_READ_FILE))
+				rt_kprintf("%c", tmp[i]);
+			else
+				rt_kprintf("%02x", tmp[i]);
+			//	break;
+		if (have_str(last_data_ptr, STR_QIRDI)) {
+			rt_time_t cur_time = time(RT_NULL);
+			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
+		
+		}
+	}
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY))
 		{
@@ -634,11 +597,10 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 
 				break;
 			case BC26_STATE_DATA_PROCESSING:
-				if (have_str(last_data_ptr, STR_QIRDI)||
-						have_str(last_data_ptr, STR_QIURC)) {
+				if (have_str(last_data_ptr, STR_QIRDI)) {
 					/*server data in */					
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
-					g_bc26_state = BC26_STATE_DATA_READ;
+					//g_bc26_state = BC26_STATE_DATA_READ;
 					gprs_at_cmd(g_dev_bc26,qird);
 					server_len_bc26 = 0;
 					g_data_in_bc26 = RT_TRUE;
@@ -669,12 +631,28 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					{	
 						rt_data_queue_pop(&g_data_queue[2], (const void **)&send_data_ptr_bc26, &send_size_bc26, RT_WAITING_FOREVER);
 						rt_kprintf("should send data %d\r\n", send_size_bc26);
-						rt_sprintf(qisend_bc26, "AT+QISEND=%d\r\n", send_size_bc26);
+						rt_uint8_t *hex_string = (rt_uint8_t *)rt_malloc((send_size_bc26*2+1)*sizeof(rt_uint8_t));
+						rt_memset(hex_string,0,send_size_bc26*2+1);
+						toHex(send_data_ptr_bc26, send_size_bc26, hex_string);
+						rt_sprintf(qisend_bc26, "AT+QISENDEX=0,%d,", send_size_bc26);
 						gprs_at_cmd(g_dev_bc26,qisend_bc26);
-						g_bc26_state = BC26_STATE_DATA_PRE_WRITE;
-					} else {								
+						gprs_at_cmd(g_dev_bc26,hex_string);
+						gprs_at_cmd(g_dev_bc26,"\r\n");
+						rt_free(hex_string);
+						if (send_data_ptr_bc26) {
+							if (send_size_bc26 <= 64) {
+								rt_mp_free(send_data_ptr_bc26);
+							} else {
+								rt_free(send_data_ptr_bc26);
+							}
+							send_data_ptr_bc26 = RT_NULL;
+						}
+						g_bc26_state = BC26_STATE_DATA_WRITE;
+					} else {
+						if (!g_data_in_bc26) {
 						rt_thread_delay(100);
 						gprs_at_cmd(g_dev_bc26,at_csq);
+						}
 					}
 				} else if (have_str(last_data_ptr,STR_CREG)) {
 					if (((rt_uint8_t *)last_data_ptr)[12]>='A' && ((rt_uint8_t *)last_data_ptr)[12]<='F' )
@@ -728,21 +706,6 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				//}
 				handle_bc26_server_in(last_data_ptr,data_size);
 				break;
-			case BC26_STATE_DATA_PRE_WRITE:
-				if (have_str(last_data_ptr, STR_BEGIN_WRITE)) {
-					g_bc26_state = BC26_STATE_DATA_WRITE;
-					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_bc26, send_size_bc26);	
-					rt_free(send_data_ptr_bc26);
-				}
-				else if(have_str(last_data_ptr, STR_ERROR))
-				{
-					g_bc26_state = BC26_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_bc26,qistat);
-				}
-				if (have_str(last_data_ptr, STR_QIRDI)||have_str(last_data_ptr, STR_QIURC))
-					g_data_in_bc26 = RT_TRUE;
-				
-				break;
 			case BC26_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_SEND_OK)) {
 					//g_bc26_state = BC26_STATE_DATA_ACK;
@@ -753,18 +716,18 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_kprintf("send server ok %s\r\n",ctime(&cur_time));
 					rt_event_send(&(g_pcie[g_index]->event), BC26_EVENT_0);
 				} else {
-					if (!have_str(last_data_ptr, STR_QIRDI) && 
+					/*if (!have_str(last_data_ptr, STR_QIRDI) && 
 							!have_str(last_data_ptr, STR_QIURC)) {
 						g_bc26_state = BC26_STATE_CHECK_QISTAT;
 						gprs_at_cmd(g_dev_bc26,qistat);
-					}
+					}*/
 				}
-				if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_bc26)
+				/*if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_bc26)
 				{
 						g_bc26_state = BC26_STATE_DATA_READ;
 						gprs_at_cmd(g_dev_bc26,qird);
 						server_len_bc26 = 0;
-				}
+				}*/
 				break;
 			case BC26_STATE_DATA_ACK:
 				if (have_str(last_data_ptr, STR_QISACK)) {
