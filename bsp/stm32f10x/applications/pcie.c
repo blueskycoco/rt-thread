@@ -76,7 +76,16 @@ static void pcie1_rcv(void* parameter)
 			else
 				break;			
 		}
+		#if 0
 		//rt_kprintf("==>%s", buf);
+		rt_kprintf("<<<<<<\r\n");
+		for (int i=0; i<total_len; i++)
+			if (isascii(buf[i]))
+				rt_kprintf("%c", buf[i]);
+			else
+				rt_kprintf("%x", buf[i]);
+		rt_kprintf("\r\n>>>>>>\r\n");	
+		#endif
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || (strchr(buf,'>')!=RT_NULL && total_len > 0)) {
 			#if 0
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
@@ -128,7 +137,15 @@ static void pcie0_rcv(void* parameter)
 			else
 				break;			
 		}
-		//rt_kprintf("==>%s", buf);
+	#if 0
+		rt_kprintf("<<<<<<\r\n");
+		for (int i=0; i<total_len; i++)
+			if (isascii(buf[i]))
+				rt_kprintf("%c", buf[i]);
+			else
+				rt_kprintf("%x", buf[i]);
+		rt_kprintf("\r\n>>>>>>\r\n");	
+	#endif
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || (strchr(buf,'>')!=RT_NULL && total_len > 0)) {
 			#if 0
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
@@ -387,6 +404,12 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		{
 			cmd[30] |= 0x10;
 			rt_kprintf("interface\tec20\r\n");
+		}
+		if ((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
+				(g_index == 0 && g_type0 == PCIE_1_NBIOT))
+		{
+			cmd[30] |= 0x30;
+			rt_kprintf("interface\tnbiot\r\n");
 		}
 		if (g_pcie[g_index]->lac_ci !=0 )
 		{

@@ -51,7 +51,9 @@
 #define BC26_STATE_CLOSE_FILE	36
 #define BC26_STATE_CGATT		37
 #define BC26_CREATE_SOCKET		38
+#define BC26_QICFG				39
 
+#define STR_QICFG				"+QICFG"
 #define STR_CSCON					"+CSCON: 0,1"
 #define STR_GSN					"+CGSN:"
 #define STR_CGATT_OK				"+CGATT: 1"
@@ -90,7 +92,7 @@
 #define STR_SEND_OK					"SEND OK"
 #define STR_QIRDI					"+QIURC: \"recv\",0" 
 #define STR_QISACK					"+QISACK"
-#define STR_SOCKET_BUSSY			"SOCKET BUSY"
+#define STR_SOCKET_BUSSY			"+QIOPEN: 0,566"
 #define STR_CONNECT_FAIL			"CONNECT FAIL"
 #define STR_CONNECT_OK_EC20			"+QIOPEN: 0,0"
 #define STR_CONNECT_FAIL_EC20		"+QIOPEN: 0,"
@@ -116,6 +118,7 @@
 #define at_qccid "AT+QCCID\r\n"
 #define gsn "AT+CGSN=1\r\n"
 
+#define qicfg	"AT+QICFG=\"dataformat\",1,1\r\n"
 #define cimi "AT+CIMI\r\n"
 #define cpin "AT+CPIN?\r\n"
 #define qifgcnt "AT+QIFGCNT=0\r\n"
@@ -174,6 +177,7 @@ extern uint8_t			qiftp_close_file[32];
 extern rt_uint8_t ftp_rty;
 extern rt_uint16_t g_app_v;
 extern struct rt_event g_info_event;
+extern rt_mp_t server_mp;
 void toHex(uint8_t *input, uint32_t len, uint8_t *output)
 {
 	int ix=0,iy=0;
@@ -199,12 +203,32 @@ void toHex(uint8_t *input, uint32_t len, uint8_t *output)
 		}
 		iy++;
 	}
-	rt_kprintf("\r\nHexString:\r\n");
-	for (ix=0; ix<len*2; ix++)
-		rt_kprintf("%x",output[ix]);
-	rt_kprintf("\r\n");
+	//rt_kprintf("\r\nHexString:\r\n");
+	//for (ix=0; ix<len*2; ix++)
+	//	rt_kprintf("%x",output[ix]);
+	//rt_kprintf("\r\n");
 }
-
+void fromHex(uint8_t *input, uint32_t len, uint8_t *output)
+{
+	int ix=0,iy=0;
+	//rt_kprintf("\r\nHex:\r\n");
+	for (ix=0; ix<len; ix++) {
+		if (input[ix] >= '0' && input[ix] <= '9') {
+			output[iy] = (input[ix] - '0' )<< 4;
+		}else {
+			output[iy] = (input[ix] - 'A' +10 )<< 4;
+		}
+		ix++;
+		if (input[ix] >= '0' && input[ix] <= '9') {
+			output[iy] |= (input[ix] - '0' );
+		}else {
+			output[iy] |= (input[ix] - 'A' +10);
+		}
+		//rt_kprintf("%x", output[iy]);
+		//rt_kprintf("\r\n");
+		iy++;
+	}
+}
 void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -217,23 +241,25 @@ void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
 	//			rt_kprintf("%02x",pos[i]);
 			rt_kprintf("ofs is %d\r\n",ofs);
 			//if (pos != RT_NULL) {
-				int i = 1+ofs;
-				rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
-					pos[ofs],pos[ofs+1],pos[ofs+2],pos[ofs+3],pos[ofs+4],pos[ofs+5],pos[ofs+6],pos[ofs+7],
-					pos[ofs+8],pos[ofs+9],pos[ofs+10],pos[ofs+11]);
+				int i = 7+ofs;
+				//rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
+				//	pos[ofs],pos[ofs+1],pos[ofs+2],pos[ofs+3],pos[ofs+4],pos[ofs+5],pos[ofs+6],pos[ofs+7],
+				//	pos[ofs+8],pos[ofs+9],pos[ofs+10],pos[ofs+11]);
 				while (pos[i] != '\r' && pos[i+1] != '\n' && i<len)
 				{
 					server_len_bc26 = server_len_bc26*10 + pos[i] - '0';
 					i++;
 				}
 				//server_len_ec20 = get_len(pos+i,len-i);
+				server_len_bc26 *=2;
 				rt_kprintf("server len %d\r\n", server_len_bc26);
-				server_buf_bc26 = (uint8_t *)rt_malloc(server_len_bc26 * sizeof(uint8_t));
+				server_buf_bc26 = (uint8_t *)rt_malloc(server_len_bc26* sizeof(uint8_t));
 				if (server_buf_bc26 == RT_NULL)
 					rt_kprintf("malloc buf 26 failed\r\n");
 				rt_memset(server_buf_bc26,0,server_len_bc26);
 				//server_len_ec20 = 0;
 				i+=2;
+				rt_kprintf("i %d\r\n",i);
 				if (i+server_len_bc26 < len)
 					rt_memcpy(server_buf_bc26,pos+i,server_len_bc26);
 				else
@@ -249,7 +275,10 @@ void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
 				}*/
 				if (match_bin(pos, len, "OK",rt_strlen("OK"))!=-1)
 				{
-					rt_data_queue_push(&g_data_queue[3], server_buf_bc26, server_len_bc26, RT_WAITING_FOREVER);
+					rt_uint8_t *server_buf_bc26_1 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
+					fromHex(server_buf_bc26, server_len_bc26,server_buf_bc26_1);
+					rt_free(server_buf_bc26);
+					rt_data_queue_push(&g_data_queue[3], server_buf_bc26_1, server_len_bc26/2, RT_WAITING_FOREVER);
 					if (server_len_bc26 == 1500) {
 						g_bc26_state = BC26_STATE_CHECK_QISTAT;
 						gprs_at_cmd(g_dev_bc26,qistat);
@@ -275,7 +304,11 @@ void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
 
 		if (strstr(pos, "OK")!=RT_NULL)
 		{
-			rt_data_queue_push(&g_data_queue[3], server_buf_bc26, server_len_bc26, RT_WAITING_FOREVER);
+			
+			rt_uint8_t *server_buf_bc26_1 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
+			fromHex(server_buf_bc26, server_len_bc26,server_buf_bc26_1);
+			rt_free(server_buf_bc26);
+			rt_data_queue_push(&g_data_queue[3], server_buf_bc26_1, server_len_bc26/2, RT_WAITING_FOREVER);
 			if (server_len_bc26 == 1500) {
 				g_bc26_state = BC26_STATE_CHECK_QISTAT;
 				gprs_at_cmd(g_dev_bc26,qistat);
@@ -346,14 +379,14 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
-	if (!have_str(last_data_ptr,STR_CSQ)) {
+	if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
 		rt_kprintf("\r\n<== (BC26 %d %d)\r\n",g_bc26_state, data_size);
 		for (i=0; i<data_size; i++)
 			if (isascii(tmp[i]) && (g_bc26_state != BC26_STATE_READ_FILE))
 				rt_kprintf("%c", tmp[i]);
 			else
-				rt_kprintf("%02x", tmp[i]);
-			//	break;
+				//rt_kprintf("%02x", tmp[i]);
+				break;
 		if (have_str(last_data_ptr, STR_QIRDI)) {
 			rt_time_t cur_time = time(RT_NULL);
 			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
@@ -521,11 +554,17 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					i+=2;						
 				}					
 					g_bc26_state = BC26_CREATE_SOCKET;
-					gprs_at_cmd(g_dev_bc26,c_socket);
+					gprs_at_cmd(g_dev_bc26,qicfg);
 					}
 					break;
+			//case BC26_QICFG:
+			//	if (have_str(last_data_ptr, STR_QSOC)) {						
+			//		g_bc26_state = BC26_CREATE_SOCKET;
+			//		gprs_at_cmd(g_dev_bc26,qicfg);
+			//	}
+			//	break;
 			case BC26_CREATE_SOCKET:
-				if (have_str(last_data_ptr, STR_QSOC)) {					
+				if (have_str(last_data_ptr, STR_OK)) {					
 					g_bc26_state = BC26_STATE_SET_QIOPEN;
 					rt_memset(qiopen_bc26, 0, 64);					
 					rt_sprintf(qiopen_bc26, "AT+QIOPEN=1,0,\"TCP\",\"%d.%d.%d.%d\",%d,0,0\r\n",
@@ -562,8 +601,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_hw_led_on(NET_LED);
 					//entering_ftp_mode=1;
 				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
-					g_bc26_state = BC26_STATE_SET_QIDEACT;
-					gprs_at_cmd(g_dev_bc26,qideact);					
+					g_bc26_state = BC26_CREATE_SOCKET;			
 					
 					rt_kprintf("before , ip index %d\r\n", g_ip_index);
 					if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
@@ -575,8 +613,10 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					else
 						g_ip_index=0;
 					rt_kprintf("after , ip index %d\r\n", g_ip_index);
-					rt_thread_delay(100);
+					rt_thread_delay(100);					
+					gprs_at_cmd(g_dev_bc26,at_csq);		
 				}
+					#if 0
 				else {
 					if (!have_str(last_data_ptr, STR_OK)) {
 						rt_thread_delay(100*3);
@@ -594,13 +634,13 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_kprintf("after , ip index %d\r\n", g_ip_index);
 					}
 				}
-
+				#endif
 				break;
 			case BC26_STATE_DATA_PROCESSING:
 				if (have_str(last_data_ptr, STR_QIRDI)) {
 					/*server data in */					
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
-					//g_bc26_state = BC26_STATE_DATA_READ;
+					g_bc26_state = BC26_STATE_DATA_READ;
 					gprs_at_cmd(g_dev_bc26,qird);
 					server_len_bc26 = 0;
 					g_data_in_bc26 = RT_TRUE;
