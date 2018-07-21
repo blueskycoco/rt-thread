@@ -52,7 +52,7 @@
 #define BC26_STATE_CGATT		37
 #define BC26_CREATE_SOCKET		38
 #define BC26_QICFG				39
-
+#define BC26_QENG				40
 #define STR_QICFG				"+QICFG"
 #define STR_CSCON					"+CSCON: 0,1"
 #define STR_GSN					"+CGSN:"
@@ -118,6 +118,7 @@
 #define at_qccid "AT+QCCID\r\n"
 #define gsn "AT+CGSN=1\r\n"
 
+#define qeng	"AT+QENG=0\r\n"
 #define qicfg	"AT+QICFG=\"dataformat\",1,1\r\n"
 #define cimi "AT+CIMI\r\n"
 #define cpin "AT+CPIN?\r\n"
@@ -440,9 +441,13 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					show_signal(g_pcie[g_index]->csq);
 					//g_bc26_state = BC26_STATE_LAC;
 					//gprs_at_cmd(g_dev_bc26,cregs);
-					gprs_at_cmd(g_dev_bc26,cscon);
-					g_bc26_state = BC26_STATE_CSCON;
+					gprs_at_cmd(g_dev_bc26,qeng);
+					g_bc26_state = BC26_QENG;
 				} 
+				break;
+			case BC26_QENG:				
+				gprs_at_cmd(g_dev_bc26,cscon);
+				g_bc26_state = BC26_STATE_CSCON;
 				break;
 			case BC26_STATE_CSCON:
 				if (have_str(last_data_ptr, STR_CSCON)) {
