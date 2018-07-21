@@ -53,6 +53,7 @@
 #define BC26_CREATE_SOCKET		38
 #define BC26_QICFG				39
 #define BC26_QENG				40
+#define BC26_CPSMS				41
 #define STR_QICFG				"+QICFG"
 #define STR_CSCON					"+CSCON: 0,1"
 #define STR_GSN					"+CGSN:"
@@ -117,7 +118,7 @@
 #define at_csq "AT+CSQ\r\n"
 #define at_qccid "AT+QCCID\r\n"
 #define gsn "AT+CGSN=1\r\n"
-
+#define cpsms	"AT+CPSMS=0\r\n"
 #define qeng	"AT+QENG=0\r\n"
 #define qicfg	"AT+QICFG=\"dataformat\",1,1\r\n"
 #define cimi "AT+CIMI\r\n"
@@ -446,6 +447,10 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				} 
 				break;
 			case BC26_QENG:				
+				gprs_at_cmd(g_dev_bc26,cpsms);
+				g_bc26_state = BC26_CPSMS;
+				break;
+			case BC26_CPSMS:
 				gprs_at_cmd(g_dev_bc26,cscon);
 				g_bc26_state = BC26_STATE_CSCON;
 				break;
