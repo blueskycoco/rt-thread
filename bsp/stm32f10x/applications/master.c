@@ -241,6 +241,8 @@ void info_user(void *param)
 			g_flag = 1;	
 			s_bufang=1;		
 			g_sub_event_code = 0x2002;
+			g_fq_len = 1;
+			g_fq_event[0] = 0xff;
 			if (g_remote_protect != 1)
 				{	
 					
