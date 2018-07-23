@@ -345,7 +345,7 @@ static void led_thread_entry(void* parameter)
 			g_alarm_voice -=1;
 			if (g_alarm_voice == 1 || g_alarm_voice == 0) {		
 			bell_ctl(0);		
-			//Stop_Playing();
+			Stop_Playing();
 			}
 		}
 		/*pgm ctl*/
@@ -394,7 +394,10 @@ static void led_thread_entry(void* parameter)
 					rt_kprintf("open delay fq bell\r\n");
 					bell_ctl(1);				
 					Wtn6_Play(VOICE_ALARM1,LOOP);
-					g_alarm_voice = fqp.alarm_voice_time*60;
+					if (fqp.alarm_voice_time>0)
+						g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
+					else
+						g_alarm_voice = 0;
 				}
 				if (cur_status && g_operationType == 1) {
 					g_alarm_fq = g_fq_index;

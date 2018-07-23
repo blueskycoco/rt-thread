@@ -236,7 +236,10 @@ void info_user(void *param)
 			SetStateIco(1,0);
 			SetStateIco(0,1);
 			g_delay_out = fqp.delya_out;
-			g_alarm_voice = fqp.alarm_voice_time*60;
+			if (fqp.alarm_voice_time>0)
+				g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
+			else
+				g_alarm_voice = 0;
 			g_yanshi = 1;
 			g_flag = 1;	
 			s_bufang=1;		
@@ -375,7 +378,10 @@ void info_user(void *param)
 					if (/*fangqu_wireless[g_index_sub].voiceType*/g_voiceType == 0 && fqp.is_alarm_voice && fqp.alarm_voice_time>0)
 					{
 						if ( /*fangqu_wireless[g_index_sub].*/g_operationType==0 || g_alarmType == 2)
-							g_alarm_voice = fqp.alarm_voice_time*60;
+							if (fqp.alarm_voice_time>0)
+								g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
+							else
+								g_alarm_voice = 0;
 						
 						if (/*fangqu_wireless[g_index_sub].*/g_operationType != 1)
 							bell_ctl(1);
@@ -393,7 +399,10 @@ void info_user(void *param)
 							Wtn6_Play(VOICE_ALARM2,LOOP);
 						} else {
 							rt_kprintf("non-emergency audio normal mode\r\n");
-							g_alarm_voice = fqp.alarm_voice_time*60;
+							if (fqp.alarm_voice_time>0)
+								g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
+							else
+								g_alarm_voice = 0;
 							Wtn6_Play(VOICE_ALARM1,LOOP);
 						}
 					} else {
@@ -404,7 +413,10 @@ void info_user(void *param)
 							Wtn6_Play(VOICE_FCALARM,ONCE);
 						} else {
 							rt_kprintf("non-s1 audio \r\n");
-							g_alarm_voice = fqp.alarm_voice_time*60;
+							if (fqp.alarm_voice_time>0)
+								g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
+							else
+								g_alarm_voice = 0;
 							rt_uint8_t action = ONCE;
 							if (g_alarm_voice >0)
 								action = LOOP;
