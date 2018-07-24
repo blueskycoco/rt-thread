@@ -33,6 +33,7 @@ extern rt_uint8_t  	g_operationType;
 extern rt_uint8_t  	g_voiceType;
 extern rt_uint16_t command_type;
 extern rt_uint8_t 	g_mute;
+extern rt_uint8_t g_ac;
 int poll_can()
 {
 	int i=0;
@@ -224,6 +225,7 @@ void handle_wire_alarm(rt_uint8_t addr)
 	rt_kprintf("proc wire alarm %d %d %d\r\n",addr,fangqu_wire[addr].operationType,
 		cur_status);
 	g_mute=0;
+	s1=0;
 	if (fangqu_wire[addr].operationType==2 /*24 hour*/
 		) {
 		g_fq_index = fangqu_wire[addr].index;
@@ -308,7 +310,12 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
                     //rt_kprintf("id\t\t%08x\r\naddr\t\t%x\r\nfact_time\t%x\r\ntype\t\t%x\r\n",
                     //	fangqu_wire[addr].slave_sn,resp[2],fangqu_wire[addr].slave_batch,resp[3]);
                     cmd[0] = 0x00;cmd[1]=0x03;
-                    cmd[2] = 0;cmd[3] = fangqu_wire[addr].status-1;
+                    cmd[2] = 0;
+					if (g_ac)
+						cmd[3] = 1;
+					else
+						cmd[3] = fangqu_wire[addr].status-1;
+                    
 					cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
@@ -320,7 +327,12 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 						return;
                     addr = resp[2] - WIRELESS_MAX;
                     cmd[0] = 0x00;cmd[1]=0x07;
-                    cmd[2] = resp[3];cmd[3] = fangqu_wire[addr].status-1;
+                    cmd[2] = resp[3];
+					if (g_ac)
+						cmd[3] = 1;
+					else
+						cmd[3] = fangqu_wire[addr].status-1;
+                    
 					cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
@@ -341,7 +353,11 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 						return;
                     addr = resp[2] - WIRELESS_MAX;
                     cmd[0] = 0x00;cmd[1]=0x11;
-                    cmd[2] = 0x00;cmd[3] = fangqu_wire[addr].status-1;
+                    cmd[2] = 0x00;
+					if (g_ac)
+						cmd[3] = 1;
+					else
+						cmd[3] = fangqu_wire[addr].status-1;
 					cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;

@@ -430,7 +430,7 @@ static void led_thread_entry(void* parameter)
 						//rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 						//Wtn6_JoinPlay(voice,2,1);
 						} else {
-						time_protect=0;
+						//bbstr time_protect=0;
 						//Wtn6_Play(VOICE_BUFANG,ONCE);
 					}
 					} else {

@@ -130,7 +130,7 @@ void delete_fq(rt_uint8_t index, rt_uint8_t type)
 {
 	if ((type & 0x80) == 0x80) /*wireless*/
 	{
-		if (index > 0 && index < 50)
+		if (index > 0 && index < 51)
 			memset(&(fangqu_wireless[index-2]),0,sizeof(struct FangQu));
 	} else {
 		if (index > 50 && index < 80)
@@ -182,23 +182,23 @@ void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
 {	
 	if ((param0 & 0x80) == 0x80) /*wireless*/
 	{
-		if (index > 0 && index < 50)
+		if (index > 0 && index < 51)
 		{
 			edit_fq_detail(fangqu_wireless,index-2,param0,param1);
 		}
 	} else {
-		if (index >= 50 && index < 80)
+		if (index >= 51 && index < 80)
 			edit_fq_detail(fangqu_wire,index-WIRELESS_MAX,param0,param1);
 	}
 }
 void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 {
 	struct FangQu    *ptr;
-	if (index >= 50 && index < 80) {
-		index -= 50;
+	if (index >= 51 && index < 80) {
+		index -= 51;
 		ptr = fangqu_wire;
 	}
-	else if (index >= 2 && index < 50) {
+	else if (index >= 2 && index < 51) {
 		index -= 2;
 		ptr = fangqu_wireless;
 	} else
@@ -510,6 +510,7 @@ void handle_alarm()
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);				
 	} else {
 		/*normal alarm*/
+		s1=0;
 		if (cur_status && !fangqu_wireless[g_index_sub].isBypass) {	
 			
 			g_fq_index = fangqu_wireless[g_index_sub].index;

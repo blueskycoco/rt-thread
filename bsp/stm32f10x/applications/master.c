@@ -351,6 +351,8 @@ void info_user(void *param)
 			//entering_ftp_mode	=1;
 			g_num=0;
 			SetErrorCode(g_num);
+			g_alarm_voice=0;
+			bell_ctl(0);	
 		}
 
 		if (ev & INFO_EVENT_ALARM) {
