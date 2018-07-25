@@ -124,7 +124,7 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 	if (len == WIRELESS_MAX)
 		return i+2;
 	else
-		return i+WIRELESS_MAX;
+		return i+WIRELESS_MAX+1;
 }
 void delete_fq(rt_uint8_t index, rt_uint8_t type)
 {

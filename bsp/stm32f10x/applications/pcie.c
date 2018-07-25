@@ -382,7 +382,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		rt_kprintf("req\t\tCMD LOGIN Packet\r\n");
 		cmd[5]=(CMD_LOGIN >> 8) & 0xff;//login
 		cmd[6]=CMD_LOGIN&0xff;		
-		cmd[15]=g_pcie[g_index]->csq;
+		if (g_pcie[g_index]->csq > 40)
+			cmd[15]=0;
+		else
+			cmd[15]=g_pcie[g_index]->csq;
 		cmd[16]=mp.roProperty.CAPTCHA[0];//'W';
 		cmd[17]=mp.roProperty.CAPTCHA[1];//'E';
 		cmd[18]=mp.roProperty.CAPTCHA[2];//'A';
@@ -447,7 +450,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[15] = 0x10;
 		if (g_ac)
 			cmd[15] |= 0x01; 
-		cmd[16]=g_pcie[g_index]->csq;
+		if (g_pcie[g_index]->csq > 40)
+			cmd[16] = 0;
+		else
+			cmd[16]=g_pcie[g_index]->csq;
 		cmd[17] = g_bat % 256;
 		if (heart_type == 0) {
 			cmd[18] = 0x01;
