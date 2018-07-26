@@ -712,7 +712,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		rt_kprintf("proc fq \t%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
 		g_fq_event[0],g_fq_event[1],g_fq_event[2],g_fq_event[3],g_fq_event[4],
 		g_fq_event[5],g_fq_event[6],g_fq_event[7],g_fq_event[8],g_fq_event[9]);
-		ofs = 10;
+		ofs = 12;
 	}
 	rt_kprintf("operate platform \t%d\r\n", cmd[ofs]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
