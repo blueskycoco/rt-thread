@@ -208,6 +208,10 @@ void info_user(void *param)
 					upload_server(CMD_SUB_EVENT);
 				} else {
 					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+					if (g_operate_platform==0x20)
+						voice[0] = VOICE_SHOUJI;//weixin TDO
+					else if (g_operate_platform==0x40)
+						voice[0] = VOICE_SHOUJI;
 					Wtn6_JoinPlay(voice,2,1);			   
 				   if (time_protect) {
 				   		g_operate_platform = 0xfd;
@@ -282,7 +286,11 @@ void info_user(void *param)
 				   	upload_server(CMD_SUB_EVENT);
 				   } else
 				   	{
-				   	rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
+				   	rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };					
+					if (g_operate_platform==0x20)
+						voice[0] = VOICE_SHOUJI;//weixin TDO
+					else if (g_operate_platform==0x40)
+						voice[0] = VOICE_SHOUJI;
 					Wtn6_JoinPlay(voice,2,1);			   
 				   	}
 				}
@@ -338,7 +346,11 @@ void info_user(void *param)
 				}
 				upload_server(CMD_SUB_EVENT);	
 			} else {
-				rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_CHEFANG };
+				rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_CHEFANG };				
+				if (g_operate_platform==0x20)
+					voice[0] = VOICE_SHOUJI;//weixin TDO
+				else if (g_operate_platform==0x40)
+					voice[0] = VOICE_SHOUJI;
 				Wtn6_JoinPlay(voice,2,1);
 				if (time_protect) {
 					memset(g_operater,0,6);
@@ -398,7 +410,7 @@ void info_user(void *param)
 							g_flag=0;
 							g_delay_in = fqp.delay_in;
 							rt_kprintf("non-emergency audio delay mode %d %d\r\n",fqp.delay_in,g_flag);
-							Wtn6_Play(VOICE_ALARM2,LOOP);
+							Wtn6_Play(VOICE_ALARM1,LOOP);
 						} else {
 							rt_kprintf("non-emergency audio normal mode\r\n");
 							if (fqp.alarm_voice_time>0)
