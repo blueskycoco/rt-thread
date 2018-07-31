@@ -86,7 +86,7 @@ extern rt_uint8_t g_fq_index;
 extern rt_uint8_t		g_operationType;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
-	static rt_uint8_t led_stack[ 1024 ];
+	static rt_uint8_t led_stack[ 2048 ];
 	static struct rt_thread led_thread;
 static void led_thread_entry1(void* parameter)
 {
@@ -198,6 +198,8 @@ void set_alarm_now()
 	to = localtime(&local_time);
 	rt_kprintf("auto bu/chefang %04x %04x\r\n", fqp.auto_bufang,fqp.auto_chefang);
 	set_next_alarm(to->tm_hour,to->tm_min);
+	
+	rt_kprintf("now alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
 }
 static void alarm_thread(void *parameter)
 {
@@ -233,6 +235,8 @@ static void alarm_thread(void *parameter)
 			}
 		}
 		set_next_alarm(to->tm_hour,to->tm_min);
+		
+		rt_kprintf("next occur alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
 	}
 }
 static void led_thread_entry(void* parameter)
@@ -378,14 +382,18 @@ static void led_thread_entry(void* parameter)
 			if (g_delay_in > 10)
 				g_delay_in -= 1;
 			else if (g_delay_in >0 && g_delay_in <= 10){
-				rt_kprintf("last count %d\r\n",g_delay_in);
+				rt_kprintf("last alarm count %d %d\r\n",g_delay_in,g_flag);
 				if (g_delay_in == 10) {
 					//Wtn6_Play(VOICE_COUNTDOWN,ONCE);
 					rt_thread_delay(300);
 				}
 				g_delay_in -= 1;
 			} else if (g_delay_in == 0 && g_flag == 0/* && g_alarm_voice >0*/) {
-				//rt_kprintf("play end %d\r\n",g_alarm_voice);
+				rt_kprintf("UUU play end %d %d %d %d %d\r\n",
+					g_alarm_voice,g_index_sub,
+					fangqu_wireless[g_index_sub].operationType,
+					fqp.is_alarm_voice,
+					fangqu_wireless[g_index_sub].voiceType);
 				//if (g_alarm_voice == (fqp.alarm_voice_time - fqp.delay_in-1))
 				//	Wtn6_Play(VOICE_ALARM1,LOOP);
 				g_flag = 1;
@@ -417,10 +425,11 @@ static void led_thread_entry(void* parameter)
 				if (g_delay_out > 10)
 					g_delay_out -= 1;
 				else if (g_delay_out >0 && g_delay_out <= 10){
-					rt_kprintf("out last count %d\r\n",g_delay_out);
+					rt_kprintf("last protect count %d\r\n",g_delay_out);
 					if (g_delay_out == 10)
 					{
 						Wtn6_Play(VOICE_COUNTDOWN,ONCE);
+						rt_kprintf("play VOICE_COUNTDOWN\r\n");
 					}
 					if (g_delay_out == 1) {
 						//rt_thread_delay(300);

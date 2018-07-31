@@ -295,7 +295,8 @@ void info_user(void *param)
 				   	}
 				}
 			rt_thread_delay(200);
-			Wtn6_Play(VOICE_YANSHIBF,LOOP);
+			if (g_delay_out>10)
+				Wtn6_Play(VOICE_YANSHIBF,LOOP);
 			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
@@ -410,7 +411,10 @@ void info_user(void *param)
 							g_flag=0;
 							g_delay_in = fqp.delay_in;
 							rt_kprintf("non-emergency audio delay mode %d %d\r\n",fqp.delay_in,g_flag);
-							Wtn6_Play(VOICE_ALARM1,LOOP);
+							if (g_delay_out ==0)
+								Wtn6_Play(VOICE_ALARM2,LOOP);
+							else
+								Wtn6_Play(VOICE_ALARM1,LOOP);
 						} else {
 							rt_kprintf("non-emergency audio normal mode\r\n");
 							if (fqp.alarm_voice_time>0)
@@ -462,7 +466,7 @@ void info_user(void *param)
 					Wtn6_Play(VOICE_ALARM2,LOOP);
 				}*/
 				g_alarm_fq = /*fangqu_wireless[g_index_sub].*/g_fq_index;
-				if (g_operationType != 1 || fqp.delay_in == 0) {
+				if (g_operationType != 1 || fqp.delay_in == 0 || g_alarm_liji) {
 						upload_server(CMD_ALARM);				
 				}
 		}
@@ -512,7 +516,8 @@ void handle_login_ack(rt_uint8_t *cmd)
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
 	rt_uint32_t ts = cmd[0]<<24|cmd[1]<<16|cmd[2]<<8|cmd[3]<<0;
-	rt_kprintf("ack_type \theart ack\r\n");
+	rt_kprintf("ack_type \theart ack\r\n");	
+	rt_kprintf("cur beat alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
 	rt_kprintf("Server Time \t%s",ctime(&ts));
 	adjust_time(cmd);
 	rt_kprintf("type \t\t%d\r\n",cmd[4]);
@@ -620,6 +625,7 @@ void handle_set_main(rt_uint8_t *cmd)
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);
 	set_alarm_now();
+	rt_kprintf("set main alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	rt_thread_delay(100);
 	/*build proc main ack*/
