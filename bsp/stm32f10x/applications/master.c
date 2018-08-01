@@ -55,6 +55,7 @@ rt_uint16_t g_crc;
 rt_uint8_t *g_ftp = RT_NULL;
 extern rt_uint8_t s_bufang;
 extern rt_uint8_t g_need_reset_rtc;
+extern rt_uint8_t 	sub_cmd_type;
 //rt_uint8_t net_flow_flag=0;
 void handle_led(int type)
 {
@@ -384,7 +385,7 @@ void info_user(void *param)
 			pgm_ctl(2);
 			/*handle alarm voice*/
 				if (s1==1) {
-					g_alarm_reason = 0x1002;
+						g_alarm_reason = 0x1002;
 					if (fqp.is_alarm_voice) {
 						bell_ctl(1);
 						rt_thread_delay(100);
@@ -427,7 +428,11 @@ void info_user(void *param)
 					} else {
 						rt_kprintf("emergency audio play\r\n");
 						g_alarm_reason = 0x1003;
-						if (s1 == 1) { //s1 switch
+						if (s1 == 1) { //s1 switch							
+							if (sub_cmd_type == 3)
+								g_alarm_reason = 0x0016;
+							else
+								g_alarm_reason = 0x1002;
 							rt_kprintf("s1 audio\r\n");
 							Wtn6_Play(VOICE_FCALARM,ONCE);
 						} else {

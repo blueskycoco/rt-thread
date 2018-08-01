@@ -497,16 +497,21 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[19] = (cur_time >>  8) & 0xff;
 		cmd[20] = (cur_time >>  0) & 0xff;
 		cmd[21] = g_alarm_fq;
-		cmd[22] = (battery>>8) & 0xff;
-		cmd[23] = (battery) & 0xff;
-		cmd[24] = con_rssi(r_signal);
-		ofs= 25;
+		ofs = 22;
+		if (cmd[21] != 0) {
+			cmd[22] = (battery>>8) & 0xff;
+			cmd[23] = (battery) & 0xff;
+			cmd[24] = con_rssi(r_signal);
+			ofs= 25;
+		}
 		need_read = 1;
 		rt_kprintf("alarm\t\t%02x%02x\r\n", cmd[15],cmd[16]);
 		rt_kprintf("time\t\t%s",ctime(&cur_time));
 		rt_kprintf("alarm fq\t%d\r\n", g_alarm_fq);
-		rt_kprintf("battery\t\t%d\r\n",battery);
-		rt_kprintf("signal\t\t%d\r\n",cmd[24]);
+		if (cmd[21] !=0) {
+			rt_kprintf("battery\t\t%d\r\n",battery);
+			rt_kprintf("signal\t\t%d\r\n",cmd[24]);
+		}
 	} else if (type == CMD_MAIN_EVENT) {
 		rt_kprintf("req\t\tCMD MAIN EVENT Packet\r\n");
 		cmd[5]=(CMD_MAIN_EVENT >> 8) & 0xff;//main event

@@ -261,6 +261,7 @@ static void led_thread_entry(void* parameter)
 {
 	unsigned int count=0;
 	rt_uint8_t ac=0;
+	rt_uint8_t s1_main=0;
 	rt_hw_led_init();
 	//button_init();
 	//battery_init();
@@ -285,6 +286,19 @@ static void led_thread_entry(void* parameter)
 				g_net_state = NET_STATE_INIT;
 				rt_event_send(&(g_pcie[g_index]->event), 1);
 			}
+		}
+		/*check s1*/
+		s1_main = check_s1();
+		if (s1_main == 1) {
+			//fangchai
+			g_alarm_reason=0x1002;
+			g_alarm_fq = 0x00;			
+			upload_server(CMD_ALARM);
+		} else if(s1_main ==2) {
+			//huifu			
+			g_alarm_reason=0x0016;
+			g_alarm_fq = 0x00;			
+			upload_server(CMD_ALARM);
 		}
 		/*ac dc*/
 		ac=check_ac();

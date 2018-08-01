@@ -496,11 +496,11 @@ void handle_alarm()
 	g_alarmType = fangqu_wireless[g_index_sub].alarmType;
 	rt_kprintf("proc alarm %d %d %d\r\n",sub_cmd_type,fangqu_wireless[g_index_sub].operationType,
 		cur_status);
-	if (sub_cmd_type == 2 /*s1 alarm*/
+	if (sub_cmd_type == 2 || sub_cmd_type == 3/*s1 alarm*/
 		|| fangqu_wireless[g_index_sub].operationType==2 /*24 hour*/
 		) {
 		/*emergency alarm*/
-		if (sub_cmd_type == 2)
+		if (sub_cmd_type == 2||sub_cmd_type == 3)
 			s1=1;				//protect switch		
 			
 			g_fq_index = fangqu_wireless[g_index_sub].index;

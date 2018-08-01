@@ -12,7 +12,7 @@ void button_init(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOD|RCC_APB2Periph_GPIOB|RCC_APB2Periph_AFIO, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOD|RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOE|RCC_APB2Periph_AFIO, ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -21,6 +21,8 @@ void button_init(void)
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
+	GPIO_Init(GPIOE, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_13;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
@@ -147,4 +149,16 @@ void buzzer_ctl(int level)
 		GPIO_ResetBits(GPIOD, GPIO_Pin_6);
 	}
 }
-
+rt_uint8_t check_s1()
+{
+	static rt_uint8_t s1=0;
+	rt_uint8_t s1_state = GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_0);
+	if (s1_state == 1 && s1==0) {
+		s1 = 1;
+		return 1;//fangchai
+	} else if(s1_state == 0 && s1 == 1) {
+		s1 = 0;
+		return 2;//huifu
+	}
+	return 0;
+}
