@@ -84,6 +84,7 @@ rt_uint8_t time_protect=0;
 extern rt_uint8_t g_remote_protect;
 extern rt_uint8_t g_fq_index;
 extern rt_uint8_t		g_operationType;
+rt_uint8_t g_need_reset_rtc=1;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 2048 ];
@@ -186,6 +187,9 @@ static void set_next_alarm(rt_uint8_t cur_hour,rt_uint8_t cur_mins)
 			}			
 			rt_kprintf("set next alarm to %d:%d m %d\r\n",hour[j],mins[j],m);
 			set_alarm(hour[j],mins[j],0);
+			if (RTC_GetCounter() > RTC_GetAlarm()) {
+				g_need_reset_rtc = 1;
+			}
 			break;
 		}
 	}
@@ -201,6 +205,20 @@ void set_alarm_now()
 	
 	rt_kprintf("now alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
 }
+void reset_alarm_now()
+{
+	struct tm *to;
+	rt_time_t local_time;
+	time(&local_time);
+	to = localtime(&local_time);
+	if (to->tm_hour == 0) {
+		rt_kprintf("reset auto bu/chefang %04x %04x\r\n", fqp.auto_bufang,fqp.auto_chefang);
+		set_next_alarm(to->tm_hour,to->tm_min);
+		g_need_reset_rtc=0;
+		rt_kprintf("reset alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
+	}
+}
+
 static void alarm_thread(void *parameter)
 {
 	struct tm *to;

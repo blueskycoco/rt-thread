@@ -54,6 +54,7 @@ rt_uint8_t  	g_voiceType;
 rt_uint16_t g_crc;
 rt_uint8_t *g_ftp = RT_NULL;
 extern rt_uint8_t s_bufang;
+extern rt_uint8_t g_need_reset_rtc;
 //rt_uint8_t net_flow_flag=0;
 void handle_led(int type)
 {
@@ -466,7 +467,7 @@ void info_user(void *param)
 					Wtn6_Play(VOICE_ALARM2,LOOP);
 				}*/
 				g_alarm_fq = /*fangqu_wireless[g_index_sub].*/g_fq_index;
-				if (g_operationType != 1 || fqp.delay_in == 0 || g_alarm_liji) {
+				if (g_operationType != 1 || fqp.delay_in == 0) {
 						upload_server(CMD_ALARM);				
 				}
 		}
@@ -555,6 +556,9 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 	}
 	//if (g_heart_cnt > 1)
 	//	g_heart_cnt--;
+	if (g_need_reset_rtc) {
+		reset_alarm_now();
+	}
 	g_heart_cnt = 0;
 	show_memory_info();
 }
