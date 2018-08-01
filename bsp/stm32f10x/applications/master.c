@@ -387,8 +387,10 @@ void info_user(void *param)
 				if (s1==1) {
 						g_alarm_reason = 0x1002;
 					if (fqp.is_alarm_voice) {
-						bell_ctl(1);
-						rt_thread_delay(100);
+						if (sub_cmd_type !=2 && sub_cmd_type !=3) {
+							bell_ctl(1);
+							rt_thread_delay(100);
+						}
 					}
 				} else {
 
@@ -434,7 +436,7 @@ void info_user(void *param)
 							else
 								g_alarm_reason = 0x1002;
 							rt_kprintf("s1 audio\r\n");
-							Wtn6_Play(VOICE_FCALARM,ONCE);
+							//Wtn6_Play(VOICE_FCALARM,ONCE);
 						} else {
 							rt_kprintf("non-s1 audio \r\n");
 							if (fqp.alarm_voice_time>0)

@@ -155,10 +155,10 @@ rt_uint8_t check_s1()
 	rt_uint8_t s1_state = GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_0);
 	if (s1_state == 1 && s1==0) {
 		s1 = 1;
-		return 1;//fangchai
+		return 2;//fangchai
 	} else if(s1_state == 0 && s1 == 1) {
 		s1 = 0;
-		return 2;//huifu
+		return 1;//huifu
 	}
 	return 0;
 }

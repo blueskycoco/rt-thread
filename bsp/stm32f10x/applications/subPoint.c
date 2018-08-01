@@ -19,6 +19,7 @@ rt_uint8_t 	stm32_zero[6] 	= {0};
 rt_uint32_t sub_id 			= {0}; 
 rt_uint16_t command_type 	= 0;
 rt_uint8_t 	sub_cmd_type 	= 0;
+rt_uint8_t 	tmp_sub_cmd_type 	= 0;
 rt_uint16_t dev_model 		= 0;
 rt_uint32_t dev_time 		= 0;
 rt_uint8_t 	dev_type 		= 0;
@@ -380,7 +381,7 @@ void cmd_dump(rt_uint8_t *data,rt_uint8_t flag)
 		else
 		{
 			dev_type = data[18];
-			sub_cmd_type = data[17];			
+			tmp_sub_cmd_type = data[17];			
 			battery = data[19]<<8|data[20];
 			rt_kprintf("CMD SubType :\t%s\r\n",cmd_sub_type(data[17]));
 		}
@@ -494,15 +495,15 @@ void handle_protect_off()
 void handle_alarm()
 {
 	g_alarmType = fangqu_wireless[g_index_sub].alarmType;
-	rt_kprintf("proc alarm %d %d %d\r\n",sub_cmd_type,fangqu_wireless[g_index_sub].operationType,
+	rt_kprintf("proc alarm %d %d %d\r\n",tmp_sub_cmd_type,fangqu_wireless[g_index_sub].operationType,
 		cur_status);
-	if (sub_cmd_type == 2 || sub_cmd_type == 3/*s1 alarm*/
+	if (tmp_sub_cmd_type == 2 || tmp_sub_cmd_type == 3/*s1 alarm*/
 		|| fangqu_wireless[g_index_sub].operationType==2 /*24 hour*/
 		) {
 		/*emergency alarm*/
-		if (sub_cmd_type == 2||sub_cmd_type == 3)
+		if (tmp_sub_cmd_type == 2||tmp_sub_cmd_type == 3)
 			s1=1;				//protect switch		
-			
+			sub_cmd_type = tmp_sub_cmd_type;
 			g_fq_index = fangqu_wireless[g_index_sub].index;
 			g_operationType = fangqu_wireless[g_index_sub].operationType;
 			g_voiceType = fangqu_wireless[g_index_sub].voiceType;
@@ -510,9 +511,9 @@ void handle_alarm()
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);				
 	} else {
 		/*normal alarm*/
-		s1=0;
 		if (cur_status && !fangqu_wireless[g_index_sub].isBypass) {	
-			
+			s1=0;
+			sub_cmd_type=tmp_sub_cmd_type;
 			g_fq_index = fangqu_wireless[g_index_sub].index;
 			g_operationType = fangqu_wireless[g_index_sub].operationType;
 			g_voiceType = fangqu_wireless[g_index_sub].voiceType;
@@ -599,7 +600,7 @@ void handleSub(rt_uint8_t *data)
 			
 			g_mute=0;
 			rt_kprintf("have alarm %d %d %d %d\r\n",
-				g_main_state, sub_cmd_type,cur_status,fangqu_wireless[g_index_sub].operationType);
+				g_main_state, tmp_sub_cmd_type,cur_status,fangqu_wireless[g_index_sub].operationType);
 			if (!g_main_state) {
 				handle_alarm();
 				/*

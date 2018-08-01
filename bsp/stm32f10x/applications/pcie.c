@@ -747,7 +747,7 @@ void upload_server(rt_uint16_t cmdType)
 {
 	char buf[400] = {0};
 	char *cmd = RT_NULL;
-	rt_kprintf("net state %d cmdType\r\n",g_net_state,cmdType);
+	rt_kprintf("net state %d cmdType %d\r\n",g_net_state,cmdType);
 	if (g_net_state != NET_STATE_LOGED || entering_ftp_mode)
 		return ;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);

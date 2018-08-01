@@ -292,7 +292,8 @@ static void led_thread_entry(void* parameter)
 		if (s1_main == 1) {
 			//fangchai
 			g_alarm_reason=0x1002;
-			g_alarm_fq = 0x00;			
+			g_alarm_fq = 0x00;
+			Wtn6_Play(VOICE_FCALARM,ONCE);
 			upload_server(CMD_ALARM);
 		} else if(s1_main ==2) {
 			//huifu			
@@ -441,6 +442,7 @@ static void led_thread_entry(void* parameter)
 				}
 				if (cur_status && g_operationType == 1) {
 					g_alarm_fq = g_fq_index;
+					rt_kprintf("little alarm %d\r\n",cur_status);
 					upload_server(CMD_ALARM);
 				}
 			}
