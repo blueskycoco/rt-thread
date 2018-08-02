@@ -170,7 +170,8 @@ extern rt_mp_t server_mp;
 extern rt_uint8_t 	cur_status;
 extern rt_uint16_t g_crc;
 extern rt_uint8_t *g_ftp;
-
+rt_uint32_t cgreg_cnt = 0;
+extern rt_uint8_t g_module_type;
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -442,6 +443,12 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
 		{
 			g_m26_state = M26_STATE_INIT;
+			if (have_str(last_data_ptr,STR_PDP_DEACT)) {
+				rt_kprintf("MODULE lost\r\n");
+				g_heart_cnt=0;
+				g_net_state = NET_STATE_UNKNOWN;
+				pcie_switch(g_module_type);
+			}
 		}
 		switch (g_m26_state) {
 			case M26_STATE_INIT:
@@ -471,6 +478,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr,STR_CPIN_READY)) {
 					g_pcie[g_index]->cpin_cnt=0;
 					g_m26_state = M26_STATE_CHECK_CGREG;
+					cgreg_cnt = 0;
 					gprs_at_cmd(g_dev_m26,cgreg);
 				} 
 				else/* if (have_str(last_data_ptr, STR_CPIN))*/
@@ -609,11 +617,20 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_CGREG_READY) ||
 						have_str(last_data_ptr, STR_CGREG_READY1)) {
 					//g_m26_state = M26_STATE_CHECK_QISTAT;
+					cgreg_cnt=0;
 					g_m26_state = M26_STATE_CSQ;
 					gprs_at_cmd(g_dev_m26,at_csq);
 				} else if(have_str(last_data_ptr, STR_CGREG)) {
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_m26,cgreg);
+					cgreg_cnt++;
+					rt_kprintf("cgreg cnt %d\r\n", cgreg_cnt);
+					if (cgreg_cnt>500) {
+						rt_kprintf("to long to regester network %d\r\n", cgreg_cnt);
+						g_heart_cnt=0;
+						g_net_state = NET_STATE_UNKNOWN;
+						pcie_switch(g_module_type);
+					}
 				}
 				break;
 			case M26_STATE_CHECK_QISTAT:

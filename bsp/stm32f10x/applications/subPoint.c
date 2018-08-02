@@ -647,7 +647,7 @@ void handleSub(rt_uint8_t *data)
 			g_remote_protect=0;
 			handle_protect_on();
 		}
-		else if(command_type == 0x0004 && (cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
+		else if(command_type == 0x0004 && (cur_status || (!cur_status && g_delay_out!=0) /*|| g_alarm_voice*/))
 		{
 			g_remote_protect=0;
 			cur_status = 0;

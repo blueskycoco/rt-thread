@@ -502,6 +502,7 @@ void handle_login_ack(rt_uint8_t *cmd)
 	rt_kprintf("status \t\t%x\r\n",cmd[0]);
 	rt_kprintf("Server Time \t%08x\r\n",cmd[1]<<24|cmd[2]<<16|cmd[3]<<8|cmd[4]<<0);
 	adjust_time(cmd+1);
+	set_alarm_now();
 	rt_kprintf("len \t\t%d\r\n",cmd[5]);
 	if (cmd[5] != 0) {
 		rt_kprintf("new IP: \t\t");
