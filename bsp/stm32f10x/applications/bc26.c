@@ -51,15 +51,15 @@
 #define BC26_STATE_CLOSE_FILE	36
 #define BC26_STATE_CGATT		37
 #define BC26_CREATE_SOCKET		38
-#define BC26_QICFG				39
+#define BC26_NSOCR				39
 #define BC26_QENG				40
 #define BC26_CPSMS				41
-#define STR_QICFG				"+QICFG"
-#define STR_CSCON					"+CSCON: 0,1"
+#define STR_NSOCR				"+NSOCR"
+#define STR_CSCON					"+CSCON:0,1"
 #define STR_GSN					"+CGSN:"
-#define STR_CGATT_OK				"+CGATT: 1"
+#define STR_CGATT_OK				"+CGATT:1"
 #define STR_CFUN					"+CFUN:"
-#define STR_RDY						"+CPIN: READY"
+#define STR_RDY						"Neul"
 #define STR_CPIN					"+CPIN:"
 #define STR_CSQ						"+CSQ:"
 #define STR_CREG					"+CREG:"
@@ -77,7 +77,7 @@
 #define STR_QIRD					"+QIRD:"
 #define STR_QIURC					"+QIURC:"
 #define STR_TCP						"TCP,"
-#define STR_CLOSED					"CLOSED"
+#define STR_CLOSED					"+NSOCLI"
 #define STR_BEGIN_WRITE				">"
 #define STR_ERROR					"ERROR"
 #define STR_4600					"4600"
@@ -91,7 +91,7 @@
 #define STR_CONNECT_OK				"+QIOPEN: 0,0"
 #define STR_CLOSE_OK				"CLOSE OK"
 #define STR_SEND_OK					"SEND OK"
-#define STR_QIRDI					"+QIURC: \"recv\",0" 
+#define STR_QIRDI					"+NSONMI:1" 
 #define STR_QISACK					"+QISACK"
 #define STR_SOCKET_BUSSY			"+QIOPEN: 0,566"
 #define STR_CONNECT_FAIL			"CONNECT FAIL"
@@ -101,8 +101,9 @@
 #define STR_FTP_FILE_SIZE			"+QFTPSIZE:"
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
-#define STR_QCCID					"+QCCID:"
+#define STR_QCCID					"+NCCID:"
 #define STR_QSOC					"+QSOC=0"
+#define STR_PDP_DEACT	"+PDP DEACT"
 
 
 #define c_socket	"AT+QSOC=1,1,1\r\n"
@@ -116,11 +117,12 @@
 #define cregs "AT+CREG=2\r\n"
 #define cregr "AT+CREG?\r\n"
 #define at_csq "AT+CSQ\r\n"
-#define at_qccid "AT+QCCID\r\n"
+#define at_qccid "AT+NCCID\r\n"
 #define gsn "AT+CGSN=1\r\n"
 #define cpsms	"AT+CPSMS=0\r\n"
 #define qeng	"AT+QENG=0\r\n"
-#define qicfg	"AT+QICFG=\"dataformat\",1,1\r\n"
+#define qicfg	"AT+NSOCR=\"dataformat\",1,1\r\n"
+#define nsocr	"AT+NSOCR=STREAM,6,56000,1\r\n"
 #define cimi "AT+CIMI\r\n"
 #define cpin "AT+CPIN?\r\n"
 #define qifgcnt "AT+QIFGCNT=0\r\n"
@@ -130,7 +132,7 @@
 #define qideact "AT+QIDEACT\r\n"
 #define ati	"ATI\r\n"
 #define qindi "AT+QINDI=1\r\n"
-#define qird "AT+QIRD=0,512\r\n"
+//#define qird "AT+QIRD=0,512\r\n"
 #define qisack "AT+QISACK\r\n"
 #define qiat "AT\r\n"
 #define cgatt	"AT+CGATT?\r\n"
@@ -143,6 +145,7 @@ uint8_t 	  qisend_bc26[32] 			= {0};
 //uint8_t 	  qiftp_set_resuming[32] 	= {0};
 uint8_t 	  qiftp_bc26_ram[32]			= {0};
 uint8_t		  qiftp_get_bc26[32]			= {0};
+uint8_t 	  qird[10] = {0};
 #define qiregapp "AT+QIREGAPP\r\n"
 #define qiact "AT+QIACT\r\n"
 rt_bool_t g_data_in_bc26 = RT_FALSE;
@@ -180,6 +183,7 @@ extern rt_uint8_t ftp_rty;
 extern rt_uint16_t g_app_v;
 extern struct rt_event g_info_event;
 extern rt_mp_t server_mp;
+extern rt_uint8_t g_module_type;
 void toHex(uint8_t *input, uint32_t len, uint8_t *output)
 {
 	int ix=0,iy=0;
@@ -236,6 +240,19 @@ void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
 	static rt_bool_t flag = RT_FALSE;	
 	int i;
 	int ofs;
+	if (have_str(last_data_ptr, STR_OK) && have_str(last_data_ptr, "ADAC")) {
+		uint8_t *pos = (uint8_t *)strstr(last_data_ptr, "ADAC");
+		uint32_t len_ofs = 0;
+		while (pos[len_ofs] != ',' && len_ofs < len)
+			len_ofs++;
+		rt_uint8_t *server_buf_bc26_1 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
+		fromHex(pos, len_ofs,server_buf_bc26_1);
+		rt_data_queue_push(&g_data_queue[3], server_buf_bc26_1, len_ofs/2, RT_WAITING_FOREVER);
+		g_bc26_state = BC26_STATE_DATA_PROCESSING;
+		g_data_in_bc26 = 0;
+		gprs_at_cmd(g_dev_bc26,at_csq);
+	}
+	#if 0
 	if ((ofs = match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)))!=-1)
 	{	
 			uint8_t *pos = (uint8_t *)last_data_ptr;
@@ -327,6 +344,7 @@ void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
 	}else {
 		
 	}
+	#endif
 }
 
 void bc26_start(int index)
@@ -400,12 +418,25 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 		{
 			g_bc26_state = BC26_STATE_INIT;
 		}
+		if (have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
+		{
+			if (have_str(last_data_ptr,STR_PDP_DEACT)) {
+				rt_kprintf("MODULE lost\r\n");
+				g_heart_cnt=0;
+				g_net_state = NET_STATE_UNKNOWN;
+				pcie_switch(g_module_type);
+			} else {				
+				g_bc26_state = BC26_CREATE_SOCKET;
+				gprs_at_cmd(g_dev_bc26,nsocr);
+				return;
+			}
+		}
 		switch (g_bc26_state) {
 			case BC26_STATE_INIT:
-				if (have_str(last_data_ptr,STR_RDY)) {
+				//if (have_str(last_data_ptr,STR_RDY)) {
 				g_bc26_state = BC26_STATE_ATE0;
 				gprs_at_cmd(g_dev_bc26,e0);	
-				}
+				//}
 				break;
 			case BC26_STATE_ATE0:
 				if (have_str(last_data_ptr,STR_OK)) {
@@ -442,8 +473,10 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					show_signal(g_pcie[g_index]->csq);
 					//g_bc26_state = BC26_STATE_LAC;
 					//gprs_at_cmd(g_dev_bc26,cregs);
-					gprs_at_cmd(g_dev_bc26,qeng);
-					g_bc26_state = BC26_QENG;
+					//gprs_at_cmd(g_dev_bc26,qeng);
+					//g_bc26_state = BC26_QENG;
+					gprs_at_cmd(g_dev_bc26,cpsms);
+					g_bc26_state = BC26_CPSMS;
 				} 
 				break;
 			case BC26_QENG:				
@@ -456,8 +489,10 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case BC26_STATE_CSCON:
 				if (have_str(last_data_ptr, STR_CSCON)) {
-					g_bc26_state = BC26_STATE_LAC;
-					gprs_at_cmd(g_dev_bc26,cregs);
+					//g_bc26_state = BC26_STATE_LAC;
+					//gprs_at_cmd(g_dev_bc26,cregs);
+					g_bc26_state = BC26_STATE_ICCID;
+						gprs_at_cmd(g_dev_bc26,at_qccid);
 					} else {
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_bc26,cscon);
@@ -544,30 +579,30 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_GSN)) {
 				g_pcie[g_index]->imei[0]=0x0;
 				i=2;//866159032379171
-				while(tmp[i+7]!='\r' && i<17)
+				while(tmp[i+6]!='\r' && i<17)
 				{
-					if (tmp[i+7]>='0' && tmp[i+7]<='9')
-						g_pcie[g_index]->imei[i/2-1] += (tmp[i+7]-0x30);
-					else if (tmp[i]>='a' && tmp[i+7]<='f')
-						g_pcie[g_index]->imei[i/2-1] += (tmp[i+7]-'a'+10);
-					else if (tmp[i]>='A' && tmp[i+7]<='F')
-						g_pcie[g_index]->imei[i/2-1] += (tmp[i+7]-'A'+10);
+					if (tmp[i+6]>='0' && tmp[i+6]<='9')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-0x30);
+					else if (tmp[i]>='a' && tmp[i+6]<='f')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-'a'+10);
+					else if (tmp[i]>='A' && tmp[i+6]<='F')
+						g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-'A'+10);
 					rt_kprintf("imei[%d] = %02X\r\n",i/2-1,g_pcie[g_index]->imei[i/2-1]);
 					//i+=2;
-					if (tmp[i+8]>='0' && tmp[i+8]<='9')
-						g_pcie[g_index]->imei[i/2] = (tmp[i+8]-0x30)*16;
-					else if (tmp[i+1]>='a' && tmp[i+8]<='f')
-						g_pcie[g_index]->imei[i/2] = (tmp[i+8]-'a'+10)*16;
-					else if (tmp[i+1]>='A' && tmp[i+8]<='F')
-						g_pcie[g_index]->imei[i/2] = (tmp[i+8]-'A'+10)*16;
+					if (tmp[i+7]>='0' && tmp[i+7]<='9')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+7]-0x30)*16;
+					else if (tmp[i+1]>='a' && tmp[i+7]<='f')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+7]-'a'+10)*16;
+					else if (tmp[i+1]>='A' && tmp[i+7]<='F')
+						g_pcie[g_index]->imei[i/2] = (tmp[i+7]-'A'+10)*16;
 				
 					i+=2;						
 				}					
 					g_bc26_state = BC26_CREATE_SOCKET;
-					gprs_at_cmd(g_dev_bc26,qicfg);
+					gprs_at_cmd(g_dev_bc26,nsocr);
 					}
 					break;
-			//case BC26_QICFG:
+			//case BC26_NSOCR:
 			//	if (have_str(last_data_ptr, STR_QSOC)) {						
 			//		g_bc26_state = BC26_CREATE_SOCKET;
 			//		gprs_at_cmd(g_dev_bc26,qicfg);
@@ -577,7 +612,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_OK)) {					
 					g_bc26_state = BC26_STATE_SET_QIOPEN;
 					rt_memset(qiopen_bc26, 0, 64);					
-					rt_sprintf(qiopen_bc26, "AT+QIOPEN=1,0,\"TCP\",\"%d.%d.%d.%d\",%d,0,0\r\n",
+					rt_sprintf(qiopen_bc26, "AT+NSOCO=1,%d.%d.%d.%d,%d\r\n",
 							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
 							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
 							mp.socketAddress[g_ip_index].port);
@@ -586,7 +621,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;
 			case BC26_STATE_SET_QIOPEN:
-				if (have_str(last_data_ptr, STR_CONNECT_OK)) {
+				if (have_str(last_data_ptr, STR_OK)) {
 					g_bc26_state = BC26_STATE_DATA_PROCESSING;
 					/*send data here */
 				//	rt_kprintf("connect to server ok\r\n");
@@ -650,7 +685,9 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_QIRDI)) {
 					/*server data in */					
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
+					char *len_ptr = strstr(last_data_ptr, "1,");
 					g_bc26_state = BC26_STATE_DATA_READ;
+					rt_sprintf(qird,"AT+NSORF=%s", len_ptr);
 					gprs_at_cmd(g_dev_bc26,qird);
 					server_len_bc26 = 0;
 					g_data_in_bc26 = RT_TRUE;
@@ -684,7 +721,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_uint8_t *hex_string = (rt_uint8_t *)rt_malloc((send_size_bc26*2+1)*sizeof(rt_uint8_t));
 						rt_memset(hex_string,0,send_size_bc26*2+1);
 						toHex(send_data_ptr_bc26, send_size_bc26, hex_string);
-						rt_sprintf(qisend_bc26, "AT+QISENDEX=0,%d,", send_size_bc26);
+						rt_sprintf(qisend_bc26, "AT+NSOSD=1,%d,", send_size_bc26);
 						gprs_at_cmd(g_dev_bc26,qisend_bc26);
 						gprs_at_cmd(g_dev_bc26,hex_string);
 						gprs_at_cmd(g_dev_bc26,"\r\n");
@@ -757,7 +794,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				handle_bc26_server_in(last_data_ptr,data_size);
 				break;
 			case BC26_STATE_DATA_WRITE:
-				if (have_str(last_data_ptr, STR_SEND_OK)) {
+				if (have_str(last_data_ptr, STR_OK)) {
 					//g_bc26_state = BC26_STATE_DATA_ACK;
 					//gprs_at_cmd(g_dev_bc26,(qisack);
 					g_bc26_state = BC26_STATE_DATA_PROCESSING;
