@@ -85,6 +85,7 @@ extern rt_uint8_t g_remote_protect;
 extern rt_uint8_t g_fq_index;
 extern rt_uint8_t		g_operationType;
 rt_uint8_t g_need_reset_rtc=1;
+struct rt_semaphore yunduo_sem;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 2048 ];
@@ -256,6 +257,17 @@ static void alarm_thread(void *parameter)
 		
 		rt_kprintf("next occur alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
 	}
+}
+static void yun_duo(void *parameter)
+{
+	while (1) {
+		rt_sem_take(&(yunduo_sem), RT_WAITING_FOREVER);
+		net_flow();
+	}
+}
+void begin_yunduo()
+{	
+	rt_sem_release(&(yunduo_sem));
 }
 static void led_thread_entry(void* parameter)
 {
@@ -581,10 +593,12 @@ void rt_init_thread_entry(void* parameter)
 	rt_kprintf("\t\tUPGRADE Version\r\n");
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_mutex_init(&(g_stm32_lock),	"stm32_lock",	RT_IPC_FLAG_FIFO);
+	rt_sem_init(&(yunduo_sem),		"yunduo_sem",	0, 0);
 	Wtn6_Init();
 	GPIO_Lcd_Init();
 	//battery_init();
 	rt_thread_startup(rt_thread_create("7info",info_user, 0,4096, 20, 10));
+	rt_thread_startup(rt_thread_create("00yun",yun_duo, 0,512, 30, 10));
 
 	button_init();
 

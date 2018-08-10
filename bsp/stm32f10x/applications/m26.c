@@ -1141,6 +1141,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 		}				
 		rt_time_t cur_time = time(RT_NULL);
 		rt_kprintf("send server ok %s\r\n",ctime(&cur_time));
+			begin_yunduo();
 		//rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 		break;		
 		}
