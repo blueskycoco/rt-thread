@@ -634,6 +634,7 @@ void handleSub(rt_uint8_t *data)
 		resp[19]=(crc>>8) & 0xff;
 		resp[20]=(crc) & 0xff;
 		cc1101_send_write(resp,21);
+		record_fqp_ts(fangqu_wireless[g_index_sub].index);
 	} else {
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		if (g_main_state == 1)

@@ -66,6 +66,14 @@ struct FangQu
 	rt_uint32_t 	slave_batch;	//ro
 };
 
+struct FangQuT
+{
+	rt_uint8_t index;
+	rt_uint32_t heart_ts;
+	rt_uint8_t off_line;
+	rt_uint8_t off_line2;
+};
+
 struct FangQuProperty
 {   	
 	rt_uint8_t		status;
@@ -85,6 +93,7 @@ struct FangQuProperty
 
 #define WIRELESS_MAX	50
 #define WIRE_MAX		30
+struct FangQuT	 fangqu_ts[50];
 struct FangQu    fangqu_wire[30];
 struct FangQu    fangqu_wireless[50];
 struct FangQuProperty fqp;

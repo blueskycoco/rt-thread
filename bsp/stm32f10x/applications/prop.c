@@ -7,9 +7,10 @@
 #include "led.h"
 #include "bsp_misc.h"
 #include "wtn6.h"
-
+rt_uint32_t 	g_fangqu_ts_cnt = 0;
+extern rt_uint8_t g_alarm_fq;
 struct rt_mutex file_lock;
-
+extern rt_uint16_t g_alarm_reason;
 void dump_mp(struct MachineProperty v)
 {
 	int i;
@@ -139,6 +140,90 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 			rt_kprintf("slave_sn \t%08x\r\n",v3[i].slave_sn);			
 			if (v3[i].alarmType == TYPE_24)
 				v3[i].status = TYPE_PROTECT_ON;
+		}
+	}
+}
+void default_fqp_t(struct FangQu *v2,struct FangQu *v3)
+{
+	int i;
+	for(i=0;i<WIRE_MAX;i++)
+	{
+		if(v2[i].index != 0) {
+			fangqu_ts[g_fangqu_ts_cnt].heart_ts = 0;
+			fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
+			fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
+			fangqu_ts[g_fangqu_ts_cnt].index = v2[i].index;
+			rt_kprintf("ts %d , index %d\r\n", g_fangqu_ts_cnt, v2[i].index);
+			g_fangqu_ts_cnt++;
+		}
+	}
+	for(i=0;i<WIRELESS_MAX;i++)
+	{
+		if(v3[i].index != 0) {
+			fangqu_ts[g_fangqu_ts_cnt].heart_ts = 0;
+			fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
+			fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
+			fangqu_ts[g_fangqu_ts_cnt].index = v3[i].index;			
+			rt_kprintf("ts %d , index %d\r\n", g_fangqu_ts_cnt, v3[i].index);
+			g_fangqu_ts_cnt++;
+		}
+	}
+}
+void default_fqp_t2()
+{
+	int i;
+	rt_time_t ts = time(RT_NULL);
+	for(i=0;i<g_fangqu_ts_cnt;i++)
+	{
+		if (fangqu_ts[i].heart_ts == 0)
+			fangqu_ts[i].heart_ts = ts;
+	}
+}
+
+void record_fqp_ts(rt_uint8_t index)
+{
+	int i;	
+	rt_time_t cur_time = time(RT_NULL);
+	for (i=0; i<g_fangqu_ts_cnt; i++) {
+		if (fangqu_ts[i].index == index) {
+			fangqu_ts[i].heart_ts = cur_time;
+			fangqu_ts[i].off_line2 = 0;
+		}
+	}
+}
+rt_uint8_t fangqu_offline(rt_uint8_t index)
+{
+	int i;
+	for (i=0; i<g_fangqu_ts_cnt; i++) {
+		if (fangqu_ts[i].index == index)
+			return fangqu_ts[i].off_line2;
+	}
+	return 0x01;
+}
+void check_off_line_alarm()
+{
+	int i;	
+	rt_time_t cur_time = time(RT_NULL);
+	for (i=0; i<g_fangqu_ts_cnt; i++) {
+		rt_kprintf("fq[%d]\t %d %d %d, cur %d, %d\r\n", fangqu_ts[i].index,fangqu_ts[i].heart_ts,
+			fangqu_ts[i].off_line,fangqu_ts[i].off_line2,cur_time,cur_time - fangqu_ts[i].heart_ts);
+		if (fangqu_ts[i].heart_ts != 0 && fangqu_ts[i].off_line == 0) {
+			if ((cur_time - fangqu_ts[i].heart_ts) > 600) {
+				fangqu_ts[i].heart_ts = cur_time;
+				fangqu_ts[i].off_line = 1;
+				fangqu_ts[i].off_line2 = 1;
+				g_alarm_fq = fangqu_ts[i].index;
+				g_alarm_reason = 0x0005;
+				upload_server(0x0004);
+				break;
+			}
+		}
+		if (fangqu_ts[i].off_line == 1 && fangqu_ts[i].off_line2 == 0) {
+			g_alarm_fq = fangqu_ts[i].index;
+			g_alarm_reason = 0x0017;
+			upload_server(0x0004);
+			fangqu_ts[i].off_line = 0;
+			break;
 		}
 	}
 }
@@ -325,6 +410,7 @@ int load_param()
 	mp.socketAddress[0].IP[2] = 239;
 	mp.socketAddress[0].IP[3] = 212;
 	*/dump_fqp(fqp,fangqu_wire,fangqu_wireless);
+	default_fqp_t(fangqu_wire,fangqu_wireless);
 	return 1;
 }
 

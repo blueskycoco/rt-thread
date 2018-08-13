@@ -521,6 +521,7 @@ void handle_login_ack(rt_uint8_t *cmd)
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);	
 		SetStateIco(3,1);
 	}
+	default_fqp_t2();
 }
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
@@ -569,6 +570,8 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 	}
 	g_heart_cnt = 0;
 	show_memory_info();
+
+	check_off_line_alarm();
 }
 void handle_t_common_ack(rt_uint8_t *cmd)
 {
