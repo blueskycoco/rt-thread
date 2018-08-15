@@ -260,6 +260,7 @@ void save_fq_wire(int addr, rt_uint8_t type, rt_uint32_t fact_time)
 		fangqu_wire[addr].isStay= TYPE_STAY_N;
 		fangqu_wire[addr].isBypass= TYPE_BYPASS_N;
 		g_num=fangqu_wire[addr].index;
+		add_fqp_t(fangqu_wire[addr].index);
 		rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
 			addr, fangqu_wire[addr].index,fangqu_wire[addr].slave_sn);			
 		Wtn6_Play(VOICE_DUIMA,ONCE);
@@ -347,6 +348,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
                     can_send(resp[2],cmd,8);
 					handle_wire_alarm(addr);
 				rt_kprintf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$>\r\n");
+				record_fqp_ts(fangqu_wire[addr].index);
                 } else if (resp[0] == 0x00 && resp[1] == 0x10) {
                     //curr status
                     if (resp[2] < WIRELESS_MAX)
@@ -365,6 +367,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					//rt_kprintf("id\t\t%08x\r\n", fangqu_wire[addr].slave_sn);
 					//rt_kprintf("addr\t\t%x\r\n", resp[2]);
 					//rt_kprintf("status\t\t%s\r\n", (cmd[3]==0)?"che fang":"bu fang");
+					record_fqp_ts(fangqu_wire[addr].index);
                     can_send(resp[2],cmd,8);
                 }
             }

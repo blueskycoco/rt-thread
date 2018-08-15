@@ -409,9 +409,9 @@ static void cc1101_gdo0_rx_it(void)
                 rf_dev.rx_rd %= RX_BUF_SIZE;  
             }  
         }   
-        //rt_kprintf("cc1101 receive data:");  
+        rt_kprintf("cc1101 receive data<>:");  
         //cc1101_hex_printf(rx_buf, rx_count);  
-		//rt_kprintf("\r\n");  
+		rt_kprintf("\r\n");  
 		rt_sem_release(&(cc1101_rx_sem));
     }  
 }
@@ -577,6 +577,7 @@ void cc1101_isr(void)
 	#if 1
     if(rf_dev.mode  == MODE_RX)  
     {  
+    	rt_kprintf("got cc1101 data begin\r\n");
         cc1101_gdo0_rx_it();  
     }  
     else if(rf_dev.mode == MODE_TX)     

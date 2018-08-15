@@ -131,11 +131,15 @@ void delete_fq(rt_uint8_t index, rt_uint8_t type)
 {
 	if ((type & 0x80) == 0x80) /*wireless*/
 	{
-		if (index > 0 && index < 51)
+		if (index > 0 && index < 51) {
+			del_fqp_t(fangqu_wireless[index-2].index);
 			memset(&(fangqu_wireless[index-2]),0,sizeof(struct FangQu));
+		}
 	} else {
-		if (index > 50 && index < 80)
+		if (index > 50 && index < 80) {
+			del_fqp_t(fangqu_wire[index-WIRELESS_MAX].index);
 			memset(&(fangqu_wire[index-WIRELESS_MAX]),0,sizeof(struct FangQu));
+		}
 	}
 }
 void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
@@ -299,6 +303,7 @@ void save_fq(struct FangQu *list, int len)
 				list[i].index = i+WIRELESS_MAX+1;
 				list[i].type =TYPE_WIRE;
 			}
+			add_fqp_t(list[i].index);
 			list[i].slave_sn = sub_id;
 			list[i].slave_type = dev_type;
 			list[i].slave_model = dev_model;
