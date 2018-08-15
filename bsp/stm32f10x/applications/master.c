@@ -56,6 +56,7 @@ rt_uint8_t *g_ftp = RT_NULL;
 extern rt_uint8_t s_bufang;
 extern rt_uint8_t g_need_reset_rtc;
 extern rt_uint8_t 	sub_cmd_type;
+extern struct rt_semaphore cc1101_rx_sem;
 //rt_uint8_t net_flow_flag=0;
 void handle_led(int type)
 {
@@ -576,6 +577,9 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 	show_memory_info();
 
 	check_off_line_alarm();
+
+	if (!gdo_level()) 
+		rt_sem_release(&(cc1101_rx_sem));
 }
 void handle_t_common_ack(rt_uint8_t *cmd)
 {

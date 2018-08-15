@@ -480,10 +480,14 @@ static void cc1101_gdo0_tx_it(void)
     {  
         status = trxSpiCmdStrobe(RF_SNOP);
     }  
-	
+	rt_kprintf("tx count %d\r\n", wait_tx_count);
     if(wait_tx_count == 0)  
     {               
         cc1101_set_rx_mode();  
+		//if (!gdo_level()) {
+		//	rt_kprintf("continue intr\r\n");
+		//} else
+		//	rt_kprintf("alone intr\r\n");
     }  
     else if(wait_tx_count < MAX_FIFO_SIZE)  
     {     
@@ -582,6 +586,7 @@ void cc1101_isr(void)
     }  
     else if(rf_dev.mode == MODE_TX)     
     {  
+    	rt_kprintf("send cc1101 data end\r\n");
         cc1101_gdo0_tx_it();  
     }  
     else  

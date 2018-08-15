@@ -166,7 +166,7 @@ void trxRfSpiInterruptInit()
 }
 int gdo_level()
 {
-	return GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_0);
+	return GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_1);
 }
 int check_status(uint8_t bit)
 {	
