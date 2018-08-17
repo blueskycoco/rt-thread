@@ -425,7 +425,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 		else
 			rt_kprintf("\r\n(M26<= %d %d)\r\n",g_m26_state, data_size);
 #else
-	if (!have_str(last_data_ptr,STR_CSQ)) {
+	//if (!have_str(last_data_ptr,STR_CSQ)) {
 		rt_kprintf("\r\n<== (M26 %d %d)\r\n",g_m26_state, data_size);
 		for (i=0; i<data_size; i++)
 			if (isascii(tmp[i]) && (g_m26_state != M26_STATE_READ_FILE))
@@ -437,7 +437,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
 		
 		}
-	}
+	//}
 #endif
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))

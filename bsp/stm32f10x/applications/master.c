@@ -644,11 +644,12 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 	check_off_line_alarm();
 	_list_thread(&rt_object_container[RT_Object_Class_Thread].object_list);
 
-	//if (!gdo_level()) 
+	/*if (!gdo_level()) 
 	{
-		//rt_kprintf("poll release sem\r\n");
+		rt_kprintf("poll release sem\r\n");
 		rt_sem_release(&(cc1101_rx_sem));
-	}
+	}*/
+	rt_kprintf("%s\r\n", APP_BUILD_TIME);
 }
 void handle_t_common_ack(rt_uint8_t *cmd)
 {

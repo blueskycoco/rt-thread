@@ -15,7 +15,7 @@ unsigned long volatile time_counter = 0;
 #define MAX_FIFO_SIZE            0x38 
 struct rt_semaphore cc1101_rx_sem;
 extern rt_uint8_t r_signal;
-
+rt_uint8_t g_retry=0;
 unsigned char paTable[1];           
 unsigned char rf_end_packet = 0;
 struct rf_dev  
@@ -409,7 +409,7 @@ static void cc1101_gdo0_rx_it(void)
                 rf_dev.rx_rd %= RX_BUF_SIZE;  
             }  
         }   
-        rt_kprintf("cc1101 receive data<>:");  
+        rt_kprintf("cc1101 receive data<%d>:",rx_count);  
         //cc1101_hex_printf(rx_buf, rx_count);  
 		rt_kprintf("\r\n");  
 		rt_sem_release(&(cc1101_rx_sem));
@@ -564,11 +564,21 @@ int cc1101_receive_read(unsigned char *buf, int count)
     for(i = 0, real_read_count = 0; i < count; i++)  
     {  
         if(rf_dev.rx_rd == rf_dev.rx_wr)  
-        {  
+        {          	
+    		//rt_kprintf("poll triger\r\n");
+        	//if (real_read_count == 0)
+			//	cc1101_gdo0_rx_it();
+			/*g_retry++;
+			if (g_retry >= 10) 
+			{
+				radio_intit2();
+				g_retry=0;
+			}*/
             return real_read_count;  
         }  
         else  
         {  
+        	g_retry=0;
             buf[i] = rf_dev.rx_buf[rf_dev.rx_rd++];  
             rf_dev.rx_rd %= RX_BUF_SIZE;  
             real_read_count++;  
@@ -695,6 +705,36 @@ int radio_init(void)
 	trxRfSpiInterruptInit();
 	cc1101_set_rx_mode();
 	return 1;
+}
+void radio_intit2(void)
+{
+	unsigned char i, writeByte, preferredSettings_length;
+	registerSetting_t *preferredSettings;
+	trxRfSpiInterfaceInit2();
+	trxSpiCmdStrobe(RF_SRES);
+	rt_kprintf("get here2\r\n");
+	if (DEV_CC1101 != get_device_id())
+		return 0;
+	rt_kprintf("rssi2 %d\r\n",radio_get_rssi());
+	rt_thread_delay(100);
+	preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);	
+	preferredSettings = (registerSetting_t *)preferredSettings_1200bps;	
+	for(i = 0; i < preferredSettings_length; i++) {	
+		writeByte = preferredSettings[i].data;
+		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);	
+	}
+
+	for(i = 0; i < preferredSettings_length; i++) {
+		uint8 readByte = 0;
+		trx8BitRegAccess(RADIO_READ_ACCESS, preferredSettings[i].addr, &readByte, 1);
+		if (readByte != preferredSettings[i].data)
+		{
+			rt_kprintf("rf reg set failed %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
+			return 0;
+		}
+	}
+	trxRfSpiInterruptInit();
+	cc1101_set_rx_mode();
 }
 int radio_receive_on(void) {
 
