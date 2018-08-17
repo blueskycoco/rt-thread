@@ -850,39 +850,60 @@ rt_uint8_t check_type(rt_uint8_t pcie_index)
 {	
 	GPIO_InitTypeDef GPIO_InitStructure;
 	uint16_t pin0,pin1,pin2;
-	uint32_t port;
+	uint32_t port,port0,port1;
 	rt_uint8_t result=0;
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_8|GPIO_Pin_9|GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_8;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_9|GPIO_Pin_10;
+	GPIO_Init(GPIOD, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_12|GPIO_Pin_13|GPIO_Pin_14;
 	GPIO_Init(GPIOE, &GPIO_InitStructure);
 	if (pcie_index == 0) {
-		port = GPIOA;
+		port0 = GPIOA;
+		port1 = GPIOD;
 		pin0 = GPIO_Pin_8;pin1 = GPIO_Pin_9;pin2 = GPIO_Pin_10;
 	} else {
 		port = GPIOE;
 		pin0 = GPIO_Pin_12;pin1 = GPIO_Pin_13;pin2 = GPIO_Pin_14;
 	}
-
-	if (!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
-			!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
-			GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
-		result = PCIE_1_EC20;
-	else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
-			GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
-			!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
-		result = PCIE_1_M26;
-	else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
-			!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
-			!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
-		result = PCIE_1_IP;
-	else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
-			GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
-			GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
-		result = PCIE_1_NBIOT;
-
+	
+	if (pcie_index == 0) {
+		if (!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port0),pin0) &&
+				!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port1),pin1) &&
+				GPIO_ReadInputDataBit(((GPIO_TypeDef *)port1),pin2))
+			result = PCIE_1_EC20;
+		else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port0),pin0) &&
+				GPIO_ReadInputDataBit(((GPIO_TypeDef *)port1),pin1) &&
+				!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port1),pin2))
+			result = PCIE_1_M26;
+		else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port0),pin0) &&
+				!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port1),pin1) &&
+				!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port1),pin2))
+			result = PCIE_1_IP;
+		else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port0),pin0) &&
+				GPIO_ReadInputDataBit(((GPIO_TypeDef *)port1),pin1) &&
+				GPIO_ReadInputDataBit(((GPIO_TypeDef *)port1),pin2))
+			result = PCIE_1_NBIOT;
+	} else {
+		if (!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
+				!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+				GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+			result = PCIE_1_EC20;
+		else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
+				GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+				!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+			result = PCIE_1_M26;
+		else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
+				!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+				!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+			result = PCIE_1_IP;
+		else if(!GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin0) &&
+				GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin1) &&
+				GPIO_ReadInputDataBit(((GPIO_TypeDef *)port),pin2))
+			result = PCIE_1_NBIOT;
+	}
 	if (pcie_index == 1)
 		result = (result << 4);
 	rt_kprintf("PCIE index %d, type %x\r\n", pcie_index,result);

@@ -19,8 +19,8 @@ void button_init(void)
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_9;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_5;
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
+	GPIO_Init(GPIOE, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_11;
 	GPIO_Init(GPIOE, &GPIO_InitStructure);
@@ -121,7 +121,7 @@ void bell_ctl(int level)
 }
 rt_uint8_t check_ac()
 {
-	return (GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_5)?0:1);
+	return (GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_6)?0:1);
 }
 void buzzer_ctl(int level)
 {
