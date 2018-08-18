@@ -18,4 +18,5 @@ rt_uint8_t con_rssi(rt_uint8_t cc_rssi);
 void net_flow(void);
 void alarm_flow(void);
 void show_memory_info(void);
+void print_ts(rt_uint8_t *ptr);
 #endif

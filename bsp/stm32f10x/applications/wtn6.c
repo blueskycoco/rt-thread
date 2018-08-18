@@ -1,6 +1,6 @@
 #include "wtn6.h"
 //#include "delay.h"
-
+uint8_t state_play = 0;
 /*
 *外部接口，初始化IO接口
 #define BUSY   PBout(0)			//芯片状态输出
@@ -60,8 +60,17 @@ void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType)
 	if(PlayType==LOOP)
 	{
 		Set_Loop();
-	}
+	} else 
+		Stop_Played();
+	state_play=1;
 }
+void Stop_Played(void)
+{
+  while(Is_Playing())
+  	rt_thread_delay(10);
+  speaker_ctl(0);
+}
+
 /*
 *外部接口，播放多段语音
 * voice 语音地址集合
@@ -91,6 +100,7 @@ void Wtn6_JoinPlay(u8 voices[],u8 size,u8 muteTimes)
 {
 	int i;
 	if(size<=0) return;
+	speaker_ctl(1);
 	for(i=0;i<size;i++)
 	{
 		Send_Command(CMD_JOIN);
@@ -101,6 +111,9 @@ void Wtn6_JoinPlay(u8 voices[],u8 size,u8 muteTimes)
 			Send_Command(muteTimes);
 		}
 	}
+	rt_thread_delay(200);
+	Stop_Played();
+	state_play=1;
 }
 
 /*
@@ -115,18 +128,21 @@ void Set_Loop(void)
 */
 u8 Is_Playing(void)
 {
-	return GPIO_ReadInputDataBit(wtn_BUSY_PORT,wtn_BUSY);
+	//rt_kprintf("is playing %d\r\n", GPIO_ReadInputDataBit(wtn_BUSY_PORT,wtn_BUSY));
+	return !GPIO_ReadInputDataBit(wtn_BUSY_PORT,wtn_BUSY);
 }
 /*
 *内部接口，停止正在播放的语音
 */
 void Stop_Playing(void)
 {
-	//if(Is_Playing())
+	if(state_play==1)
 	{
+		rt_kprintf("stop playing\r\n");
 		Send_Command(CMD_Stop);
+		speaker_ctl(0);
 	}
-	speaker_ctl(0);
+	state_play=0;
 }
 static void delay_us(unsigned long ms)
 {

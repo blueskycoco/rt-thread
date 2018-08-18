@@ -228,6 +228,7 @@ void RTCAlarm_IRQHandler(void)
 		RTC_ClearITPendingBit(RTC_IT_ALR);
 		/* Wait until last write operation on RTC registers has finished */
 		RTC_WaitForLastTask();
+		rt_kprintf("RTC irq\r\n");
 		cur_alarm_time = RTC_GetCounter();
 		rt_sem_release(&(alarm_sem));
 	}

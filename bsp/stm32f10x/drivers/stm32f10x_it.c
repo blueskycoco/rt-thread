@@ -52,6 +52,8 @@ extern rt_uint8_t s1;
 extern rt_uint8_t time_protect;
 rt_uint8_t duima_key=0;
 extern rt_uint8_t g_remote_protect;
+extern rt_uint8_t 	g_mute;
+rt_uint8_t s_bufang=0;
 /**
   * @brief   This function handles NMI exception.
   * @param  None
@@ -184,6 +186,7 @@ void EXTI9_5_IRQHandler(void)
 	static rt_uint32_t e_cnt = 0;
 	static rt_uint8_t short_press=0;
 	rt_uint32_t diff = 0;
+	static rt_uint8_t flag = 0;
 	//extern void cc1101_isr(void);
 	extern rt_uint8_t g_main_state;
 	/* enter interrupt */
@@ -235,6 +238,7 @@ void EXTI9_5_IRQHandler(void)
 		}*/
 		if (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_9) == RESET) {
 			s_cnt = rt_tick_get();
+			flag=1;
 			rt_kprintf("S button press %d\r\n",s_cnt - e_cnt);
 			if (s_cnt - e_cnt < 40)
 			{
@@ -253,6 +257,7 @@ void EXTI9_5_IRQHandler(void)
 							s1=0;
 							time_protect = 1;
 							duima_key=1;
+							g_mute=0;
 							g_remote_protect=0;
 							rt_kprintf("switch protect off\r\n");
 							handle_protect_off();
@@ -265,28 +270,43 @@ void EXTI9_5_IRQHandler(void)
 							g_sub_event_code = 0x2002;
 							time_protect = 1;
 							duima_key=1;
+							//s_bufang=1;
 							handle_protect_on();
 						}
 					}
 				}
 			}
 			else
+			{
 				short_press=0;
+#if 0
+				rt_kprintf("GGGGG %d %d %d\r\n",g_mute,cur_status,s_bufang);
+				if (s_bufang) {
+					g_mute=1;
+					s_bufang=0;
+					rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
+					rt_kprintf("got key mute\r\n");
+				}
+#endif
+			}
 		} else {
-			e_cnt =rt_tick_get(); 
-			diff = e_cnt - s_cnt;
-			rt_kprintf("S button relese %d\r\n", diff);
-			if (diff > 1000) {
-				short_press=0;
-				rt_kprintf("factory reset");
-				rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
-			} else if (diff > 50) {
-				short_press=0;
-				rt_kprintf("coding or not");
-				if (g_main_state==0)
-				rt_event_send(&(g_info_event), INFO_EVENT_CODING);
-				else					
-				rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
+			if (flag) {
+				flag=0;
+				e_cnt =rt_tick_get(); 
+				diff = e_cnt - s_cnt;
+				rt_kprintf("S button relese %d\r\n", diff);
+				if (diff > 1000) {
+					short_press=0;
+					rt_kprintf("factory reset");
+					rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
+				} else if (diff > 50) {
+					short_press=0;
+					rt_kprintf("coding or not");
+					if (g_main_state==0)
+					rt_event_send(&(g_info_event), INFO_EVENT_CODING);
+					else					
+					rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
+				}
 			}
 		}
 		#endif

@@ -11,6 +11,7 @@ subPoint.c
 readwrite.c
 master.c
 m26.c
+bc26.c
 ec20.c
 pcie.c
 wtn6.c

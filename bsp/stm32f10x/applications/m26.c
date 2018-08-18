@@ -50,7 +50,7 @@
 #define M26_STATE_V				34
 #define M26_STATE_CLEAN_RAM		35
 #define M26_STATE_CLOSE_FILE	36
-
+#define STR_PDP_DEACT	"+PDP DEACT"
 #define STR_CFUN					"+CFUN:"
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -125,14 +125,14 @@
 uint8_t 	  qicsgp_m26[32]			= {0};
 uint8_t 	  qiopen_m26[64]			= {0};
 uint8_t 	  qisend_m26[32] 			= {0};
-uint8_t 	  qiftp_set_resuming[32] 	= {0};
+//uint8_t 	  qiftp_set_resuming[32] 	= {0};
 uint8_t 	  qiftp_m26_ram[32]			= {0};
-uint8_t		  qiftp_get_m26[32]			= {0};
+uint8_t		  qiftp_get_m26[128]			= {0};
 #define qiregapp "AT+QIREGAPP\r\n"
 #define qiact "AT+QIACT\r\n"
 rt_bool_t g_data_in_m26 = RT_FALSE;
 extern int g_index;
-rt_uint32_t ftp_ofs = 0;
+//rt_uint32_t ftp_ofs = 0;
 rt_device_t g_dev_m26;
 uint8_t g_m26_state 				= M26_STATE_INIT;
 uint32_t server_len_m26 = 0;
@@ -162,12 +162,16 @@ uint8_t 	  qiftp_m26[64];
 extern uint8_t		  qiftp_read_file[32];//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
 extern uint8_t			qiftp_close_file[32];
 extern rt_uint8_t ftp_rty;
-rt_uint16_t g_app_v=0;
+extern rt_uint16_t g_app_v;
 extern struct rt_event g_info_event;
 rt_uint32_t bak_server_len_m26 = 0;
 rt_uint8_t test_buf[128] = {0};
 extern rt_mp_t server_mp;
 extern rt_uint8_t 	cur_status;
+extern rt_uint16_t g_crc;
+extern rt_uint8_t *g_ftp;
+rt_uint32_t cgreg_cnt = 0;
+extern rt_uint8_t g_module_type;
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -395,10 +399,10 @@ void m26_start(int index)
 	/*open pciex power*/
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
 	//GPIO_ResetBits(GPIO_power, power_pin);
-	rt_thread_delay(RT_TICK_PER_SECOND);
+	rt_thread_delay(RT_TICK_PER_SECOND/3);
 	GPIO_SetBits(GPIO_power, power_pin);
 	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
-	rt_thread_delay(RT_TICK_PER_SECOND);
+	rt_thread_delay(RT_TICK_PER_SECOND*2);
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
 	rt_kprintf("m26 power on done\r\n");
 
@@ -428,16 +432,28 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				rt_kprintf("%c", tmp[i]);
 			else
 				break;
+		if (have_str(last_data_ptr, STR_QIRDI)) {
+			rt_time_t cur_time = time(RT_NULL);
+			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
+		
+		}
 	}
 #endif
 	if (data_size >= 2) {
-		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN))
+		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
 		{
 			g_m26_state = M26_STATE_INIT;
+			if (have_str(last_data_ptr,STR_PDP_DEACT)) {
+				rt_kprintf("MODULE lost\r\n");
+				g_heart_cnt=0;
+				g_net_state = NET_STATE_UNKNOWN;
+				pcie_switch(g_module_type);
+			}
 		}
 		switch (g_m26_state) {
 			case M26_STATE_INIT:
-				if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)) {
+				if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)
+					||have_str(last_data_ptr,STR_PDP_DEACT)) {
 					g_m26_state = M26_STATE_ATE0;
 					gprs_at_cmd(g_dev_m26,e0);	
 				}
@@ -462,6 +478,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr,STR_CPIN_READY)) {
 					g_pcie[g_index]->cpin_cnt=0;
 					g_m26_state = M26_STATE_CHECK_CGREG;
+					cgreg_cnt = 0;
 					gprs_at_cmd(g_dev_m26,cgreg);
 				} 
 				else/* if (have_str(last_data_ptr, STR_CPIN))*/
@@ -600,11 +617,20 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_CGREG_READY) ||
 						have_str(last_data_ptr, STR_CGREG_READY1)) {
 					//g_m26_state = M26_STATE_CHECK_QISTAT;
+					cgreg_cnt=0;
 					g_m26_state = M26_STATE_CSQ;
 					gprs_at_cmd(g_dev_m26,at_csq);
 				} else if(have_str(last_data_ptr, STR_CGREG)) {
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_m26,cgreg);
+					cgreg_cnt++;
+					rt_kprintf("cgreg cnt %d\r\n", cgreg_cnt);
+					if (cgreg_cnt>500) {
+						rt_kprintf("to long to regester network %d\r\n", cgreg_cnt);
+						g_heart_cnt=0;
+						g_net_state = NET_STATE_UNKNOWN;
+						pcie_switch(g_module_type);
+					}
 				}
 				break;
 			case M26_STATE_CHECK_QISTAT:
@@ -677,7 +703,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;
 			case M26_STATE_CLEAN_RAM:
-				sprintf(qiftp_get_m26, "AT+QFTPGET=\"stm32_%d.bin\"\r\n",m26_cnt);
+				sprintf(qiftp_get_m26, "AT+QFTPGET=\"%sstm32_%d.bin\"\r\n",g_ftp,m26_cnt);
 				gprs_at_cmd(g_dev_m26, qiftp_get_m26);
 				g_m26_state = M26_STATE_GET_FILE;
 				break;
@@ -769,13 +795,20 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				{
 					close(down_fd);
 					mp.firmCRC = CRC_check_file("/stm32.bin");
-					if (g_app_v!=0)
-						mp.firmVersion = g_app_v;
-					mp.firmLength = stm32_len;
-					rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
-					if (!cur_status) {
-					rt_thread_sleep(500);
-					NVIC_SystemReset();
+					if (mp.firmCRC != g_crc)
+					{
+						rt_kprintf("App download failed %x %x\r\n",mp.firmCRC,g_crc);
+					}
+					else {
+						rt_kprintf("App donwload ok\r\n");
+						if (g_app_v!=0)
+							mp.firmVersion = g_app_v;
+						mp.firmLength = stm32_len;
+						rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+						if (!cur_status) {
+						rt_thread_sleep(500);
+						NVIC_SystemReset();
+						}
 					}
 					gprs_at_cmd(g_dev_m26,qiftp_close);
 					g_m26_state = M26_STATE_SET_QIACT;
@@ -1108,6 +1141,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 		}				
 		rt_time_t cur_time = time(RT_NULL);
 		rt_kprintf("send server ok %s\r\n",ctime(&cur_time));
+			begin_yunduo();
 		//rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 		break;		
 		}

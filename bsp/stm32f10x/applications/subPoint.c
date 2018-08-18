@@ -19,6 +19,7 @@ rt_uint8_t 	stm32_zero[6] 	= {0};
 rt_uint32_t sub_id 			= {0}; 
 rt_uint16_t command_type 	= 0;
 rt_uint8_t 	sub_cmd_type 	= 0;
+rt_uint8_t 	tmp_sub_cmd_type 	= 0;
 rt_uint16_t dev_model 		= 0;
 rt_uint32_t dev_time 		= 0;
 rt_uint8_t 	dev_type 		= 0;
@@ -42,7 +43,7 @@ extern rt_uint8_t g_remote_protect;
 extern rt_uint8_t g_fq_index;
 extern rt_uint8_t  	g_operationType;
 extern rt_uint8_t  	g_voiceType;
-
+extern rt_uint8_t s_bufang;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -105,6 +106,7 @@ char *cmd_dev_type(rt_uint8_t type)
 char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 {
 	int i;
+	rt_kprintf("to get addr\r\n");
 	for (i=0;i<len;i++)
 	{
 		rt_kprintf("%d subId %08x, sn %08x, addr %x\r\n",
@@ -123,17 +125,21 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 	if (len == WIRELESS_MAX)
 		return i+2;
 	else
-		return i+WIRELESS_MAX;
+		return i+WIRELESS_MAX+1;
 }
 void delete_fq(rt_uint8_t index, rt_uint8_t type)
 {
 	if ((type & 0x80) == 0x80) /*wireless*/
 	{
-		if (index > 0 && index < 50)
+		if (index > 0 && index < 51) {
+			del_fqp_t(fangqu_wireless[index-2].index);
 			memset(&(fangqu_wireless[index-2]),0,sizeof(struct FangQu));
+		}
 	} else {
-		if (index > 50 && index < 80)
+		if (index > 50 && index < 80) {
+			del_fqp_t(fangqu_wire[index-WIRELESS_MAX].index);
 			memset(&(fangqu_wire[index-WIRELESS_MAX]),0,sizeof(struct FangQu));
+		}
 	}
 }
 void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
@@ -181,23 +187,23 @@ void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1)
 {	
 	if ((param0 & 0x80) == 0x80) /*wireless*/
 	{
-		if (index > 0 && index < 50)
+		if (index > 0 && index < 51)
 		{
 			edit_fq_detail(fangqu_wireless,index-2,param0,param1);
 		}
 	} else {
-		if (index >= 50 && index < 80)
+		if (index >= 51 && index < 80)
 			edit_fq_detail(fangqu_wire,index-WIRELESS_MAX,param0,param1);
 	}
 }
 void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 {
 	struct FangQu    *ptr;
-	if (index >= 50 && index < 80) {
-		index -= 50;
+	if (index >= 51 && index < 80) {
+		index -= 51;
 		ptr = fangqu_wire;
 	}
-	else if (index >= 2 && index < 50) {
+	else if (index >= 2 && index < 51) {
 		index -= 2;
 		ptr = fangqu_wireless;
 	} else
@@ -271,7 +277,7 @@ void save_fq(struct FangQu *list, int len)
 	g_coding_cnt =0;
 	for (i=0;i<len;i++)
 	{
-		rt_kprintf("slave sn %d, sub id %d\r\n",
+		rt_kprintf("slave sn %x, sub id %x\r\n",
 			list[i].slave_sn,sub_id);
 		if (list[i].slave_sn== sub_id)
 		{
@@ -297,6 +303,7 @@ void save_fq(struct FangQu *list, int len)
 				list[i].index = i+WIRELESS_MAX+1;
 				list[i].type =TYPE_WIRE;
 			}
+			add_fqp_t(list[i].index);
 			list[i].slave_sn = sub_id;
 			list[i].slave_type = dev_type;
 			list[i].slave_model = dev_model;
@@ -379,7 +386,7 @@ void cmd_dump(rt_uint8_t *data,rt_uint8_t flag)
 		else
 		{
 			dev_type = data[18];
-			sub_cmd_type = data[17];			
+			tmp_sub_cmd_type = data[17];			
 			battery = data[19]<<8|data[20];
 			rt_kprintf("CMD SubType :\t%s\r\n",cmd_sub_type(data[17]));
 		}
@@ -396,8 +403,11 @@ void cmd_dump(rt_uint8_t *data,rt_uint8_t flag)
 		rt_kprintf("Dev build time :%06x\r\n", dev_time);
 	}
 	g_num = data[1];
+	if (g_num == 0 && command_type == 0x0006) {
+		g_num = get_addr(sub_id,fangqu_wireless,WIRELESS_MAX);
+	}
 	rt_kprintf("Battery :\t%d\r\n",battery);
-	rt_kprintf("Protect Zone :\t%02x\r\n", data[1]);
+	rt_kprintf("Protect Zone :\t%02x\r\n", g_num);
 
 	rt_kprintf("STM32 Param sn: %02x%02x%02x%02x%02x%02x\r\n", 
 		mp.roProperty.sn[0],
@@ -490,15 +500,15 @@ void handle_protect_off()
 void handle_alarm()
 {
 	g_alarmType = fangqu_wireless[g_index_sub].alarmType;
-	rt_kprintf("proc alarm %d %d %d\r\n",sub_cmd_type,fangqu_wireless[g_index_sub].operationType,
+	rt_kprintf("proc alarm %d %d %d\r\n",tmp_sub_cmd_type,fangqu_wireless[g_index_sub].operationType,
 		cur_status);
-	if (sub_cmd_type == 2 /*s1 alarm*/
+	if (tmp_sub_cmd_type == 2 || tmp_sub_cmd_type == 3/*s1 alarm*/
 		|| fangqu_wireless[g_index_sub].operationType==2 /*24 hour*/
 		) {
 		/*emergency alarm*/
-		if (sub_cmd_type == 2)
+		if (tmp_sub_cmd_type == 2||tmp_sub_cmd_type == 3)
 			s1=1;				//protect switch		
-			
+			sub_cmd_type = tmp_sub_cmd_type;
 			g_fq_index = fangqu_wireless[g_index_sub].index;
 			g_operationType = fangqu_wireless[g_index_sub].operationType;
 			g_voiceType = fangqu_wireless[g_index_sub].voiceType;
@@ -507,7 +517,8 @@ void handle_alarm()
 	} else {
 		/*normal alarm*/
 		if (cur_status && !fangqu_wireless[g_index_sub].isBypass) {	
-			
+			s1=0;
+			sub_cmd_type=tmp_sub_cmd_type;
 			g_fq_index = fangqu_wireless[g_index_sub].index;
 			g_operationType = fangqu_wireless[g_index_sub].operationType;
 			g_voiceType = fangqu_wireless[g_index_sub].voiceType;
@@ -565,6 +576,7 @@ void handleSub(rt_uint8_t *data)
 		resp[15]=0x00;resp[16]=data[16]+0x01;resp[17]=data[17];
 		if (g_main_state == 1 && dev_type == 0x43)
 		{
+			rt_kprintf("to save wireless door\r\n");
 			save_fq(fangqu_wireless,WIRELESS_MAX);
 			return ;
 		}
@@ -593,7 +605,7 @@ void handleSub(rt_uint8_t *data)
 			
 			g_mute=0;
 			rt_kprintf("have alarm %d %d %d %d\r\n",
-				g_main_state, sub_cmd_type,cur_status,fangqu_wireless[g_index_sub].operationType);
+				g_main_state, tmp_sub_cmd_type,cur_status,fangqu_wireless[g_index_sub].operationType);
 			if (!g_main_state) {
 				handle_alarm();
 				/*
@@ -627,6 +639,7 @@ void handleSub(rt_uint8_t *data)
 		resp[19]=(crc>>8) & 0xff;
 		resp[20]=(crc) & 0xff;
 		cc1101_send_write(resp,21);
+		record_fqp_ts(fangqu_wireless[g_index_sub].index);
 	} else {
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		if (g_main_state == 1)
@@ -640,8 +653,9 @@ void handleSub(rt_uint8_t *data)
 			g_remote_protect=0;
 			handle_protect_on();
 		}
-		else if(command_type == 0x0004 && (cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
+		else if(command_type == 0x0004 && (cur_status || (!cur_status && g_delay_out!=0) /*|| g_alarm_voice*/))
 		{
+			g_mute=0;
 			g_remote_protect=0;
 			cur_status = 0;
 			g_alarmType =0;
@@ -660,6 +674,7 @@ void handleSub(rt_uint8_t *data)
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 		} else if (command_type == 0x000e) {
 			g_mute=1;
+			//s_bufang=1;
 			rt_event_send(&(g_info_event), INFO_EVENT_MUTE);			
 			rt_kprintf("got mute\r\n");
 		} else {

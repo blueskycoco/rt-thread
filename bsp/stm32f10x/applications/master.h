@@ -35,6 +35,7 @@
 #define CMD_SET_MAIN	0x0704
 #define CMD_ASK_SUB		0x0711
 #define CMD_ASK_MAIN	0x0712
+#define ADJUST_TIME	19
 
 void info_user(void *param);
 rt_uint8_t handle_packet(rt_uint8_t *data);

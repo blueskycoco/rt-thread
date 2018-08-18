@@ -20,6 +20,10 @@ void button_init(void)
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_9;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
+	GPIO_Init(GPIOE, &GPIO_InitStructure);	
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
 	GPIO_Init(GPIOE, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_11;
@@ -149,10 +153,27 @@ void buzzer_ctl(int level)
 		GPIO_ResetBits(GPIOD, GPIO_Pin_6);
 	}
 }
+rt_uint8_t check_s1()
+{
+	static rt_uint8_t s1=0;
+	rt_uint8_t s1_state = GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_0);
+	if (s1_state == 1 && s1==0) {
+		s1 = 1;
+		return 2;//fangchai
+	} else if(s1_state == 0 && s1 == 1) {
+		s1 = 0;
+		return 1;//huifu
+	}
+	return 0;
+}
 void speaker_ctl(int flag)
 {	
 	if (flag)		
 		GPIO_ResetBits(GPIOD, GPIO_Pin_8);
 	else
 		GPIO_SetBits(GPIOD, GPIO_Pin_8);
+}
+rt_uint8_t battery_insert()
+{
+	return GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_6);
 }

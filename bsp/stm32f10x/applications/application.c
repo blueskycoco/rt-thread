@@ -82,9 +82,13 @@ extern rt_uint16_t g_alarm_reason;
 rt_uint16_t should_upload_bat = 0;
 rt_uint8_t time_protect=0;
 extern rt_uint8_t g_remote_protect;
+extern rt_uint8_t g_fq_index;
+extern rt_uint8_t		g_operationType;
+rt_uint8_t g_need_reset_rtc=1;
+struct rt_semaphore yunduo_sem;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
-	static rt_uint8_t led_stack[ 1024 ];
+	static rt_uint8_t led_stack[ 2048 ];
 	static struct rt_thread led_thread;
 static void led_thread_entry1(void* parameter)
 {
@@ -184,6 +188,9 @@ static void set_next_alarm(rt_uint8_t cur_hour,rt_uint8_t cur_mins)
 			}			
 			rt_kprintf("set next alarm to %d:%d m %d\r\n",hour[j],mins[j],m);
 			set_alarm(hour[j],mins[j],0);
+			if (RTC_GetCounter() > RTC_GetAlarm()) {
+				g_need_reset_rtc = 1;
+			}
 			break;
 		}
 	}
@@ -196,7 +203,23 @@ void set_alarm_now()
 	to = localtime(&local_time);
 	rt_kprintf("auto bu/chefang %04x %04x\r\n", fqp.auto_bufang,fqp.auto_chefang);
 	set_next_alarm(to->tm_hour,to->tm_min);
+	
+	rt_kprintf("now alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
 }
+void reset_alarm_now()
+{
+	struct tm *to;
+	rt_time_t local_time;
+	time(&local_time);
+	to = localtime(&local_time);
+	if (to->tm_hour == 0) {
+		rt_kprintf("reset auto bu/chefang %04x %04x\r\n", fqp.auto_bufang,fqp.auto_chefang);
+		set_next_alarm(to->tm_hour,to->tm_min);
+		g_need_reset_rtc=0;
+		rt_kprintf("reset alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
+	}
+}
+
 static void alarm_thread(void *parameter)
 {
 	struct tm *to;
@@ -231,12 +254,26 @@ static void alarm_thread(void *parameter)
 			}
 		}
 		set_next_alarm(to->tm_hour,to->tm_min);
+		
+		rt_kprintf("next occur alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
 	}
+}
+static void yun_duo(void *parameter)
+{
+	while (1) {
+		rt_sem_take(&(yunduo_sem), RT_WAITING_FOREVER);
+		net_flow();
+	}
+}
+void begin_yunduo()
+{	
+	rt_sem_release(&(yunduo_sem));
 }
 static void led_thread_entry(void* parameter)
 {
 	unsigned int count=0;
 	rt_uint8_t ac=0;
+	rt_uint8_t s1_main=0;
 	rt_hw_led_init();
 	//button_init();
 	//battery_init();
@@ -247,6 +284,10 @@ static void led_thread_entry(void* parameter)
 #ifndef RT_USING_FINSH
 		// rt_kprintf("led on, count : %d, battery %d\r\n",count,get_bat());
 #endif
+		//if (net_flow_flag) {
+		//	net_flow();
+		//	net_flow_flag=0;
+		//}
 		//buzzer_ctl(1);
 		/*heart cnt*/
 		heart_time++;
@@ -257,6 +298,20 @@ static void led_thread_entry(void* parameter)
 				g_net_state = NET_STATE_INIT;
 				rt_event_send(&(g_pcie[g_index]->event), 1);
 			}
+		}
+		/*check s1*/
+		s1_main = check_s1();
+		if (s1_main == 1) {
+			//fangchai
+			g_alarm_reason=0x1002;
+			g_alarm_fq = 0x00;
+			Wtn6_Play(VOICE_FCALARM,ONCE);
+			upload_server(CMD_ALARM);
+		} else if(s1_main ==2) {
+			//huifu			
+			g_alarm_reason=0x0016;
+			g_alarm_fq = 0x00;			
+			upload_server(CMD_ALARM);
 		}
 		/*ac dc*/
 		ac=check_ac();
@@ -337,9 +392,9 @@ static void led_thread_entry(void* parameter)
 		{
 			rt_kprintf("alarm voice %d\r\n",g_alarm_voice);
 			g_alarm_voice -=1;
-			if (g_alarm_voice == 1) {		
+			if (g_alarm_voice == 1 || g_alarm_voice == 0) {		
 			bell_ctl(0);		
-			//Stop_Playing();
+			Stop_Playing();
 			}
 		}
 		/*pgm ctl*/
@@ -368,18 +423,22 @@ static void led_thread_entry(void* parameter)
 				//g_alarm_voice =0;				
 			}
 		} else {
-		//	rt_kprintf("delay in %d\r\n", g_delay_in);
+			//rt_kprintf("delay alarm %d\r\n", g_delay_in);
 			if (g_delay_in > 10)
 				g_delay_in -= 1;
 			else if (g_delay_in >0 && g_delay_in <= 10){
-				rt_kprintf("last count %d\r\n",g_delay_in);
+				rt_kprintf("last alarm count %d %d\r\n",g_delay_in,g_flag);
 				if (g_delay_in == 10) {
-					Wtn6_Play(VOICE_COUNTDOWN,ONCE);
+					//Wtn6_Play(VOICE_COUNTDOWN,ONCE);
 					rt_thread_delay(300);
 				}
 				g_delay_in -= 1;
 			} else if (g_delay_in == 0 && g_flag == 0/* && g_alarm_voice >0*/) {
-				//rt_kprintf("play end %d\r\n",g_alarm_voice);
+				rt_kprintf("UUU play end %d %d %d %d %d\r\n",
+					g_alarm_voice,g_index_sub,
+					fangqu_wireless[g_index_sub].operationType,
+					fqp.is_alarm_voice,
+					fangqu_wireless[g_index_sub].voiceType);
 				//if (g_alarm_voice == (fqp.alarm_voice_time - fqp.delay_in-1))
 				//	Wtn6_Play(VOICE_ALARM1,LOOP);
 				g_flag = 1;
@@ -388,24 +447,37 @@ static void led_thread_entry(void* parameter)
 					rt_kprintf("open delay fq bell\r\n");
 					bell_ctl(1);				
 					Wtn6_Play(VOICE_ALARM1,LOOP);
-					g_alarm_voice = fqp.alarm_voice_time;
+					if (fqp.alarm_voice_time>0)
+						g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
+					else
+						g_alarm_voice = 0;
+				}
+				if (cur_status && g_operationType == 1) {
+					g_alarm_fq = g_fq_index;
+					rt_kprintf("little alarm %d\r\n",cur_status);
+					upload_server(CMD_ALARM);
 				}
 			}
 		}
 		} else {
+			if (g_delay_in > 0 || g_alarm_voice > 0) {
 			g_delay_in = 0;
 			g_alarm_voice =0;				
 			Stop_Playing();
+			}
+			//rt_kprintf("delay alarm stop\r\n");
 		}
 		/*delay protect on*/
 		if (!g_mute) {
+				//rt_kprintf("delay protect %d\r\n", g_delay_out);
 				if (g_delay_out > 10)
 					g_delay_out -= 1;
 				else if (g_delay_out >0 && g_delay_out <= 10){
-					rt_kprintf("out last count %d\r\n",g_delay_out);
+					rt_kprintf("last protect count %d\r\n",g_delay_out);
 					if (g_delay_out == 10)
 					{
 						Wtn6_Play(VOICE_COUNTDOWN,ONCE);
+						rt_kprintf("play VOICE_COUNTDOWN\r\n");
 					}
 					if (g_delay_out == 1) {
 						//rt_thread_delay(300);
@@ -415,7 +487,7 @@ static void led_thread_entry(void* parameter)
 						//rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 						//Wtn6_JoinPlay(voice,2,1);
 						} else {
-						time_protect=0;
+						//bbstr time_protect=0;
 						//Wtn6_Play(VOICE_BUFANG,ONCE);
 					}
 					} else {
@@ -427,7 +499,17 @@ static void led_thread_entry(void* parameter)
 						}
 					g_delay_out -=1;
 				}
-		} else {			
+		}else {
+			if (cur_status == 0 && g_delay_out>0) {
+				g_delay_out=0;
+				Stop_Playing();
+				rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
+			}
+		}
+
+#if 0
+		else {			
+			//rt_kprintf("delay protect close\r\n");
 			Stop_Playing();
 			if (g_delay_out || g_alarm_voice) {
 				rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
@@ -449,6 +531,7 @@ static void led_thread_entry(void* parameter)
 			g_alarm_voice =0;	
 			}
 		}
+		#endif
 		if (alarm_led)
 			alarm_flow();
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
@@ -518,10 +601,12 @@ void rt_init_thread_entry(void* parameter)
 	rt_kprintf("\t\tUPGRADE Version\r\n");
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_mutex_init(&(g_stm32_lock),	"stm32_lock",	RT_IPC_FLAG_FIFO);
+	rt_sem_init(&(yunduo_sem),		"yunduo_sem",	0, 0);
 	Wtn6_Init();
 	GPIO_Lcd_Init();
 	//battery_init();
 	rt_thread_startup(rt_thread_create("7info",info_user, 0,4096, 20, 10));
+	rt_thread_startup(rt_thread_create("00yun",yun_duo, 0,512, 30, 10));
 
 	button_init();
 
@@ -711,6 +796,18 @@ void rt_init_thread_entry(void* parameter)
 		pcie_init(0,PCIE_2_EC20);
 		pcie_switch(PCIE_2_EC20);
 		SetStateIco(6,1);
+		SetStateIco(5,0);		
+	}else if(pcie_status & PCIE_2_NBIOT) {
+		SetSimTypeIco(2);
+		pcie_init(0,PCIE_2_NBIOT);
+		pcie_switch(PCIE_2_NBIOT);
+		SetStateIco(6,1);
+		SetStateIco(5,0);
+	} else if(pcie_status & PCIE_1_NBIOT) {
+		SetSimTypeIco(2);
+		pcie_init(PCIE_1_NBIOT,0);
+		pcie_switch(PCIE_1_NBIOT);
+		SetStateIco(6,1);
 		SetStateIco(5,0);
 	} else {
 		/*play audio here*/
@@ -740,6 +837,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
 	g_mute=0;
 	show_memory_info();
+
 	while (1) {
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);
@@ -749,6 +847,7 @@ void rt_init_thread_entry(void* parameter)
 			rt_kprintf("\r\ncc1101 recv data %d:",len);
 			cc1101_hex_printf1(buf1,len);
 			rt_kprintf("\r\n");
+			print_ts("CC1101");
 			handleSub(buf1);				
 			rt_mutex_release(&g_stm32_lock);
 			count++;

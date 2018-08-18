@@ -66,6 +66,14 @@ struct FangQu
 	rt_uint32_t 	slave_batch;	//ro
 };
 
+struct FangQuT
+{
+	rt_uint8_t index;
+	rt_uint32_t heart_ts;
+	rt_uint8_t off_line;
+	rt_uint8_t off_line2;
+};
+
 struct FangQuProperty
 {   	
 	rt_uint8_t		status;
@@ -85,6 +93,7 @@ struct FangQuProperty
 
 #define WIRELESS_MAX	50
 #define WIRE_MAX		30
+struct FangQuT	 fangqu_ts[50];
 struct FangQu    fangqu_wire[30];
 struct FangQu    fangqu_wireless[50];
 struct FangQuProperty fqp;
@@ -131,6 +140,7 @@ struct MachineProperty mp;
 #define FQP_FILE		"/fqp.dat"
 #define MP_FILE			"/mp.dat"
 #define DEFAULT_DOMAIN 	"kjfslkjflskdjfj"
+#define APP_BUILD_TIME "APP Build Time 2018-08-18 10:50"
 void dump_mp(struct MachineProperty v);
 void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3);
 int load_param();

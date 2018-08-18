@@ -4,7 +4,7 @@
 #include "led.h"
 #include <string.h>
 #include "m26.h"
-//#include "bc26.h"
+#include "bc26.h"
 #include "ec20.h"
 //#include "nb_iot.h"
 //#include "ip_module.h"
@@ -76,7 +76,16 @@ static void pcie1_rcv(void* parameter)
 			else
 				break;			
 		}
+		#if 0
 		//rt_kprintf("==>%s", buf);
+		rt_kprintf("<<<<<<\r\n");
+		for (int i=0; i<total_len; i++)
+			if (isascii(buf[i]))
+				rt_kprintf("%c", buf[i]);
+			else
+				rt_kprintf("%x", buf[i]);
+		rt_kprintf("\r\n>>>>>>\r\n");	
+		#endif
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || (strchr(buf,'>')!=RT_NULL && total_len > 0)) {
 			#if 0
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
@@ -92,8 +101,8 @@ static void pcie1_rcv(void* parameter)
 			if (total_len > 1024)
 			{
 				rt_kprintf("1total len %d\r\n", total_len);
-				total_len = 0;
-				continue;
+				//total_len = 0;
+				//continue;
 			}
 			
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
@@ -128,7 +137,15 @@ static void pcie0_rcv(void* parameter)
 			else
 				break;			
 		}
-		//rt_kprintf("==>%s", buf);
+	#if 0
+		rt_kprintf("<<<<<<\r\n");
+		for (int i=0; i<total_len; i++)
+			if (isascii(buf[i]))
+				rt_kprintf("%c", buf[i]);
+			else
+				rt_kprintf("%x", buf[i]);
+		rt_kprintf("\r\n>>>>>>\r\n");	
+	#endif
 		if (total_len >= 4 && buf[total_len-2] == '\r' && buf[total_len-1] == '\n' || (strchr(buf,'>')!=RT_NULL && total_len > 0)) {
 			#if 0
 			uint8_t *rcv = (uint8_t *)rt_malloc(total_len+1);
@@ -148,8 +165,8 @@ static void pcie0_rcv(void* parameter)
 			if (total_len > 1024)
 			{
 				rt_kprintf("0total len %d\r\n", total_len);
-				total_len = 0;
-				continue;
+				//total_len = 0;
+				//continue;
 			}
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
 			rt_memcpy(rcv2, buf, total_len);			
@@ -193,7 +210,7 @@ void pcie1_sm(void* parameter)
 					ec20_proc(last_data_ptr, data_size);
 					break;
 				case PCIE_2_NBIOT:
-					//bc26_proc(last_data_ptr, data_size);
+					bc26_proc(last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie1 unknown sm\r\n");
@@ -229,7 +246,7 @@ void pcie0_sm(void* parameter)
 					ec20_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_1_NBIOT:
-					//bc26_proc(last_data_ptr, data_size);
+					bc26_proc(last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie0 unknown sm\r\n");
@@ -365,13 +382,16 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		rt_kprintf("req\t\tCMD LOGIN Packet\r\n");
 		cmd[5]=(CMD_LOGIN >> 8) & 0xff;//login
 		cmd[6]=CMD_LOGIN&0xff;		
-		cmd[15]=g_pcie[g_index]->csq;
-		cmd[16]='W';
-		cmd[17]='E';
-		cmd[18]='A';
-		cmd[19]='D';
-		cmd[20]='F';
-		cmd[21]='E'; 	
+		if (g_pcie[g_index]->csq > 40)
+			cmd[15]=0;
+		else
+			cmd[15]=g_pcie[g_index]->csq;
+		cmd[16]=mp.roProperty.CAPTCHA[0];//'W';
+		cmd[17]=mp.roProperty.CAPTCHA[1];//'E';
+		cmd[18]=mp.roProperty.CAPTCHA[2];//'A';
+		cmd[19]=mp.roProperty.CAPTCHA[3];//'D';
+		cmd[20]=mp.roProperty.CAPTCHA[4];//'F';
+		cmd[21]=mp.roProperty.CAPTCHA[5];//'E'; 	
 		memcpy(cmd+22,g_pcie[g_index]->imei,8);
 		cmd[30] = 0;
 		ofs = 31;
@@ -387,6 +407,12 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		{
 			cmd[30] |= 0x10;
 			rt_kprintf("interface\tec20\r\n");
+		}
+		if ((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
+				(g_index == 0 && g_type0 == PCIE_1_NBIOT))
+		{
+			cmd[30] |= 0x30;
+			rt_kprintf("interface\tnbiot\r\n");
 		}
 		if (g_pcie[g_index]->lac_ci !=0 )
 		{
@@ -424,7 +450,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[15] = 0x10;
 		if (g_ac)
 			cmd[15] |= 0x01; 
-		cmd[16]=g_pcie[g_index]->csq;
+		if (g_pcie[g_index]->csq > 40)
+			cmd[16] = 0;
+		else
+			cmd[16]=g_pcie[g_index]->csq;
 		cmd[17] = g_bat % 256;
 		if (heart_type == 0) {
 			cmd[18] = 0x01;
@@ -468,16 +497,21 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[19] = (cur_time >>  8) & 0xff;
 		cmd[20] = (cur_time >>  0) & 0xff;
 		cmd[21] = g_alarm_fq;
-		cmd[22] = (battery>>8) & 0xff;
-		cmd[23] = (battery) & 0xff;
-		cmd[24] = con_rssi(r_signal);
-		ofs= 25;
+		ofs = 22;
+		if (cmd[21] != 0) {
+			cmd[22] = (battery>>8) & 0xff;
+			cmd[23] = (battery) & 0xff;
+			cmd[24] = con_rssi(r_signal);
+			ofs= 25;
+		}
 		need_read = 1;
 		rt_kprintf("alarm\t\t%02x%02x\r\n", cmd[15],cmd[16]);
 		rt_kprintf("time\t\t%s",ctime(&cur_time));
 		rt_kprintf("alarm fq\t%d\r\n", g_alarm_fq);
-		rt_kprintf("battery\t\t%d\r\n",battery);
-		rt_kprintf("signal\t\t%d\r\n",cmd[24]);
+		if (cmd[21] !=0) {
+			rt_kprintf("battery\t\t%d\r\n",battery);
+			rt_kprintf("signal\t\t%d\r\n",cmd[24]);
+		}
 	} else if (type == CMD_MAIN_EVENT) {
 		rt_kprintf("req\t\tCMD MAIN EVENT Packet\r\n");
 		cmd[5]=(CMD_MAIN_EVENT >> 8) & 0xff;//main event
@@ -567,6 +601,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 					cmd[ofs]|=0x40;			
 				if (fangqu_wire[i].isBypass)
 					cmd[ofs]|=0x10;
+				cmd[ofs]|=fangqu_offline(fangqu_wire[i].index);
 				ofs++;
 				cmd[ofs++] = fangqu_wire[i].slave_type;
 				(cmd[17])++;
@@ -590,7 +625,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				if (fangqu_wireless[i].slave_delay)
 					cmd[ofs]|=0x40;			
 				if (fangqu_wireless[i].isBypass)
-					cmd[ofs]|=0x10;
+					cmd[ofs]|=0x10;				
+				cmd[ofs]|=fangqu_offline(fangqu_wireless[i].index);
 				ofs++;
 				cmd[ofs++] = fangqu_wireless[i].slave_type;
 				(cmd[17])++;
@@ -650,7 +686,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 
 	if (flow_cnt == 255)
 		flow_cnt=0;
-	net_flow();
+	//net_flow();
 	rt_kprintf("\r\n******************************************************\r\n");
 	return ofs;
 }
@@ -692,6 +728,7 @@ void send_process(void* parameter)
 				g_net_state = NET_STATE_UNKNOWN;
 				pcie_switch(g_module_type);
 				rt_mp_free(cmd);
+				rt_mutex_release(&(g_pcie[g_index]->lock));
 				continue;
 			}
 		} else {
@@ -712,7 +749,7 @@ void upload_server(rt_uint16_t cmdType)
 {
 	char buf[400] = {0};
 	char *cmd = RT_NULL;
-	rt_kprintf("net state %d\r\n",g_net_state);
+	rt_kprintf("net state %d cmdType %d\r\n",g_net_state,cmdType);
 	if (g_net_state != NET_STATE_LOGED || entering_ftp_mode)
 		return ;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
@@ -748,7 +785,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	g_type0 = type0;
 	g_type1 = type1;
 	cmd_mp = rt_mp_create("mp_cmd", 100,64);
-	pci_mp = rt_mp_create("pci_cmd", 2,1024);
+	pci_mp = rt_mp_create("pci_cmd", 4,1024);
 	server_mp = rt_mp_create("server_cmd", 10,512);
 	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {
@@ -800,6 +837,9 @@ void switch_pcie_power(rt_uint8_t type)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_7|GPIO_Pin_5;
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
+	GPIO_WriteBit(GPIOD,GPIO_Pin_5,Bit_SET);
+	GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_SET);
+	rt_thread_delay(100);
 	if (type == 0) {
 		GPIO_WriteBit(GPIOD,GPIO_Pin_7,Bit_RESET);
 		GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_SET);
@@ -825,7 +865,11 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			ec20_start(0);
 			break;
 		case PCIE_1_NBIOT:
-			//nb_iot_start(0);
+			switch_pcie_power(1);
+			rt_thread_delay(10);
+			switch_pcie_power(0);
+			rt_thread_delay(10);
+			bc26_start(0);
 			break;
 		case PCIE_2_IP:
 			//ip_module_start(1);
@@ -839,7 +883,11 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			ec20_start(1);
 			break;
 		case PCIE_2_NBIOT:
-			//nb_iot_start(1);
+			switch_pcie_power(0);
+			rt_thread_delay(10);
+			switch_pcie_power(1);
+			rt_thread_delay(10);
+			bc26_start(1);
 			break;
 		default:
 			rt_kprintf("uninsert module on pcie\r\n");

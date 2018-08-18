@@ -15,7 +15,7 @@ unsigned long volatile time_counter = 0;
 #define MAX_FIFO_SIZE            0x38 
 struct rt_semaphore cc1101_rx_sem;
 extern rt_uint8_t r_signal;
-
+rt_uint8_t g_retry=0;
 unsigned char paTable[1];           
 unsigned char rf_end_packet = 0;
 struct rf_dev  
@@ -255,9 +255,9 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{FREQ1,		0xa7},
 	{FREQ0,		0x62},
 	#else
-	{FREQ2,		0x11},
-	{FREQ1,		0xec},
-	{FREQ0,		0x4e},
+	{FREQ2,		0x10},//0x11},
+	{FREQ1,		0xaa},//0xec},
+	{FREQ0,		0x1e},//0x4e},
 	#endif
 	{MDMCFG4,	0xf5},
 	{MDMCFG3,	0x83},
@@ -274,7 +274,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{FSCAL1,	0x00},
 	{FSCAL0,	0x1F},
 	{TEST0,		0x09},
-	{PATABLE,	0x60} 
+	{PATABLE,	0xCB} 
 };
 static void cc1101_set_rx_mode(void)  
 {  
@@ -298,7 +298,7 @@ void MRFI_RSSI_VALID_WAIT()
 {                                                                             
   uint16_t delay = MRFI_RSSI_VALID_DELAY_US;                                   
   unsigned char status;	
- // rt_kprintf("st 1\r\n");
+  rt_kprintf("st 1\r\n");
   do                                                                    
   {	
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
@@ -306,15 +306,15 @@ void MRFI_RSSI_VALID_WAIT()
     {
       break;                                                                  
     }
-    //__delay_cycles(64);
+    __delay_cycles(64);
 	trxSpiCmdStrobe( RF_SRX );
-    rt_thread_delay(1);
+   // rt_thread_delay(1);
 	if (delay>64)
     	delay -= 64; 
 	else
 		break;
   }while (delay>0);
-	//rt_kprintf("st %x %d\r\n", status,delay);
+	rt_kprintf("st %x %d\r\n", status,delay);
 }        
 
 static void cc1101_set_tx_mode(void)  
@@ -409,9 +409,9 @@ static void cc1101_gdo0_rx_it(void)
                 rf_dev.rx_rd %= RX_BUF_SIZE;  
             }  
         }   
-        //rt_kprintf("cc1101 receive data:");  
+        rt_kprintf("cc1101 receive data<%d>:",rx_count);  
         //cc1101_hex_printf(rx_buf, rx_count);  
-		//rt_kprintf("\r\n");  
+		rt_kprintf("\r\n");  
 		rt_sem_release(&(cc1101_rx_sem));
     }  
 }
@@ -457,8 +457,8 @@ static void cc1101_write_tx_buf(void *_buf, int count)
     int i;  
     for(i = 0; i < count; i++)  
     {  
-        while(((rf_dev.tx_wr+1) % TX_BUF_SIZE) == rf_dev.tx_rd);
-		//	rt_kprintf("waiting here\r\n");  
+        while(((rf_dev.tx_wr+1) % TX_BUF_SIZE) == rf_dev.tx_rd)
+			rt_kprintf("waiting here\r\n");  
         rf_dev.tx_buf[rf_dev.tx_wr++] = buf[i];  
         rf_dev.tx_wr %= TX_BUF_SIZE;  
     }  
@@ -480,10 +480,14 @@ static void cc1101_gdo0_tx_it(void)
     {  
         status = trxSpiCmdStrobe(RF_SNOP);
     }  
-	
+	rt_kprintf("tx count %d\r\n", wait_tx_count);
     if(wait_tx_count == 0)  
     {               
         cc1101_set_rx_mode();  
+		//if (!gdo_level()) {
+		//	rt_kprintf("continue intr\r\n");
+		//} else
+		//	rt_kprintf("alone intr\r\n");
     }  
     else if(wait_tx_count < MAX_FIFO_SIZE)  
     {     
@@ -502,7 +506,7 @@ static void cc1101_send(void*_buf, unsigned short count)
 {  
     unsigned char *buf = (unsigned char *)_buf;  
     unsigned char buf_tmp[TX_BUF_SIZE];  
-  
+  rt_kprintf("cc1101 send 0 %d\r\n",count);
     if(count == 0 || count > TX_BUF_SIZE)  
     {  
         return;  
@@ -515,24 +519,28 @@ static void cc1101_send(void*_buf, unsigned short count)
        
       if device is receive mode, tx buf free size is TX_BUF_SIZE 
     */  
-  
+  rt_kprintf("cc1101 send 1\r\n");
     cc1101_write_tx_buf(buf, count);  
-  
+  rt_kprintf("cc1101 send 2\r\n");
     if(rf_dev.mode == MODE_RX)  
     {  
+    	rt_kprintf("cc1101 send 3\r\n");
         if(count < MAX_FIFO_SIZE)  
         {  
             cc1101_read_tx_buf(buf_tmp, count);  
             cc1101_send_packet(buf_tmp, count);  
+			rt_kprintf("cc1101 send 4\r\n");
         }  
         else if(count >= MAX_FIFO_SIZE)  
         {  
             cc1101_read_tx_buf(buf_tmp, MAX_FIFO_SIZE);  
             cc1101_send_packet(buf_tmp, MAX_FIFO_SIZE);  
+			rt_kprintf("cc1101 send 5\r\n");
         }  
-  
+  		rt_kprintf("cc1101 send 6\r\n");
         cc1101_set_tx_mode();  
     }  
+	rt_kprintf("cc1101 send 7\r\n");
 }  
 void cc1101_send_write(void*_buf, unsigned short count)  
 {  
@@ -556,11 +564,21 @@ int cc1101_receive_read(unsigned char *buf, int count)
     for(i = 0, real_read_count = 0; i < count; i++)  
     {  
         if(rf_dev.rx_rd == rf_dev.rx_wr)  
-        {  
+        {          	
+    		//rt_kprintf("poll triger\r\n");
+        	//if (real_read_count == 0)
+			//	cc1101_gdo0_rx_it();
+			/*g_retry++;
+			if (g_retry >= 10) 
+			{
+				radio_intit2();
+				g_retry=0;
+			}*/
             return real_read_count;  
         }  
         else  
         {  
+        	g_retry=0;
             buf[i] = rf_dev.rx_buf[rf_dev.rx_rd++];  
             rf_dev.rx_rd %= RX_BUF_SIZE;  
             real_read_count++;  
@@ -573,10 +591,12 @@ void cc1101_isr(void)
 	#if 1
     if(rf_dev.mode  == MODE_RX)  
     {  
+    	rt_kprintf("got cc1101 data begin\r\n");
         cc1101_gdo0_rx_it();  
     }  
     else if(rf_dev.mode == MODE_TX)     
     {  
+    	rt_kprintf("send cc1101 data end\r\n");
         cc1101_gdo0_tx_it();  
     }  
     else  
@@ -685,6 +705,36 @@ int radio_init(void)
 	trxRfSpiInterruptInit();
 	cc1101_set_rx_mode();
 	return 1;
+}
+void radio_intit2(void)
+{
+	unsigned char i, writeByte, preferredSettings_length;
+	registerSetting_t *preferredSettings;
+	trxRfSpiInterfaceInit2();
+	trxSpiCmdStrobe(RF_SRES);
+	rt_kprintf("get here2\r\n");
+	if (DEV_CC1101 != get_device_id())
+		return 0;
+	rt_kprintf("rssi2 %d\r\n",radio_get_rssi());
+	rt_thread_delay(100);
+	preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);	
+	preferredSettings = (registerSetting_t *)preferredSettings_1200bps;	
+	for(i = 0; i < preferredSettings_length; i++) {	
+		writeByte = preferredSettings[i].data;
+		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);	
+	}
+
+	for(i = 0; i < preferredSettings_length; i++) {
+		uint8 readByte = 0;
+		trx8BitRegAccess(RADIO_READ_ACCESS, preferredSettings[i].addr, &readByte, 1);
+		if (readByte != preferredSettings[i].data)
+		{
+			rt_kprintf("rf reg set failed %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
+			return 0;
+		}
+	}
+	trxRfSpiInterruptInit();
+	cc1101_set_rx_mode();
 }
 int radio_receive_on(void) {
 

@@ -117,6 +117,54 @@ void trxRfSpiInterfaceInit()
 	SPI_Cmd(SPI1, ENABLE);
 
 }
+void trxRfSpiInterfaceInit2()
+{
+	GPIO_InitTypeDef GPIO_InitStructure;	
+	SPI_InitTypeDef  SPI_InitStructure;	
+	//rt_event_init(&cc1101_event, "cc1101_event", RT_IPC_FLAG_FIFO );	
+	SPI_I2S_DeInit(SPI1);	
+	/* Enable the SPI peripheral */	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);	
+	/* Enable SCK, MOSI, MISO and NSS GPIO clocks */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);	
+	/* SPI pin mappings */	
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;	
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;	
+	/* SPI SCK pin	 * configuration	 * */	
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;	
+	GPIO_Init(GPIOA, &GPIO_InitStructure);	
+	/* SPI	 * MOSI	 * pin	 * configuration	 * */	
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_7;	
+	GPIO_Init(GPIOA, &GPIO_InitStructure);	
+	/* SPI	 * MISO	 * pin	 * configuration	 * */	
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;	
+	GPIO_Init(GPIOA, &GPIO_InitStructure);	
+	/* SPI	 * NSS	 * pin	 * configuration	 *      *	 *      */	
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;	
+	GPIO_InitStructure.GPIO_Pin = PIN_CS;	
+	GPIO_Init(PORT_CS, &GPIO_InitStructure);	
+	/* SPI	 * configuration	 *      *	 *      -------------------------------------------------------*/	
+	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;	
+	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;	
+	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;	
+	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;	
+	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;	
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;	
+	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;	
+	SPI_InitStructure.SPI_CRCPolynomial = 7;	
+	/* Initializes	 * the	 * SPI	 * communication	 * */	
+	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;	
+	SPI_Init(SPI1, &(SPI_InitStructure));	
+	/* Initialize	 * the	 * FIFO	 * threshold	 * */	
+	//SPI_RxFIFOThresholdConfig(SPI1, SPI_RxFIFOThreshold_HF);	
+	SPI_I2S_ITConfig(SPI1, SPI_I2S_IT_RXNE, ENABLE);	
+	/* Enable	 * NSS	 * output	 * for	 * master	 * mode	 * */	
+	SPI_I2S_ITConfig(SPI1, SPI_I2S_IT_ERR, ENABLE);	
+	SPI_I2S_ITConfig(SPI1, SPI_I2S_IT_TXE, ENABLE);	
+	SPI_Cmd(SPI1, ENABLE);
+
+}
+
 void trxRfEnableInt()
 {
 	EXTI_InitTypeDef EXTI_InitStructure;
@@ -166,7 +214,7 @@ void trxRfSpiInterruptInit()
 }
 int gdo_level()
 {
-	return GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_0);
+	return GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_1);
 }
 int check_status(uint8_t bit)
 {	
