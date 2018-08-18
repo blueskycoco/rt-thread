@@ -482,7 +482,7 @@ void info_user(void *param)
 					Wtn6_Play(VOICE_ALARM2,LOOP);
 				}*/
 				g_alarm_fq = /*fangqu_wireless[g_index_sub].*/g_fq_index;
-				if (g_operationType != 1 || fqp.delay_in == 0) {
+				if (s1 || g_operationType != 1 || fqp.delay_in == 0) {
 						upload_server(CMD_ALARM);				
 				}
 		}

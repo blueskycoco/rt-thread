@@ -69,6 +69,7 @@ struct FangQu
 struct FangQuT
 {
 	rt_uint8_t index;
+	rt_uint8_t slave_type;
 	rt_uint32_t heart_ts;
 	rt_uint8_t off_line;
 	rt_uint8_t off_line2;
@@ -140,7 +141,7 @@ struct MachineProperty mp;
 #define FQP_FILE		"/fqp.dat"
 #define MP_FILE			"/mp.dat"
 #define DEFAULT_DOMAIN 	"kjfslkjflskdjfj"
-#define APP_BUILD_TIME "APP Build Time 2018-08-18 10:50"
+#define APP_BUILD_TIME "APP Build Time 2018-08-18 18:42"
 void dump_mp(struct MachineProperty v);
 void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3);
 int load_param();

@@ -338,6 +338,8 @@ rt_uint16_t ADC_Get_aveg(void)
 { 
 	rt_uint32_t ad_sum = 0; 
 	rt_uint8_t i; 
+	if (!battery_insert())
+		return 2000;
 	for(i=0;i<10;i++) 
 	{ 
 		ad_sum += Get_val(ADC_Channel_14);

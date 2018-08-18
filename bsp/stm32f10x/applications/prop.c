@@ -153,6 +153,7 @@ void default_fqp_t(struct FangQu *v2,struct FangQu *v3)
 			fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
 			fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
 			fangqu_ts[g_fangqu_ts_cnt].index = v2[i].index;
+			fangqu_ts[g_fangqu_ts_cnt].slave_type = v2[i].slave_type;
 			rt_kprintf("ts %d , index %d\r\n", g_fangqu_ts_cnt, v2[i].index);
 			g_fangqu_ts_cnt++;
 		}
@@ -163,7 +164,8 @@ void default_fqp_t(struct FangQu *v2,struct FangQu *v3)
 			fangqu_ts[g_fangqu_ts_cnt].heart_ts = 0;
 			fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
 			fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
-			fangqu_ts[g_fangqu_ts_cnt].index = v3[i].index;			
+			fangqu_ts[g_fangqu_ts_cnt].index = v3[i].index;				
+			fangqu_ts[g_fangqu_ts_cnt].slave_type = v3[i].slave_type;
 			rt_kprintf("ts %d , index %d\r\n", g_fangqu_ts_cnt, v3[i].index);
 			g_fangqu_ts_cnt++;
 		}
@@ -179,13 +181,14 @@ void default_fqp_t2()
 			fangqu_ts[i].heart_ts = ts;
 	}
 }
-void add_fqp_t(rt_uint8_t index)
+void add_fqp_t(rt_uint8_t index, rt_uint8_t slave_type)
 {		
 	rt_kprintf("add fqp t %d\r\n", index);
 	fangqu_ts[g_fangqu_ts_cnt].heart_ts = time(RT_NULL);
 	fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
 	fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
 	fangqu_ts[g_fangqu_ts_cnt].index = index;
+	fangqu_ts[g_fangqu_ts_cnt].slave_type = slave_type;
 	g_alarm_fq = fangqu_ts[g_fangqu_ts_cnt].index;
 	g_alarm_reason = 0x0017;
 	g_fangqu_ts_cnt++;
@@ -237,8 +240,8 @@ void check_off_line_alarm()
 	int timeout_ts = 200;
 	rt_time_t cur_time = time(RT_NULL);
 	for (i=0; i<g_fangqu_ts_cnt; i++) {
-		rt_kprintf("fq[%d]\t %d %d %d, cur %d, %d\r\n", fangqu_ts[i].index,fangqu_ts[i].heart_ts,
-			fangqu_ts[i].off_line,fangqu_ts[i].off_line2,cur_time,cur_time - fangqu_ts[i].heart_ts);
+		rt_kprintf("fq[%d]\t %d %d %d, cur %d, %d %s\r\n", fangqu_ts[i].index,fangqu_ts[i].heart_ts,
+			fangqu_ts[i].off_line,fangqu_ts[i].off_line2,cur_time,cur_time - fangqu_ts[i].heart_ts, cmd_dev_type(fangqu_ts[i].slave_type));
 		if (fangqu_ts[i].heart_ts != 0 && fangqu_ts[i].off_line == 0) {
 			if (fangqu_ts[i].index < 50) 
 				timeout_ts = 600;
@@ -247,17 +250,21 @@ void check_off_line_alarm()
 				fangqu_ts[i].heart_ts = cur_time;
 				fangqu_ts[i].off_line = 1;
 				fangqu_ts[i].off_line2 = 1;
-				g_alarm_fq = fangqu_ts[i].index;
-				g_alarm_reason = 0x0005;
-				upload_server(0x0004);
+				if (fangqu_ts[i].slave_type != 0x01) {
+					g_alarm_fq = fangqu_ts[i].index;
+					g_alarm_reason = 0x0005;
+					upload_server(0x0004);
+				}
 				break;
 			}
 		}
-		if (fangqu_ts[i].off_line == 1 && fangqu_ts[i].off_line2 == 0) {
+		if (fangqu_ts[i].off_line == 1 && fangqu_ts[i].off_line2 == 0) {			
+			if (fangqu_ts[i].slave_type != 0x01) {
 			g_alarm_fq = fangqu_ts[i].index;
 			g_alarm_reason = 0x0017;
 			upload_server(0x0004);
 			fangqu_ts[i].off_line = 0;
+			}
 			break;
 		}
 	}
@@ -266,10 +273,12 @@ void upload_sub_status()
 {	
 	int i;
 	for (i=0; i<g_fangqu_ts_cnt; i++) {
-		if (fangqu_ts[i].off_line2 == 1) {
+		if (fangqu_ts[i].off_line2 == 1) {			
+			if (fangqu_ts[i].slave_type != 0x01) {
 				g_alarm_fq = fangqu_ts[i].index;
 				g_alarm_reason = 0x0005;
 				upload_server(0x0004);
+				}
 			}
 	}
 }
