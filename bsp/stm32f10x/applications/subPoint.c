@@ -635,6 +635,8 @@ void handleSub(rt_uint8_t *data)
 			upload_server(CMD_ALARM);
 		}
 		resp[4]=16;
+		if (fangqu_wireless[g_index_sub].slave_type == 0x42 && fangqu_wireless[g_index_sub].slave_delay == 0)
+			resp[18] = 0x01;
 		unsigned short crc = CRC_check(resp,19);
 		resp[19]=(crc>>8) & 0xff;
 		resp[20]=(crc) & 0xff;
