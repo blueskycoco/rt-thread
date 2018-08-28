@@ -377,8 +377,8 @@ int load_param()
 	mp.updateDomainAddress.port = 2011;
 
 	fqp.alarm_voice_time=DEFAULT_VOICE_TIME;
-	fqp.auto_bufang=0;
-	fqp.auto_chefang=0;
+	fqp.auto_bufang=0xffff;
+	fqp.auto_chefang=0xffff;
 	fqp.delay_in=DEFAULT_DELAY_IN;
 	fqp.delya_out=DEFAULT_DELAY_OUT;
 	fqp.is_alarm_voice=DEFAULT_ALARM_VOICE;
