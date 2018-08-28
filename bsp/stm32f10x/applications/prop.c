@@ -236,9 +236,9 @@ rt_uint8_t fangqu_offline(rt_uint8_t index)
 	int i;
 	for (i=0; i<g_fangqu_ts_cnt; i++) {
 		if (fangqu_ts[i].index == index)
-			return fangqu_ts[i].off_line2;
+			return !(fangqu_ts[i].off_line2);
 	}
-	return 0x01;
+	return 0x00;
 }
 void check_off_line_alarm()
 {

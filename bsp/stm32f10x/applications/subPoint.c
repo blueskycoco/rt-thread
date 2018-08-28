@@ -459,6 +459,11 @@ void set_fq_on(struct FangQu *list, int len)
 		if (list[i].index != 0 && (list[i].isStay == TYPE_STAY_N || list[i].operationType == TYPE_24))
 		{
 			list[i].status = TYPE_PROTECT_ON;
+			if (list[i].isBypass == TYPE_BYPASS_Y) {
+				g_alarm_fq = list[i].index;
+				g_alarm_reason = 0x2004;
+				upload_server(CMD_ALARM);	
+			}
 		}
 	}
 	return ;
@@ -475,6 +480,9 @@ void set_fq_off(struct FangQu *list, int len)
 			{
 				list[i].isBypass = TYPE_BYPASS_N;
 				/*TODO send bypass restore event to server*/
+				g_alarm_fq = list[i].index;
+				g_alarm_reason = 0x2005;
+				upload_server(CMD_ALARM);	
 			}
 		}
 	}
