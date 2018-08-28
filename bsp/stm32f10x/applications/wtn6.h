@@ -109,7 +109,7 @@ typedef enum
 /*外部接口*/
 extern void Wtn6_Init(void);
 extern void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne);
-extern void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType);
+extern void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag);
 extern void Wtn6_JoinPlay(u8 voices[],u8 size,u8 muteTimes);
 extern void Stop_Playing(void);
 

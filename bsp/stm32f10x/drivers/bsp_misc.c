@@ -262,9 +262,17 @@ void show_signal(int csq)
 void show_battery(int v)
 {
 	static rt_bool_t blink = RT_FALSE;
-	int level = 4;
-	if (v>1180)
+	int level = 4;	
+	if (!battery_insert())
+	{
+		SetBatteryIco(0);
+		return ;
+	}
+	GPIO_SetBits(GPIOB, GPIO_Pin_7);
+	if (v>1180) {
+		GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 		level=4;
+	}
 	else if (v>1070)
 		level=3;
 	else if (v>960)
@@ -275,7 +283,7 @@ void show_battery(int v)
 		level=5;
 	//rt_kprintf("battery %d level %d\r\n", v,level);
 	if (level == 5) {
-		if (battery_insert()) {
+		//if (battery_insert()) {
 			if (blink) {
 				blink = RT_FALSE;
 				SetBatteryIco(level);
@@ -283,9 +291,9 @@ void show_battery(int v)
 				blink = RT_TRUE;
 				SetBatteryIco(1);
 			}
-		} else {
-			SetBatteryIco(level);
-		}
+		//} else {
+		//	SetBatteryIco(level);
+		//}
 	} else 
 		SetBatteryIco(level);
 }

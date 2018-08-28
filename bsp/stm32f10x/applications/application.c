@@ -305,7 +305,7 @@ static void led_thread_entry(void* parameter)
 			//fangchai
 			g_alarm_reason=0x1002;
 			g_alarm_fq = 0x00;
-			Wtn6_Play(VOICE_FCALARM,ONCE);
+			Wtn6_Play(VOICE_FCALARM,ONCE,1);
 			upload_server(CMD_ALARM);
 		} else if(s1_main ==2) {
 			//huifu			
@@ -318,7 +318,7 @@ static void led_thread_entry(void* parameter)
 		if (ac && !g_ac)
 		{
 			g_ac = 1;
-			Wtn6_Play(VOICE_JIAOLIUHF,ONCE);
+			Wtn6_Play(VOICE_JIAOLIUHF,ONCE,1);
 			SetStateIco(4,1);
 			if (should_upload_bat!=0) {
 				g_alarm_reason=0x0020;
@@ -327,7 +327,7 @@ static void led_thread_entry(void* parameter)
 			}
 		} else if (!ac && g_ac){
 			g_ac = 0;
-			Wtn6_Play(VOICE_JIAOLIUDD,ONCE);
+			Wtn6_Play(VOICE_JIAOLIUDD,ONCE,1);
 			SetStateIco(4,0);
 			g_alarm_reason=0x0021;
 			g_alarm_fq = 0x00;
@@ -342,7 +342,7 @@ static void led_thread_entry(void* parameter)
 			if (g_coding_cnt>120) {
 				g_main_state = 0;
 				/*play audio here*/
-				Wtn6_Play(VOICE_TUICHUDM,ONCE);
+				Wtn6_Play(VOICE_TUICHUDM,ONCE,1);
 				rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
 			}
 		}
@@ -446,7 +446,7 @@ static void led_thread_entry(void* parameter)
 					fangqu_wireless[g_index_sub].voiceType == 0) {
 					rt_kprintf("open delay fq bell\r\n");
 					bell_ctl(1);				
-					Wtn6_Play(VOICE_ALARM1,LOOP);
+					Wtn6_Play(VOICE_ALARM1,LOOP,0);
 					if (fqp.alarm_voice_time>0)
 						g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
 					else
@@ -476,8 +476,9 @@ static void led_thread_entry(void* parameter)
 					rt_kprintf("last protect count %d\r\n",g_delay_out);
 					if (g_delay_out == 10)
 					{
-						Wtn6_Play(VOICE_COUNTDOWN,ONCE);
-						rt_kprintf("play VOICE_COUNTDOWN\r\n");
+						Wtn6_Play(VOICE_COUNTDOWN,ONCE,0);
+						rt_time_t cur_time = time(RT_NULL);
+						rt_kprintf("play VOICE_COUNTDOWN %s\r\n",ctime(&cur_time));
 					}
 					if (g_delay_out == 1) {
 						//rt_thread_delay(300);
@@ -495,6 +496,8 @@ static void led_thread_entry(void* parameter)
 						//Wtn6_JoinPlay(voice,2,1);
 					   }
 					//rt_thread_delay(200);
+					rt_time_t cur_time1 = time(RT_NULL);
+					rt_kprintf("play VOICE_COUNTDOWN over %s\r\n",ctime(&cur_time1));
 						rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_ON);
 						}
 					g_delay_out -=1;
@@ -543,7 +546,9 @@ static void led_thread_entry(void* parameter)
 		//rt_kprintf("led off\r\n");
 #endif
 		if (g_main_state ==1)
-		rt_hw_led_on(0);
+			rt_hw_led_on(0);
+		else
+			rt_hw_led_off(0);
 		//buzzer_ctl(0);
 		if (alarm_led) {			
 			alarm_flow();
@@ -742,7 +747,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_hw_led_off(FAIL_LED);
 	rt_hw_led_off(NET_LED);
 	//rt_thread_delay( RT_TICK_PER_SECOND );			
-	Wtn6_Play(VOICE_WELCOME,ONCE);
+	Wtn6_Play(VOICE_WELCOME,ONCE,1);
 	rt_thread_delay( RT_TICK_PER_SECOND );	
 	SetErrorCode(err_code);
 	pcie_status |= check_pcie(0);
@@ -814,11 +819,11 @@ void rt_init_thread_entry(void* parameter)
 		buzzer_ctl(1);
 		SetSimTypeIco(0);
 		SetStateIco(3,1);
-		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
+		Wtn6_Play(VOICE_NOMOKUAI,ONCE,1);
 		rt_thread_delay(550);
-		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
+		Wtn6_Play(VOICE_NOMOKUAI,ONCE,1);
 		rt_thread_delay(550);
-		Wtn6_Play(VOICE_NOMOKUAI,ONCE);
+		Wtn6_Play(VOICE_NOMOKUAI,ONCE,1);
 		return ;
 	}
 	

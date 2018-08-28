@@ -77,10 +77,6 @@ void SetErrorCode(u8 value)
    */
 void SetBatteryIco(u8 value)
 {
-	if (!battery_insert())
-	{
-		return ;
-	}
 	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
 
   u8 level=value%5;

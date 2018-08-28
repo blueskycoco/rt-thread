@@ -149,6 +149,7 @@ void default_fqp_t(struct FangQu *v2,struct FangQu *v3)
 	for(i=0;i<WIRE_MAX;i++)
 	{
 		if(v2[i].index != 0) {
+			fangqu_ts[g_fangqu_ts_cnt].new_code = 0;
 			fangqu_ts[g_fangqu_ts_cnt].heart_ts = 0;
 			fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
 			fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
@@ -161,6 +162,7 @@ void default_fqp_t(struct FangQu *v2,struct FangQu *v3)
 	for(i=0;i<WIRELESS_MAX;i++)
 	{
 		if(v3[i].index != 0) {
+			fangqu_ts[g_fangqu_ts_cnt].new_code = 0;
 			fangqu_ts[g_fangqu_ts_cnt].heart_ts = 0;
 			fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
 			fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
@@ -185,6 +187,10 @@ void add_fqp_t(rt_uint8_t index, rt_uint8_t slave_type)
 {		
 	rt_kprintf("add fqp t %d\r\n", index);
 	fangqu_ts[g_fangqu_ts_cnt].heart_ts = time(RT_NULL);
+	if (slave_type == 0x42) {
+		fangqu_ts[g_fangqu_ts_cnt].new_code = 1;
+		fangqu_ts[g_fangqu_ts_cnt].new_code_ts = fangqu_ts[g_fangqu_ts_cnt].heart_ts;
+	}
 	fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
 	fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
 	fangqu_ts[g_fangqu_ts_cnt].index = index;
@@ -240,11 +246,16 @@ void check_off_line_alarm()
 	int timeout_ts = 200;
 	rt_time_t cur_time = time(RT_NULL);
 	for (i=0; i<g_fangqu_ts_cnt; i++) {
-		rt_kprintf("fq[%d]\t %d %d %d, cur %d, %d %s\r\n", fangqu_ts[i].index,fangqu_ts[i].heart_ts,
+		rt_kprintf("fq[%d]\t %d %d %d, cur %d, %d\t%s\r\n", fangqu_ts[i].index,fangqu_ts[i].heart_ts,
 			fangqu_ts[i].off_line,fangqu_ts[i].off_line2,cur_time,cur_time - fangqu_ts[i].heart_ts, cmd_dev_type(fangqu_ts[i].slave_type));
+		if (fangqu_ts[i].new_code && ((cur_time - fangqu_ts[i].new_code_ts) > 300) ) {
+			rt_kprintf("reset fangqu %d, infrar to delay mode\r\n", fangqu_ts[i].index-2);
+			fangqu_wireless[fangqu_ts[i].index-2].slave_delay = TYPE_SLAVE_MODE_DELAY;
+			fangqu_ts[i].new_code=0;
+		}
 		if (fangqu_ts[i].heart_ts != 0 && fangqu_ts[i].off_line == 0) {
 			if (fangqu_ts[i].index < 50) 
-				timeout_ts = 600;
+				timeout_ts = 8*60*60;
 			
 			if ((cur_time - fangqu_ts[i].heart_ts) > timeout_ts) {
 				fangqu_ts[i].heart_ts = cur_time;

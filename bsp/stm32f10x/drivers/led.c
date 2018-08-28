@@ -106,8 +106,8 @@ void rt_hw_led_init(void)
 	GPIO_InitStructure.GPIO_Pin   = NET_LED_pin;
     GPIO_Init(NET_LED_gpio, &GPIO_InitStructure);
 
-	GPIO_InitStructure.GPIO_Pin   = FAIL_LED_pin;
-    GPIO_Init(FAIL_LED_gpio, &GPIO_InitStructure);
+	//GPIO_InitStructure.GPIO_Pin   = FAIL_LED_pin;
+   // GPIO_Init(FAIL_LED_gpio, &GPIO_InitStructure);
 	
 	GPIO_InitStructure.GPIO_Pin   = AUX_LED_pin1;
     GPIO_Init(AUX_LED_gpio, &GPIO_InitStructure);
@@ -152,9 +152,9 @@ void rt_hw_led_on(rt_uint32_t n)
 		GPIO_SetBits(NET_LED_gpio, NET_LED_pin);
 		break;
 		
-	case FAIL_LED:
-		GPIO_SetBits(FAIL_LED_gpio, FAIL_LED_pin);
-		break;
+//	case FAIL_LED:
+//		GPIO_SetBits(FAIL_LED_gpio, FAIL_LED_pin);
+//		break;
 	case AUX_LED0:
 		GPIO_SetBits(AUX_LED_gpio, AUX_LED_pin1);
 		GPIO_ResetBits(AUX_LED_gpio, AUX_LED_pin2);
@@ -206,9 +206,9 @@ void rt_hw_led_off(rt_uint32_t n)
 		GPIO_ResetBits(NET_LED_gpio, NET_LED_pin);
 		break;
 		
-	case FAIL_LED:
-		GPIO_ResetBits(FAIL_LED_gpio, FAIL_LED_pin);
-		break;
+	//case FAIL_LED:
+	//	GPIO_ResetBits(FAIL_LED_gpio, FAIL_LED_pin);
+	//	break;
 		
 	case AUX_LED0:
 	case AUX_LED1:

@@ -12,7 +12,7 @@ void button_init(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOD|RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOE|RCC_APB2Periph_AFIO, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOD|RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOE|RCC_APB2Periph_AFIO, ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -21,8 +21,11 @@ void button_init(void)
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_5;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
 	GPIO_Init(GPIOE, &GPIO_InitStructure);	
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
 	GPIO_Init(GPIOE, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
@@ -32,6 +35,8 @@ void button_init(void)
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8;
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_7;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOD, GPIO_PinSource0);
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource9);
@@ -125,7 +130,7 @@ void bell_ctl(int level)
 }
 rt_uint8_t check_ac()
 {
-	return (GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_6)?0:1);
+	return (GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_5)?1:0);
 }
 void buzzer_ctl(int level)
 {
@@ -175,5 +180,6 @@ void speaker_ctl(int flag)
 }
 rt_uint8_t battery_insert()
 {
+	GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 	return GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_6);
 }

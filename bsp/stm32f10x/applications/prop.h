@@ -73,6 +73,8 @@ struct FangQuT
 	rt_uint32_t heart_ts;
 	rt_uint8_t off_line;
 	rt_uint8_t off_line2;
+	rt_uint8_t new_code;
+	rt_uint32_t new_code_ts;
 };
 
 struct FangQuProperty

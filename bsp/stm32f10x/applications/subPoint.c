@@ -288,7 +288,7 @@ void save_fq(struct FangQu *list, int len)
 			
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 			/*play audio here*/
-			Wtn6_Play(VOICE_ERRORTIP,ONCE);
+			Wtn6_Play(VOICE_ERRORTIP,ONCE,1);
 			return;
 		}
 	}
@@ -303,7 +303,7 @@ void save_fq(struct FangQu *list, int len)
 				list[i].index = i+WIRELESS_MAX+1;
 				list[i].type =TYPE_WIRE;
 			}
-			add_fqp_t(list[i].index);
+			add_fqp_t(list[i].index,dev_type);
 			list[i].slave_sn = sub_id;
 			list[i].slave_type = dev_type;
 			list[i].slave_model = dev_model;
@@ -311,7 +311,7 @@ void save_fq(struct FangQu *list, int len)
 			list[i].voiceType =TYPE_VOICE_Y;
 			list[i].operationType= TYPE_DELAY;
 			list[i].alarmType= TYPE_ALARM_00;
-			list[i].slave_delay = TYPE_SLAVE_MODE_DELAY;
+			list[i].slave_delay = TYPE_SLAVE_MODE_NODELAY;
 			list[i].status= TYPE_PROTECT_OFF;
 			list[i].isStay= TYPE_STAY_N;
 			list[i].isBypass= TYPE_BYPASS_N;
@@ -346,7 +346,7 @@ void save_fq(struct FangQu *list, int len)
 			g_num=list[i].index;
 			rt_kprintf("save fq to %d , index %d, sn %08x\r\n",
 				i,list[i].index,list[i].slave_sn);			
-			Wtn6_Play(VOICE_DUIMA,ONCE);
+			Wtn6_Play(VOICE_DUIMA,ONCE,1);
 			rt_kprintf("duima ok\r\n");
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
@@ -389,6 +389,12 @@ void cmd_dump(rt_uint8_t *data,rt_uint8_t flag)
 			tmp_sub_cmd_type = data[17];			
 			battery = data[19]<<8|data[20];
 			rt_kprintf("CMD SubType :\t%s\r\n",cmd_sub_type(data[17]));
+			if (dev_type == 0x43) {
+				dev_model = (data[21]<<8)|data[22];
+				dev_time = (data[23]<<16)|(data[24]<<8)|data[25];	
+				rt_kprintf("Dev Model :\t%04x\r\n", dev_model);
+				rt_kprintf("Dev build time :%06x\r\n", dev_time);
+			}
 		}
 		rt_kprintf("Dev Type :\t%s\r\n",cmd_dev_type(dev_type));
 	}
@@ -636,7 +642,10 @@ void handleSub(rt_uint8_t *data)
 		}
 		resp[4]=16;
 		if (fangqu_wireless[g_index_sub].slave_type == 0x42 && fangqu_wireless[g_index_sub].slave_delay == 0)
+		{
+			rt_kprintf("set wireless infrar non-power-save\r\n");
 			resp[18] = 0x01;
+		}
 		unsigned short crc = CRC_check(resp,19);
 		resp[19]=(crc>>8) & 0xff;
 		resp[20]=(crc) & 0xff;
@@ -650,6 +659,7 @@ void handleSub(rt_uint8_t *data)
 			return ;
 		}
 		g_mute=0;
+		rt_kprintf("STATUS %d %d %d \r\n", command_type,cur_status,g_delay_out);
 		if (command_type == 0x0002 && !cur_status && g_delay_out==0)
 		{
 			g_remote_protect=0;
@@ -661,7 +671,6 @@ void handleSub(rt_uint8_t *data)
 			g_remote_protect=0;
 			cur_status = 0;
 			g_alarmType =0;
-			g_delay_out = 0;
 			g_alarm_voice = 0;
 			g_delay_in = 0;
 			fqp.status=cur_status;

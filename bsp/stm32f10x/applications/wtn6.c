@@ -53,15 +53,17 @@ void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne)
 *voice 语音地址
 *playType 播放一次或者循环播放
 */
-void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType)
+void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag)
 {
 	speaker_ctl(1);
 	Send_Command(voice);
 	if(PlayType==LOOP)
 	{
 		Set_Loop();
-	} else 
-		Stop_Played();
+	} else {
+		if (flag)
+			Stop_Played();
+	}
 	state_play=1;
 }
 void Stop_Played(void)
