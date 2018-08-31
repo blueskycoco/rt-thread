@@ -248,7 +248,7 @@ void check_off_line_alarm()
 	for (i=0; i<g_fangqu_ts_cnt; i++) {
 		rt_kprintf("fq[%d]\t %d %d %d, cur %d, %d\t%s\r\n", fangqu_ts[i].index,fangqu_ts[i].heart_ts,
 			fangqu_ts[i].off_line,fangqu_ts[i].off_line2,cur_time,cur_time - fangqu_ts[i].heart_ts, cmd_dev_type(fangqu_ts[i].slave_type));
-		if (fangqu_ts[i].new_code && ((cur_time - fangqu_ts[i].new_code_ts) > 300) ) {
+		if (fangqu_ts[i].new_code && ((cur_time - fangqu_ts[i].new_code_ts) > 21600) ) {
 			rt_kprintf("reset fangqu %d, infrar to delay mode\r\n", fangqu_ts[i].index-2);
 			fangqu_wireless[fangqu_ts[i].index-2].slave_delay = TYPE_SLAVE_MODE_DELAY;
 			fangqu_ts[i].new_code=0;

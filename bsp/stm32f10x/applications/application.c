@@ -566,8 +566,8 @@ static void led_thread_entry(void* parameter)
 		}
 		//rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
 		g_bat = ADC_Get_aveg();
-		show_battery(g_bat);	
-		if (g_bat < 1000 && (should_upload_bat > 3600 || should_upload_bat ==0)) {
+		show_battery(g_bat);
+		if (g_bat < 970 && (should_upload_bat > 3600 || should_upload_bat ==0)) {
 			g_alarm_reason = 0x0022;
 			g_alarm_fq = 0x00;
 			upload_server(CMD_ALARM);

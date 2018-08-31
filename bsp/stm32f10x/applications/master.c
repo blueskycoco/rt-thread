@@ -383,6 +383,7 @@ void info_user(void *param)
 			g_alarm_voice=0;
 			bell_ctl(0);	
 			g_delay_out = 0;
+			rt_kprintf("set delay out 0\r\n");
 		}
 
 		if (ev & INFO_EVENT_ALARM) {

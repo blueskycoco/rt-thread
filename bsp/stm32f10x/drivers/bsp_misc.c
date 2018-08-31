@@ -269,15 +269,15 @@ void show_battery(int v)
 		return ;
 	}
 	GPIO_SetBits(GPIOB, GPIO_Pin_7);
-	if (v>1180) {
-		GPIO_ResetBits(GPIOB, GPIO_Pin_7);
+	if (v>1260) {
+		//GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 		level=4;
 	}
-	else if (v>1070)
+	else if (v>1175)
 		level=3;
-	else if (v>960)
+	else if (v>1084)
 		level=2;
-	else if (v>850)
+	else if (v>970)
 		level=1;
 	else
 		level=5;
@@ -353,7 +353,7 @@ rt_uint16_t ADC_Get_aveg(void)
 		ad_sum += Get_val(ADC_Channel_14);
 		rt_thread_delay(1); 
 	} 
-	//rt_kprintf("battery is %d \r\n", ad_sum/10);
+	//rt_kprintf("battery is %d \r\n", (int)(ad_sum/10));
 	return (ad_sum / 10);
 }
 void led_blink(int times)
