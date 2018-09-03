@@ -728,7 +728,7 @@ void handle_set_main(rt_uint8_t *cmd)
 		fqp.auto_chefang |= (cmd[10]<<8)|cmd[11];
 	g_operate_platform = cmd[12];
 	memcpy(g_operater,cmd+13,6);
-	
+	Wtn6_Set_Volumne(fqp.audio_vol|0xe0);
 	rt_kprintf("operate platform \t%x\r\n", cmd[12]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
 		cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);

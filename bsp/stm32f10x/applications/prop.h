@@ -59,7 +59,7 @@ struct FangQu
 	rt_uint8_t		isStay;			//0 nostay ,1 stay protect off
 	rt_uint8_t  	status;			//0 unprotect , 1 protect
 	rt_uint8_t  	slave_delay;	//0 normal , 1 delay T mins
-	
+	rt_uint8_t		normal_info;
 	rt_uint32_t 	slave_sn;		//ro
 	rt_uint8_t  	slave_type;		//ro
 	rt_uint16_t   	slave_model;	//ro
@@ -143,7 +143,7 @@ struct MachineProperty mp;
 #define FQP_FILE		"/fqp.dat"
 #define MP_FILE			"/mp.dat"
 #define DEFAULT_DOMAIN 	"kjfslkjflskdjfj"
-#define APP_BUILD_TIME "APP Build Time 2018-08-31 11:50"
+#define APP_BUILD_TIME "APP Build Time 2018-09-03 16:05"
 void dump_mp(struct MachineProperty v);
 void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3);
 int load_param();

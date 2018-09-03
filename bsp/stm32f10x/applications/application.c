@@ -80,6 +80,7 @@ struct rt_mutex g_stm32_lock;
 extern rt_uint8_t g_alarm_fq;
 extern rt_uint16_t g_alarm_reason;
 rt_uint16_t should_upload_bat = 0;
+rt_uint32_t should_notify_infrar_normal_mode=0;
 rt_uint8_t time_protect=0;
 extern rt_uint8_t g_remote_protect;
 extern rt_uint8_t g_fq_index;
@@ -574,6 +575,12 @@ static void led_thread_entry(void* parameter)
 			should_upload_bat = 1;
 		}
 		should_upload_bat++;
+
+		if (should_notify_infrar_normal_mode > 3600/*21600*/) {
+			get_infrar_normal_mode();
+			should_notify_infrar_normal_mode=0;
+		}
+		should_notify_infrar_normal_mode++;
 	}
 }
 
@@ -697,6 +704,8 @@ void rt_init_thread_entry(void* parameter)
 	} else {
 		buzzer_ctl(BUZZER_ERROR);
 	}
+	
+	Wtn6_Set_Volumne(fqp.audio_vol|0xe0);
 	Adc_Init();	
 	//set_date(2018,3,26);
 	//set_time(11,55,0);

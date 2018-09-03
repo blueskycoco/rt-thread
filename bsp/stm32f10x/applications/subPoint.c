@@ -117,7 +117,10 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 
 	if (i==len)
 	{
-		i=0;
+		if (len == WIRE_MAX)
+			i=1;
+		else
+			i=0;
 		while(list[i].index != 0)
 			i++;
 	}
@@ -125,7 +128,7 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 	if (len == WIRELESS_MAX)
 		return i+2;
 	else
-		return i+WIRELESS_MAX+1;
+		return i+WIRELESS_MAX;
 }
 void delete_fq(rt_uint8_t index, rt_uint8_t type)
 {
@@ -139,6 +142,21 @@ void delete_fq(rt_uint8_t index, rt_uint8_t type)
 		if (index > 50 && index < 80) {
 			del_fqp_t(fangqu_wire[index-WIRELESS_MAX].index);
 			memset(&(fangqu_wire[index-WIRELESS_MAX]),0,sizeof(struct FangQu));
+		}
+	}
+}
+void get_infrar_normal_mode() {	
+	int i;
+	for (i=0;i<WIRELESS_MAX;i++)
+	{
+		if (fangqu_wireless[i].slave_sn !=0 &&
+			fangqu_wireless[i].slave_type == 0x42 &&
+			fangqu_wireless[i].slave_delay == TYPE_SLAVE_MODE_NODELAY &&
+			fangqu_wireless[i].normal_info == 1) {		
+			rt_kprintf("notify server %d\r\n",fangqu_wireless[i].index);
+			g_alarm_reason = 0x0025;
+			g_alarm_fq = fangqu_wireless[i].index;
+			upload_server(CMD_ALARM);
 		}
 	}
 }
@@ -172,11 +190,11 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 		else
 			list[index].slave_delay = 0;
 		
-		/*if ((param1 & 0x20))
-			list[index].slave_delay = 1;
+		if ((param1 & 0x20))
+			list[index].normal_info= 1;
 		else
-			list[index].slave_delay = 0;
-		
+			list[index].normal_info = 0;
+		/*
 		if ((param1 & 0x10))
 			list[index].isBypass = 1;
 		else
@@ -315,6 +333,7 @@ void save_fq(struct FangQu *list, int len)
 			list[i].status= TYPE_PROTECT_OFF;
 			list[i].isStay= TYPE_STAY_N;
 			list[i].isBypass= TYPE_BYPASS_N;
+			list[i].normal_info = 1;
 			if (dev_model == 0xd001)
 				list[i].operationType= TYPE_24;
 			/*test code

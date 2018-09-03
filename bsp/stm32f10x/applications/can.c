@@ -259,7 +259,8 @@ void save_fq_wire(int addr, rt_uint8_t type, rt_uint32_t fact_time)
 		fangqu_wire[addr].slave_delay = TYPE_SLAVE_MODE_DELAY;
 		fangqu_wire[addr].status= TYPE_PROTECT_OFF;
 		fangqu_wire[addr].isStay= TYPE_STAY_N;
-		fangqu_wire[addr].isBypass= TYPE_BYPASS_N;
+		fangqu_wire[addr].isBypass= TYPE_BYPASS_N;		
+		fangqu_wire[addr].normal_info = 1;
 		g_num=fangqu_wire[addr].index;
 		add_fqp_t(fangqu_wire[addr].index,type);
 		rt_kprintf("save fq to wire %d , index %d, sn %08x\r\n",

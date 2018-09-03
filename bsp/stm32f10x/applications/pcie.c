@@ -601,7 +601,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 					cmd[ofs]|=0x40;			
 				if (fangqu_wire[i].isBypass)
 					cmd[ofs]|=0x10;
-				cmd[ofs]|=fangqu_offline(fangqu_wire[i].index);
+				if (fangqu_offline(fangqu_wire[i].index))
+					cmd[ofs]|= 0x08;
+				if (fangqu_wire[i].normal_info)
+					cmd[ofs]|=0x04;	
 				ofs++;
 				cmd[ofs++] = fangqu_wire[i].slave_type;
 				(cmd[17])++;
@@ -626,7 +629,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 					cmd[ofs]|=0x40;			
 				if (fangqu_wireless[i].isBypass)
 					cmd[ofs]|=0x10;				
-				cmd[ofs]|=fangqu_offline(fangqu_wireless[i].index);
+				if (fangqu_offline(fangqu_wireless[i].index))
+					cmd[ofs]|= 0x08;
+				if (fangqu_wireless[i].normal_info)
+					cmd[ofs]|=0x04;				
 				ofs++;
 				cmd[ofs++] = fangqu_wireless[i].slave_type;
 				(cmd[17])++;
