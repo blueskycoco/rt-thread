@@ -122,11 +122,13 @@ void battery_init()
 }
 void bell_ctl(int level)
 {
-	rt_kprintf("bell %s\r\n", (level==0)?"off":"on");
-	if (level)		
+	if (level)	{	
+		rt_kprintf("bell on\r\n");
 		GPIO_SetBits(GPIOE, GPIO_Pin_11);
-	else
+	} else {
+		rt_kprintf("bell off\r\n");
 		GPIO_ResetBits(GPIOE, GPIO_Pin_11);
+	}
 }
 rt_uint8_t check_ac()
 {

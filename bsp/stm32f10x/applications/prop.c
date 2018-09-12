@@ -259,7 +259,7 @@ void check_off_line_alarm()
 //		}
 		if (fangqu_ts[i].heart_ts != 0 && fangqu_ts[i].off_line == 0) {
 			if (fangqu_ts[i].index < 50) 
-				timeout_ts = 8*60*60;
+				timeout_ts = 300;//15*60*60;
 			
 			if ((cur_time - fangqu_ts[i].heart_ts) > timeout_ts) {
 				fangqu_ts[i].heart_ts = cur_time;
@@ -381,6 +381,7 @@ int load_param()
 	mp.updateDomainAddress.port = 2011;
 
 	fqp.alarm_voice_time=DEFAULT_VOICE_TIME;
+	fqp.audio_vol = 8;
 	fqp.auto_bufang=0xffff;
 	fqp.auto_chefang=0xffff;
 	fqp.delay_in=DEFAULT_DELAY_IN;

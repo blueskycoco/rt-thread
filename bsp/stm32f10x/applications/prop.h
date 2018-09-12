@@ -143,7 +143,7 @@ struct MachineProperty mp;
 #define FQP_FILE		"/fqp.dat"
 #define MP_FILE			"/mp.dat"
 #define DEFAULT_DOMAIN 	"kjfslkjflskdjfj"
-#define APP_BUILD_TIME "APP Build Time 2018-09-03 16:05"
+#define APP_BUILD_TIME "APP Build Time 2018-09-04 10:06"
 void dump_mp(struct MachineProperty v);
 void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3);
 int load_param();

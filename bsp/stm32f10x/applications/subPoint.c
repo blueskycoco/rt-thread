@@ -218,7 +218,7 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 {
 	struct FangQu    *ptr;
 	if (index >= 51 && index < 80) {
-		index -= 51;
+		index -= 50;
 		ptr = fangqu_wire;
 	}
 	else if (index >= 2 && index < 51) {

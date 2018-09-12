@@ -54,6 +54,8 @@
 #define BC26_NSOCR				39
 #define BC26_QENG				40
 #define BC26_CPSMS				41
+#define BC26_STATE_BAND			42
+#define BC26_STATE_QENG			43
 #define STR_NSOCR				"+NSOCR"
 #define STR_CSCON					"+CSCON:0,1"
 #define STR_GSN					"+CGSN:"
@@ -132,6 +134,8 @@
 #define qideact "AT+QIDEACT\r\n"
 #define ati	"ATI\r\n"
 #define qindi "AT+QINDI=1\r\n"
+#define at_band	"AT+NBAND?\r\n"
+#define at_qeng "AT+QENG=0\r\n"
 //#define qird "AT+QIRD=0,512\r\n"
 #define qisack "AT+QISACK\r\n"
 #define qiat "AT\r\n"
@@ -420,16 +424,17 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 		}
 		if (have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
 		{
-			if (have_str(last_data_ptr,STR_PDP_DEACT)) {
+			//if (have_str(last_data_ptr,STR_PDP_DEACT)) {
 				rt_kprintf("MODULE lost\r\n");
 				g_heart_cnt=0;
 				g_net_state = NET_STATE_UNKNOWN;
 				pcie_switch(g_module_type);
-			} else {				
-				g_bc26_state = BC26_CREATE_SOCKET;
-				gprs_at_cmd(g_dev_bc26,nsocr);
 				return;
-			}
+			//} else {				
+			//	g_bc26_state = BC26_CREATE_SOCKET;
+			//	gprs_at_cmd(g_dev_bc26,nsocr);
+			//	return;
+			//}
 		}
 		switch (g_bc26_state) {
 			case BC26_STATE_INIT:
@@ -447,11 +452,23 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_bc26,e0);
 				}
 				break;
-			case BC26_STATE_V:
+			case BC26_STATE_BAND:
 				if (have_str(last_data_ptr,STR_OK)) {
 					g_pcie[g_index]->cpin_cnt=0;
 					g_bc26_state = BC26_STATE_CGATT;
 					gprs_at_cmd(g_dev_bc26,cgatt);
+				}
+				break;
+			case BC26_STATE_V:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_bc26_state = BC26_STATE_BAND;
+					gprs_at_cmd(g_dev_bc26,at_band);
+				}
+				break;
+			case BC26_STATE_QENG:
+				if (have_str(last_data_ptr,STR_OK)) {
+					g_bc26_state = BC26_STATE_BAND;
+					gprs_at_cmd(g_dev_bc26,at_qeng);
 				}
 				break;
 			case BC26_STATE_CGATT:

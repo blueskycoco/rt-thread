@@ -223,8 +223,8 @@ void handle_wire_alarm(rt_uint8_t addr)
 {
 	g_num = addr+WIRELESS_MAX;
 	g_alarmType = fangqu_wire[addr].alarmType;
-	rt_kprintf("proc wire alarm %d %d %d\r\n",addr,fangqu_wire[addr].operationType,
-		cur_status);
+	rt_kprintf("proc wire alarm %d %d %d %d\r\n",addr,fangqu_wire[addr].operationType,
+		cur_status,fangqu_wire[addr].isBypass);
 	g_mute=0;
 	s1=0;
 	if (fangqu_wire[addr].operationType==2 /*24 hour*/

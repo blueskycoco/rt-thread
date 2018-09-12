@@ -166,7 +166,7 @@ void info_user(void *param)
 			cur_status = 1;				
 			g_flag = 1;		
 			//Wtn6_Play(VOICE_BUFANG,ONCE);
-			rt_kprintf("bufang ok\r\n");
+			rt_kprintf("bufang ok %d\r\n",g_yanshi);
 			handle_led(TYPE_PROTECT_ON);
 			pgm_ctl(5);
 			if (fqp.is_alarm_voice)
@@ -243,6 +243,7 @@ void info_user(void *param)
 				   }
 				
 			}*/
+			time_protect =0;
 			g_yanshi = 0;
 		}		
 		if (ev & INFO_EVENT_DELAY_PROTECT_ON) {
@@ -441,6 +442,7 @@ void info_user(void *param)
 								g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
 							else
 								g_alarm_voice = 0;
+							bell_ctl(1);
 							Wtn6_Play(VOICE_ALARM1,LOOP,0);
 						}
 					} else {
