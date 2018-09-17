@@ -231,7 +231,7 @@ char *add_obj(char *old,char *id,char *pad)
 }
 void gprs_at_cmd(rt_device_t dev, const char *cmd)
 {
-	if (!have_str(cmd, "CSQ"))
+	//if (!have_str(cmd, "CSQ"))
 		rt_kprintf("=> %s",cmd);
 	rt_device_write(dev, 0, (void *)cmd, rt_strlen(cmd));
 }

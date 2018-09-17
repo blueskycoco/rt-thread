@@ -680,6 +680,7 @@ void rt_init_thread_entry(void* parameter)
 		}
 	}
 	rt_kprintf("spi flash init done , err 0x%08x\r\n",err_code);
+	list_dir("/");
 #endif  /* RT_USING_DFS */
 
 	unsigned int count=0,count1=256;

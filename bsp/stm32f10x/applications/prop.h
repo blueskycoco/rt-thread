@@ -93,7 +93,23 @@ struct FangQuProperty
 	rt_uint8_t	  	PGM0;
 	rt_uint8_t	  	PGM1;
 };
-
+struct HwVersion
+{	
+	rt_uint8_t   hdVersion;
+	  rt_uint8_t	  lcdVersion;
+	  rt_uint8_t	  isdVersion;
+	  rt_uint8_t	undefine0;	
+	  rt_uint8_t	undefine1;	
+	  rt_uint8_t	undefine2;	
+	  rt_uint8_t	undefine3;	
+	  rt_uint8_t	undefine4;	
+	  rt_uint8_t	undefine5;	
+	  rt_uint8_t	undefine6;	
+	  rt_uint8_t	undefine7;	
+	  rt_uint8_t	undefine8;	
+	  rt_uint8_t	undefine9;	
+	
+};
 #define WIRELESS_MAX	50
 #define WIRE_MAX		30
 struct FangQuT	 fangqu_ts[50];
@@ -101,6 +117,7 @@ struct FangQu    fangqu_wire[30];
 struct FangQu    fangqu_wireless[50];
 struct FangQuProperty fqp;
 struct MachineProperty mp;
+struct HwVersion	hwv;
 #define TYPE_MP 		0
 #define TYPE_FQP 		1
 
@@ -140,10 +157,11 @@ struct MachineProperty mp;
 #define PGM34_01				0x01
 #define PGM34_02				0x02
 
+#define HWV_FILE		"/mpext.dat"
 #define FQP_FILE		"/fqp.dat"
 #define MP_FILE			"/mp.dat"
 #define DEFAULT_DOMAIN 	"kjfslkjflskdjfj"
-#define APP_BUILD_TIME "APP Build Time 2018-09-12 12:50"
+#define APP_BUILD_TIME "APP Build Time 2018-09-13 11:00"
 void dump_mp(struct MachineProperty v);
 void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3);
 int load_param();

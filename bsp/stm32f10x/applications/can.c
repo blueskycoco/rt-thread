@@ -262,7 +262,6 @@ void save_fq_wire(int addr, rt_uint8_t type, rt_uint32_t fact_time)
 		fangqu_wire[addr].isBypass= TYPE_BYPASS_N;		
 		fangqu_wire[addr].normal_info = 1;
 		g_num=fangqu_wire[addr].index;
-		add_fqp_t(fangqu_wire[addr].index,type);
 		rt_kprintf("save fq to wire %d , index %d, sn %08x\r\n",
 			addr, fangqu_wire[addr].index,fangqu_wire[addr].slave_sn);			
 			wire_code = 1;
@@ -270,6 +269,7 @@ void save_fq_wire(int addr, rt_uint8_t type, rt_uint32_t fact_time)
 		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 	}
+		add_fqp_t(fangqu_wire[addr].index,type);
 }
 
 void USB_LP_CAN1_RX0_IRQHandler(void)

@@ -50,6 +50,8 @@
 #define M26_STATE_V				34
 #define M26_STATE_CLEAN_RAM		35
 #define M26_STATE_CLOSE_FILE	36
+#define M26_STATE_SWITCH_IP		37
+#define M26_STATE_SWITCH_DOMAIN	38
 #define STR_PDP_DEACT	"+PDP DEACT"
 #define STR_CFUN					"+CFUN:"
 #define STR_RDY						"RDY"
@@ -94,7 +96,7 @@
 #define STR_FTP_FILE_SIZE			"+QFTPSIZE:"
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
-
+#define STR_GPRSACT					"IP GPRSACT"
 #define qistat 				"AT+QISTAT\r\n"
 #define qiclose "AT+QICLOSE\r\n"
 #define qilocip "AT+QILOCIP\r\n"
@@ -122,6 +124,9 @@
 #define qiftp_set_path	"AT+QFTPPATH=\"/\"\r\n"
 #define qiftp_file_size	"AT+QFTPSIZE=\"stm32_0.bin\"\r\n"
 #define qiftp_clean_ram "AT+QFDEL=\"RAM:*\"\r\n"
+#define qidnscfg_ip	"AT+QIDNSIP=0\r\n"
+#define qidnscfg_domain	"AT+QIDNSIP=1\r\n"
+
 uint8_t 	  qicsgp_m26[32]			= {0};
 uint8_t 	  qiopen_m26[64]			= {0};
 uint8_t 	  qisend_m26[32] 			= {0};
@@ -172,6 +177,7 @@ extern rt_uint16_t g_crc;
 extern rt_uint8_t *g_ftp;
 rt_uint32_t cgreg_cnt = 0;
 extern rt_uint8_t g_module_type;
+rt_uint8_t use_domain = 0;
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -646,14 +652,23 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_m26,qiclose);
 				} else if (have_str(last_data_ptr, STR_STAT_CLOSE) ||
 						have_str(last_data_ptr, STR_STAT_STATUS) ||
-						have_str(last_data_ptr,STR_CONNECT_FAIL)){
+						have_str(last_data_ptr,STR_CONNECT_FAIL)||
+						have_str(last_data_ptr,STR_GPRSACT)){
 					g_m26_state = M26_STATE_SET_QIOPEN;
 					rt_memset(qiopen_m26, 0, 64);
-					rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%d.%d.%d.%d\",\"%d\"\r\n",
-							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
-							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
-							mp.socketAddress[g_ip_index].port);
+					if (use_domain) {
+							rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%s\",\"%d\"\r\n",
+							mp.socketDomainAddress.domain,
+							mp.socketDomainAddress.port);
+							use_domain=0;
+							g_ip_index=9;
+						} else {
+						rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%d.%d.%d.%d\",\"%d\"\r\n",
+								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+								mp.socketAddress[g_ip_index].port);
 					rt_kprintf("state ip index %d\r\n",g_ip_index);
+						}
 					gprs_at_cmd(g_dev_m26,qiopen_m26);
 				}			
 				break;
@@ -825,11 +840,19 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					if (have_str(last_data_ptr, STR_CLOSE_OK)) {
 						g_m26_state = M26_STATE_SET_QIOPEN;
 						rt_memset(qiopen_m26, 0, 64);
+						if (use_domain) {
+							rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%s\",\"%d\"\r\n",
+							mp.socketDomainAddress.domain,
+							mp.socketDomainAddress.port);
+							use_domain=0;
+							g_ip_index=9;
+						} else {
 						rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%d.%d.%d.%d\",\"%d\"\r\n",
 								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
 								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
 								mp.socketAddress[g_ip_index].port);
 						rt_kprintf("close ip index %d\r\n",g_ip_index);
+						}
 						gprs_at_cmd(g_dev_m26,qiopen_m26);
 					}
 					else
@@ -901,12 +924,18 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				} else {
 					if (have_str(last_data_ptr, STR_OK)) {
 						g_m26_state = M26_STATE_SET_QIOPEN;
-						rt_memset(qiopen_m26, 0, 64);					
+						rt_memset(qiopen_m26, 0, 64);
+						if (use_domain) {
+							rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%s\",\"%d\"\r\n",
+							mp.socketDomainAddress.domain,
+							mp.socketDomainAddress.port);
+						} else {
 						rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%d.%d.%d.%d\",\"%d\"\r\n",
 								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
 								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
 								mp.socketAddress[g_ip_index].port);
 						rt_kprintf("open ip index %d\r\n",g_ip_index);
+						}
 						gprs_at_cmd(g_dev_m26,qiopen_m26);
 					} else {
 						/*check error condition*/
@@ -949,19 +978,33 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_m26,at_csq);
 					rt_hw_led_on(NET_LED);
 					//entering_ftp_mode=1;
-				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
-					g_m26_state = M26_STATE_SET_QIDEACT;
-					gprs_at_cmd(g_dev_m26,qideact);					
+				} 
+				else if (have_str(last_data_ptr, STR_SOCKET_BUSSY) ||
+					have_str(last_data_ptr,STR_CONNECT_FAIL)){
 
 					rt_kprintf("before , ip index %d\r\n", g_ip_index);
-					if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
-								mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
-								mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
-								mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
-								mp.socketAddress[g_ip_index+1].port !=0))
-						g_ip_index++;
-					else
-						g_ip_index=0;
+					if (use_domain) {
+						use_domain=0;
+						g_m26_state = M26_STATE_SWITCH_IP;
+						gprs_at_cmd(g_dev_m26,qidnscfg_ip);
+						
+					} else {
+						if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
+									mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
+									mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
+									mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
+									mp.socketAddress[g_ip_index+1].port !=0)) {
+								g_m26_state = M26_STATE_SET_QIDEACT;
+								gprs_at_cmd(g_dev_m26,qideact);					
+							g_ip_index++;
+						}
+						else {
+							g_ip_index=0;
+							use_domain=1;
+							g_m26_state = M26_STATE_SWITCH_DOMAIN;
+							gprs_at_cmd(g_dev_m26, qidnscfg_domain);
+						}
+					}
 					rt_kprintf("after , ip index %d\r\n", g_ip_index);
 					rt_thread_delay(100);
 				}
@@ -971,18 +1014,44 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_m26_state = M26_STATE_CHECK_QISTAT;
 						gprs_at_cmd(g_dev_m26,qistat);
 						rt_kprintf("before , ip index %d\r\n", g_ip_index);
-						if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
-									mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
-									mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
-									mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
-									mp.socketAddress[g_ip_index+1].port !=0))
-							g_ip_index++;
-						else
-							g_ip_index=0;
+						if (use_domain) {
+							use_domain=0;
+							g_m26_state = M26_STATE_SWITCH_IP;
+							gprs_at_cmd(g_dev_m26,qidnscfg_ip);
+							
+						} else {
+							if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
+										mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
+										mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
+										mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
+										mp.socketAddress[g_ip_index+1].port !=0)) {
+									g_m26_state = M26_STATE_SET_QIDEACT;
+									gprs_at_cmd(g_dev_m26,qideact); 				
+								g_ip_index++;
+							}
+							else {
+								g_ip_index=0;
+								use_domain=1;
+								g_m26_state = M26_STATE_SWITCH_DOMAIN;
+								gprs_at_cmd(g_dev_m26, qidnscfg_domain);
+							}
+						}
 						rt_kprintf("after , ip index %d\r\n", g_ip_index);
 					}
 				}
 
+				break;
+			case M26_STATE_SWITCH_DOMAIN:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_m26_state = M26_STATE_SET_QIDEACT;
+					gprs_at_cmd(g_dev_m26, qideact);
+					}
+				break;
+			case M26_STATE_SWITCH_IP:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_m26_state = M26_STATE_SET_QIDEACT;
+					gprs_at_cmd(g_dev_m26, qideact);
+					}
 				break;
 			case M26_STATE_DATA_PROCESSING:
 				if (have_str(last_data_ptr, STR_QIRDI)||

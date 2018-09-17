@@ -111,7 +111,7 @@
 #define c_socket	"AT+QSOC=1,1,1\r\n"
 #define cscon	"AT+CSCON?\r\n"
 #define qistat 				"AT+QISTAT\r\n"
-#define qiclose "AT+QICLOSE\r\n"
+#define qiclose "AT+NSOCL=1\r\n"
 #define qilocip "AT+QILOCIP\r\n"
 #define qilport "AT+QILPORT?\r\n"
 #define e0 "ATE0\r\n"
@@ -149,7 +149,7 @@ uint8_t 	  qisend_bc26[32] 			= {0};
 //uint8_t 	  qiftp_set_resuming[32] 	= {0};
 uint8_t 	  qiftp_bc26_ram[32]			= {0};
 uint8_t		  qiftp_get_bc26[32]			= {0};
-uint8_t 	  qird[10] = {0};
+uint8_t 	  qird[32] = {0};
 #define qiregapp "AT+QIREGAPP\r\n"
 #define qiact "AT+QIACT\r\n"
 rt_bool_t g_data_in_bc26 = RT_FALSE;
@@ -188,6 +188,8 @@ extern rt_uint16_t g_app_v;
 extern struct rt_event g_info_event;
 extern rt_mp_t server_mp;
 extern rt_uint8_t g_module_type;
+rt_uint8_t entering_ftp_mode_bc26=0;
+
 void toHex(uint8_t *input, uint32_t len, uint8_t *output)
 {
 	int ix=0,iy=0;
@@ -403,7 +405,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
-	if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
+	//if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
 		rt_kprintf("\r\n<== (BC26 %d %d)\r\n",g_bc26_state, data_size);
 		for (i=0; i<data_size; i++)
 			if (isascii(tmp[i]) && (g_bc26_state != BC26_STATE_READ_FILE))
@@ -416,10 +418,11 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
 		
 		}
-	}
+	//}
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY))
 		{
+			rt_kprintf("got bc28 rdy\r\n");
 			g_bc26_state = BC26_STATE_INIT;
 		}
 		if (have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
@@ -625,16 +628,27 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 			//		gprs_at_cmd(g_dev_bc26,qicfg);
 			//	}
 			//	break;
+			case BC26_STATE_SET_QICLOSE:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_net_state = NET_STATE_UNKNOWN;
+					g_bc26_state = BC26_CREATE_SOCKET;
+					gprs_at_cmd(g_dev_bc26,nsocr);
+				}
+				break;
 			case BC26_CREATE_SOCKET:
 				if (have_str(last_data_ptr, STR_OK)) {					
 					g_bc26_state = BC26_STATE_SET_QIOPEN;
-					rt_memset(qiopen_bc26, 0, 64);					
-					rt_sprintf(qiopen_bc26, "AT+NSOCO=1,%d.%d.%d.%d,%d\r\n",
-							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
-							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
-							mp.socketAddress[g_ip_index].port);
-					rt_kprintf("open ip index %d\r\n",g_ip_index);
-					gprs_at_cmd(g_dev_bc26,qiopen_bc26);
+					if (!entering_ftp_mode) {
+						rt_memset(qiopen_bc26, 0, 64);					
+						rt_sprintf(qiopen_bc26, "AT+NSOCO=1,%d.%d.%d.%d,%d\r\n",
+								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+								mp.socketAddress[g_ip_index].port);
+						rt_kprintf("open ip index %d\r\n",g_ip_index);
+						gprs_at_cmd(g_dev_bc26,qiopen_bc26);
+					} else {
+						gprs_at_cmd(g_dev_bc26,"AT+NSOCO=1,106.14.177.87,1706\r\n");
+					}
 				}
 				break;
 			case BC26_STATE_SET_QIOPEN:
@@ -704,7 +718,10 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
 					char *len_ptr = strstr(last_data_ptr, "1,");
 					g_bc26_state = BC26_STATE_DATA_READ;
-					rt_sprintf(qird,"AT+NSORF=%s", len_ptr);
+					//if (strstr(len_ptr, "535")) 
+					//	strcpy(qird,"AT+NSORF=10\r\n");
+					//else						
+						rt_sprintf(qird,"AT+NSORF=%s", len_ptr);
 					gprs_at_cmd(g_dev_bc26,qird);
 					server_len_bc26 = 0;
 					g_data_in_bc26 = RT_TRUE;
@@ -724,11 +741,29 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_bc26,qiclose);
 						break;
 					}
-					if (g_heart_cnt > 5 || entering_ftp_mode) {
-							g_bc26_state = BC26_STATE_SET_QICLOSE;
-							gprs_at_cmd(g_dev_bc26,qiclose);
-						break;
-					}
+//			if (g_heart_cnt > 5 || entering_ftp_mode) {
+							//if (g_heart_cnt > 5) {
+							//	g_bc26_state = BC26_STATE_SET_QICLOSE;
+							//	gprs_at_cmd(g_dev_bc26,qiclose);
+							//}/ else {
+								if (entering_ftp_mode_bc26 && entering_ftp_mode) {
+									rt_kprintf("goto update\r\n");
+									entering_ftp_mode_bc26=0;
+									g_heart_cnt=0;
+									g_net_state = NET_STATE_UNKNOWN;
+									pcie_switch(g_module_type);
+									break;
+								}
+								if (g_heart_cnt > 5) {
+									rt_kprintf("hehehe 1\r\n");
+									g_heart_cnt=0;
+									g_net_state = NET_STATE_UNKNOWN;
+									pcie_switch(g_module_type);
+									break;
+								}
+					//}
+	//			break;
+					//
 
 					/*check have data to send */
 					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_bc26,&send_size_bc26) == RT_EOK)
@@ -826,12 +861,12 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_bc26,qistat);
 					}*/
 				}
-				/*if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_bc26)
+				if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_bc26)
 				{
 						g_bc26_state = BC26_STATE_DATA_READ;
 						gprs_at_cmd(g_dev_bc26,qird);
 						server_len_bc26 = 0;
-				}*/
+				}
 				break;
 			case BC26_STATE_DATA_ACK:
 				if (have_str(last_data_ptr, STR_QISACK)) {

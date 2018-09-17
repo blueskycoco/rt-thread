@@ -44,6 +44,8 @@ extern rt_uint8_t entering_ftp_mode;
 rt_mp_t cmd_mp = RT_NULL;
 rt_mp_t pci_mp = RT_NULL;
 rt_mp_t server_mp = RT_NULL;
+rt_uint32_t g_bc26_update_len = 0;
+extern rt_uint8_t bc26_module;
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&(g_pcie[0]->sem));
@@ -457,6 +459,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[17] = g_bat % 256;
 		if (heart_type == 0) {
 			cmd[18] = 0x01;
+			mp.firmVersion = 3;
 			cmd[19] = mp.firmVersion >> 8;
 			cmd[20] = mp.firmVersion & 0xff;
 			heart_type = 1;
@@ -680,6 +683,14 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		rt_kprintf("operator\t%02x%02x%02x%02x%02x%02x\r\n",
 				g_operater[0],g_operater[1],g_operater[2],g_operater[3],
 				g_operater[4],g_operater[5]);
+	}else if (type == CMD_UPDATE) {		
+		cmd[5] = (CMD_UPDATE >> 8) & 0xff;//ask addr
+		cmd[6] = CMD_UPDATE&0xff;
+		cmd[15] = (g_bc26_update_len>>24) & 0xff;
+		cmd[16] = (g_bc26_update_len>>16) & 0xff;
+		cmd[17] = (g_bc26_update_len>>8)  & 0xff;
+		cmd[18] = (g_bc26_update_len>>0)  & 0xff;
+		ofs = 19;
 	}
 	//rt_kprintf("ofs is %d\r\n", ofs);
 	cmd[3]=ofs+2;
@@ -706,7 +717,14 @@ void send_process(void* parameter)
 		gprs_wait_event(RT_WAITING_FOREVER);
 		//rt_kprintf("wait lock\r\n");		
 		if (entering_ftp_mode)
+		{
+			if (bc26_module && g_net_state != NET_STATE_LOGIN) {				
+				g_net_state = NET_STATE_LOGIN;
+				upload_server(CMD_UPDATE);
+			}
 			continue;
+		}
+		
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);		
 		//cmd = (char *)rt_malloc(50);
 		rt_kprintf("1begin alloc buffer\r\n");
@@ -722,9 +740,10 @@ void send_process(void* parameter)
 		if (g_net_state == NET_STATE_INIT) {
 			SetStateIco(7,1);
 			//rt_kprintf("send login\r\n");
-			send_len = build_cmd(cmd,CMD_LOGIN);
-			g_net_state = NET_STATE_LOGIN;
-			heart_time = 0;
+				send_len = build_cmd(cmd,CMD_LOGIN);
+				g_net_state = NET_STATE_LOGIN;
+				heart_time = 0;
+			
 		} else if (g_net_state == NET_STATE_LOGED && heart_time == 60) {
 			send_len = build_cmd(cmd,CMD_HEART);
 			rt_kprintf("heart cnt %d\r\n",g_heart_cnt);
@@ -755,8 +774,8 @@ void upload_server(rt_uint16_t cmdType)
 {
 	char buf[400] = {0};
 	char *cmd = RT_NULL;
-	rt_kprintf("net state %d cmdType %d\r\n",g_net_state,cmdType);
-	if (g_net_state != NET_STATE_LOGED || entering_ftp_mode)
+	rt_kprintf("net state %d cmdType %x\r\n",g_net_state,cmdType);
+	if ((g_net_state != NET_STATE_LOGED || entering_ftp_mode) && !bc26_module)
 		return ;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
 	int send_len = build_cmd(buf,cmdType);
@@ -791,7 +810,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	g_type0 = type0;
 	g_type1 = type1;
 	cmd_mp = rt_mp_create("mp_cmd", 100,64);
-	pci_mp = rt_mp_create("pci_cmd", 4,1024);
+	pci_mp = rt_mp_create("pci_cmd", 4,1200);
 	server_mp = rt_mp_create("server_cmd", 10,512);
 	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {

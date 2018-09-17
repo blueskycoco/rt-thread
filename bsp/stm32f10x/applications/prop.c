@@ -96,7 +96,9 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 	rt_kprintf("is_check_DC \t%d\r\n",v1.is_check_DC);
 	rt_kprintf("is_lamp \t%d\r\n",v1.is_lamp);
 	rt_kprintf("PGM \t\t%02x%02x\r\n",v1.PGM0,v1.PGM1);
-	
+	rt_kprintf("hdVersion \t\t%d\r\n", hwv.hdVersion);
+	rt_kprintf("isdVersion \t\t%d\r\n", hwv.isdVersion);
+	rt_kprintf("lcddVersion \t\t%d\r\n", hwv.lcdVersion);
 	rt_kprintf("wire fq\r\n");
 	for(i=0;i<WIRE_MAX;i++)
 	{
@@ -305,7 +307,14 @@ void default_fqp()
 	fqp.delay_in=0;
 	fqp.alarm_voice_time=1;
 	fqp.is_alarm_voice =1;
-	fqp.is_lamp = 0x04;
+	fqp.is_lamp = 0x01;
+	fqp.status=0;
+	fqp.auto_bufang=0xffffffff;
+	fqp.auto_chefang=0xffffffff;
+	fqp.PGM0=0;
+	fqp.PGM1=0;
+	fqp.is_check_AC=1;
+	fqp.is_check_DC=1;
 	for(i=0;i<WIRE_MAX;i++)
 	{
 		if(fangqu_wire[i].index != 0) {
@@ -339,6 +348,7 @@ int load_param()
 	rt_uint16_t tmp_crc;
 	struct MachineProperty tmp_mp;
 	struct FangQuProperty tmp_fqp;
+	struct HwVersion	tmp_hwv;
 	struct FangQu *tmp_fangquList;
 	rt_mutex_init(&file_lock,	"file_lock",	RT_IPC_FLAG_FIFO);
 
@@ -380,7 +390,7 @@ int load_param()
 	strcpy(mp.updateDomainAddress.domain,DEFAULT_DOMAIN);
 	mp.updateDomainAddress.port = 2011;
 
-	fqp.alarm_voice_time=DEFAULT_VOICE_TIME;
+	fqp.alarm_voice_time=1;
 	fqp.audio_vol = 8;
 	fqp.auto_bufang=0xffff;
 	fqp.auto_chefang=0xffff;
@@ -393,6 +403,7 @@ int load_param()
 	fqp.PGM0=0;
 	fqp.PGM1=1;
 	fqp.status=0;
+	default_fqp();
 
 	int fd = open(MP_FILE, O_RDONLY, 0);
 	if (fd < 0)
@@ -473,7 +484,29 @@ int load_param()
 		rt_free(tmp_fangquList);
 		close(fd);
 	}
-
+	fd = open(HWV_FILE, O_RDONLY, 0);
+	if (fd > 0)
+	{
+		rt_kprintf("read hwv data\r\n");
+		read(fd, &crc, sizeof(rt_uint16_t));
+		length = read(fd, &tmp_hwv, sizeof(tmp_hwv));
+		tmp_crc = CRC_check((unsigned char *)&tmp_hwv, sizeof(tmp_hwv));
+		rt_kprintf("hwv crc %x , tmp_crc %x\r\n", crc,tmp_crc);
+		if (length != sizeof(hwv)|| tmp_crc!=crc)
+		{
+			rt_kprintf("check: hwv crc not same, read hwv data failed\n");
+			//close(fd);
+			//return 0;
+		} else
+			memcpy(&hwv,&tmp_hwv,sizeof(hwv));
+		close(fd);
+	} 
+	else
+	{		
+		hwv.hdVersion=30;
+		hwv.lcdVersion=1;
+		hwv.isdVersion=1;
+	}
 	/*mp.socketAddress[0].port = 8434;
 	
 	mp.socketAddress[0].IP[0] = 220;

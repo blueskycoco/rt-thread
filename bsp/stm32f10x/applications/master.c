@@ -58,6 +58,12 @@ extern rt_uint8_t g_need_reset_rtc;
 extern rt_uint8_t 	sub_cmd_type;
 extern struct rt_semaphore cc1101_rx_sem;
 extern rt_uint8_t wire_code;
+extern int g_index;
+extern rt_uint8_t g_type0;
+extern rt_uint8_t g_type1;
+extern rt_uint32_t g_bc26_update_len;
+rt_uint8_t bc26_module = 0;
+extern rt_uint8_t entering_ftp_mode_bc26;
 //rt_uint8_t net_flow_flag=0;
 void handle_led(int type)
 {
@@ -623,18 +629,28 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 		switch (cmd[4]) {
 			case 0x01:			
 				rt_kprintf("new APP version: \t%d",v);
-				g_app_v = v;
-				g_crc = (cmd[7] << 8)|cmd[8];
-				if (g_ftp != RT_NULL)
-					rt_free(g_ftp);
-				g_ftp = rt_malloc((cmd[9] + 1)*sizeof(rt_uint8_t));
-				rt_kprintf("server crc\t %x\r\n",g_crc);
-				rt_kprintf("len %d\r\n", cmd[9]);
-				rt_memset(g_ftp,0,cmd[9]+1);
-				memcpy(g_ftp,cmd+10,cmd[9]);
-				rt_kprintf("ftp addrss %s\r\n",g_ftp);
-				if (!cur_status)
-					entering_ftp_mode = 1;
+					g_app_v = v;
+					g_crc = (cmd[7] << 8)|cmd[8];
+					if (g_ftp != RT_NULL)
+						rt_free(g_ftp);
+					g_ftp = rt_malloc((cmd[9] + 1)*sizeof(rt_uint8_t));
+					rt_kprintf("server crc\t %x\r\n",g_crc);
+					rt_kprintf("len %d\r\n", cmd[9]);
+					rt_memset(g_ftp,0,cmd[9]+1);
+					memcpy(g_ftp,cmd+10,cmd[9]);
+					rt_kprintf("ftp addrss %s\r\n",g_ftp);
+					
+				if (!cur_status) {
+					entering_ftp_mode = 1;							
+					if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
+								(g_index == 0 && g_type0 == PCIE_1_NBIOT))
+								)
+					{
+									entering_ftp_mode_bc26=1;
+									g_bc26_update_len = 0;
+									bc26_module = 1;
+					}
+				}
 				break;
 			case 0x02:			
 				rt_kprintf("new SokcetIP version: \t%d",v);
@@ -912,7 +928,19 @@ void handle_proc_sub(rt_uint8_t *cmd)
 	//if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
 	//upload_server(CMD_SUB_EVENT);
 }
-
+void handle_bc26_update(rt_uint8_t *data)
+{
+	rt_uint32_t all_len = (data[0]<<24)|(data[1]<<16)|(data[2]<<8)|(data[3]<<0);
+	rt_uint32_t cur_len = (data[4]<<8)|(data[5]<<0);
+	rt_kprintf("cmd_type \tbc26 update\r\n");
+	rt_kprintf("all len \t%d\r\n", all_len);
+	rt_kprintf("cur len \t%d\r\n", cur_len);
+	g_bc26_update_len += cur_len;
+	if (g_bc26_update_len < all_len)
+		upload_server(CMD_UPDATE);
+	else 
+		entering_ftp_mode = 0;
+}
 rt_uint8_t handle_packet(rt_uint8_t *data)
 {
 	int i=0;
@@ -975,6 +1003,9 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 			break;
 		case CMD_ASK_MAIN:
 			handle_ask_main(data+11);
+			break;
+		case UPDATE_ACK:
+			handle_bc26_update(data+11);
 			break;
 		default:
 			rt_kprintf("unknown packet type\r\n");
