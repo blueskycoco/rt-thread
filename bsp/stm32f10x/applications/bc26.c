@@ -189,7 +189,7 @@ extern struct rt_event g_info_event;
 extern rt_mp_t server_mp;
 extern rt_uint8_t g_module_type;
 rt_uint8_t entering_ftp_mode_bc26=0;
-
+extern rt_uint8_t update_flag;
 void toHex(uint8_t *input, uint32_t len, uint8_t *output)
 {
 	int ix=0,iy=0;
@@ -246,9 +246,11 @@ void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
 	static rt_bool_t flag = RT_FALSE;	
 	int i;
 	int ofs;
-	if (have_str(last_data_ptr, STR_OK) && have_str(last_data_ptr, "ADAC")) {
+	rt_kprintf("server in 1\r\n");
+	if (/*have_str(last_data_ptr, STR_OK) &&*/ have_str(last_data_ptr, "ADAC")) {
 		uint8_t *pos = (uint8_t *)strstr(last_data_ptr, "ADAC");
 		uint32_t len_ofs = 0;
+		rt_kprintf("server in 2\r\n");
 		while (pos[len_ofs] != ',' && len_ofs < len)
 			len_ofs++;
 		rt_uint8_t *server_buf_bc26_1 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
@@ -405,7 +407,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
-	//if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
+	if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
 		rt_kprintf("\r\n<== (BC26 %d %d)\r\n",g_bc26_state, data_size);
 		for (i=0; i<data_size; i++)
 			if (isascii(tmp[i]) && (g_bc26_state != BC26_STATE_READ_FILE))
@@ -418,7 +420,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
 		
 		}
-	//}
+	}
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY))
 		{
@@ -648,6 +650,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_bc26,qiopen_bc26);
 					} else {
 						gprs_at_cmd(g_dev_bc26,"AT+NSOCO=1,106.14.177.87,1706\r\n");
+						update_flag=1;
 					}
 				}
 				break;
@@ -716,12 +719,21 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_QIRDI)) {
 					/*server data in */					
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
+					int len=0;
 					char *len_ptr = strstr(last_data_ptr, "1,");
+					while(len_ptr[len] != '\r' && len_ptr[len] != '\n')
+						len++;
 					g_bc26_state = BC26_STATE_DATA_READ;
 					//if (strstr(len_ptr, "535")) 
 					//	strcpy(qird,"AT+NSORF=10\r\n");
 					//else						
-						rt_sprintf(qird,"AT+NSORF=%s", len_ptr);
+					//rtk_printf("len ptr len %d\r\n", strlen(len_ptr));
+					//rt_sprintf(qird,"AT+NSORF=%s", len_ptr);
+					rt_kprintf("len %d\r\n", len);
+					memset(qird,0,32);
+					strcpy(qird,"AT+NSORF=");
+					memcpy(qird+strlen("AT+NSORF="),len_ptr, len+2);
+					//strcat(qird,"\r\n");
 					gprs_at_cmd(g_dev_bc26,qird);
 					server_len_bc26 = 0;
 					g_data_in_bc26 = RT_TRUE;
@@ -853,7 +865,8 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_bc26,at_csq);
 					rt_time_t cur_time = time(RT_NULL);
 					rt_kprintf("send server ok %s\r\n",ctime(&cur_time));
-					rt_event_send(&(g_pcie[g_index]->event), BC26_EVENT_0);
+					if (!entering_ftp_mode)
+						rt_event_send(&(g_pcie[g_index]->event), BC26_EVENT_0);
 				} else {
 					/*if (!have_str(last_data_ptr, STR_QIRDI) && 
 							!have_str(last_data_ptr, STR_QIURC)) {

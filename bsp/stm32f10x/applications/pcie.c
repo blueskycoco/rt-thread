@@ -46,6 +46,7 @@ rt_mp_t pci_mp = RT_NULL;
 rt_mp_t server_mp = RT_NULL;
 rt_uint32_t g_bc26_update_len = 0;
 extern rt_uint8_t bc26_module;
+rt_uint8_t update_flag=0;
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&(g_pcie[0]->sem));
@@ -718,9 +719,13 @@ void send_process(void* parameter)
 		//rt_kprintf("wait lock\r\n");		
 		if (entering_ftp_mode)
 		{
-			if (bc26_module && g_net_state != NET_STATE_LOGIN) {				
+			if (bc26_module && g_net_state == NET_STATE_INIT) {
+				if (update_flag) {
 				g_net_state = NET_STATE_LOGIN;
+				rt_kprintf("KKKKKKKKK\r\n");
 				upload_server(CMD_UPDATE);
+				update_flag=0;
+				}
 			}
 			continue;
 		}
@@ -811,7 +816,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	g_type1 = type1;
 	cmd_mp = rt_mp_create("mp_cmd", 100,64);
 	pci_mp = rt_mp_create("pci_cmd", 4,1200);
-	server_mp = rt_mp_create("server_cmd", 10,512);
+	server_mp = rt_mp_create("server_cmd", 10,540);
 	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {
 		g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));

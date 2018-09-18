@@ -64,6 +64,7 @@ extern rt_uint8_t g_type1;
 extern rt_uint32_t g_bc26_update_len;
 rt_uint8_t bc26_module = 0;
 extern rt_uint8_t entering_ftp_mode_bc26;
+extern rt_uint8_t g_module_type;
 //rt_uint8_t net_flow_flag=0;
 void handle_led(int type)
 {
@@ -937,9 +938,15 @@ void handle_bc26_update(rt_uint8_t *data)
 	rt_kprintf("cur len \t%d\r\n", cur_len);
 	g_bc26_update_len += cur_len;
 	if (g_bc26_update_len < all_len)
+	{
 		upload_server(CMD_UPDATE);
-	else 
+	}
+	else {
 		entering_ftp_mode = 0;
+		g_heart_cnt=0;
+		g_net_state = NET_STATE_UNKNOWN;
+		pcie_switch(g_module_type);
+	}
 }
 rt_uint8_t handle_packet(rt_uint8_t *data)
 {

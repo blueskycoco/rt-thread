@@ -485,6 +485,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_pcie[g_index]->cpin_cnt=0;
 					g_m26_state = M26_STATE_CHECK_CGREG;
 					cgreg_cnt = 0;
+					SetStateIco(6,1);
 					gprs_at_cmd(g_dev_m26,cgreg);
 				} 
 				else/* if (have_str(last_data_ptr, STR_CPIN))*/
@@ -493,6 +494,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					if (g_pcie[g_index]->cpin_cnt>10)
 					{/*power off this module , power on another module*/
 						SetStateIco(3,1);
+						SetStateIco(6,0);
 						if (g_index==0)
 							SetErrorCode(0x08);
 						else
