@@ -66,6 +66,7 @@ rt_uint8_t bc26_module = 0;
 extern rt_uint8_t entering_ftp_mode_bc26;
 extern rt_uint8_t g_module_type;
 //rt_uint8_t net_flow_flag=0;
+int bc28_down_fd = -1;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -939,9 +940,42 @@ void handle_bc26_update(rt_uint8_t *data)
 	g_bc26_update_len += cur_len;
 	if (g_bc26_update_len < all_len)
 	{
+		if (bc28_down_fd == -1) {
+			bc28_down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);	
+		}
+		if (cur_len != write(bc28_down_fd, data+6, cur_len))
+		{
+			rt_kprintf("write bc28 data failed\n");
+			//close(bc28_down_fd);
+			//break;
+		}
 		upload_server(CMD_UPDATE);
 	}
 	else {
+		if (cur_len != write(bc28_down_fd, data+6, cur_len))
+		{
+			rt_kprintf("write bc28 data failed2\n");
+			//close(bc28_down_fd);
+			//break;
+		}
+		close(bc28_down_fd);
+		bc28_down_fd=-1;
+		mp.firmCRC = CRC_check_file("/stm32.bin");
+		//if (mp.firmCRC != g_crc)
+		//{
+		//	rt_kprintf("App download failed %x %x\r\n",mp.firmCRC,g_crc);
+		//}
+		//else {
+		rt_kprintf("App donwload ok\r\n");
+		if (g_app_v!=0)
+			mp.firmVersion = g_app_v;
+		mp.firmLength = all_len;
+		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+		if (!cur_status) {
+			rt_thread_sleep(500);
+			NVIC_SystemReset();
+		}
+		//}
 		entering_ftp_mode = 0;
 		g_heart_cnt=0;
 		g_net_state = NET_STATE_UNKNOWN;

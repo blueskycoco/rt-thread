@@ -77,7 +77,7 @@ unsigned int CRC_check_file(unsigned char *file)
 		}
 		else
 		{
-			rt_kprintf("read %s failed %d\r\n", file,CRC1);
+			rt_kprintf("read %s done %04x\r\n", file,CRC1);
 		}
 
 	}while(Data_length1 == 1024);
