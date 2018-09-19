@@ -98,7 +98,7 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 	rt_kprintf("PGM \t\t%02x%02x\r\n",v1.PGM0,v1.PGM1);
 	rt_kprintf("hdVersion \t\t%d\r\n", hwv.hdVersion);
 	rt_kprintf("isdVersion \t\t%d\r\n", hwv.isdVersion);
-	rt_kprintf("lcddVersion \t\t%d\r\n", hwv.lcdVersion);
+	rt_kprintf("lcddVersion \t\t%d\r\n\r\n", hwv.lcdVersion);
 	rt_kprintf("wire fq\r\n");
 	for(i=0;i<WIRE_MAX;i++)
 	{
@@ -122,7 +122,7 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 		}
 	}
 
-	rt_kprintf("wireless fq\r\n");
+	rt_kprintf("\r\nwireless fq\r\n");
 	for(i=0;i<WIRELESS_MAX;i++)
 	{
 		if(v3[i].index != 0) {
@@ -181,30 +181,41 @@ void default_fqp_t2()
 	rt_time_t ts = time(RT_NULL);
 	for(i=0;i<g_fangqu_ts_cnt;i++)
 	{
-		if (fangqu_ts[i].heart_ts == 0)
-			fangqu_ts[i].heart_ts = ts;
+		//if (fangqu_ts[i].heart_ts == 0)
+		fangqu_ts[i].heart_ts = ts;
 	}
 }
 void add_fqp_t(rt_uint8_t index, rt_uint8_t slave_type)
 {		
-	rt_kprintf("add fqp t %d\r\n", index);
-	rt_uint32_t fqt = time(RT_NULL);
-	if (fqt > 1000)
-		fangqu_ts[g_fangqu_ts_cnt].heart_ts = time(RT_NULL);
-	else
-		fangqu_ts[g_fangqu_ts_cnt].heart_ts = 0;
-	if (slave_type == 0x42) {
-		fangqu_ts[g_fangqu_ts_cnt].new_code = 1;
-		fangqu_ts[g_fangqu_ts_cnt].new_code_ts = fangqu_ts[g_fangqu_ts_cnt].heart_ts;
+	int i;
+	for (i=0; i<g_fangqu_ts_cnt; i++) {
+		if (fangqu_ts[i].index == index)
+			break;
 	}
-	fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
-	fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
-	fangqu_ts[g_fangqu_ts_cnt].index = index;
-	fangqu_ts[g_fangqu_ts_cnt].slave_type = slave_type;
-	g_alarm_fq = fangqu_ts[g_fangqu_ts_cnt].index;
-	g_alarm_reason = 0x0017;
-	g_fangqu_ts_cnt++;
-	upload_server(0x0004); 		
+	if (i==g_fangqu_ts_cnt){
+		rt_kprintf("add fqp t %d\r\n", index);	
+		rt_uint32_t fqt = time(RT_NULL);
+		if (fqt > 1000)
+			fangqu_ts[g_fangqu_ts_cnt].heart_ts = time(RT_NULL);
+		else
+			fangqu_ts[g_fangqu_ts_cnt].heart_ts = 0;
+		if (slave_type == 0x42) {
+			fangqu_ts[g_fangqu_ts_cnt].new_code = 1;
+			fangqu_ts[g_fangqu_ts_cnt].new_code_ts = fangqu_ts[g_fangqu_ts_cnt].heart_ts;
+		}
+		fangqu_ts[g_fangqu_ts_cnt].off_line = 0;
+		fangqu_ts[g_fangqu_ts_cnt].off_line2 = 0;
+		fangqu_ts[g_fangqu_ts_cnt].index = index;
+		fangqu_ts[g_fangqu_ts_cnt].slave_type = slave_type;
+		g_alarm_fq = fangqu_ts[g_fangqu_ts_cnt].index;
+		g_alarm_reason = 0x0017;
+		g_fangqu_ts_cnt++;
+		upload_server(0x0004); 		
+		
+		for (i=0; i<g_fangqu_ts_cnt; i++)
+			rt_kprintf("after add fangqu ts %d %x %d\r\n",
+			fangqu_ts[i].index,fangqu_ts[i].slave_type,fangqu_ts[i].heart_ts);
+	}
 }
 void del_fqp_t(rt_uint8_t index)
 {
@@ -219,12 +230,16 @@ void del_fqp_t(rt_uint8_t index)
 		return;
 	else if (i == (g_fangqu_ts_cnt - 1)) {
 		g_fangqu_ts_cnt--;
+		rt_memset(fangqu_ts+g_fangqu_ts_cnt,0,sizeof(struct FangQuT));
 	} else {
 		for (;i<g_fangqu_ts_cnt-1; i++) {
 			memcpy(fangqu_ts+i,fangqu_ts+i+1,sizeof(struct FangQuT));	
 		}
 		g_fangqu_ts_cnt--;
 	}
+	for (i=0; i<g_fangqu_ts_cnt; i++)
+		rt_kprintf("after delete fangqu ts %d %x %d\r\n",
+		fangqu_ts[i].index,fangqu_ts[i].slave_type,fangqu_ts[i].heart_ts);
 }
 void record_fqp_ts(rt_uint8_t index)
 {
