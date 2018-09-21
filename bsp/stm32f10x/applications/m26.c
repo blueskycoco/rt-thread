@@ -737,8 +737,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET_M26)+strlen(STR_QFTPGET_M26),data_size-strlen(STR_QFTPGET_M26));
 					rt_kprintf("get stm32 len %d\r\n", stm32_len);		
 					if (stm32_len <= 0) {
-						gprs_at_cmd(g_dev_m26,qiftp_clean_ram);
-						g_m26_state = M26_STATE_CLEAN_RAM;
+						//gprs_at_cmd(g_dev_m26,qiftp_clean_ram);
+						//g_m26_state = M26_STATE_CLEAN_RAM;
+						gprs_at_cmd(g_dev_m26,at_csq);
+						g_m26_state = M26_STATE_LOGOUT_FTP;
 						m26_cnt = 0;
 					} else {
 						sprintf(qiftp_m26_ram,"AT+QFOPEN=\"RAM:stm32_%d.bin\",0\r\n",m26_cnt);

@@ -460,7 +460,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[17] = g_bat % 256;
 		if (heart_type == 0) {
 			cmd[18] = 0x01;
-			mp.firmVersion = 3;
+			//mp.firmVersion = 3;
 			cmd[19] = mp.firmVersion >> 8;
 			cmd[20] = mp.firmVersion & 0xff;
 			heart_type = 1;

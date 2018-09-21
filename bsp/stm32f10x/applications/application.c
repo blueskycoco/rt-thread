@@ -225,7 +225,7 @@ static void alarm_thread(void *parameter)
 {
 	struct tm *to;
 	rt_uint32_t hour,mins;
-	set_alarm_now();
+	//set_alarm_now();
 	while(1) {
 		rt_sem_take(&(alarm_sem), RT_WAITING_FOREVER);
 		to = localtime(&cur_alarm_time);
