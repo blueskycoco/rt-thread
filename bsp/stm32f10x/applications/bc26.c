@@ -409,7 +409,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
 	if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
-		rt_kprintf("\r\n<== (BC26 %d %d)\r\n",g_bc26_state, data_size);
+		rt_kprintf("\r\n<== (BC28 %d %d)\r\n",g_bc26_state, data_size);
 		for (i=0; i<data_size; i++)
 			if (isascii(tmp[i]) && (g_bc26_state != BC26_STATE_READ_FILE))
 				rt_kprintf("%c", tmp[i]);
