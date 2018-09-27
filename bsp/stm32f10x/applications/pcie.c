@@ -860,8 +860,20 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 15, 10));
 		rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
 	}else {
+	/*code for w5500 , got chip status from ISR, then notify */
 		g_type1 = type1;
 		cmd_mp = rt_mp_create("mp_cmd", 100,64);
+		server_mp = rt_mp_create("server_cmd", 10,540);
+		g_pcie[1] = (ppcie_param)rt_malloc(sizeof(pcie_param));
+		rt_memset(g_pcie[1],0,sizeof(pcie_param));
+		rt_event_init(&(g_pcie[1]->event), 	"pcie1_event", 	RT_IPC_FLAG_FIFO );
+		rt_mutex_init(&(g_pcie[1]->lock), 	"pcie1_lock", 	RT_IPC_FLAG_FIFO);
+		rt_sem_init(&(g_pcie[1]->sem), 		"pcie1_sem", 	0, 0);
+		g_data_queue = (struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*4);
+		for (index = 0; index < 4; index++)
+			rt_data_queue_init(&g_data_queue[index],8,4,RT_NULL);
+		rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 15, 10));
+		rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
 	}
 	return 1;
 }
