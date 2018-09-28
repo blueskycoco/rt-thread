@@ -339,9 +339,23 @@ void EXTI0_IRQHandler(void)
 	/* enter interrupt */
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line0))
-	{	
+	{
 		rt_kprintf("factory button int\r\n");
 		EXTI_ClearITPendingBit(EXTI_Line0);
+	}
+	/* leave interrupt */
+	rt_interrupt_leave();
+}
+void EXTI2_IRQHandler(void)
+{
+    extern void w5500_isr(void);
+	/* enter interrupt */
+	rt_interrupt_enter();
+	if(EXTI_GetITStatus(EXTI_Line2))
+	{	
+		//rt_kprintf("factory button int\r\n");
+		w5500_isr();
+		EXTI_ClearITPendingBit(EXTI_Line2);
 	}
 	/* leave interrupt */
 	rt_interrupt_leave();
