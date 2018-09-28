@@ -633,6 +633,8 @@ void rt_init_thread_entry(void* parameter)
 		rt_kprintf("w25 init failed\r\n");
 		err_code |= ERROR_SPI_HW;
 		SetErrorCode(err_code);
+		SetStateIco(3,1);
+		rt_thread_delay(200);
 	}
 	else
 	{
@@ -645,7 +647,10 @@ void rt_init_thread_entry(void* parameter)
 			if (!readwrite())			
 			{
 				err_code |= ERROR_FILE_RW;
+				SetStateIco(3,1);
 				SetErrorCode(err_code);
+				rt_thread_delay(200);
+				#if 0
 				if (0 == dfs_mkfs("elm","sd0"))
 					rt_kprintf("mkfs sd0 ok\r\n");
 				else
@@ -654,10 +659,12 @@ void rt_init_thread_entry(void* parameter)
 					err_code |= ERROR_FILESYSTEM_FORMAT;
 					SetErrorCode(err_code);		
 				}
+				#endif
 			}
 		}
 		else
 		{
+			#if 0
 			if (0 == dfs_mkfs("elm","sd0"))
 				rt_kprintf("mkfs sd0 ok\r\n");
 			else
@@ -666,11 +673,14 @@ void rt_init_thread_entry(void* parameter)
 				err_code |= ERROR_FILESYSTEM_FORMAT;
 				SetErrorCode(err_code);
 			}
+			#endif
 			if (dfs_mount("sd0", "/", "elm", 0, 0) ==0)
 			{
 				rt_kprintf("File System initialzation failed!\n");
 				err_code |= ERROR_SPI_MOUNT;
+				SetStateIco(3,1);
 				SetErrorCode(err_code);
+				rt_thread_delay(200);
 			}
 			else
 			{
@@ -690,15 +700,19 @@ void rt_init_thread_entry(void* parameter)
 	{
 		err_code |= ERROR_CC1101_HW;
 		SetErrorCode(err_code);
+		SetStateIco(3,1);
+		rt_thread_delay(200);
 	}
 	rt_kprintf("cc1101 init done , err 0x%08x\r\n",err_code);
 	can_init();
 	if (!load_param()) {
 		rt_kprintf("load param failed\r\n");
-		dfs_mkfs("elm","sd0");
+	//	dfs_mkfs("elm","sd0");
 		load_param();	
 		err_code |= ERROR_LOAD_PARAM;
+		SetStateIco(3,1);
 		SetErrorCode(err_code);
+		rt_thread_delay(200);
 	}
 	if (err_code == 0) {
 		buzzer_ctl(BUZZER_OK);
@@ -760,6 +774,7 @@ void rt_init_thread_entry(void* parameter)
 	Wtn6_Play(VOICE_WELCOME,ONCE,1);
 	rt_thread_delay( RT_TICK_PER_SECOND );	
 	SetErrorCode(err_code);
+	rt_thread_delay(200);
 	pcie_status |= check_pcie(0);
 	rt_kprintf("PCIE 1 insert %x\r\n", pcie_status);
 	pcie_status |= check_pcie(1);
@@ -767,8 +782,10 @@ void rt_init_thread_entry(void* parameter)
 	if (pcie_status == 0)
 	{
 		err_code |= ERROR_PCIE_NULL;
+		SetStateIco(3,1);
 		SetErrorCode(err_code);
 		SetStateIco(3,1);
+		rt_thread_delay(200);
 	}
 		rt_kprintf("pcie identify done , err 0x%08x\r\n",err_code);
 	if ((pcie_status & PCIE_2_M26) && (pcie_status & PCIE_1_EC20))

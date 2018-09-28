@@ -812,57 +812,53 @@ void upload_server(rt_uint16_t cmdType)
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 {
 	rt_uint8_t index;
-	if (type1 != PCIE_2_NBIOT) {
-		g_type0 = type0;
-		g_type1 = type1;
-		cmd_mp = rt_mp_create("mp_cmd", 100,64);
-		pci_mp = rt_mp_create("pci_cmd", 4,1200);
-		server_mp = rt_mp_create("server_cmd", 10,540);
-		//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
-		if (type0) {
-			g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));
-			rt_memset(g_pcie[0],0,sizeof(pcie_param));
-			g_pcie[0]->dev = rt_device_find("uart3"); //PCIE1
-			rt_device_open(g_pcie[0]->dev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX);
-			rt_event_init(&(g_pcie[0]->event), 	"pcie0_event", 	RT_IPC_FLAG_FIFO );
-			rt_mutex_init(&(g_pcie[0]->lock), 	"pcie0_lock", 	RT_IPC_FLAG_FIFO);
-			rt_sem_init(&(g_pcie[0]->sem), 		"pcie0_sem", 	0, 0);
-		}
-
-		if (type1) {
-			g_pcie[1] = (ppcie_param)rt_malloc(sizeof(pcie_param));
-			rt_memset(g_pcie[1],0,sizeof(pcie_param));
-			g_pcie[1]->dev = rt_device_find("uart2"); //PCIE2
-			rt_device_open(g_pcie[1]->dev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX);
-			rt_event_init(&(g_pcie[1]->event), 	"pcie1_event", 	RT_IPC_FLAG_FIFO );
-			rt_mutex_init(&(g_pcie[1]->lock), 	"pcie1_lock", 	RT_IPC_FLAG_FIFO);
-			rt_sem_init(&(g_pcie[1]->sem), 		"pcie1_sem", 	0, 0);
-		}
-		g_data_queue = (struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*4);
-		/*  g_data_queue 0 pcie0 rxd
-		 *  g_data_queue 1 pcie1 rxd
-		 *  g_data_queue 2 to server
-		 *  g_data_queue 3 from server
-		 */
-		for (index = 0; index < 4; index++)
-			rt_data_queue_init(&g_data_queue[index],8,4,RT_NULL);
-
-		if (type0) {
-			rt_device_set_rx_indicate(g_pcie[0]->dev, pcie0_rx_ind);
-			rt_thread_startup(rt_thread_create("1pcie0",pcie0_rcv, 0,1524, 20, 10));
-			rt_thread_startup(rt_thread_create("2pcie0", pcie0_sm,  0,2048, 20, 10));
-		}
-		if (type1) {
-			rt_device_set_rx_indicate(g_pcie[1]->dev, pcie1_rx_ind);
-			rt_thread_startup(rt_thread_create("3pcie1",pcie1_rcv, 0,1524, 15, 10));
-			rt_thread_startup(rt_thread_create("4pcie1", pcie1_sm,  0,2048, 20, 10));
-		}
-		rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 15, 10));
-		rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
-	}else {
-		g_type1 = type1;
-		cmd_mp = rt_mp_create("mp_cmd", 100,64);
+	g_type0 = type0;
+	g_type1 = type1;
+	cmd_mp = rt_mp_create("mp_cmd", 100,64);
+	pci_mp = rt_mp_create("pci_cmd", 4,1200);
+	server_mp = rt_mp_create("server_cmd", 10,540);
+	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
+	if (type0) {
+		g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));
+		rt_memset(g_pcie[0],0,sizeof(pcie_param));
+		g_pcie[0]->dev = rt_device_find("uart3"); //PCIE1
+		rt_device_open(g_pcie[0]->dev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX);
+		rt_event_init(&(g_pcie[0]->event), 	"pcie0_event", 	RT_IPC_FLAG_FIFO );
+		rt_mutex_init(&(g_pcie[0]->lock), 	"pcie0_lock", 	RT_IPC_FLAG_FIFO);
+		rt_sem_init(&(g_pcie[0]->sem), 		"pcie0_sem", 	0, 0);
 	}
+
+	if (type1) {
+		g_pcie[1] = (ppcie_param)rt_malloc(sizeof(pcie_param));
+		rt_memset(g_pcie[1],0,sizeof(pcie_param));
+		g_pcie[1]->dev = rt_device_find("uart2"); //PCIE2
+		rt_device_open(g_pcie[1]->dev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_DMA_RX);
+		rt_event_init(&(g_pcie[1]->event), 	"pcie1_event", 	RT_IPC_FLAG_FIFO );
+		rt_mutex_init(&(g_pcie[1]->lock), 	"pcie1_lock", 	RT_IPC_FLAG_FIFO);
+		rt_sem_init(&(g_pcie[1]->sem), 		"pcie1_sem", 	0, 0);
+	}
+	g_data_queue = (struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*4);
+	/*  g_data_queue 0 pcie0 rxd
+	 *  g_data_queue 1 pcie1 rxd
+	 *  g_data_queue 2 to server
+	 *  g_data_queue 3 from server
+	 */
+	for (index = 0; index < 4; index++)
+		rt_data_queue_init(&g_data_queue[index],8,4,RT_NULL);
+
+	if (type0) {
+		rt_device_set_rx_indicate(g_pcie[0]->dev, pcie0_rx_ind);
+		rt_thread_startup(rt_thread_create("1pcie0",pcie0_rcv, 0,1524, 20, 10));
+		rt_thread_startup(rt_thread_create("2pcie0", pcie0_sm,  0,2048, 20, 10));
+	}
+	if (type1) {
+		rt_device_set_rx_indicate(g_pcie[1]->dev, pcie1_rx_ind);
+		rt_thread_startup(rt_thread_create("3pcie1",pcie1_rcv, 0,1524, 15, 10));
+		rt_thread_startup(rt_thread_create("4pcie1", pcie1_sm,  0,2048, 20, 10));
+	}
+	rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 15, 10));
+	rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
+	
 	return 1;
 }
 void switch_pcie_power(rt_uint8_t type)
