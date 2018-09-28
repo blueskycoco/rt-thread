@@ -428,7 +428,9 @@ int load_param()
 		rt_uint16_t crc = CRC_check((unsigned char *)&mp, sizeof(mp));
 		rt_kprintf("init crc %x\r\n", crc);
 		write(fd, &crc, sizeof(rt_uint16_t));
+		fsync(fd);
 		length = write(fd, &mp, sizeof(mp));
+		fsync(fd);
 		if (length != sizeof(mp))
 		{
 			rt_kprintf("write mp data failed\n");
@@ -551,11 +553,13 @@ void save_param(int type)
 		crc = CRC_check((unsigned char *)&mp, sizeof(mp));
 		rt_kprintf("crc %x\r\n", crc);
 		length = write(fd, &crc, sizeof(rt_uint16_t));
+		fsync(fd);
 		if (length != sizeof(rt_uint16_t))
 		{
 			rt_kprintf("write mp crc data failed %d\n",length);
 		}
 		length = write(fd, &mp, sizeof(mp));
+		fsync(fd);
 		if (length != sizeof(mp))
 		{
 			rt_kprintf("write mp data failed %d\n",length);
@@ -571,7 +575,9 @@ void save_param(int type)
 		crc = CRC_check((unsigned char *)&fqp, sizeof(struct FangQuProperty));
 		rt_kprintf("fqp crc %x\r\n", crc);
 		write(fd, &crc, sizeof(rt_uint16_t));
+		fsync(fd);
 		length = write(fd, &fqp, sizeof(fqp));
+		fsync(fd);
 		if (length != sizeof(fqp))
 		{
 			rt_kprintf("write fqp data failed %d\n",length);
@@ -582,7 +588,9 @@ void save_param(int type)
 		crc = CRC_check((unsigned char *)fangqu_wireless, sizeof(struct FangQu)*WIRELESS_MAX);
 		rt_kprintf("wireless crc %x\r\n", crc);
 		write(fd, &crc, sizeof(rt_uint16_t));
+		fsync(fd);
 		length = write(fd, fangqu_wireless, sizeof(struct FangQu)*WIRELESS_MAX);
+		fsync(fd);
 		if (length != sizeof(struct FangQu)*WIRELESS_MAX)
 		{
 			rt_kprintf("write wireless fq data failed %d\n",length);
@@ -593,7 +601,9 @@ void save_param(int type)
 		crc = CRC_check((unsigned char *)fangqu_wire, sizeof(struct FangQu)*WIRE_MAX);
 		rt_kprintf("wire crc %x\r\n", crc);
 		write(fd, &crc, sizeof(rt_uint16_t));
+		fsync(fd);
 		length = write(fd, fangqu_wire, sizeof(struct FangQu)*WIRE_MAX);
+		fsync(fd);
 		if (length != sizeof(struct FangQu)*WIRE_MAX)
 		{
 			rt_kprintf("write wire fq data failed %d\n",length);

@@ -786,9 +786,11 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						if (cur_len != write(down_fd, ch, cur_len))
 						{
 							rt_kprintf("write data failed\n");
+							fsync(down_fd);
 							close(down_fd);
 							break;
 						}
+						fsync(down_fd);
 						cur_stm32_len +=cur_len;
 						tmp_stm32_len=0;
 						rt_memset(tmp_stm32_bin,0,1500);		

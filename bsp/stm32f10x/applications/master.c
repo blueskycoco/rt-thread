@@ -949,6 +949,7 @@ void handle_bc26_update(rt_uint8_t *data)
 			//close(bc28_down_fd);
 			//break;
 		}
+		fsync(bc28_down_fd);
 		upload_server(CMD_UPDATE);
 	}
 	else {
@@ -958,6 +959,7 @@ void handle_bc26_update(rt_uint8_t *data)
 			//close(bc28_down_fd);
 			//break;
 		}
+		fsync(bc28_down_fd);
 		close(bc28_down_fd);
 		bc28_down_fd=-1;
 		mp.firmCRC = CRC_check_file("/stm32.bin");
