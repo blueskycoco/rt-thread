@@ -646,6 +646,7 @@ void rt_init_thread_entry(void* parameter)
 			{
 				err_code |= ERROR_FILE_RW;
 				SetErrorCode(err_code);
+				#if 0
 				if (0 == dfs_mkfs("elm","sd0"))
 					rt_kprintf("mkfs sd0 ok\r\n");
 				else
@@ -654,10 +655,12 @@ void rt_init_thread_entry(void* parameter)
 					err_code |= ERROR_FILESYSTEM_FORMAT;
 					SetErrorCode(err_code);		
 				}
+				#endif
 			}
 		}
 		else
 		{
+			#if 0
 			if (0 == dfs_mkfs("elm","sd0"))
 				rt_kprintf("mkfs sd0 ok\r\n");
 			else
@@ -666,6 +669,7 @@ void rt_init_thread_entry(void* parameter)
 				err_code |= ERROR_FILESYSTEM_FORMAT;
 				SetErrorCode(err_code);
 			}
+			#endif
 			if (dfs_mount("sd0", "/", "elm", 0, 0) ==0)
 			{
 				rt_kprintf("File System initialzation failed!\n");
@@ -695,7 +699,7 @@ void rt_init_thread_entry(void* parameter)
 	can_init();
 	if (!load_param()) {
 		rt_kprintf("load param failed\r\n");
-		dfs_mkfs("elm","sd0");
+		//dfs_mkfs("elm","sd0");
 		load_param();	
 		err_code |= ERROR_LOAD_PARAM;
 		SetErrorCode(err_code);
