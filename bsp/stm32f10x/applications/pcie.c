@@ -815,7 +815,7 @@ void upload_server(rt_uint16_t cmdType)
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 {
 	rt_uint8_t index;
-	if (type1 != PCIE_2_NBIOT) {
+	if (type1 != PCIE_2_IP) {
 		g_type0 = type0;
 		g_type1 = type1;
 		cmd_mp = rt_mp_create("mp_cmd", 100,64);
@@ -875,10 +875,11 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		g_data_queue = (struct rt_data_queue *)rt_malloc(sizeof(struct rt_data_queue)*4);
 		for (index = 0; index < 4; index++)
 			rt_data_queue_init(&g_data_queue[index],8,4,RT_NULL);
+		WIZ_SPI_Init();
 		rt_thread_startup(rt_thread_create("5w55",w5500_proc, 0,2048, 15, 10));
 		rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 15, 10));
 		rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
-		WIZ_SPI_Init();
+		rt_kprintf("init done\r\n");
 	}
 	return 1;
 }
@@ -924,7 +925,9 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			bc26_start(0);
 			break;
 		case PCIE_2_IP:
+			rt_kprintf("switch 1\r\n");
 			switch_pcie_power(1);
+			rt_kprintf("switch 2\r\n");
 			ip_module_start(1);
 			break;
 		case PCIE_2_M26:

@@ -832,7 +832,9 @@ void rt_init_thread_entry(void* parameter)
 		SetSimTypeIco(0);		
 		SetStateIco(5,1);
 		SetStateIco(6,0);
-		pcie_init(0,PCIE_2_NBIOT);
+		pcie_init(0,PCIE_2_IP);
+		rt_kprintf("to switch\r\n");
+		pcie_switch(PCIE_2_IP);
 	} else {
 		/*play audio here*/
 		buzzer_ctl(1);

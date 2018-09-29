@@ -251,6 +251,7 @@ void WIZ_SPI_Init(void)
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
+	rt_kprintf("ip module init\r\n");
 }
 
 void WIZ_CS(rt_uint8_t val)
@@ -282,23 +283,30 @@ uint8_t SPI2_SendByte(uint8_t byte)
 void ip_module_start()
 {
 	//WIZ_SPI_Init();
+	rt_kprintf("ip module start1\r\n");
 	Reset_W5500();
 	
+	rt_kprintf("ip module start2\r\n");
 	init_dhcp_client();
+	rt_kprintf("ip module start2.2\r\n");
 	setRTR(2000);
 	setRCR(5);
 	IINCHIP_WRITE(Sn_MR(7), 0x20);
 	IINCHIP_WRITE(Sn_IMR(7), 0x0F);
+	rt_kprintf("ip module start3\r\n");
 
 	IINCHIP_WRITE(IMR, 0xF0);
 	IINCHIP_WRITE(SIMR, 0xFE); 
+	rt_kprintf("ip module start4\r\n");
 }
 
 void w5500_proc(void *parameter)
 {
 	uint8 C_Flag = 0;
+	rt_kprintf("w5500 proc\r\n");
 	while(1) {			
 		rt_sem_take(&(g_pcie[1]->sem), RT_WAITING_FOREVER);
+		rt_kprintf("w5500 int\r\n");
 		uint8 dhcpret = check_DHCP_state(SOCK_DHCP);
 		switch(dhcpret) {
 		  case DHCP_RET_NONE:
