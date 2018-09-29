@@ -18,12 +18,18 @@ wtn6.c
 prop.c
 listdir.c
 can.c
+ip.c
+w5500/dhcp.c
+w5500/socket.c
+w5500/sockutil.c
+w5500/w5500.c
 """)
 
 if GetDepend('RT_USING_CAN'):
     src += ['canapp.c']
 
 CPPPATH = [cwd, str(Dir('#'))]
+CPPPATH += [cwd + '/w5500']
 
 group = DefineGroup('Applications', src, depend = [''], CPPPATH = CPPPATH)
 

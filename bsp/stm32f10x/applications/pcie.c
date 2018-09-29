@@ -47,6 +47,9 @@ rt_mp_t server_mp = RT_NULL;
 rt_uint32_t g_bc26_update_len = 0;
 extern rt_uint8_t bc26_module;
 rt_uint8_t update_flag=0;
+extern void w5500_proc(void *parameter);
+extern void WIZ_SPI_Init(void);
+extern void ip_module_start();
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&(g_pcie[0]->sem));
@@ -875,6 +878,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		rt_thread_startup(rt_thread_create("5w55",w5500_proc, 0,2048, 15, 10));
 		rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 15, 10));
 		rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
+		WIZ_SPI_Init();
 	}
 	return 1;
 }
@@ -921,7 +925,7 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			break;
 		case PCIE_2_IP:
 			switch_pcie_power(1);
-			//ip_module_start(1);
+			ip_module_start(1);
 			break;
 		case PCIE_2_M26:
 			switch_pcie_power(1);
