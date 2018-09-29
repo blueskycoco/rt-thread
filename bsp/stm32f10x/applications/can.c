@@ -65,8 +65,8 @@ int can_send(unsigned short id, unsigned char *payload,
 	rt_kprintf("\r\n");
 #endif
 	TransmitMailbox = CAN_Transmit(CANx, &TxMessage);
-	//rt_kprintf("can send error %x\r\n",CAN_GetLastErrorCode(CANx));
 	if (TransmitMailbox == CAN_TxStatus_NoMailBox) {
+		rt_kprintf("can send error %x\r\n",CAN_GetLastErrorCode(CANx));
 		return 0;
 	}
 
@@ -78,7 +78,10 @@ int can_send(unsigned short id, unsigned char *payload,
 	}
 	//rt_kprintf("i is %x\r\n", i);
 	if (i == 0xFFFF)
+	{
+		rt_kprintf("can send2 error %x\r\n",CAN_GetLastErrorCode(CANx));
 		return 0;
+	}
 	
 	return 1;
 }
@@ -303,7 +306,8 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
                     cmd[2] = (addr >> 8) & 0xff;
                     cmd[3] = addr&0xff;
                     memcpy(cmd+4, resp+4, 4);
-                    can_send(2,cmd,8);
+                    if (!can_send(2,cmd,8))
+						can_init();
                 } else if (resp[0] == 0x00 && resp[1] == 0x02) {
                     //info
                     if (resp[2] < WIRELESS_MAX)
@@ -324,7 +328,8 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
 					cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
 					cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
-                    can_send(resp[2],cmd,8);
+                    if (!can_send(resp[2],cmd,8))
+						can_init();
                 }  else if (resp[0] == 0x00 && resp[1] == 0x06) {
                     //alarm
                     if (resp[2] < WIRELESS_MAX)
@@ -347,7 +352,8 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					rt_kprintf("addr\t\t%x\r\n", resp[2]);
 					rt_kprintf("status\t\t%s\r\n", (cmd[3]==0)?"che fang":"bu fang");
 					rt_kprintf("alarm\t\t%s\r\n", cmd_sub_type(resp[3]));
-                    can_send(resp[2],cmd,8);
+                    if (!can_send(resp[2],cmd,8))
+						can_init();
 					handle_wire_alarm(addr);
 				record_fqp_ts(fangqu_wire[addr].index);
                 } else if (resp[0] == 0x00 && resp[1] == 0x10) {
@@ -369,7 +375,8 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					rt_kprintf("addr\t\t%x\r\n", resp[2]);
 					rt_kprintf("status\t\t%s\r\n", (cmd[3]==0)?"che fang":"bu fang");
 					record_fqp_ts(fangqu_wire[addr].index);
-                    can_send(resp[2],cmd,8);
+                    if (!can_send(resp[2],cmd,8))
+						can_init();
                 }
 				rt_kprintf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$>\r\n");
             }

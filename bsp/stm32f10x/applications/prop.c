@@ -264,7 +264,7 @@ rt_uint8_t fangqu_offline(rt_uint8_t index)
 void check_off_line_alarm()
 {
 	int i;	
-	int timeout_ts = 200;
+	int timeout_ts = 600;
 	rt_time_t cur_time = time(RT_NULL);
 	for (i=0; i<g_fangqu_ts_cnt; i++) {
 		rt_kprintf("fq[%d]\t %d %d %d, cur %d, %d\t%s\r\n", fangqu_ts[i].index,fangqu_ts[i].heart_ts,
@@ -276,7 +276,7 @@ void check_off_line_alarm()
 //		}
 		if (fangqu_ts[i].heart_ts != 0 && fangqu_ts[i].off_line == 0) {
 			if (fangqu_ts[i].index < 50) 
-				timeout_ts = 15*60*60;
+				timeout_ts = 25*60*60;
 			
 			if ((cur_time - fangqu_ts[i].heart_ts) > timeout_ts) {
 				if (fangqu_ts[i].slave_type != 0x01 && fangqu_ts[i].off_line == 0) {
