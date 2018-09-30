@@ -41,10 +41,13 @@ void w5500_isr(void)
 {
 	rt_uint8_t IR_val = 0, SIR_val = 0;
 	rt_uint8_t tmp,s;
-
+	rt_kprintf("in w5500 isr1\r\n");
 	IINCHIP_WRITE(IMR, 0x00);
+	rt_kprintf("in w5500 isr2\r\n");
 	IINCHIP_WRITE(SIMR, 0x00);
+	rt_kprintf("in w5500 isr3\r\n");
 	IINCHIP_ISR_DISABLE();
+	rt_kprintf("in w5500 isr4\r\n");
 
 	IR_val = IINCHIP_READ(IR);
 	SIR_val = IINCHIP_READ(SIR);
@@ -204,6 +207,9 @@ void WIZ_SPI_Init(void)
 	NVIC_InitTypeDef NVIC_InitStructure;
 	EXTI_InitTypeDef EXTI_InitStructure;
 	rt_mutex_init(&iplock,	"iplock",	RT_IPC_FLAG_FIFO);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |RCC_APB2Periph_GPIOA
+											  |RCC_APB2Periph_AFIO	, ENABLE);
 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3; 
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -298,6 +304,26 @@ void ip_module_start()
 	IINCHIP_WRITE(IMR, 0xF0);
 	IINCHIP_WRITE(SIMR, 0xFE); 
 	rt_kprintf("ip module start4\r\n");
+	uint8 dhcpret = check_DHCP_state(SOCK_DHCP);
+	rt_kprintf("dhcp ret %x\r\n", dhcpret);
+		switch(dhcpret) {
+		  case DHCP_RET_NONE:
+			break;
+		  case DHCP_RET_TIMEOUT:
+			break;
+		  case DHCP_RET_UPDATE:
+			Set_network();
+			rt_kprintf("DHCP OK!\r\n");  
+	//		C_Flag = 1;
+			break;
+		  case DHCP_RET_CONFLICT:
+		//	C_Flag = 0;
+			rt_kprintf("DHCP Fail!\r\n");
+			dhcp_state = STATE_DHCP_READY;
+			break; 
+		  default:
+			break;
+		}
 }
 
 void w5500_proc(void *parameter)

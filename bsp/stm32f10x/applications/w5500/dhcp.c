@@ -802,6 +802,7 @@ void init_dhcp_client(void)
 {
   uint8 txsize[MAX_SOCK_NUM] = {2,2,2,2,2,2,2,2};
   uint8 rxsize[MAX_SOCK_NUM] = {2,2,2,2,2,2,2,2};
+  uint8 mac[6]={0x00,0x08,0xdc,0x11,0x11,0x15};
   //uint8 ip_broadcast[4]={255,};
   uint8 ip_0[4]={0,};
   DHCP_XID = 0x12345678;
@@ -811,7 +812,7 @@ void init_dhcp_client(void)
 
   iinchip_init();
   
-  setSHAR(ConfigMsg.mac);
+  setSHAR(mac);
   setSUBR(ip_0);
   setGAR(ip_0);
   setSIPR(ip_0);
