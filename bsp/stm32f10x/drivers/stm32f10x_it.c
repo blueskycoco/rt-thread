@@ -340,7 +340,7 @@ void EXTI0_IRQHandler(void)
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line0))
 	{	
-		rt_kprintf("factory button int\r\n");
+		//rt_kprintf("factory button int\r\n");
 		EXTI_ClearITPendingBit(EXTI_Line0);
 	}
 	/* leave interrupt */
