@@ -888,9 +888,9 @@ void switch_pcie_power(rt_uint8_t type)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_7|GPIO_Pin_5;
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_7|GPIO_Pin_6;
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
-	GPIO_WriteBit(GPIOD,GPIO_Pin_5,Bit_SET);
+	GPIO_WriteBit(GPIOD,GPIO_Pin_7,Bit_SET);
 	GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_SET);
 	rt_thread_delay(100);
 	if (type == 0) {

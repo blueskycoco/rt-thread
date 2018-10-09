@@ -687,6 +687,7 @@ uint8 check_DHCP_state(SOCKET s)
 */
 void check_DHCP_Timeout(void)
 {
+	DHCP_timer_handler();
   if (dhcp_retry_count < MAX_DHCP_RETRY) 
   {
     if (dhcp_time > next_dhcp_time) 
@@ -778,7 +779,7 @@ uint8 check_leasedIP(void)
 */
 void DHCP_timer_handler(void)
 {
-  if(dhcp_tick_cnt++ > 1000)
+  //if(dhcp_tick_cnt++ > 1000)
   {
     dhcp_tick_cnt = 0;
     dhcp_time++;

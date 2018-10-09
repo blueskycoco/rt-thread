@@ -17,7 +17,7 @@
 #ifdef __DEF_IINCHIP_PPP__
    #include "md5.h"
 #endif
-
+#define __DEF_IINCHIP_DBG__
 extern uint8 I_STATUS[MAX_SOCK_NUM];
 static uint16 SSIZE[MAX_SOCK_NUM]; /**< Max Tx buffer size by each channel */
 static uint16 RSIZE[MAX_SOCK_NUM]; /**< Max Rx buffer size by each channel */
@@ -130,7 +130,7 @@ void iinchip_init(void)
 {
   setMR( MR_RST );
 #ifdef __DEF_IINCHIP_DBG__
-  printf("MR value is %02x \r\n",IINCHIP_READ_COMMON(MR));
+  //printf("MR value is %02x \r\n",IINCHIP_READ_COMMON(MR));
 #endif
 }
 

@@ -285,13 +285,43 @@ uint8_t SPI2_SendByte(uint8_t byte)
 	while (SPI_I2S_GetFlagStatus(SPI3, SPI_I2S_FLAG_RXNE) == RESET);
 	return SPI_I2S_ReceiveData(SPI3);
 }
+void set_default(void)
+{
+  
+  uint8 mac[6]={0x00,0x08,0xdc,0x11,0x11,0x15};
+  uint8 lip[4]={192,168,1,111};
+  uint8 sub[4]={255,255,255,0};
+  uint8 gw[4]={192,168,1,1};
+  uint8 dns[4]={8,8,8,8};
+  memcpy(ConfigMsg.lip, lip, 4);
+  memcpy(ConfigMsg.sub, sub, 4);
+  memcpy(ConfigMsg.gw,  gw, 4);
+  memcpy(ConfigMsg.mac, mac,6);
+  memcpy(ConfigMsg.dns,dns,4);
+  /*
+  uint8 dhcp;
+  uint8 debug;
+
+  uint16 fw_len;
+  uint8 state;
+  */
+  ConfigMsg.dhcp=0;
+  ConfigMsg.debug=1;
+  ConfigMsg.fw_len=0;
+  
+  ConfigMsg.state=0;
+  ConfigMsg.sw_ver[0]=1;
+  ConfigMsg.sw_ver[1]=0;
+  
+}
 
 void ip_module_start()
 {
+	rt_uint8_t C_Flag = 0;
 	//WIZ_SPI_Init();
 	rt_kprintf("ip module start1\r\n");
 	Reset_W5500();
-	
+	set_default();
 	rt_kprintf("ip module start2\r\n");
 	init_dhcp_client();
 	rt_kprintf("ip module start2.2\r\n");
@@ -303,7 +333,10 @@ void ip_module_start()
 
 	IINCHIP_WRITE(IMR, 0xF0);
 	IINCHIP_WRITE(SIMR, 0xFE); 
+	rt_kprintf("read IMR %x\r\n", IINCHIP_READ(IMR));
+	rt_kprintf("read SIMR %x\r\n", IINCHIP_READ(SIMR));
 	rt_kprintf("ip module start4\r\n");
+	while (1) {
 	uint8 dhcpret = check_DHCP_state(SOCK_DHCP);
 	rt_kprintf("dhcp ret %x\r\n", dhcpret);
 		switch(dhcpret) {
@@ -314,16 +347,20 @@ void ip_module_start()
 		  case DHCP_RET_UPDATE:
 			Set_network();
 			rt_kprintf("DHCP OK!\r\n");  
-	//		C_Flag = 1;
+			C_Flag = 1;
 			break;
 		  case DHCP_RET_CONFLICT:
-		//	C_Flag = 0;
+			C_Flag = 0;
 			rt_kprintf("DHCP Fail!\r\n");
 			dhcp_state = STATE_DHCP_READY;
 			break; 
 		  default:
 			break;
 		}
+	if (C_Flag)
+		break;
+	rt_thread_delay(100);
+	}
 }
 
 void w5500_proc(void *parameter)
