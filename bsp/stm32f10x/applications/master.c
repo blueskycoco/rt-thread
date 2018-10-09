@@ -378,6 +378,7 @@ void info_user(void *param)
 					voice[0] = VOICE_SHOUJI;
 				Wtn6_JoinPlay(voice,2,1);
 				rt_kprintf("VOICE_SHOUJI chefang\r\n");
+				#if 0
 				if (time_protect) {
 					memset(g_operater,0,6);
 					g_operater[0] = 0x10;
@@ -385,6 +386,7 @@ void info_user(void *param)
 					time_protect = 0;
 					upload_server(CMD_SUB_EVENT);
 				}
+				#endif
 			}
 			//entering_ftp_mode	=1;
 			g_num=0;
