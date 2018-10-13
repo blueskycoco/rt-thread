@@ -65,6 +65,8 @@ extern rt_uint32_t g_bc26_update_len;
 rt_uint8_t bc26_module = 0;
 extern rt_uint8_t entering_ftp_mode_bc26;
 extern rt_uint8_t g_module_type;
+rt_uint8_t g_wire_type;
+rt_uint32_t g_wire_addr;
 //rt_uint8_t net_flow_flag=0;
 int bc28_down_fd = -1;
 void handle_led(int type)
@@ -321,6 +323,7 @@ void info_user(void *param)
 			rt_kprintf("yanshi delay out %d, alarm voice %d\r\n",g_delay_out,g_alarm_voice);
 		}
 		if (ev & INFO_EVENT_PROTECT_OFF) {
+			rt_kprintf("get protect off\r\n");
 			alarm_led=0;
 			SetStateIco(0,0);
 			SetStateIco(2,0);
@@ -686,7 +689,7 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 		rt_kprintf("poll release sem\r\n");
 		rt_sem_release(&(cc1101_rx_sem));
 	}*/
-	rt_kprintf("%s\r\n", APP_BUILD_TIME);
+		rt_kprintf("%s%s %s\r\n", APP_BUILD_TIME,__DATE__,__TIME__);
 }
 void handle_t_common_ack(rt_uint8_t *cmd)
 {

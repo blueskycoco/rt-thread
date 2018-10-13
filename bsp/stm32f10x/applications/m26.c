@@ -320,7 +320,8 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 		  }*/
 		if (match_bin(pos, len, "OK",rt_strlen("OK"))!=-1)
 		{
-			rt_data_queue_push(&g_data_queue[3], server_buf_m26, server_len_m26, RT_WAITING_FOREVER);
+			if (server_len_m26 > 0)
+				rt_data_queue_push(&g_data_queue[3], server_buf_m26, server_len_m26, RT_WAITING_FOREVER);
 			if (server_len_m26 == 1500) {
 				g_m26_state = M26_STATE_CHECK_QISTAT;
 				gprs_at_cmd(g_dev_m26,qistat);
@@ -352,7 +353,8 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 			if (match_bin((rt_uint8_t *)pos, len,"OK",2)!=-1)
 			{
 				rt_kprintf("got the second parts %d\r\n",server_len_m26);
-				rt_data_queue_push(&g_data_queue[3], server_buf_m26, server_len_m26, RT_WAITING_FOREVER);
+				if (server_len_m26 > 0)
+					rt_data_queue_push(&g_data_queue[3], server_buf_m26, server_len_m26, RT_WAITING_FOREVER);
 				if (server_len_m26 == 1500) {
 					g_m26_state = M26_STATE_CHECK_QISTAT;
 					gprs_at_cmd(g_dev_m26,qistat);
@@ -659,9 +661,13 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_m26_state = M26_STATE_SET_QIOPEN;
 					rt_memset(qiopen_m26, 0, 64);
 					if (use_domain) {
-							rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%s\",\"%d\"\r\n",
-							mp.socketDomainAddress.domain,
-							mp.socketDomainAddress.port);
+#if 0
+													rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%s\",\"%d\"\r\n",
+													mp.socketDomainAddress.domain,
+													mp.socketDomainAddress.port);
+#else
+													strcpy(qiopen_m26, "AT+QIOPEN=\"TCP\",\"106.14.116.201\",\"1704\"\r\n");
+#endif
 							use_domain=0;
 							g_ip_index=9;
 						} else {
@@ -847,9 +853,13 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_m26_state = M26_STATE_SET_QIOPEN;
 						rt_memset(qiopen_m26, 0, 64);
 						if (use_domain) {
+#if 0
 							rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%s\",\"%d\"\r\n",
 							mp.socketDomainAddress.domain,
 							mp.socketDomainAddress.port);
+#else
+							strcpy(qiopen_m26, "AT+QIOPEN=\"TCP\",\"106.14.116.201\",\"1704\"\r\n");
+#endif
 							use_domain=0;
 							g_ip_index=9;
 						} else {
@@ -932,9 +942,13 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_m26_state = M26_STATE_SET_QIOPEN;
 						rt_memset(qiopen_m26, 0, 64);
 						if (use_domain) {
-							rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%s\",\"%d\"\r\n",
-							mp.socketDomainAddress.domain,
-							mp.socketDomainAddress.port);
+#if 0
+														rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%s\",\"%d\"\r\n",
+														mp.socketDomainAddress.domain,
+														mp.socketDomainAddress.port);
+#else
+														strcpy(qiopen_m26, "AT+QIOPEN=\"TCP\",\"106.14.116.201\",\"1704\"\r\n");
+#endif
 						} else {
 						rt_sprintf(qiopen_m26, "AT+QIOPEN=\"TCP\",\"%d.%d.%d.%d\",\"%d\"\r\n",
 								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
@@ -1008,7 +1022,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 							g_ip_index=0;
 							use_domain=1;
 							g_m26_state = M26_STATE_SWITCH_DOMAIN;
-							gprs_at_cmd(g_dev_m26, qidnscfg_domain);
+							//gprs_at_cmd(g_dev_m26, qidnscfg_domain);
+							gprs_at_cmd(g_dev_m26,qidnscfg_ip);
 						}
 					}
 					rt_kprintf("after , ip index %d\r\n", g_ip_index);
@@ -1039,7 +1054,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 								g_ip_index=0;
 								use_domain=1;
 								g_m26_state = M26_STATE_SWITCH_DOMAIN;
-								gprs_at_cmd(g_dev_m26, qidnscfg_domain);
+//								gprs_at_cmd(g_dev_m26, qidnscfg_domain);
+								gprs_at_cmd(g_dev_m26,qidnscfg_ip);
 							}
 						}
 						rt_kprintf("after , ip index %d\r\n", g_ip_index);

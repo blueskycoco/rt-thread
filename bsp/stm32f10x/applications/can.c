@@ -35,6 +35,8 @@ extern rt_uint8_t  	g_voiceType;
 extern rt_uint16_t command_type;
 extern rt_uint8_t 	g_mute;
 extern rt_uint8_t g_ac;
+extern rt_uint8_t g_wire_type;
+extern rt_uint32_t g_wire_addr;
 int poll_can()
 {
 	int i=0;
@@ -269,10 +271,12 @@ void save_fq_wire(int addr, rt_uint8_t type, rt_uint32_t fact_time)
 			addr, fangqu_wire[addr].index,fangqu_wire[addr].slave_sn);			
 			wire_code = 1;
 		rt_kprintf("duima ok\r\n");
+		g_wire_type = type;
+		g_wire_addr = addr;
 		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 	}
-		add_fqp_t(fangqu_wire[addr].index,type);
+	add_fqp_t(fangqu_wire[g_wire_addr].index,g_wire_type);
 }
 
 void USB_LP_CAN1_RX0_IRQHandler(void)
@@ -296,18 +300,21 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 	                id = (id<<8) + resp[6];
 	                id = (id<<8) + resp[7];
          			addr = get_addr(id,fangqu_wire,WIRE_MAX);
-					fangqu_wire[addr - WIRELESS_MAX].index = addr;
-					fangqu_wire[addr - WIRELESS_MAX].slave_sn = id;
-					fangqu_wire[addr - WIRELESS_MAX].slave_model = (resp[2]<<8)|resp[3];
-                	rt_kprintf("id\t\t%08x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_sn);
-					rt_kprintf("model\t\t%04x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_model);
-					rt_kprintf("assign addr\t%0x\r\n",fangqu_wire[addr - WIRELESS_MAX].index);
-                    cmd[0] = 0x00;cmd[1]=0x01;
-                    cmd[2] = (addr >> 8) & 0xff;
-                    cmd[3] = addr&0xff;
-                    memcpy(cmd+4, resp+4, 4);
-                    if (!can_send(2,cmd,8))
-						can_init();
+					if (addr < 80) {
+						fangqu_wire[addr - WIRELESS_MAX].index = addr;
+						fangqu_wire[addr - WIRELESS_MAX].slave_sn = id;
+						fangqu_wire[addr - WIRELESS_MAX].slave_model = (resp[2]<<8)|resp[3];
+	                	rt_kprintf("id\t\t%08x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_sn);
+						rt_kprintf("model\t\t%04x\r\n",fangqu_wire[addr - WIRELESS_MAX].slave_model);
+						rt_kprintf("assign addr\t%0x\r\n",fangqu_wire[addr - WIRELESS_MAX].index);
+	                    cmd[0] = 0x00;cmd[1]=0x01;
+	                    cmd[2] = (addr >> 8) & 0xff;
+	                    cmd[3] = addr&0xff;
+	                    memcpy(cmd+4, resp+4, 4);
+	                    if (!can_send(2,cmd,8))
+							can_init();
+					} else
+						rt_kprintf("exceed MAX wire \r\n");
                 } else if (resp[0] == 0x00 && resp[1] == 0x02) {
                     //info
                     if (resp[2] < WIRELESS_MAX)

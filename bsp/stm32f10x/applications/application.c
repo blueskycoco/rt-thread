@@ -611,6 +611,7 @@ void rt_init_thread_entry(void* parameter)
 	g_mute=1;
 
 	rt_kprintf("\t\tUPGRADE Version\r\n");
+	rt_kprintf("%s%s %s\r\n", APP_BUILD_TIME,__DATE__,__TIME__);
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
 	rt_mutex_init(&(g_stm32_lock),	"stm32_lock",	RT_IPC_FLAG_FIFO);
 	rt_sem_init(&(yunduo_sem),		"yunduo_sem",	0, 0);
