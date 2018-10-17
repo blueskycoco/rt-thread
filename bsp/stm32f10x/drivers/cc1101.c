@@ -18,6 +18,7 @@ extern rt_uint8_t r_signal;
 rt_uint8_t g_retry=0;
 unsigned char paTable[1];           
 unsigned char rf_end_packet = 0;
+rt_uint32_t cc1101_crash_cnt = 0;
 struct rf_dev  
 {  
     unsigned char tx_buf[TX_BUF_SIZE];  
@@ -409,6 +410,7 @@ static void cc1101_gdo0_rx_it(void)
                 rf_dev.rx_rd %= RX_BUF_SIZE;  
             }  
         }   
+		cc1101_crash_cnt=0;
         rt_kprintf("cc1101 receive data<%d>:",rx_count);  
         //cc1101_hex_printf(rx_buf, rx_count);  
 		rt_kprintf("\r\n");  
@@ -592,6 +594,7 @@ void cc1101_isr(void)
     if(rf_dev.mode  == MODE_RX)  
     {  
     	rt_kprintf("got cc1101 data begin\r\n");
+		cc1101_crash_cnt++;
         cc1101_gdo0_rx_it();  
     }  
     else if(rf_dev.mode == MODE_TX)     
@@ -710,6 +713,7 @@ void radio_intit2(void)
 {
 	unsigned char i, writeByte, preferredSettings_length;
 	registerSetting_t *preferredSettings;
+	trxRfDisableInt();
 	trxRfSpiInterfaceInit2();
 	trxSpiCmdStrobe(RF_SRES);
 	rt_kprintf("get here2\r\n");

@@ -87,6 +87,7 @@ extern rt_uint8_t g_fq_index;
 extern rt_uint8_t		g_operationType;
 rt_uint8_t g_need_reset_rtc=1;
 struct rt_semaphore yunduo_sem;
+extern rt_uint32_t cc1101_crash_cnt;
 extern int readwrite();
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 2048 ];
@@ -581,6 +582,13 @@ static void led_thread_entry(void* parameter)
 			should_notify_infrar_normal_mode=0;
 		}
 		should_notify_infrar_normal_mode++;
+
+		rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
+		if (cc1101_crash_cnt > 4) {
+			cc1101_crash_cnt=0;
+			rt_kprintf("cc1101 crash , reseting\r\n");
+			radio_intit2();
+		}
 	}
 }
 

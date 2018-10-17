@@ -359,8 +359,10 @@ void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 					g_m26_state = M26_STATE_CHECK_QISTAT;
 					gprs_at_cmd(g_dev_m26,qistat);
 				} else {
-					g_m26_state = M26_STATE_DATA_PROCESSING;
-					gprs_at_cmd(g_dev_m26,at_csq);		
+					if (server_len_m26 != 0) {
+						g_m26_state = M26_STATE_DATA_PROCESSING;
+						gprs_at_cmd(g_dev_m26,at_csq);		
+					}
 				}
 				if (!have_str(last_data_ptr, STR_QIRDI))
 					g_data_in_m26 = RT_FALSE;
