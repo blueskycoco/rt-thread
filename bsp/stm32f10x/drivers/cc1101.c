@@ -469,7 +469,7 @@ static void cc1101_gdo0_tx_it(void)
 {  
     short wait_tx_count;  
     unsigned char buf_tmp[TX_BUF_SIZE], status;  
-    
+    rt_uint32_t loop = 0;
     wait_tx_count = cc1101_get_tx_buf_count();  
     status = trxSpiCmdStrobe(RF_SFTX);  
   
@@ -478,11 +478,17 @@ static void cc1101_gdo0_tx_it(void)
         ohterwise, transmit loss packet. 
         if device into IDLE, prove transmit end. 
     */  
+   // rt_time_t cur_time = time(RT_NULL);
+    rt_kprintf("tx 1count \r\n");
     while(status & 0x70)  
     {  
         status = trxSpiCmdStrobe(RF_SNOP);
+		loop++;
+		if (loop > 10)
+			break;
     }  
-	rt_kprintf("tx count %d\r\n", wait_tx_count);
+	//cur_time = time(RT_NULL);
+	rt_kprintf("tx 2count %d %d\r\n", wait_tx_count,loop);
     if(wait_tx_count == 0)  
     {               
         cc1101_set_rx_mode();  

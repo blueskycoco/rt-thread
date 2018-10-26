@@ -84,6 +84,7 @@
 #define STR_46006					"46006"
 #define STR_STAT_DEACT_OK 			"DEACT OK"
 #define STR_CONNECT_OK				"CONNECT OK"
+#define STR_CONNECTING				"TCP CONNECTING"
 #define STR_CLOSE_OK				"CLOSE OK"
 #define STR_SEND_OK					"SEND OK"
 #define STR_QIRDI					"+QIRDI: 0,1,0"
@@ -656,6 +657,9 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				} else if (have_str(last_data_ptr, STR_CONNECT_OK)){
 					g_m26_state = M26_STATE_SET_QICLOSE;
 					gprs_at_cmd(g_dev_m26,qiclose);
+				} else if (have_str(last_data_ptr, STR_CONNECTING)) {
+					g_m26_state = M26_STATE_SET_QIOPEN;
+					gprs_at_cmd(g_dev_m26,qiat);
 				} else if (have_str(last_data_ptr, STR_STAT_CLOSE) ||
 						have_str(last_data_ptr, STR_STAT_STATUS) ||
 						have_str(last_data_ptr,STR_CONNECT_FAIL)||
@@ -971,8 +975,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_m26_state = M26_STATE_SET_QIREGAPP;
 					gprs_at_cmd(g_dev_m26,qiregapp);
 				} else if (have_str(last_data_ptr, STR_ERROR)){
-					g_m26_state = M26_STATE_SET_QIDEACT;
-					gprs_at_cmd(g_dev_m26,qideact);
+					g_m26_state = M26_STATE_CHECK_QISTAT;
+					gprs_at_cmd(g_dev_m26,qistat);
 				}
 				break;						
 			case M26_STATE_SET_QIOPEN:
@@ -1036,6 +1040,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_thread_delay(100*3);
 						g_m26_state = M26_STATE_CHECK_QISTAT;
 						gprs_at_cmd(g_dev_m26,qistat);
+						#if 0
 						rt_kprintf("before , ip index %d\r\n", g_ip_index);
 						if (use_domain) {
 							use_domain=0;
@@ -1061,6 +1066,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 							}
 						}
 						rt_kprintf("after , ip index %d\r\n", g_ip_index);
+						#endif
 					}
 				}
 

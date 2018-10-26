@@ -583,7 +583,7 @@ static void led_thread_entry(void* parameter)
 		}
 		should_notify_infrar_normal_mode++;
 
-		rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
+		//rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
 		if (cc1101_crash_cnt > 4) {
 			cc1101_crash_cnt=0;
 			rt_kprintf("cc1101 crash , reseting\r\n");
