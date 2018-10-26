@@ -7,6 +7,8 @@
 #include "led.h"
 #include "bsp_misc.h"
 #include "wtn6.h"
+#include "subpoint.h"
+#include "pcie.h"
 rt_uint32_t 	g_fangqu_ts_cnt = 0;
 extern rt_uint8_t g_alarm_fq;
 struct rt_mutex file_lock;

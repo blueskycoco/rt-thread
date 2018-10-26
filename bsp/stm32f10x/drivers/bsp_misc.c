@@ -3,13 +3,16 @@
 #include <string.h>
 #include "cJSON.h"
 #include <rtthread.h>
+#include <dfs_posix.h>
 #include "stm32f10x.h"
 #include "bsp_misc.h"
 #include "prop.h"
 #include "lcd.h"
+#include "led.h"
 extern rt_uint8_t g_main_state;
 extern rt_uint32_t g_server_addr_bak;
 extern rt_uint32_t g_server_port_bak;
+extern rt_uint8_t battery_insert();
 unsigned int CRC_check(unsigned char *Data,unsigned short Data_length)
 {
 	unsigned int mid=0;

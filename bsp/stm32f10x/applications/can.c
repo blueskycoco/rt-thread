@@ -7,6 +7,7 @@
 #include "can.h"
 #include "wtn6.h"
 #include "master.h"
+#include "subpoint.h"
 #define MASTER	1
 rt_uint8_t wire_code  = 0;
 extern struct rt_event g_info_event;
@@ -37,6 +38,7 @@ extern rt_uint8_t 	g_mute;
 extern rt_uint8_t g_ac;
 extern rt_uint8_t g_wire_type;
 extern rt_uint32_t g_wire_addr;
+#if 0
 int poll_can()
 {
 	int i=0;
@@ -52,6 +54,7 @@ int poll_can()
 		rt_kprintf("have can data %d\r\n", i);
 	return (i==1000) ? 0:1;
 }
+#endif
 int can_send(unsigned short id, unsigned char *payload, 
 		unsigned char payload_len)
 {

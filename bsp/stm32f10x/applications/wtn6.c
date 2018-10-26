@@ -1,5 +1,7 @@
 #include "wtn6.h"
+#include <rtthread.h>
 //#include "delay.h"
+extern void speaker_ctl(int flag);
 uint8_t state_play = 0;
 /*
 *外部接口，初始化IO接口
@@ -48,6 +50,12 @@ void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne)
 {
 	Send_Command(volumne);
 }
+void Stop_Played(void)
+{
+  while(Is_Playing())
+  	rt_thread_delay(10);
+  speaker_ctl(0);
+}
 /*
 *外部接口，播放一条语音
 *voice 语音地址
@@ -65,12 +73,6 @@ void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag)
 			Stop_Played();
 	}
 	state_play=1;
-}
-void Stop_Played(void)
-{
-  while(Is_Playing())
-  	rt_thread_delay(10);
-  speaker_ctl(0);
 }
 
 /*

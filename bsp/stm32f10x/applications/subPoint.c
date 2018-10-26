@@ -10,6 +10,7 @@
 #include "wtn6.h"
 #include "subPoint.h"
 #include "pcie.h"
+#include "prop.h"
 #define 	MSG_HEAD0		0x6c
 #define 	MSG_HEAD1		0xaa
 

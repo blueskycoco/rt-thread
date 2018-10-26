@@ -27,7 +27,7 @@
 /* dfs Filesystem APIs */
 #include <dfs_fs.h>
 #endif
-
+#include "bsp_misc.h"
 #include "spi_flash_w25qxx.h"
 #include "rt_stm32f10x_spi.h"
 #include "button.h"
@@ -89,6 +89,8 @@ rt_uint8_t g_need_reset_rtc=1;
 struct rt_semaphore yunduo_sem;
 extern rt_uint32_t cc1101_crash_cnt;
 extern int readwrite();
+extern rt_err_t set_alarm(rt_uint32_t hour, rt_uint32_t minute, rt_uint32_t second);
+extern void list_dir(const char* path);
 ALIGN(RT_ALIGN_SIZE)
 	static rt_uint8_t led_stack[ 2048 ];
 	static struct rt_thread led_thread;

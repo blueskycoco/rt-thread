@@ -724,7 +724,7 @@ void radio_intit2(void)
 	trxSpiCmdStrobe(RF_SRES);
 	rt_kprintf("get here2\r\n");
 	if (DEV_CC1101 != get_device_id())
-		return 0;
+		return ;
 	rt_kprintf("rssi2 %d\r\n",radio_get_rssi());
 	rt_thread_delay(100);
 	preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);	
@@ -740,7 +740,7 @@ void radio_intit2(void)
 		if (readByte != preferredSettings[i].data)
 		{
 			rt_kprintf("rf reg set failed %d %x %x\r\n",i, preferredSettings[i].addr, readByte);
-			return 0;
+			return;
 		}
 	}
 	trxRfSpiInterruptInit();

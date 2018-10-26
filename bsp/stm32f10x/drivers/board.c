@@ -20,6 +20,7 @@
 #include "stm32f10x_fsmc.h"
 #include "board.h"
 #include "usart.h"
+#include "stm32f1_rtc.h"
 
 /**
  * @addtogroup STM32

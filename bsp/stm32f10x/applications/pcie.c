@@ -12,6 +12,7 @@
 #include "master.h"
 #include "bsp_misc.h"
 #include "prop.h"
+#include "lcd.h"
 rt_uint8_t g_type0 = 0;
 rt_uint8_t g_type1 = 0;
 int g_index = 0;
@@ -210,10 +211,10 @@ void pcie1_sm(void* parameter)
 					m26_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_2_EC20:
-					ec20_proc(last_data_ptr, data_size);
+					ec20_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_2_NBIOT:
-					bc26_proc(last_data_ptr, data_size);
+					bc26_proc((void *)last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie1 unknown sm\r\n");
@@ -249,7 +250,7 @@ void pcie0_sm(void* parameter)
 					ec20_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_1_NBIOT:
-					bc26_proc(last_data_ptr, data_size);
+					bc26_proc((void *)last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie0 unknown sm\r\n");
@@ -940,11 +941,11 @@ rt_uint8_t check_type(rt_uint8_t pcie_index)
 	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_12|GPIO_Pin_13|GPIO_Pin_14;
 	GPIO_Init(GPIOE, &GPIO_InitStructure);
 	if (pcie_index == 0) {
-		port0 = GPIOA;
-		port1 = GPIOD;
+		port0 = (uint32_t)GPIOA;
+		port1 = (uint32_t)GPIOD;
 		pin0 = GPIO_Pin_8;pin1 = GPIO_Pin_9;pin2 = GPIO_Pin_10;
 	} else {
-		port = GPIOE;
+		port = (uint32_t)GPIOE;
 		pin0 = GPIO_Pin_12;pin1 = GPIO_Pin_13;pin2 = GPIO_Pin_14;
 	}
 	

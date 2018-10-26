@@ -27,6 +27,7 @@
 #include <rtthread.h>
 #include "master.h"
 #include "prop.h"
+#include "subpoint.h"
 /** @addtogroup Template_Project
   * @{
   */

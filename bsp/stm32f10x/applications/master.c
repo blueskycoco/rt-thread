@@ -69,6 +69,9 @@ rt_uint8_t g_wire_type;
 rt_uint32_t g_wire_addr;
 //rt_uint8_t net_flow_flag=0;
 int bc28_down_fd = -1;
+extern void set_alarm_now();
+extern void reset_alarm_now();
+extern 	void begin_yunduo();
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -164,7 +167,7 @@ void info_user(void *param)
 			default_fqp();
 			save_param(1);
 			save_param(0);
-			rt_thread_sleep(500);
+			rt_thread_delay(500);
 			NVIC_SystemReset();
 		}
 		if (ev & INFO_EVENT_PROTECT_ON) {
@@ -979,7 +982,7 @@ void handle_bc26_update(rt_uint8_t *data)
 		mp.firmLength = all_len;
 		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 		if (!cur_status) {
-			rt_thread_sleep(500);
+			rt_thread_delay(500);
 			NVIC_SystemReset();
 		}
 		//}

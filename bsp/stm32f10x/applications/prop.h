@@ -167,4 +167,11 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3);
 int load_param();
 void save_param(int type);
 void default_fqp();
+void add_fqp_t(rt_uint8_t index, rt_uint8_t slave_type);
+void record_fqp_ts(rt_uint8_t index);
+void upload_sub_status();
+void default_fqp_t2();
+void check_off_line_alarm();
+rt_uint8_t fangqu_offline(rt_uint8_t index);
+void del_fqp_t(rt_uint8_t index);
 #endif

@@ -3,6 +3,7 @@
 #include <board.h>
 #include <rtthread.h>
 #include <rtdevice.h>
+#include <dfs_posix.h>
 #include "led.h"
 #include <string.h>
 #include "m26.h"
@@ -179,6 +180,7 @@ extern rt_uint8_t *g_ftp;
 rt_uint32_t cgreg_cnt = 0;
 extern rt_uint8_t g_module_type;
 rt_uint8_t use_domain = 0;
+extern void begin_yunduo();
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -839,7 +841,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						mp.firmLength = stm32_len;
 						rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 						if (!cur_status) {
-						rt_thread_sleep(500);
+						rt_thread_delay(500);
 						NVIC_SystemReset();
 						}
 					}

@@ -19,4 +19,5 @@ void net_flow(void);
 void alarm_flow(void);
 void show_memory_info(void);
 void print_ts(rt_uint8_t *ptr);
+rt_uint16_t ADC_Get_aveg(void); 
 #endif

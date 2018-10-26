@@ -4,6 +4,7 @@
 #include <rtthread.h>
 #include <ctype.h>
 #include <rtdevice.h>
+#include <dfs_posix.h>
 #include "led.h"
 #include <string.h>
 #include "ec20.h"

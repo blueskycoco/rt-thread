@@ -10,4 +10,6 @@ void buzzer_ctl(int level);
 rt_uint8_t check_ac();
 void bell_ctl(int level);
 rt_uint8_t check_s1();
+void speaker_ctl(int flag);
+
 #endif

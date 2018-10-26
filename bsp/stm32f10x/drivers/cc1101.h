@@ -43,4 +43,5 @@ int radio_receive_on(void);
 void cc1101_send_write(void*_buf, unsigned short count);  
 int cc1101_receive_read(unsigned char *buf, int count);
 void wait_cc1101_sem();
+void radio_intit2(void);
 #endif
