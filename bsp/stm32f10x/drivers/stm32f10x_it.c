@@ -262,6 +262,7 @@ void EXTI9_5_IRQHandler(void)
 							g_remote_protect=0;
 							rt_kprintf("switch protect off\r\n");
 							handle_protect_off();
+							s_cnt=e_cnt=rt_tick_get();
 						}
 					} else {
 						if (!cur_status && g_delay_out==0)
@@ -273,6 +274,7 @@ void EXTI9_5_IRQHandler(void)
 							duima_key=1;
 							//s_bufang=1;
 							handle_protect_on();
+							s_cnt=e_cnt=rt_tick_get();
 						}
 					}
 				}
@@ -300,6 +302,7 @@ void EXTI9_5_IRQHandler(void)
 					short_press=0;
 					rt_kprintf("factory reset");
 					rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
+					s_cnt=e_cnt=rt_tick_get();
 				} else if (diff > 50) {
 					short_press=0;
 					rt_kprintf("coding or not");
@@ -307,6 +310,7 @@ void EXTI9_5_IRQHandler(void)
 					rt_event_send(&(g_info_event), INFO_EVENT_CODING);
 					else					
 					rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
+					s_cnt=e_cnt=rt_tick_get();
 				}
 			}
 		}
