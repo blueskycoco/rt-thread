@@ -686,7 +686,9 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_kprintf("state ip index %d\r\n",g_ip_index);
 						}
 					gprs_at_cmd(g_dev_m26,qiopen_m26);
-				}			
+				}		else {					
+					gprs_at_cmd(g_dev_m26,qistat);
+				}
 				break;
 				/******************************************************************************************************************************************/				
 			case M26_STATE_CFG_FTP:
