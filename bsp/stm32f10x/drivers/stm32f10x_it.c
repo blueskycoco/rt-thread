@@ -298,11 +298,10 @@ void EXTI9_5_IRQHandler(void)
 				e_cnt =rt_tick_get(); 
 				diff = e_cnt - s_cnt;
 				rt_kprintf("S button relese %d\r\n", diff);
-				if (diff > 1000) {
+				if (diff > 1000 && diff < 1500){
 					short_press=0;
 					rt_kprintf("factory reset");
 					rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
-					s_cnt=e_cnt=rt_tick_get();
 				} else if (diff > 50) {
 					short_press=0;
 					rt_kprintf("coding or not");
@@ -310,8 +309,8 @@ void EXTI9_5_IRQHandler(void)
 					rt_event_send(&(g_info_event), INFO_EVENT_CODING);
 					else					
 					rt_event_send(&(g_info_event), INFO_EVENT_NORMAL);
-					s_cnt=e_cnt=rt_tick_get();
 				}
+					s_cnt=e_cnt=rt_tick_get();
 			}
 		}
 		#endif

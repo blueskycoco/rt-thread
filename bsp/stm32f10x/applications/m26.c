@@ -965,7 +965,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_kprintf("open ip index %d\r\n",g_ip_index);
 						}
 						gprs_at_cmd(g_dev_m26,qiopen_m26);
-					} else if (have_str(last_data_ptr, STR_ERROR)){
+					} else {// if (have_str(last_data_ptr, STR_ERROR)){
 						/*check error condition*/
 						g_m26_state = M26_STATE_CHECK_QISTAT;
 						gprs_at_cmd(g_dev_m26,qistat);
