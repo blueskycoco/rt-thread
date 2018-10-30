@@ -86,8 +86,13 @@ extern rt_uint8_t g_remote_protect;
 extern rt_uint8_t g_fq_index;
 extern rt_uint8_t		g_operationType;
 rt_uint8_t g_need_reset_rtc=1;
+rt_uint8_t in_qiact=0;
+rt_uint32_t qiact_times=0;
+rt_uint8_t m26_restart_flag=0;
 struct rt_semaphore yunduo_sem;
 extern rt_uint32_t cc1101_crash_cnt;
+extern rt_uint8_t g_heart_cnt;
+extern rt_uint8_t g_module_type;
 extern int readwrite();
 extern rt_err_t set_alarm(rt_uint32_t hour, rt_uint32_t minute, rt_uint32_t second);
 extern void list_dir(const char* path);
@@ -590,6 +595,23 @@ static void led_thread_entry(void* parameter)
 			cc1101_crash_cnt=0;
 			rt_kprintf("cc1101 crash , reseting\r\n");
 			radio_intit2();
+		}
+
+		if (m26_restart_flag) {
+			rt_kprintf("restart m26 ...\r\n");
+			in_qiact=0;
+			qiact_times=0;
+			m26_restart_flag = 0;
+			g_heart_cnt=0;
+			g_net_state = NET_STATE_UNKNOWN;
+			pcie_switch(g_module_type);
+		} else {
+			if (in_qiact) {
+				rt_kprintf("qi act times %d\r\n", qiact_times);
+				qiact_times++;
+				if (qiact_times > 180)
+					m26_restart_flag = 1;
+			}
 		}
 	}
 }

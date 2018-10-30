@@ -558,6 +558,9 @@ void handle_login_ack(rt_uint8_t *cmd)
 		g_num = cmd[0] + 0x10;		
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);	
 		SetStateIco(3,1);
+	} else {
+		g_num = 0;
+		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);	
 	}
 	default_fqp_t2();
 }
