@@ -656,6 +656,7 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 				if (!cur_status) {					
 					g_exit_reason = 0x01;
 					upload_server(CMD_EXIT);
+					rt_thread_delay(200);
 					entering_ftp_mode = 1;							
 					if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
 								(g_index == 0 && g_type0 == PCIE_1_NBIOT))

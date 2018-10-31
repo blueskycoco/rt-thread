@@ -299,7 +299,7 @@ void MRFI_RSSI_VALID_WAIT()
 {                                                                             
   uint16_t delay = MRFI_RSSI_VALID_DELAY_US;                                   
   unsigned char status;	
-  rt_kprintf("st 1\r\n");
+  //rt_kprintf("st 1\r\n");
   do                                                                    
   {	
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
@@ -369,9 +369,9 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 }  
 static int cc1101_send_packet(unsigned char *buf, unsigned char count)  
 {     
-    rt_kprintf("cc1101 send data %d:", count);  
-    cc1101_hex_printf(buf, count);  
-    rt_kprintf("\r\n");  
+    //rt_kprintf("cc1101 send data %d:", count);  
+    //cc1101_hex_printf(buf, count);  
+    //rt_kprintf("\r\n");  
 //	Mrfi_RxModeOff();
     //cc1101_write_signle_reg(RF_TXFIFO, count);  
     //cc1101_write_burst_reg(RF_RXFIFO, buf, count);  
@@ -411,9 +411,9 @@ static void cc1101_gdo0_rx_it(void)
             }  
         }   
 		cc1101_crash_cnt=0;
-        rt_kprintf("cc1101 receive data<%d>:",rx_count);  
+        //rt_kprintf("cc1101 receive data<%d>:",rx_count);  
         //cc1101_hex_printf(rx_buf, rx_count);  
-		rt_kprintf("\r\n");  
+		//rt_kprintf("\r\n");  
 		rt_sem_release(&(cc1101_rx_sem));
     }  
 }
@@ -479,7 +479,7 @@ static void cc1101_gdo0_tx_it(void)
         if device into IDLE, prove transmit end. 
     */  
    // rt_time_t cur_time = time(RT_NULL);
-    rt_kprintf("tx 1count \r\n");
+    //rt_kprintf("tx 1count \r\n");
     while(status & 0x70)  
     {  
         status = trxSpiCmdStrobe(RF_SNOP);
@@ -488,7 +488,7 @@ static void cc1101_gdo0_tx_it(void)
 			break;
     }  
 	//cur_time = time(RT_NULL);
-	rt_kprintf("tx 2count %d %d\r\n", wait_tx_count,loop);
+	//rt_kprintf("tx 2count %d %d\r\n", wait_tx_count,loop);
     if(wait_tx_count == 0)  
     {               
         cc1101_set_rx_mode();  
@@ -514,7 +514,7 @@ static void cc1101_send(void*_buf, unsigned short count)
 {  
     unsigned char *buf = (unsigned char *)_buf;  
     unsigned char buf_tmp[TX_BUF_SIZE];  
-  rt_kprintf("cc1101 send 0 %d\r\n",count);
+  //rt_kprintf("cc1101 send 0 %d\r\n",count);
     if(count == 0 || count > TX_BUF_SIZE)  
     {  
         return;  
@@ -527,25 +527,25 @@ static void cc1101_send(void*_buf, unsigned short count)
        
       if device is receive mode, tx buf free size is TX_BUF_SIZE 
     */  
-  rt_kprintf("cc1101 send 1\r\n");
+  //rt_kprintf("cc1101 send 1\r\n");
     cc1101_write_tx_buf(buf, count);  
-  rt_kprintf("cc1101 send 2\r\n");
+  //rt_kprintf("cc1101 send 2\r\n");
     if(rf_dev.mode == MODE_RX)  
     {  
-    	rt_kprintf("cc1101 send 3\r\n");
+    	//rt_kprintf("cc1101 send 3\r\n");
         if(count < MAX_FIFO_SIZE)  
         {  
             cc1101_read_tx_buf(buf_tmp, count);  
             cc1101_send_packet(buf_tmp, count);  
-			rt_kprintf("cc1101 send 4\r\n");
+			//rt_kprintf("cc1101 send 4\r\n");
         }  
         else if(count >= MAX_FIFO_SIZE)  
         {  
             cc1101_read_tx_buf(buf_tmp, MAX_FIFO_SIZE);  
             cc1101_send_packet(buf_tmp, MAX_FIFO_SIZE);  
-			rt_kprintf("cc1101 send 5\r\n");
+			//rt_kprintf("cc1101 send 5\r\n");
         }  
-  		rt_kprintf("cc1101 send 6\r\n");
+  		//rt_kprintf("cc1101 send 6\r\n");
         cc1101_set_tx_mode();  
     }  
 	rt_kprintf("cc1101 send 7\r\n");
@@ -599,13 +599,13 @@ void cc1101_isr(void)
 	#if 1
     if(rf_dev.mode  == MODE_RX)  
     {  
-    	rt_kprintf("got cc1101 data begin\r\n");
+    	//rt_kprintf("got cc1101 data begin\r\n");
 		cc1101_crash_cnt++;
         cc1101_gdo0_rx_it();  
     }  
     else if(rf_dev.mode == MODE_TX)     
     {  
-    	rt_kprintf("send cc1101 data end\r\n");
+    	//rt_kprintf("send cc1101 data end\r\n");
         cc1101_gdo0_tx_it();  
     }  
     else  
@@ -759,7 +759,7 @@ int radio_receive_on(void) {
 	return(0);
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
-	rt_kprintf("send %s, len %d\r\n",payload, payload_len);
+	//rt_kprintf("send %s, len %d\r\n",payload, payload_len);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
 	/* Range extender in TX mode */
 #ifdef ENABLE_RANGE_EXTENDER
@@ -782,7 +782,7 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 
 	/* Read number of bytes in RX FIFO */
 	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXBYTES, &pktLen, 1);
-	rt_kprintf("pktLen %d\r\n", pktLen);
+	//rt_kprintf("pktLen %d\r\n", pktLen);
 	pktLen = pktLen  & NUM_RXBYTES;
 	/* make sure the packet size is appropriate, that is 1 -> buffer_size */
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
