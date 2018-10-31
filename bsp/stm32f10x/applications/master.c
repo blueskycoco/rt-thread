@@ -653,7 +653,9 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 					memcpy(g_ftp,cmd+10,cmd[9]);
 					rt_kprintf("ftp addrss %s\r\n",g_ftp);
 					
-				if (!cur_status) {
+				if (!cur_status) {					
+					g_exit_reason = 0x01;
+					upload_server(CMD_EXIT);
 					entering_ftp_mode = 1;							
 					if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
 								(g_index == 0 && g_type0 == PCIE_1_NBIOT))
