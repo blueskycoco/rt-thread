@@ -110,8 +110,8 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 	rt_kprintf("to get addr\r\n");
 	for (i=0;i<len;i++)
 	{
-		rt_kprintf("%d subId %08x, sn %08x, addr %x\r\n",
-			i, subId, list[i].slave_sn,list[i].index);
+		//rt_kprintf("%d subId %08x, sn %08x, addr %x\r\n",
+		//	i, subId, list[i].slave_sn,list[i].index);
 		if (subId == list[i].slave_sn)
 			return list[i].index;
 	}
@@ -125,7 +125,7 @@ char get_addr(rt_uint32_t subId, struct FangQu *list, int len)
 		while(list[i].index != 0)
 			i++;
 	}
-	rt_kprintf("i %d\r\n", i);
+	rt_kprintf("get_addr %d\r\n", i);
 	if (len == WIRELESS_MAX)
 		return i+2;
 	else

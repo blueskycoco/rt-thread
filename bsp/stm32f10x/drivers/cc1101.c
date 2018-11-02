@@ -479,7 +479,7 @@ static void cc1101_gdo0_tx_it(void)
         if device into IDLE, prove transmit end. 
     */  
    // rt_time_t cur_time = time(RT_NULL);
-    //rt_kprintf("tx 1count \r\n");
+ //   rt_kprintf("tx 1count \r\n");
     while(status & 0x70)  
     {  
         status = trxSpiCmdStrobe(RF_SNOP);
@@ -488,7 +488,7 @@ static void cc1101_gdo0_tx_it(void)
 			break;
     }  
 	//cur_time = time(RT_NULL);
-	//rt_kprintf("tx 2count %d %d\r\n", wait_tx_count,loop);
+	rt_kprintf("tx 2count %d %d\r\n", wait_tx_count,loop);
     if(wait_tx_count == 0)  
     {               
         cc1101_set_rx_mode();  
@@ -514,7 +514,7 @@ static void cc1101_send(void*_buf, unsigned short count)
 {  
     unsigned char *buf = (unsigned char *)_buf;  
     unsigned char buf_tmp[TX_BUF_SIZE];  
-  //rt_kprintf("cc1101 send 0 %d\r\n",count);
+//  rt_kprintf("cc1101 send 0 %d\r\n",count);
     if(count == 0 || count > TX_BUF_SIZE)  
     {  
         return;  
@@ -527,9 +527,9 @@ static void cc1101_send(void*_buf, unsigned short count)
        
       if device is receive mode, tx buf free size is TX_BUF_SIZE 
     */  
-  //rt_kprintf("cc1101 send 1\r\n");
+ // rt_kprintf("cc1101 send 1\r\n");
     cc1101_write_tx_buf(buf, count);  
-  //rt_kprintf("cc1101 send 2\r\n");
+ // rt_kprintf("cc1101 send 2\r\n");
     if(rf_dev.mode == MODE_RX)  
     {  
     	//rt_kprintf("cc1101 send 3\r\n");
@@ -548,7 +548,7 @@ static void cc1101_send(void*_buf, unsigned short count)
   		//rt_kprintf("cc1101 send 6\r\n");
         cc1101_set_tx_mode();  
     }  
-	rt_kprintf("cc1101 send 7\r\n");
+//	rt_kprintf("cc1101 send 7\r\n");
 }  
 void cc1101_send_write(void*_buf, unsigned short count)  
 {  

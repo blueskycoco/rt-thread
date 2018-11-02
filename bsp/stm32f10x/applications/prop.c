@@ -558,13 +558,13 @@ void save_param(int type)
 		rt_kprintf("crc %x\r\n", crc);
 		level = rt_hw_interrupt_disable();
 		length = write(fd, &crc, sizeof(rt_uint16_t));
-		fsync(fd);
-		rt_hw_interrupt_enable(level);
+		//fsync(fd);
+		//rt_hw_interrupt_enable(level);
 		if (length != sizeof(rt_uint16_t))
 		{
 			rt_kprintf("write mp crc data failed %d\n",length);
 		}
-		level = rt_hw_interrupt_disable();
+		//level = rt_hw_interrupt_disable();
 		length = write(fd, &mp, sizeof(mp));
 		fsync(fd);
 		rt_hw_interrupt_enable(level);
@@ -584,7 +584,7 @@ void save_param(int type)
 		rt_kprintf("fqp crc %x\r\n", crc);
 		level = rt_hw_interrupt_disable();
 		write(fd, &crc, sizeof(rt_uint16_t));
-		fsync(fd);
+		//fsync(fd);
 		length = write(fd, &fqp, sizeof(fqp));
 		fsync(fd);
 		rt_hw_interrupt_enable(level);
@@ -599,7 +599,7 @@ void save_param(int type)
 		rt_kprintf("wireless crc %x\r\n", crc);
 		level = rt_hw_interrupt_disable();
 		write(fd, &crc, sizeof(rt_uint16_t));
-		fsync(fd);
+		//fsync(fd);
 		length = write(fd, fangqu_wireless, sizeof(struct FangQu)*WIRELESS_MAX);
 		fsync(fd);
 		rt_hw_interrupt_enable(level);
@@ -614,7 +614,7 @@ void save_param(int type)
 		rt_kprintf("wire crc %x\r\n", crc);
 		level = rt_hw_interrupt_disable();
 		write(fd, &crc, sizeof(rt_uint16_t));
-		fsync(fd);
+		//fsync(fd);
 		length = write(fd, fangqu_wire, sizeof(struct FangQu)*WIRE_MAX);
 		fsync(fd);
 		rt_hw_interrupt_enable(level);

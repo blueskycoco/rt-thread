@@ -696,6 +696,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				/******************************************************************************************************************************************/				
 			case M26_STATE_CFG_FTP:
 				{
+					rt_kprintf("ftp_cfg_step %d\r\n", ftp_cfg_step);
 					if (ftp_cfg_step == 0) {
 						rt_sprintf(qiftp_m26,"AT+QFTPPASS=\"%s\"\r\n", ftp_passwd);
 						gprs_at_cmd(g_dev_m26,qiftp_m26);
