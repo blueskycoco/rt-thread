@@ -914,9 +914,9 @@ void rt_init_thread_entry(void* parameter)
 		if (len > 0)
 		{		
 			//rt_mutex_take(&g_stm32_lock,RT_WAITING_FOREVER);
-			//rt_kprintf("\r\ncc1101 recv data %d:",len);
-			//cc1101_hex_printf1(buf1,len);
-			//rt_kprintf("\r\n");
+			rt_kprintf("\r\ncc1101 recv data %d:",len);
+			cc1101_hex_printf1(buf1,len);
+			rt_kprintf("\r\n");
 			print_ts("CC1101");
 			handleSub(buf1);				
 			rt_mutex_release(&g_stm32_lock);
