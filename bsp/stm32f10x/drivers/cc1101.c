@@ -333,17 +333,20 @@ static void cc1101_set_tx_mode(void)
 static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)  
 { 
 	int i;
+	rt_uint8_t tmp[128];
     unsigned char packet_len, status[2];
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &packet_len, 1);
-	//rt_kprintf("packet len is %x\r\n",packet_len);
-    if((packet_len & 0x7f) == 0 || (packet_len & 0x80) != 0)    
+	rt_kprintf("packet len is %x\r\n",packet_len);
+    if((packet_len & 0x7f) == 0)    
     {  
+    	if (packet_len & 0x80)
+			trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, tmp, 128);
         return -1;  
     }  
   
     //packet_len = cc1101_read_signle_reg(RF_RXFIFO);  
     trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &packet_len, 1);
-	//rt_kprintf("packet len is %d\r\n",packet_len);
+	rt_kprintf("packet len is %d %d\r\n",packet_len, *count);
     if(packet_len <= *count)  
     {  
         //cc1101_read_burst_reg(RF_RXFIFO, buf, packet_len);            
@@ -361,8 +364,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
     }  
     else   
     {  
-        cc1101_set_rx_mode();  
-           
+        cc1101_set_rx_mode();
         return -3;  
     }       
        
