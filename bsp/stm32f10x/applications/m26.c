@@ -387,7 +387,7 @@ void m26_start(int index)
 	rt_uint16_t power_pin,pwr_key_pin;
 	GPIO_TypeDef* GPIO_power,*GPIO_pwr;
 	GPIO_InitTypeDef GPIO_InitStructure;
-	g_index = index;
+	//g_index = index;
 	g_dev_m26 = g_pcie[index]->dev;
 	if (index) {
 		power_rcc = RCC_APB2Periph_GPIOB;
@@ -1015,7 +1015,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_server_port = mp.socketAddress[g_ip_index].port;
 					g_server_addr_bak = g_server_addr;
 					g_server_port_bak = g_server_port;					
-					rt_kprintf("connect to server ok\r\n");
+					rt_kprintf("connect to server ok %d\r\n",g_index);
 					g_heart_cnt=0;
 					g_net_state = NET_STATE_INIT;
 					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);

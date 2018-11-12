@@ -715,9 +715,9 @@ void send_process(void* parameter)
 	int send_len = 0;
 
 	while(1)	{
-		//rt_kprintf("wait for event\r\n");
+		rt_kprintf("wait for event %d\r\n",g_index);
 		gprs_wait_event(RT_WAITING_FOREVER);
-		//rt_kprintf("wait lock\r\n");		
+		rt_kprintf("wait lock\r\n");		
 		if (entering_ftp_mode)
 		{
 			if (bc26_module && g_net_state == NET_STATE_INIT) {
@@ -854,8 +854,18 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	}
 	if (type1) {
 		rt_device_set_rx_indicate(g_pcie[1]->dev, pcie1_rx_ind);
-		rt_thread_startup(rt_thread_create("3pcie1",pcie1_rcv, 0,1524, 15, 10));
+		rt_thread_startup(rt_thread_create("3pcie1",pcie1_rcv, 0,1524, 20, 10));
 		rt_thread_startup(rt_thread_create("4pcie1", pcie1_sm,  0,2048, 20, 10));
+	}
+	if (type0 && (!type1))
+		g_index = 0;
+	else if ((!type0) && type1)
+		g_index = 1;
+	else {
+		if (type0 == PCIE_1_EC20 && type1 == PCIE_2_M26)
+			g_index = 0;
+		else if (type0 == PCIE_1_M26 && type1 == PCIE_2_EC20)
+			g_index = 1;
 	}
 	rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 15, 10));
 	rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
