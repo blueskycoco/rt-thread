@@ -363,7 +363,8 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
         return ((status[1] & 0x80) ? 0 : -2);  
     }  
     else   
-    {  
+    {
+    	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, tmp, 128);
         cc1101_set_rx_mode();
         return -3;  
     }       

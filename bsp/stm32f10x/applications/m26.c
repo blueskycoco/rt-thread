@@ -1007,6 +1007,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					//	rt_hw_led_on(NET_LED);
 
 
+
 					/*send data here */
 					g_server_addr = (mp.socketAddress[g_ip_index].IP[0] << 24)|
 						(mp.socketAddress[g_ip_index].IP[1] << 16)|
@@ -1022,6 +1023,12 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_m26,at_csq);
 					rt_hw_led_on(NET_LED);
 					//entering_ftp_mode=1;
+
+					
+					/*test codex
+					g_heart_cnt=0;
+					g_net_state = NET_STATE_UNKNOWN;
+					pcie_switch(g_module_type);*/
 				} 
 				else if (have_str(last_data_ptr, STR_SOCKET_BUSSY) ||
 					have_str(last_data_ptr,STR_CONNECT_FAIL)){

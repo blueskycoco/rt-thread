@@ -609,7 +609,7 @@ static void led_thread_entry(void* parameter)
 			if (in_qiact) {
 				rt_kprintf("qi act times %d\r\n", qiact_times);
 				qiact_times++;
-				if (qiact_times > 180)
+				if (qiact_times > 180/*20*//*180*/)
 					m26_restart_flag = 1;
 			}
 		}
