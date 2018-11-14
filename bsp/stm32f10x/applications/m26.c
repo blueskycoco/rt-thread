@@ -184,6 +184,13 @@ extern rt_uint8_t in_qiact;
 extern rt_uint32_t qiact_times;
 extern rt_uint8_t m26_restart_flag;
 extern void begin_yunduo();
+void reset_at_timeout()
+{
+	in_qiact=1;
+	m26_restart_flag=0;
+	qiact_times=0;
+	m26_restart_flag = 0;
+}
 void handle_m26_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
@@ -441,6 +448,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 		else
 			rt_kprintf("\r\n(M26<= %d %d)\r\n",g_m26_state, data_size);
 #else
+
+	reset_at_timeout();
 	if (!have_str(last_data_ptr,STR_CSQ)) {
 		rt_kprintf("\r\n<== (M26 %d %d)\r\n",g_m26_state, data_size);
 		for (i=0; i<data_size; i++)
@@ -945,24 +954,15 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_m26_state = M26_STATE_SET_QIACT;
 					gprs_at_cmd(g_dev_m26,qiact);
 					rt_kprintf("start qiact cnt\r\n");
-					in_qiact=1;
 				}
 				break;		
 			case M26_STATE_SET_QIACT:
 				if (entering_ftp_mode && have_str(last_data_ptr, STR_OK)) {
-						in_qiact=0;
-						m26_restart_flag=0;
-						qiact_times=0;
-						m26_restart_flag = 0;
 					g_m26_state = M26_STATE_CFG_FTP;
 					rt_sprintf(qiftp_m26,"AT+QFTPUSER=\"%s\"\r\n", ftp_user);
 					gprs_at_cmd(g_dev_m26,qiftp_m26);
 				} else {
 					if (have_str(last_data_ptr, STR_OK)) {
-						in_qiact=0;
-						m26_restart_flag=0;
-						qiact_times=0;
-						m26_restart_flag = 0;
 						g_m26_state = M26_STATE_SET_QIOPEN;
 						rt_memset(qiopen_m26, 0, 64);
 						if (use_domain) {
@@ -1024,7 +1024,6 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_hw_led_on(NET_LED);
 					//entering_ftp_mode=1;
 
-					
 					/*test codex
 					g_heart_cnt=0;
 					g_net_state = NET_STATE_UNKNOWN;
