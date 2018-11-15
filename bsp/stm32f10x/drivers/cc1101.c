@@ -3,6 +3,7 @@
 #include "spi1.h"
 #include "cc1101_def.h"
 #include "cc1101.h"
+#include "bsp_misc.h"
 #define RF_XTAL 26000
 #define SCALING_FREQ     (float)((RF_XTAL)/65.536)
 #define SCALING_FREQEST  (unsigned long)((RF_XTAL)/16.384)
@@ -251,6 +252,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{FSCTRL1,	0x06},
 	{ADDR,		0x01},
 	{PKTCTRL1, 	0x05},
+	{PKTLEN,	0x1f},
 	#if 0
     {FREQ2,		0x10},
 	{FREQ1,		0xa7},
@@ -277,6 +279,19 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{TEST0,		0x09},
 	{PATABLE,	0xCB} 
 };
+void cc1101_cal(void)
+{	
+	uint8_t chipstate;
+    trxSpiCmdStrobe(RF_SFRX);
+    trxSpiCmdStrobe(RF_SIDLE);
+	trxSpiCmdStrobe(RF_SCAL);
+    //do {
+	//	trx8BitRegAccess(RADIO_READ_ACCESS+RADIO_BURST_ACCESS, MARCSTATE, &chipstate, 1);
+    //} while (chipstate != MARCSTATE_IDLE);
+    rt_thread_delay(10);
+    trxSpiCmdStrobe(RF_SRX);
+	print_ts("manul cal cc1101");
+}
 static void cc1101_set_rx_mode(void)  
 {  
 
@@ -336,7 +351,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 	rt_uint8_t tmp[128];
     unsigned char packet_len, status[2];
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &packet_len, 1);
-	rt_kprintf("packet len is %x\r\n",packet_len);
+	rt_kprintf("packet len1 is %x\r\n",packet_len);
     if((packet_len & 0x7f) == 0)    
     {  
     	if (packet_len & 0x80)
@@ -346,7 +361,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
   
     //packet_len = cc1101_read_signle_reg(RF_RXFIFO);  
     trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &packet_len, 1);
-	rt_kprintf("packet len is %d %d\r\n",packet_len, *count);
+	rt_kprintf("packet len2 is %d %d\r\n",packet_len, *count);
     if(packet_len <= *count)  
     {  
         //cc1101_read_burst_reg(RF_RXFIFO, buf, packet_len);            
@@ -357,7 +372,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 		//rt_kprintf("status %x %x \r\n",status[0],status[1]);
 		//trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, RSSI, &status[0], 1);
 		//trx8BitRegAccess(RADIO_READ_ACCESS | RADIO_BURST_ACCESS, LQI, &status[1], 1);
-		//rt_kprintf("status %x %x \r\n",status[0],status[1]);
+		rt_kprintf("status %x %x \r\n",status[0],status[1]);
         //*count = packet_len;  
         r_signal = status[0];
         return ((status[1] & 0x80) ? 0 : -2);  

@@ -90,6 +90,7 @@ rt_uint8_t in_qiact=0;
 rt_uint32_t qiact_times=0;
 rt_uint8_t m26_restart_flag=0;
 struct rt_semaphore yunduo_sem;
+rt_uint32_t cc1101_cal_time = 0;
 extern rt_uint32_t cc1101_crash_cnt;
 extern rt_uint8_t g_heart_cnt;
 extern rt_uint8_t g_module_type;
@@ -613,6 +614,12 @@ static void led_thread_entry(void* parameter)
 					m26_restart_flag = 1;
 			}
 		}
+
+		if (cc1101_cal_time == 300) {
+			cc1101_cal();
+			cc1101_cal_time = 0;
+		} else 
+			cc1101_cal_time++;
 	}
 }
 
