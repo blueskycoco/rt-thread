@@ -349,6 +349,43 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
 { 
 	int i;
 	rt_uint8_t tmp[128];
+    unsigned char packet_len, status[2],packet_len_v,marc;
+  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &packet_len_v, 1);
+	rt_kprintf("packet len1 is %x\r\n",packet_len_v);
+	do {
+		packet_len = packet_len_v;
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &packet_len_v, 1);
+	} while (packet_len_v != packet_len);
+
+	if (packet_len != 0) {
+		//trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, MARCSTATE, &marc, 1);
+		//if ((marc & 0x1f) == 0x11) {
+		if (packet_len & 0x80) {
+			trxSpiCmdStrobe(RF_SFRX);
+			rt_kprintf("cc1101 rxfifo overflow\r\n");
+		} else {
+			trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &packet_len, 1);
+			rt_kprintf("packet len2 is %d %d\r\n",packet_len, *count);
+			if(packet_len <= *count) {
+				trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, buf, packet_len);
+				*count = packet_len;
+				trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, status, 2);
+				r_signal = status[0];
+				rt_kprintf("status %x %x \r\n",status[0],status[1]);
+				//cc1101_set_rx_mode();
+				return ((status[1] & 0x80) ? 0 : -2);
+			}
+		}
+	} else
+		rt_kprintf("cc1101 no data in\r\n");
+	cc1101_set_rx_mode();
+	return -3;
+      
+}  
+static int cc1101_receive_packet_ori(unsigned char *buf, unsigned char *count)  
+{ 
+	int i;
+	rt_uint8_t tmp[128];
     unsigned char packet_len, status[2];
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &packet_len, 1);
 	rt_kprintf("packet len1 is %x\r\n",packet_len);
@@ -385,6 +422,7 @@ static int cc1101_receive_packet(unsigned char *buf, unsigned char *count)
     }       
        
 }  
+
 static int cc1101_send_packet(unsigned char *buf, unsigned char count)  
 {     
     rt_kprintf("cc1101 send data %d:", count);  
