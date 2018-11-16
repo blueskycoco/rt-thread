@@ -102,7 +102,7 @@ static void pcie1_rcv(void* parameter)
 				continue;
 			}
 			#else
-			if (total_len > 1024)
+			if (total_len > 1200)
 			{
 				rt_kprintf("1total len %d\r\n", total_len);
 				total_len = 0;
@@ -166,7 +166,7 @@ static void pcie0_rcv(void* parameter)
 			rt_data_queue_push(&g_data_queue[0], rcv, total_len, RT_WAITING_FOREVER);
 			total_len = 0;
 			#else
-			if (total_len > 1024)
+			if (total_len > 1200)
 			{
 				rt_kprintf("0total len %d\r\n", total_len);
 				total_len = 0;

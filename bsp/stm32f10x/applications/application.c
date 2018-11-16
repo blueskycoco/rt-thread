@@ -597,7 +597,7 @@ static void led_thread_entry(void* parameter)
 			rt_kprintf("cc1101 crash , reseting\r\n");
 			radio_intit2();
 		}*/
-
+		rt_kprintf("test 1\r\n");
 		if (m26_restart_flag) {
 			rt_kprintf("restart m26 ...\r\n");
 			in_qiact=0;
@@ -614,12 +614,15 @@ static void led_thread_entry(void* parameter)
 					m26_restart_flag = 1;
 			}
 		}
+		rt_kprintf("test 2\r\n");
 
 		if (cc1101_cal_time == 300) {
 			cc1101_cal();
+			cc1101_gdo0_rx_it();  
 			cc1101_cal_time = 0;
 		} else 
 			cc1101_cal_time++;
+		rt_kprintf("test 3\r\n");
 	}
 }
 

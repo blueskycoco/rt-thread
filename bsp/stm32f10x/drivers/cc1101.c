@@ -439,7 +439,7 @@ void wait_cc1101_sem()
 {
 		rt_sem_take(&cc1101_rx_sem, RT_WAITING_FOREVER);
 }
-static void cc1101_gdo0_rx_it(void)  
+void cc1101_gdo0_rx_it(void)  
 {  
     unsigned char rx_buf[MAX_FIFO_SIZE], rx_count;  
     int ret, i;  
