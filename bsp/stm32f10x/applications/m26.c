@@ -434,6 +434,7 @@ void m26_start(int index)
 	strcpy(ftp_user,"minfei");
 	strcpy(ftp_passwd,"minfei123");
 	g_m26_state = M26_STATE_INIT;
+	reset_at_timeout();
 }
 
 void m26_proc(void *last_data_ptr, rt_size_t data_size)

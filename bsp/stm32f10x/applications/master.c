@@ -198,7 +198,7 @@ void info_user(void *param)
 			g_sub_event_code = 0x2002;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
-			
+			rt_kprintf("bufang 1 %d %d\r\n",g_yanshi,g_remote_protect);
 			//g_operater[5] = 0x10;	
 			if (!g_yanshi) {
 				if (g_remote_protect != 1)
@@ -224,6 +224,7 @@ void info_user(void *param)
 					g_operate_platform = 0xff;
 					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 					Wtn6_JoinPlay(voice,2,1);
+					rt_kprintf("play yaokong bufang voice\r\n");
 					 	}
 					upload_server(CMD_SUB_EVENT);
 					upload_sub_status();
@@ -244,18 +245,23 @@ void info_user(void *param)
 				   }
 				}
 			}
-			/*else 
+			else 
 			{
 				if (g_remote_protect != 1)
 				{	
-					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
-					Wtn6_JoinPlay(voice,2,1);
+					if (!time_protect) {
+						rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+						Wtn6_JoinPlay(voice,2,1);
+					} else {
+						Wtn6_Play(VOICE_BUFANG,ONCE,1);
+						rt_kprintf("s button yanshi bufang\r\n");
+					}
 				} else {
 					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
 					Wtn6_JoinPlay(voice,2,1);
 				   }
 				
-			}*/
+			}
 			time_protect =0;
 			g_yanshi = 0;
 		}		
@@ -344,7 +350,7 @@ void info_user(void *param)
 				rt_thread_delay(100);
 				GPIO_ResetBits(GPIOE, GPIO_Pin_11);
 			}		
-			rt_kprintf("\r\n\r\nnow stm32 is protect off %d\r\n\r\n",g_remote_protect);
+			rt_kprintf("\r\n\r\nnow stm32 is protect off %d %d\r\n\r\n",g_remote_protect,time_protect);
 			g_sub_event_code = 0x2001;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;

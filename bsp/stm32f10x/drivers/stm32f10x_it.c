@@ -246,6 +246,8 @@ void EXTI9_5_IRQHandler(void)
 				short_press++;
 				if (short_press >= 2) {
 					short_press=0;
+					if (!time_protect) {
+						
 					if (cur_status) {
 						if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
 						{
@@ -276,6 +278,7 @@ void EXTI9_5_IRQHandler(void)
 							handle_protect_on();
 							s_cnt=e_cnt=rt_tick_get();
 						}
+					}
 					}
 				}
 			}

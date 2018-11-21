@@ -715,7 +715,7 @@ void send_process(void* parameter)
 	int send_len = 0;
 
 	while(1)	{
-		rt_kprintf("wait for event %d\r\n",g_index);
+		rt_kprintf("1120wait for event %d\r\n",g_index);
 		gprs_wait_event(RT_WAITING_FOREVER);
 		rt_kprintf("wait lock\r\n");		
 		if (entering_ftp_mode)
