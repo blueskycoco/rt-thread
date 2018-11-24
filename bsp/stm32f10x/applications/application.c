@@ -94,6 +94,7 @@ rt_uint32_t cc1101_cal_time = 0;
 extern rt_uint32_t cc1101_crash_cnt;
 extern rt_uint8_t g_heart_cnt;
 extern rt_uint8_t g_module_type;
+extern struct rt_object_information rt_object_container[];
 extern int readwrite();
 extern rt_err_t set_alarm(rt_uint32_t hour, rt_uint32_t minute, rt_uint32_t second);
 extern void list_dir(const char* path);
@@ -479,7 +480,7 @@ static void led_thread_entry(void* parameter)
 		}
 		/*delay protect on*/
 		if (!g_mute) {
-				//rt_kprintf("delay protect %d\r\n", g_delay_out);
+				rt_kprintf("delay protect %d\r\n", g_delay_out);
 				if (g_delay_out > 10)
 					g_delay_out -= 1;
 				else if (g_delay_out >0 && g_delay_out <= 10){
@@ -614,11 +615,12 @@ static void led_thread_entry(void* parameter)
 					m26_restart_flag = 1;
 			}
 		}
-		rt_kprintf("test 2\r\n");
+		rt_kprintf("test 22 %d\r\n",cc1101_cal_time);
 
 		if (cc1101_cal_time == 300) {
-			cc1101_cal();
-			cc1101_gdo0_rx_it();  
+			//cc1101_cal();
+			//cc1101_gdo0_rx_it();  
+			_list_thread(&rt_object_container[RT_Object_Class_Thread].object_list);
 			cc1101_cal_time = 0;
 		} else 
 			cc1101_cal_time++;

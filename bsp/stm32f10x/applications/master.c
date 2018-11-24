@@ -133,6 +133,7 @@ void info_user(void *param)
 	while (1) {
 		rt_event_recv( &(g_info_event), 0xffffffff, RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ); 
 		rt_mutex_take(&g_stm32_lock,RT_WAITING_FOREVER);
+		rt_kprintf("get message %d\r\n", ev);
 		if (ev & INFO_EVENT_CODING) {
 			if (cur_status == 1) {
 				/*need protection off first
@@ -596,7 +597,7 @@ rt_inline void object_split(int len)
     while (len--) rt_kprintf("-");
 }
 
-static long _list_thread(struct rt_list_node *list)
+long _list_thread(struct rt_list_node *list)
 {
     int maxlen;
     rt_uint8_t *ptr;

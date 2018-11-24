@@ -305,7 +305,7 @@ void EXTI9_5_IRQHandler(void)
 					short_press=0;
 					rt_kprintf("factory reset");
 					rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
-				} else if (diff > 50) {
+				} else if (diff > 50 && diff < 1000) {
 					short_press=0;
 					rt_kprintf("coding or not");
 					if (g_main_state==0)

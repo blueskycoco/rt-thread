@@ -50,11 +50,13 @@ extern rt_uint8_t bc26_module;
 rt_uint8_t update_flag=0;
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
+	rt_kprintf("got data from 0\r\n");
 	rt_sem_release(&(g_pcie[0]->sem));
 	return RT_EOK;
 }
 static rt_err_t pcie1_rx_ind(rt_device_t dev, rt_size_t size)
 {
+	rt_kprintf("got data from 1\r\n");
 	rt_sem_release(&(g_pcie[1]->sem));
 	return RT_EOK;
 }
@@ -110,9 +112,13 @@ static void pcie1_rcv(void* parameter)
 			}
 			
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
-			rt_memcpy(rcv2, buf, total_len);			
-			rcv2[total_len]='\0';
-			rt_data_queue_push(&g_data_queue[1], rcv2, total_len, RT_WAITING_FOREVER);
+			if (rcv2!=RT_NULL) {
+				rt_memcpy(rcv2, buf, total_len);			
+				rcv2[total_len]='\0';
+				rt_kprintf("push data 1\r\n");
+				rt_data_queue_push(&g_data_queue[1], rcv2, total_len, RT_WAITING_FOREVER);
+			} else 
+				rt_kprintf("rcv2 null\r\n");
 			total_len = 0;
 			rt_memset(buf,0,1600);
 			#endif
@@ -173,9 +179,13 @@ static void pcie0_rcv(void* parameter)
 				continue;
 			}
 			rt_uint8_t *rcv2 = rt_mp_alloc(pci_mp, RT_WAITING_FOREVER);
+			if (rcv2 != RT_NULL) {
 			rt_memcpy(rcv2, buf, total_len);			
 			rcv2[total_len]='\0';
+			rt_kprintf("push data 0\r\n");
 			rt_data_queue_push(&g_data_queue[0], rcv2, total_len, RT_WAITING_FOREVER);
+			} else
+				rt_kprintf("rcv22 null\r\n");
 			total_len = 0;
 			rt_memset(buf,0,1600);
 			#endif

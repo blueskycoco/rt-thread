@@ -281,7 +281,7 @@ void check_off_line_alarm()
 			if (fangqu_ts[i].index < 50) 
 				timeout_ts = 25*60*60;
 			
-			if ((cur_time - fangqu_ts[i].heart_ts) > timeout_ts) {
+			if ((cur_time>fangqu_ts[i].heart_ts) && (cur_time - fangqu_ts[i].heart_ts) > timeout_ts) {
 				if (fangqu_ts[i].slave_type != 0x01 && fangqu_ts[i].off_line == 0) {
 					g_alarm_fq = fangqu_ts[i].index;
 					g_alarm_reason = 0x0005;

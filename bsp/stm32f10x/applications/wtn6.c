@@ -48,6 +48,7 @@ void Wtn6_Init(void)
 */
 void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne)
 {
+	rt_kprintf("Wtn6_Set_Volumne %d\r\n", volumne);
 	Send_Command(volumne);
 }
 void Stop_Played(void)

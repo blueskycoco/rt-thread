@@ -672,6 +672,7 @@ void cc1101_isr(void)
 		cc1101_gdo0_rx_it();  
 		cc1101_gdo0_tx_it();  
 	#endif
+	trxSpiCmdStrobe(RF_SCAL);
 }  
 unsigned char set_rf_packet_length(unsigned char length) {
   unsigned char reg_value;

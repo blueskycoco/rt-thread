@@ -186,6 +186,7 @@ extern rt_uint8_t m26_restart_flag;
 extern void begin_yunduo();
 void reset_at_timeout()
 {
+	rt_kprintf("reset m26 timer\r\n");
 	in_qiact=1;
 	m26_restart_flag=0;
 	qiact_times=0;
@@ -451,7 +452,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 #else
 
 	reset_at_timeout();
-	if (!have_str(last_data_ptr,STR_CSQ)) {
+	//if (!have_str(last_data_ptr,STR_CSQ)) {
 		rt_kprintf("\r\n<== (M26 %d %d)\r\n",g_m26_state, data_size);
 		for (i=0; i<data_size; i++)
 			if (isascii(tmp[i]) && (g_m26_state != M26_STATE_READ_FILE))
@@ -463,7 +464,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
 		
 		}
-	}
+	//}
 #endif
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
@@ -471,10 +472,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 			g_m26_state = M26_STATE_INIT;
 			if (have_str(last_data_ptr,STR_PDP_DEACT)) {
 				rt_kprintf("MODULE lost\r\n");
-				g_heart_cnt=0;
-				g_net_state = NET_STATE_UNKNOWN;
 				pcie_switch(g_module_type);
 			}
+			g_heart_cnt=0;
+			g_net_state = NET_STATE_UNKNOWN;
 		}
 		switch (g_m26_state) {
 			case M26_STATE_INIT:
@@ -483,6 +484,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_m26_state = M26_STATE_ATE0;
 					gprs_at_cmd(g_dev_m26,e0);	
 				}
+				show_signal(0);
 				break;
 			case M26_STATE_ATE0:
 				if (have_str(last_data_ptr,STR_OK)) {
