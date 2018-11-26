@@ -80,7 +80,7 @@ struct rt_mutex g_stm32_lock;
 extern rt_uint8_t g_alarm_fq;
 extern rt_uint16_t g_alarm_reason;
 rt_uint16_t should_upload_bat = 0;
-rt_uint32_t should_notify_infrar_normal_mode=0;
+//rt_uint32_t should_notify_infrar_normal_mode=0;
 rt_uint8_t time_protect=0;
 extern rt_uint8_t g_remote_protect;
 extern rt_uint8_t g_fq_index;
@@ -585,13 +585,13 @@ static void led_thread_entry(void* parameter)
 			should_upload_bat = 1;
 		}
 		should_upload_bat++;
-
+#if 0
 		if (should_notify_infrar_normal_mode > 3600/*21600*/) {
 			get_infrar_normal_mode();
 			should_notify_infrar_normal_mode=0;
 		}
 		should_notify_infrar_normal_mode++;
-
+#endif
 		//rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
 		/*if (cc1101_crash_cnt > 4) {
 			cc1101_crash_cnt=0;

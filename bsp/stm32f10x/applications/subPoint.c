@@ -45,6 +45,7 @@ extern rt_uint8_t g_fq_index;
 extern rt_uint8_t  	g_operationType;
 extern rt_uint8_t  	g_voiceType;
 extern rt_uint8_t s_bufang;
+rt_uint8_t wireless_infrar_mode = 0;
 char *cmd_type(rt_uint16_t type)
 {
 	switch (type) {
@@ -186,15 +187,15 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 		else
 			list[index].voiceType = 0;
 		
-		if ((param1 & 0x40))
+		/*if ((param1 & 0x40))
 			list[index].slave_delay = 1;
 		else
 			list[index].slave_delay = 0;
-		
-		if ((param1 & 0x20))
+		*/
+	/*	if ((param1 & 0x20))
 			list[index].normal_info= 1;
 		else
-			list[index].normal_info = 0;
+			list[index].normal_info = 0;*/
 		/*
 		if ((param1 & 0x10))
 			list[index].isBypass = 1;
@@ -399,7 +400,7 @@ void cmd_dump(rt_uint8_t *data,rt_uint8_t flag)
 			dev_type = data[19];
 			dev_model = (data[20]<<8)|data[21];
 			dev_time = (data[22]<<16)|(data[23]<<8)|data[24];
-			battery = data[25]<<8|data[26];
+			battery = data[25]<<8|data[26];			
 			rt_kprintf("Dev Model :\t%04x\r\n", dev_model);
 			rt_kprintf("Dev build time :%06x\r\n", dev_time);
 		}
@@ -408,6 +409,7 @@ void cmd_dump(rt_uint8_t *data,rt_uint8_t flag)
 			dev_type = data[18];
 			tmp_sub_cmd_type = data[17];			
 			battery = data[19]<<8|data[20];
+			wireless_infrar_mode = data[21];
 			rt_kprintf("CMD SubType :\t%s\r\n",cmd_sub_type(data[17]));
 			if (dev_type == 0x43) {
 				dev_model = (data[21]<<8)|data[22];
@@ -726,5 +728,10 @@ void handleSub(rt_uint8_t *data)
 			g_alarm_fq = fangqu_wireless[g_index_sub].index;
 			upload_server(CMD_ALARM);
 		}
+	}
+	if (fangqu_wireless[g_index_sub].slave_type == 0x42)
+	{
+		fangqu_wireless[g_index_sub].slave_delay = wireless_infrar_mode;
+		rt_kprintf("wireless is in %s mode\r\n",(wireless_infrar_mode==1)?"power save":"normal");
 	}
 }
