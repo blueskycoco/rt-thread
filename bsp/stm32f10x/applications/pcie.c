@@ -50,13 +50,13 @@ extern rt_uint8_t bc26_module;
 rt_uint8_t update_flag=0;
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
-	rt_kprintf("got data from 0\r\n");
+	//rt_kprintf("got data from 0\r\n");
 	rt_sem_release(&(g_pcie[0]->sem));
 	return RT_EOK;
 }
 static rt_err_t pcie1_rx_ind(rt_device_t dev, rt_size_t size)
 {
-	rt_kprintf("got data from 1\r\n");
+	//rt_kprintf("got data from 1\r\n");
 	rt_sem_release(&(g_pcie[1]->sem));
 	return RT_EOK;
 }
@@ -115,8 +115,9 @@ static void pcie1_rcv(void* parameter)
 			if (rcv2!=RT_NULL) {
 				rt_memcpy(rcv2, buf, total_len);			
 				rcv2[total_len]='\0';
-				rt_kprintf("push data 1\r\n");
+				rt_kprintf("push data 1 %d\r\n",total_len);
 				rt_data_queue_push(&g_data_queue[1], rcv2, total_len, RT_WAITING_FOREVER);
+				rt_kprintf("push data 1 over\r\n");
 			} else 
 				rt_kprintf("rcv2 null\r\n");
 			total_len = 0;
@@ -182,8 +183,9 @@ static void pcie0_rcv(void* parameter)
 			if (rcv2 != RT_NULL) {
 			rt_memcpy(rcv2, buf, total_len);			
 			rcv2[total_len]='\0';
-			rt_kprintf("push data 0\r\n");
+			rt_kprintf("push data 0 %d\r\n",total_len);
 			rt_data_queue_push(&g_data_queue[0], rcv2, total_len, RT_WAITING_FOREVER);
+			rt_kprintf("push data 0 over\r\n");
 			} else
 				rt_kprintf("rcv22 null\r\n");
 			total_len = 0;
@@ -208,8 +210,10 @@ void pcie1_sm(void* parameter)
 	rt_thread_delay(200);
 #endif
 	while (1) 
-	{
+	{		
+		rt_kprintf("got data sm 1\r\n");
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[1], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
+		rt_kprintf("got data sm 1 %d\r\n",data_size); 
 		if (r == RT_EOK && last_data_ptr != RT_NULL) {
 			/*call different module handle function*/
 			switch (g_type1) 
@@ -245,7 +249,9 @@ void pcie0_sm(void* parameter)
 	rt_kprintf("pcie0 sm %x\r\n", g_type0);
 	while (1) 
 	{
+		rt_kprintf("got data sm 0\r\n");
 		rt_err_t r = rt_data_queue_pop(&g_data_queue[0], &last_data_ptr, &data_size, RT_WAITING_FOREVER);
+		rt_kprintf("got data sm 0 %d\r\n", data_size);
 		if (r == RT_EOK && last_data_ptr != RT_NULL) {
 			/*call different module handle function*/
 			switch (g_type0) 

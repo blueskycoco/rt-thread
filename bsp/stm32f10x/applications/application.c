@@ -95,6 +95,7 @@ extern rt_uint32_t cc1101_crash_cnt;
 extern rt_uint8_t g_heart_cnt;
 extern rt_uint8_t g_module_type;
 extern struct rt_object_information rt_object_container[];
+extern long _list_thread(struct rt_list_node *list);
 extern int readwrite();
 extern rt_err_t set_alarm(rt_uint32_t hour, rt_uint32_t minute, rt_uint32_t second);
 extern void list_dir(const char* path);

@@ -211,9 +211,11 @@ void add_fqp_t(rt_uint8_t index, rt_uint8_t slave_type)
 		fangqu_ts[g_fangqu_ts_cnt].index = index;
 		fangqu_ts[g_fangqu_ts_cnt].slave_type = slave_type;
 		g_alarm_fq = fangqu_ts[g_fangqu_ts_cnt].index;
-		g_alarm_reason = 0x0017;
 		g_fangqu_ts_cnt++;
-		upload_server(0x0004); 		
+		if (slave_type != 0x01) {
+			g_alarm_reason = 0x0017;
+			upload_server(0x0004); 	
+		}
 		
 		for (i=0; i<g_fangqu_ts_cnt; i++)
 			rt_kprintf("after add fangqu ts %d %x %d\r\n",
