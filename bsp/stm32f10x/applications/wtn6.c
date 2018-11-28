@@ -3,6 +3,7 @@
 //#include "delay.h"
 extern void speaker_ctl(int flag);
 uint8_t state_play = 0;
+uint8_t wtn6_mute = 0;
 /*
 *外部接口，初始化IO接口
 #define BUSY   PBout(0)			//芯片状态输出
@@ -49,6 +50,10 @@ void Wtn6_Init(void)
 void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne)
 {
 	rt_kprintf("Wtn6_Set_Volumne %d\r\n", volumne);
+	if (volumne == 0xe0)
+		wtn6_mute = 1;
+	else
+		wtn6_mute = 0;
 	Send_Command(volumne);
 }
 void Stop_Played(void)
@@ -64,6 +69,8 @@ void Stop_Played(void)
 */
 void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag)
 {
+	if (wtn6_mute)
+		return ;
 	speaker_ctl(1);
 	Send_Command(voice);
 	if(PlayType==LOOP)
@@ -104,6 +111,8 @@ void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag)
 void Wtn6_JoinPlay(u8 voices[],u8 size,u8 muteTimes)
 {
 	int i;
+	if (wtn6_mute)
+		return ;
 	if(size<=0) return;
 	speaker_ctl(1);
 	for(i=0;i<size;i++)
