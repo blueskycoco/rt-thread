@@ -616,6 +616,11 @@ void handleSub(rt_uint8_t *data)
 			save_fq(fangqu_wireless,WIRELESS_MAX);
 			return ;
 		}
+		if (g_main_state == 0 && (0 == command_type || 0x14 == command_type))
+		{
+			rt_kprintf("not handle sub device in case main is not in coding mode\r\n");
+			return ;
+		}
 		if (0 == command_type)
 		{	/*require cc1101 addr*/
 			resp[18] = get_addr(data[11]<<24|data[12]<<16|data[13]<<8|data[14],fangqu_wireless,WIRELESS_MAX);
