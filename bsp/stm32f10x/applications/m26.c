@@ -596,6 +596,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				gprs_at_cmd(g_dev_m26,at_qccid);
 				break;
 			case M26_STATE_ICCID:
+				if (!have_str(last_data_ptr, STR_CREG)) {
 				i=2;
 				while(tmp[i]!='\r')
 				{
@@ -617,8 +618,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				}					
 				g_m26_state = M26_STATE_IMEI;
 				gprs_at_cmd(g_dev_m26,gsn);
+				}
 				break;
 			case M26_STATE_IMEI:
+				if (!have_str(last_data_ptr, STR_CREG)) {
 				g_pcie[g_index]->imei[0]=0x0;
 				i=2;//866159032379171
 				while(tmp[i]!='\r' && i<17)
@@ -642,6 +645,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				}					
 				g_m26_state = M26_STATE_CHECK_QISTAT;
 				gprs_at_cmd(g_dev_m26,qistat);
+				}
 				break;
 			case M26_STATE_CHECK_CGREG:
 				if (have_str(last_data_ptr, STR_CGREG_READY) ||
