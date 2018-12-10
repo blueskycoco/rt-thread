@@ -955,6 +955,8 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		}
 	} else {
 		/*proc multi fq*/
+		if (g_main_state != 1 && cmd[0] == 0x02)
+			handle_protect_on();
 		proc_fq(cmd+2, 10, cmd[0]);
 		if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
 			upload_server(CMD_SUB_EVENT);
