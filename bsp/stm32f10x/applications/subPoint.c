@@ -232,7 +232,7 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 	if (code == 0x01 || code == 0x04) //protect off
 	{
 		//if (ptr[index].slave_model != 0xd001) {
-			ptr[index].status = 0;
+			ptr[index].status = TYPE_PROTECT_OFF;
 			ptr[index].isBypass = TYPE_BYPASS_N;
 			rt_kprintf("protect off fq %d\r\n", index);
 		//}
@@ -242,7 +242,7 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 	else if (code == 0x02) //protect on
 	{
 		rt_kprintf("protect on fq %d\r\n", index);
-		ptr[index].status = 1;
+		ptr[index].status = TYPE_PROTECT_ON;
 		g_sub_event_code = 0x2002;
 	}
 	else if (code == 0x03) //bypass
@@ -256,6 +256,7 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 	else if (code == 0x05)
 	{
 		rt_kprintf("delete fq %d\r\n", index);
+		del_fqp_t(ptr[index].index);
 		memset(ptr+index,0,sizeof(struct FangQu));
 	}	
 	else if (code == 0x06)

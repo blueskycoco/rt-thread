@@ -69,6 +69,9 @@ rt_uint8_t g_wire_type;
 rt_uint32_t g_wire_addr;
 //rt_uint8_t net_flow_flag=0;
 int bc28_down_fd = -1;
+extern rt_uint8_t in_qiact;
+extern rt_uint32_t qiact_times;
+rt_uint8_t m26_restart_flag;
 extern void set_alarm_now();
 extern void reset_alarm_now();
 extern 	void begin_yunduo();
@@ -565,6 +568,13 @@ void handle_login_ack(rt_uint8_t *cmd)
 		g_num = cmd[0] + 0x10;		
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);	
 		SetStateIco(3,1);
+		rt_kprintf("imei failed, restart m26 ...\r\n");
+		in_qiact=0;
+		qiact_times=0;
+		m26_restart_flag = 0;
+		g_heart_cnt=0;
+		g_net_state = NET_STATE_UNKNOWN;
+		pcie_switch(g_module_type);
 	} else {
 		g_num = 0;
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);	
@@ -907,7 +917,9 @@ void handle_proc_sub(rt_uint8_t *cmd)
 			/*proc stm32*/
 			if (cmd[0] == 0x01) {
 				if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
-				{
+				{					
+					upload_server(CMD_SUB_EVENT);
+					if (g_main_state != 1) {
 					cur_status = 0;
 					g_alarmType =0;
 					g_delay_out = 0;
@@ -915,8 +927,8 @@ void handle_proc_sub(rt_uint8_t *cmd)
 					g_delay_in = 0;
 					fqp.status=cur_status;
 					s1=0;
-					upload_server(CMD_SUB_EVENT);
 					handle_protect_off();
+					}
 				} else {
 					flag=1;
 					//Wtn6_Play(VOICE_ERRORTIP,ONCE);
@@ -927,7 +939,8 @@ void handle_proc_sub(rt_uint8_t *cmd)
 					//g_sub_event_code = 0x2002;
 					upload_server(CMD_SUB_EVENT);
 					upload_sub_status();
-					handle_protect_on();
+					if (g_main_state != 1)
+						handle_protect_on();
 				} else {
 					flag = 1;
 					//Wtn6_Play(VOICE_ERRORTIP,ONCE);

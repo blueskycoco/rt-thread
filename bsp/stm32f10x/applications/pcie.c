@@ -616,7 +616,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				cmd[ofs]=0;
 				if (fangqu_wire[i].voiceType)
 					cmd[ofs]|=0x80;
-				if (fangqu_wire[i].status)
+				if (fangqu_wire[i].status == TYPE_PROTECT_ON)
 					cmd[ofs]|=0x20;
 				if (fangqu_wire[i].slave_delay)
 					cmd[ofs]|=0x40;			
@@ -644,7 +644,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				cmd[ofs]=0;
 				if (fangqu_wireless[i].voiceType)
 					cmd[ofs]|=0x80;
-				if (fangqu_wireless[i].status)
+				if (fangqu_wireless[i].status == TYPE_PROTECT_ON)
 					cmd[ofs]|=0x20;
 				if (fangqu_wireless[i].slave_delay)
 					cmd[ofs]|=0x40;			
