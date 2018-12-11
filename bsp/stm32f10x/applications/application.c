@@ -608,6 +608,9 @@ static void led_thread_entry(void* parameter)
 			g_heart_cnt=0;
 			g_net_state = NET_STATE_UNKNOWN;
 			pcie_switch(g_module_type);
+			/*add reset stm32 test*/
+			rt_kprintf("add reset stm32 test ,2018-12-11\r\n");
+			NVIC_SystemReset();
 		} else {
 			if (in_qiact) {
 				rt_kprintf("qi act times %d\r\n", qiact_times);
