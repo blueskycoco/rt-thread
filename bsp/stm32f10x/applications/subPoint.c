@@ -553,7 +553,7 @@ void handle_alarm()
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);				
 	} else {
 		/*normal alarm*/
-		if (cur_status && !fangqu_wireless[g_index_sub].isBypass) {	
+		if (cur_status && !fangqu_wireless[g_index_sub].isBypass && fangqu_wireless[g_index_sub].status == TYPE_PROTECT_ON) {	
 			s1=0;
 			sub_cmd_type=tmp_sub_cmd_type;
 			g_fq_index = fangqu_wireless[g_index_sub].index;
