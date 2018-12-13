@@ -905,6 +905,7 @@ void rt_init_thread_entry(void* parameter)
 		Wtn6_Play(VOICE_NOMOKUAI,ONCE,1);
 		rt_thread_delay(550);
 		Wtn6_Play(VOICE_NOMOKUAI,ONCE,1);
+		NVIC_SystemReset();
 		return ;
 	}
 	
