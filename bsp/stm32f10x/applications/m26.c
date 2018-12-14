@@ -521,6 +521,13 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 							SetErrorCode(0x08);
 						else
 							SetErrorCode(0x09);
+						rt_kprintf("restart m26 ...\r\n");
+						in_qiact=0;
+						qiact_times=0;
+						m26_restart_flag = 0;
+						g_heart_cnt=0;
+						g_net_state = NET_STATE_UNKNOWN;
+						pcie_switch(g_module_type);
 					}
 					rt_thread_delay(100);
 					gprs_at_cmd(g_dev_m26,cpin);
