@@ -50,13 +50,13 @@ extern rt_uint8_t bc26_module;
 rt_uint8_t update_flag=0;
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
-	//rt_kprintf("got data from 0\r\n");
+	rt_kprintf("got data from 0\r\n");
 	rt_sem_release(&(g_pcie[0]->sem));
 	return RT_EOK;
 }
 static rt_err_t pcie1_rx_ind(rt_device_t dev, rt_size_t size)
 {
-	//rt_kprintf("got data from 1\r\n");
+	rt_kprintf("got data from 1\r\n");
 	rt_sem_release(&(g_pcie[1]->sem));
 	return RT_EOK;
 }
@@ -70,6 +70,7 @@ static void pcie1_rcv(void* parameter)
 	}
 	while(1)	
 	{			
+		rt_kprintf("pcie1 waiting...\r\n");
 		rt_sem_take(&(g_pcie[1]->sem), RT_WAITING_FOREVER);
 		while (1) {
 			len = rt_device_read(g_pcie[1]->dev, 0, &(buf[total_len]) , 1600-total_len);
@@ -82,6 +83,7 @@ static void pcie1_rcv(void* parameter)
 			else
 				break;			
 		}
+		rt_kprintf("pcie1 total_len %d\r\n", total_len);
 		#if 0
 		//rt_kprintf("==>%s", buf);
 		rt_kprintf("<<<<<<\r\n");
@@ -136,6 +138,7 @@ static void pcie0_rcv(void* parameter)
 	}
 	while(1)	
 	{			
+		rt_kprintf("pcie0 waiting...\r\n");
 		rt_sem_take(&(g_pcie[0]->sem), RT_WAITING_FOREVER);
 		while (1) {
 			len = rt_device_read(g_pcie[0]->dev, 0, &(buf[total_len]) , 1600-total_len);
@@ -148,6 +151,7 @@ static void pcie0_rcv(void* parameter)
 			else
 				break;			
 		}
+		rt_kprintf("pcie0 total_len %d\r\n", total_len);
 	#if 0
 		rt_kprintf("<<<<<<\r\n");
 		for (int i=0; i<total_len; i++)
