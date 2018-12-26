@@ -736,6 +736,10 @@ void handle_get_address_ack(rt_uint8_t *cmd)
 		ofs += cmd[ofs-1]+1;
 	}
 }
+void handle_info_ack(rt_uint8_t *cmd)
+{
+	rt_kprintf("get server ack %d\r\n", cmd[0]);
+}
 void handle_ask_sub(rt_uint8_t *cmd)
 {
 	rt_kprintf("cmd_type \task sub\r\n");
@@ -1087,6 +1091,9 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 			break;
 		case UPDATE_ACK:
 			handle_bc26_update(data+11);
+			break;
+		case INFO_ACK:
+			handle_info_ack(data+11);
 			break;
 		default:
 			rt_kprintf("unknown packet type\r\n");

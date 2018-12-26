@@ -37,7 +37,7 @@ void button_init(void)
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_7;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
+	GPIO_SetBits(GPIOB, GPIO_Pin_7);
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOD, GPIO_PinSource0);
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource9);
 
@@ -182,6 +182,6 @@ void speaker_ctl(int flag)
 }
 rt_uint8_t battery_insert()
 {
-	GPIO_ResetBits(GPIOB, GPIO_Pin_7);
+	//GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 	return GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_6);
 }

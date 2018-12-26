@@ -744,7 +744,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_pcie[g_index]->csq = tmp[8]-0x30;
 					else
 						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
-					//rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
+					rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
 
 				

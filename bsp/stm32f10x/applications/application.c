@@ -80,6 +80,7 @@ struct rt_mutex g_stm32_lock;
 extern rt_uint8_t g_alarm_fq;
 extern rt_uint16_t g_alarm_reason;
 rt_uint16_t should_upload_bat = 0;
+rt_uint32_t should_upload_info = 0;
 //rt_uint32_t should_notify_infrar_normal_mode=0;
 rt_uint8_t time_protect=0;
 extern rt_uint8_t g_remote_protect;
@@ -593,12 +594,13 @@ static void led_thread_entry(void* parameter)
 		}
 		should_notify_infrar_normal_mode++;
 #endif
-		//rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
-		/*if (cc1101_crash_cnt > 4) {
+		rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
+		if (cc1101_crash_cnt > 40) {
 			cc1101_crash_cnt=0;
 			rt_kprintf("cc1101 crash , reseting\r\n");
-			radio_intit2();
-		}*/
+			//radio_intit2();
+			NVIC_SystemReset();
+		}
 		rt_kprintf("test 1\r\n");
 		if (m26_restart_flag) {
 			rt_kprintf("restart m26 ...\r\n");
@@ -626,9 +628,15 @@ static void led_thread_entry(void* parameter)
 			//cc1101_gdo0_rx_it();  
 			_list_thread(&rt_object_container[RT_Object_Class_Thread].object_list);
 			cc1101_cal_time = 0;
+			list_dir("/");
 		} else 
 			cc1101_cal_time++;
 		rt_kprintf("test 3\r\n");
+		if (should_upload_info > 30*60*12) {
+			should_upload_info = 0;
+			upload_server(CMD_UP_INFO);
+		}
+		should_upload_info++;
 	}
 }
 

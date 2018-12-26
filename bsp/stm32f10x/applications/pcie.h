@@ -17,6 +17,7 @@
 #define CMD_MAIN_EVENT		0x0006
 #define CMD_SUB_EVENT		0x0005
 #define CMD_ASK_ADDR		0x0007
+#define CMD_UP_INFO			0x0008
 #define CMD_ASK_SUB_ACK		0x8711
 #define CMD_ASK_MAIN_ACK	0x8712
 #define CMD_UPDATE			0x5000

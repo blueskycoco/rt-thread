@@ -29,6 +29,7 @@
 #define FQ_OP_ACK		0x8005
 #define MAIN_OP_ACK		0x8006
 #define GET_ADDRESS_ACK	0x8007
+#define INFO_ACK		0x8008
 #define CMD_PROC_SUB	0x0701
 #define CMD_PROC_MAIN	0x0702
 #define CMD_SET_SUB		0x0703

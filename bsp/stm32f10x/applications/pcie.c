@@ -402,7 +402,13 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 	cmd[8]=PROTL_V&0xff;
 	memcpy(cmd+9,mp.roProperty.sn,6);
 	rt_kprintf("\r\n******************************************************\r\n");
-	if (type == CMD_LOGIN) {
+	if (type == CMD_UP_INFO) {
+		rt_kprintf("req\t\tCMD UP INFO Packet\r\n");
+		cmd[5]=(CMD_UP_INFO >> 8) & 0xff;//login
+		cmd[6]=CMD_UP_INFO&0xff;		
+		memcpy(cmd+15,g_pcie[g_index]->qccid,10);
+		ofs = 26;
+	} else if (type == CMD_LOGIN) {
 		rt_kprintf("req\t\tCMD LOGIN Packet\r\n");
 		cmd[5]=(CMD_LOGIN >> 8) & 0xff;//login
 		cmd[6]=CMD_LOGIN&0xff;		

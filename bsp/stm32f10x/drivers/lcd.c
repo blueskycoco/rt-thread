@@ -1,6 +1,6 @@
 #include "lcd.h"
 #include <rtdevice.h>
-
+extern rt_uint8_t g_ac;
 //#include "delay.h"
 struct rt_mutex g_lcd_lock;
 
@@ -77,6 +77,8 @@ void SetErrorCode(u8 value)
    */
 void SetBatteryIco(u8 value)
 {
+	if (g_ac)
+		return ;
 	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
 
   u8 level=value%5;
