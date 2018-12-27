@@ -488,11 +488,15 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;	
 			case BC26_STATE_CSQ:
 				if (have_str(last_data_ptr,STR_CSQ)) {
-					if (tmp[9] == 0x2c)
-						g_pcie[g_index]->csq = tmp[8]-0x30;
-					else
-						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
-					rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
+					if (tmp[9] == 0x2c) {
+						if (tmp[7] == ':')
+							g_pcie[g_index]->csq = tmp[8]-0x30;
+						else
+							g_pcie[g_index]->csq = (tmp[7]-0x30)*10 + tmp[8]-0x30;
+					}
+					else if (tmp[8] == 0x2c)
+						g_pcie[g_index]->csq = tmp[7]-0x30;
+					rt_kprintf("csq is %x %x %x %d\r\n",tmp[7],tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
 					//g_bc26_state = BC26_STATE_LAC;
 					//gprs_at_cmd(g_dev_bc26,cregs);
@@ -740,11 +744,15 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_data_in_bc26 = RT_TRUE;
 				//} else if (have_str(last_data_ptr, STR_OK)){
 				} else if (have_str(last_data_ptr,STR_CSQ)) {
-					if (tmp[9] == 0x2c)
-						g_pcie[g_index]->csq = tmp[8]-0x30;
-					else
-						g_pcie[g_index]->csq = (tmp[8]-0x30)*10+tmp[9]-0x30;
-					rt_kprintf("csq is %x %x %d\r\n",tmp[8],tmp[9],g_pcie[g_index]->csq);
+					if (tmp[9] == 0x2c) {
+						if (tmp[7] == ':')
+							g_pcie[g_index]->csq = tmp[8]-0x30;
+						else
+							g_pcie[g_index]->csq = (tmp[7]-0x30)*10 + tmp[8]-0x30;
+					}
+					else if (tmp[8] == 0x2c)
+						g_pcie[g_index]->csq = tmp[7]-0x30;
+					rt_kprintf("csq is %x %x %x %d\r\n",tmp[7],tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
 
 				
