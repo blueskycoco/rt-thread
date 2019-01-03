@@ -597,9 +597,9 @@ static void led_thread_entry(void* parameter)
 		rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
 		if (cc1101_crash_cnt > 40) {
 			cc1101_crash_cnt=0;
-			rt_kprintf("cc1101 crash , reseting\r\n");
-			//radio_intit2();
-			NVIC_SystemReset();
+			rt_kprintf("cc1101 crash 2019, reseting\r\n");
+			radio_intit2();
+			//NVIC_SystemReset();
 		}
 		rt_kprintf("test 1\r\n");
 		if (m26_restart_flag) {
