@@ -508,7 +508,21 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		ofs = 21;
 		memcpy(cmd+ofs,mp.roProperty.CAPTCHA,6);
 		ofs+=6;
-		cmd[ofs++] = 1; 
+		if ((g_index == 1 && g_type1 == PCIE_2_M26) ||
+				(g_index == 0 && g_type0 == PCIE_1_M26))
+		{	
+			cmd[ofs++] = 2; 
+		}
+		if ((g_index == 1 && g_type1 == PCIE_2_EC20) ||
+				(g_index == 0 && g_type0 == PCIE_1_EC20))
+		{
+			cmd[ofs++] = 1; 
+		}
+		if ((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
+				(g_index == 0 && g_type0 == PCIE_1_NBIOT))
+		{
+			cmd[ofs++] = 3; 
+		}
 		need_read = 1;
 		rt_kprintf("status\t\t%s\r\n", (cur_status==0)?"chefang":"bufang");
 		rt_kprintf("power\t\t%s\r\n", (g_ac==1)?"ext power":"battery");
