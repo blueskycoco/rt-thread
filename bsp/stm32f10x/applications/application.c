@@ -597,7 +597,7 @@ static void led_thread_entry(void* parameter)
 		rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
 		if (cc1101_crash_cnt > 40) {
 			cc1101_crash_cnt=0;
-			rt_kprintf("cc1101 crash 20191, reseting\r\n");
+			rt_kprintf("cc1101 crash 20192, reseting\r\n");
 			radio_intit2();
 			//NVIC_SystemReset();
 		}
