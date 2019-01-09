@@ -13,184 +13,188 @@
 #include "prop.h"
 #include "lcd.h"
 
-#define BC26_EVENT_0 				(1<<0)
-#define BC26_STATE_INIT				0
-#define BC26_STATE_CHECK_CPIN		1
+#define BC26_EVENT_0 					(1<<0)
+#define BC26_STATE_INIT					0
+#define BC26_STATE_CHECK_CPIN			1
 #define BC26_STATE_SET_QINDI			2
 #define BC26_STATE_SET_QIMUX			3
-#define BC26_STATE_CHECK_CGREG		4
-#define BC26_STATE_CHECK_QISTAT		5
-#define BC26_STATE_SET_QICSGP		6
-#define BC26_STATE_SET_QIREGAPP		7
-#define BC26_STATE_SET_QISRVC		8
+#define BC26_STATE_CHECK_CGREG			4
+#define BC26_STATE_CHECK_QISTAT			5
+#define BC26_STATE_SET_QICSGP			6
+#define BC26_STATE_SET_QIREGAPP			7
+#define BC26_STATE_SET_QISRVC			8
 #define BC26_STATE_SET_QIACT			9
-#define BC26_STATE_CHECK_CIMI		10
-#define BC26_STATE_SET_QIFGCNT		11
-#define BC26_STATE_SET_QIOPEN 		12
+#define BC26_STATE_CHECK_CIMI			10
+#define BC26_STATE_SET_QIFGCNT			11
+#define BC26_STATE_SET_QIOPEN 			12
 #define BC26_STATE_SET_QIDEACT  		13
-#define BC26_STATE_DATA_PROCESSING 	14
+#define BC26_STATE_DATA_PROCESSING 		14
 #define BC26_STATE_DATA_READ			15
-#define BC26_STATE_SET_QICLOSE		16
-#define BC26_STATE_DATA_WRITE		17
-#define BC26_STATE_DATA_ACK			18
-#define BC26_STATE_DATA_PRE_WRITE	19
+#define BC26_STATE_SET_QICLOSE			16
+#define BC26_STATE_DATA_WRITE			17
+#define BC26_STATE_DATA_ACK				18
+#define BC26_STATE_DATA_PRE_WRITE		19
 #define BC26_STATE_ATE0 				21
-#define BC26_STATE_CSQ				22
-#define BC26_STATE_LAC				23
+#define BC26_STATE_CSQ					22
+#define BC26_STATE_LAC					23
 #define BC26_STATE_ICCID				24
-#define BC26_STATE_IMEI				25
-#define BC26_STATE_LACR				26
-#define BC26_STATE_CSCON			27
-#define BC26_STATE_CFG_FTP		28
-#define BC26_STATE_OPEN_FTP		29
-#define BC26_STATE_GET_FILE		30
-#define BC26_STATE_READ_FILE	31
-#define BC26_STATE_LOGOUT_FTP	32
-#define BC26_STATE_SET_LOCATION	33
-#define BC26_STATE_V				34
-#define BC26_STATE_CLEAN_RAM		35
-#define BC26_STATE_CLOSE_FILE	36
-#define BC26_STATE_CGATT		37
-#define BC26_CREATE_SOCKET		38
-#define BC26_NSOCR				39
-#define BC26_QENG				40
-#define BC26_CPSMS				41
-#define BC26_STATE_BAND			42
-#define BC26_STATE_QENG			43
-#define STR_NSOCR				"+NSOCR"
-#define STR_CSCON					"+CSCON:0,1"
-#define STR_GSN					"+CGSN:"
-#define STR_CGATT_OK				"+CGATT:1"
-#define STR_CFUN					"+CFUN:"
-#define STR_RDY						"Neul"
-#define STR_CPIN					"+CPIN:"
-#define STR_CSQ						"+CSQ:"
-#define STR_CREG					"+CREG:"
-#define STR_CPIN_READY				"+CPIN: READY"
-#define STR_CGREG					"+CEREG: 0,"
-#define STR_CGREG_READY				"+CEREG: 0,1"
-#define STR_CGREG_READY1			"+CEREG: 0,5"
-#define STR_STAT_INIT				"IP INITIAL"
-#define STR_STAT_IND				"IP IND"
-#define STR_STAT_CLOSE				"IP CLOSE"
-#define STR_STAT_STATUS				"IP STATUS"
-#define STR_STAT_DEACT				"PDP DEACT"
-#define STR_QIMUX_0					"+QIMUX: 0"
-#define STR_OK						"OK"
-#define STR_QIRD					"+QIRD:"
-#define STR_QIURC					"+QIURC:"
-#define STR_TCP						"TCP,"
-#define STR_CLOSED					"+NSOCLI"
-#define STR_BEGIN_WRITE				">"
-#define STR_ERROR					"ERROR"
-#define STR_4600					"4600"
-#define STR_46000					"46000"
-#define STR_46001					"46001"
-#define STR_46002					"46002"
-#define STR_46003					"46003"
-#define STR_46004					"46004"
-#define STR_46006					"46006"
-#define STR_STAT_DEACT_OK 			"DEACT OK"
-#define STR_CONNECT_OK				"+QIOPEN: 0,0"
-#define STR_CLOSE_OK				"CLOSE OK"
-#define STR_SEND_OK					"SEND OK"
-#define STR_QIRDI					"+NSONMI:1" 
-#define STR_QISACK					"+QISACK"
-#define STR_SOCKET_BUSSY			"+QIOPEN: 0,566"
-#define STR_CONNECT_FAIL			"CONNECT FAIL"
-#define STR_CONNECT_OK_EC20			"+QIOPEN: 0,0"
-#define STR_CONNECT_FAIL_EC20		"+QIOPEN: 0,"
-#define STR_QFTPCFG					"+QFTPCFG:0"
-#define STR_FTP_FILE_SIZE			"+QFTPSIZE:"
-#define DEFAULT_SERVER				"101.132.177.116"
-#define DEFAULT_PORT				"2011"
-#define STR_QCCID					"+NCCID:"
-#define STR_QSOC					"+QSOC=0"
-#define STR_PDP_DEACT	"+PDP DEACT"
+#define BC26_STATE_IMEI					25
+#define BC26_STATE_LACR					26
+#define BC26_STATE_CSCON				27
+#define BC26_STATE_CFG_FTP				28
+#define BC26_STATE_OPEN_FTP				29
+#define BC26_STATE_GET_FILE				30
+#define BC26_STATE_READ_FILE			31
+#define BC26_STATE_LOGOUT_FTP			32
+#define BC26_STATE_SET_LOCATION			33
+#define BC26_STATE_V					34
+#define BC26_STATE_CLEAN_RAM			35
+#define BC26_STATE_CLOSE_FILE			36
+#define BC26_STATE_CGATT				37
+#define BC26_CREATE_SOCKET				38
+#define BC26_NSOCR						39
+#define BC26_QENG						40
+#define BC26_CPSMS						41
+#define BC26_STATE_BAND					42
+#define BC26_STATE_QENG					43
+#define BC26_CFUN_0						44
+#define BC26_CFUN_1						45
+#define STR_NSOCR						"+NSOCR"
+#define STR_CSCON						"+CSCON:0,1"
+#define STR_GSN							"+CGSN:"
+#define STR_CGATT_OK					"+CGATT:1"
+#define STR_CFUN						"+CFUN:"
+#define STR_RDY							"Neul"
+#define STR_CPIN						"+CPIN:"
+#define STR_CSQ							"+CSQ:"
+#define STR_CREG						"+CREG:"
+#define STR_CPIN_READY					"+CPIN: READY"
+#define STR_CGREG						"+CEREG: 0,"
+#define STR_CGREG_READY					"+CEREG: 0,1"
+#define STR_CGREG_READY1				"+CEREG: 0,5"
+#define STR_STAT_INIT					"IP INITIAL"
+#define STR_STAT_IND					"IP IND"
+#define STR_STAT_CLOSE					"IP CLOSE"
+#define STR_STAT_STATUS					"IP STATUS"
+#define STR_STAT_DEACT					"PDP DEACT"
+#define STR_QIMUX_0						"+QIMUX: 0"
+#define STR_OK							"OK"
+#define STR_QIRD						"+QIRD:"
+#define STR_QIURC						"+QIURC:"
+#define STR_TCP							"TCP,"
+#define STR_CLOSED						"+NSOCLI"
+#define STR_BEGIN_WRITE					">"
+#define STR_ERROR						"ERROR"
+#define STR_4600						"4600"
+#define STR_46000						"46000"
+#define STR_46001						"46001"
+#define STR_46002						"46002"
+#define STR_46003						"46003"
+#define STR_46004						"46004"
+#define STR_46006						"46006"
+#define STR_STAT_DEACT_OK 				"DEACT OK"
+#define STR_CONNECT_OK					"+QIOPEN: 0,0"
+#define STR_CLOSE_OK					"CLOSE OK"
+#define STR_SEND_OK						"SEND OK"
+#define STR_QIRDI						"+NSONMI:1" 
+#define STR_QISACK						"+QISACK"
+#define STR_SOCKET_BUSSY				"+QIOPEN: 0,566"
+#define STR_CONNECT_FAIL				"CONNECT FAIL"
+#define STR_CONNECT_OK_EC20				"+QIOPEN: 0,0"
+#define STR_CONNECT_FAIL_EC20			"+QIOPEN: 0,"
+#define STR_QFTPCFG						"+QFTPCFG:0"
+#define STR_FTP_FILE_SIZE				"+QFTPSIZE:"
+#define DEFAULT_SERVER					"101.132.177.116"
+#define DEFAULT_PORT					"2011"
+#define STR_QCCID						"+NCCID:"
+#define STR_QSOC						"+QSOC=0"
+#define STR_PDP_DEACT					"+PDP DEACT"
 
 
-#define c_socket	"AT+QSOC=1,1,1\r\n"
-#define cscon	"AT+CSCON?\r\n"
-#define qistat 				"AT+QISTAT\r\n"
-#define qiclose "AT+NSOCL=1\r\n"
-#define qilocip "AT+QILOCIP\r\n"
-#define qilport "AT+QILPORT?\r\n"
-#define e0 "ATE0\r\n"
-#define cgreg "AT+CEREG?\r\n"
-#define cregs "AT+CREG=2\r\n"
-#define cregr "AT+CREG?\r\n"
-#define at_csq "AT+CSQ\r\n"
-#define at_qccid "AT+NCCID\r\n"
-#define gsn "AT+CGSN=1\r\n"
-#define cpsms	"AT+CPSMS=0\r\n"
-#define qeng	"AT+QENG=0\r\n"
-#define qicfg	"AT+NSOCR=\"dataformat\",1,1\r\n"
-#define nsocr	"AT+NSOCR=STREAM,6,56000,1\r\n"
-#define cimi "AT+CIMI\r\n"
-#define cpin "AT+CPIN?\r\n"
-#define qifgcnt "AT+QIFGCNT=0\r\n"
-#define qisrvc "AT+QISRVC=1\r\n"
-#define qimux "AT+QIMUX=0\r\n"
-#define ask_qimux "AT+QIMUX?\r\n"
-#define qideact "AT+QIDEACT\r\n"
-#define ati	"ATI\r\n"
-#define qindi "AT+QINDI=1\r\n"
-#define at_band	"AT+NBAND?\r\n"
-#define at_qeng "AT+QENG=0\r\n"
-//#define qird "AT+QIRD=0,512\r\n"
-#define qisack "AT+QISACK\r\n"
-#define qiat "AT\r\n"
-#define cgatt	"AT+CGATT?\r\n"
-#define qiftp_set_path	"AT+QFTPPATH=\"/\"\r\n"
-#define qiftp_file_size	"AT+QFTPSIZE=\"stm32_0.bin\"\r\n"
-#define qiftp_clean_ram "AT+QFDEL=\"RAM:*\"\r\n"
+#define c_socket						"AT+QSOC=1,1,1\r\n"
+#define cscon							"AT+CSCON?\r\n"
+#define qistat 							"AT+QISTAT\r\n"
+#define qiclose 						"AT+NSOCL=1\r\n"
+#define qilocip 						"AT+QILOCIP\r\n"
+#define qilport 						"AT+QILPORT?\r\n"
+#define e0 								"ATE0\r\n"
+#define cgreg 							"AT+CEREG?\r\n"
+#define cregs 							"AT+CREG=2\r\n"
+#define cregr 							"AT+CREG?\r\n"
+#define at_csq 							"AT+CSQ\r\n"
+#define at_qccid 						"AT+NCCID\r\n"
+#define gsn 							"AT+CGSN=1\r\n"
+#define cpsms							"AT+CPSMS=0\r\n"
+#define qeng							"AT+QENG=0\r\n"
+#define qicfg							"AT+NSOCR=\"dataformat\",1,1\r\n"
+#define nsocr							"AT+NSOCR=STREAM,6,56000,1\r\n"
+#define cimi 							"AT+CIMI\r\n"
+#define cpin 							"AT+CPIN?\r\n"
+#define qifgcnt 						"AT+QIFGCNT=0\r\n"
+#define qisrvc 							"AT+QISRVC=1\r\n"
+#define qimux 							"AT+QIMUX=0\r\n"
+#define ask_qimux 						"AT+QIMUX?\r\n"
+#define qideact 						"AT+QIDEACT\r\n"
+#define ati								"ATI\r\n"
+#define qindi 							"AT+QINDI=1\r\n"
+#define at_band							"AT+NBAND?\r\n"
+#define at_qeng 						"AT+QENG=0\r\n"
+//#define qird 							"AT+QIRD=0,512\r\n"
+#define qisack 							"AT+QISACK\r\n"
+#define qiat 							"AT\r\n"
+#define cgatt							"AT+CGATT?\r\n"
+#define qiftp_set_path					"AT+QFTPPATH=\"/\"\r\n"
+#define qiftp_file_size					"AT+QFTPSIZE=\"stm32_0.bin\"\r\n"
+#define qiftp_clean_ram 				"AT+QFDEL=\"RAM:*\"\r\n"
+#define qiregapp 						"AT+QIREGAPP\r\n"
+#define qiact 							"AT+QIACT\r\n"
+#define cfun0							"AT+CFUN=0\r\n"
+#define cfun1							"AT+CFUN=1\r\n"
 uint8_t 	  qicsgp_bc26[32]			= {0};
 uint8_t 	  qiopen_bc26[64]			= {0};
 uint8_t 	  qisend_bc26[32] 			= {0};
 //uint8_t 	  qiftp_set_resuming[32] 	= {0};
-uint8_t 	  qiftp_bc26_ram[32]			= {0};
-uint8_t		  qiftp_get_bc26[32]			= {0};
+uint8_t 	  qiftp_bc26_ram[32]		= {0};
+uint8_t		  qiftp_get_bc26[32]		= {0};
 uint8_t 	  qird[32] = {0};
-#define qiregapp "AT+QIREGAPP\r\n"
-#define qiact "AT+QIACT\r\n"
-rt_bool_t g_data_in_bc26 = RT_FALSE;
-extern int g_index;
-//rt_uint32_t ftp_ofs = 0;
-rt_device_t g_dev_bc26;
-uint8_t g_bc26_state 				= BC26_STATE_INIT;
-uint32_t server_len_bc26 = 0;
-uint8_t *server_buf_bc26 = RT_NULL;
-void *send_data_ptr_bc26 = RT_NULL;
-rt_size_t send_size_bc26;
-rt_uint8_t bc26_cnt = 0;
-extern rt_uint8_t g_net_state;
-extern rt_uint32_t g_server_addr;
-extern rt_uint32_t g_server_addr_bak;
-extern rt_uint16_t g_server_port;
-extern rt_uint16_t g_server_port_bak;
-extern rt_uint8_t g_ip_index;
-extern rt_uint8_t ftp_cfg_step;
-extern rt_uint8_t ftp_addr[32];
-extern rt_uint8_t ftp_user[32];
-extern rt_uint8_t ftp_passwd[32];
-extern rt_uint8_t g_heart_cnt;
-extern rt_uint8_t entering_ftp_mode;
-extern rt_uint8_t *tmp_stm32_bin;
+rt_bool_t 	  g_data_in_bc26 			= RT_FALSE;
+extern int 	  g_index;
+//rt_uint32_t ftp_ofs 					= 0;
+rt_device_t   g_dev_bc26;
+uint8_t 	  g_bc26_state 				= BC26_STATE_INIT;
+uint32_t 	  server_len_bc26 			= 0;
+uint8_t 	  *server_buf_bc26 			= RT_NULL;
+void 		  *send_data_ptr_bc26 		= RT_NULL;
+rt_size_t 	  send_size_bc26;
+rt_uint8_t 	  bc26_cnt 					= 0;
+extern rt_uint8_t 	g_net_state;
+extern rt_uint32_t 	g_server_addr;
+extern rt_uint32_t 	g_server_addr_bak;
+extern rt_uint16_t 	g_server_port;
+extern rt_uint16_t 	g_server_port_bak;
+extern rt_uint8_t 	g_ip_index;
+extern rt_uint8_t 	ftp_cfg_step;
+extern rt_uint8_t 	ftp_addr[32];
+extern rt_uint8_t 	ftp_user[32];
+extern rt_uint8_t 	ftp_passwd[32];
+extern rt_uint8_t 	g_heart_cnt;
+extern rt_uint8_t 	entering_ftp_mode;
+extern rt_uint8_t 	*tmp_stm32_bin;
 extern rt_size_t	tmp_stm32_len;
-extern int stm32_fd;
-extern int stm32_len;
-extern int cur_stm32_len;
-extern int down_fd;
-uint8_t 	  qiftp_bc26[64];
-extern uint8_t		  qiftp_read_file[32];//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
-extern uint8_t			qiftp_close_file[32];
-extern rt_uint8_t ftp_rty;
-extern rt_uint16_t g_app_v;
-extern struct rt_event g_info_event;
-extern rt_mp_t server_mp;
-extern rt_uint8_t g_module_type;
-rt_uint8_t entering_ftp_mode_bc26=0;
-extern rt_uint8_t update_flag;
+extern int 			stm32_fd;
+extern int 			stm32_len;
+extern int 			cur_stm32_len;
+extern int 			down_fd;
+uint8_t 	  		qiftp_bc26[64];
+extern uint8_t		qiftp_read_file[32];//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
+extern uint8_t		qiftp_close_file[32];
+extern rt_uint8_t 	ftp_rty;
+extern rt_uint16_t 	g_app_v;
+extern rt_mp_t 		server_mp;
+extern rt_uint8_t 	g_module_type;
+rt_uint8_t 			entering_ftp_mode_bc26=0;
+extern rt_uint8_t 	update_flag;
+extern struct rt_event 	g_info_event;
 void toHex(uint8_t *input, uint32_t len, uint8_t *output)
 {
 	int ix=0,iy=0;
@@ -460,15 +464,29 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case BC26_STATE_BAND:
 				if (have_str(last_data_ptr,STR_OK)) {
-					g_pcie[g_index]->cpin_cnt=0;
-					g_bc26_state = BC26_STATE_CGATT;
-					gprs_at_cmd(g_dev_bc26,cgatt);
+					g_bc26_state = BC26_CFUN_1;
+					gprs_at_cmd(g_dev_bc26,cfun1);
 				}
 				break;
 			case BC26_STATE_V:
 				if (have_str(last_data_ptr, STR_OK)) {
+					//g_bc26_state = BC26_CFUN_0;
+					//gprs_at_cmd(g_dev_bc26,cfun0);
 					g_bc26_state = BC26_STATE_BAND;
 					gprs_at_cmd(g_dev_bc26,at_band);
+				}
+				break;
+			case BC26_CFUN_0:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_bc26_state = BC26_STATE_BAND;
+					gprs_at_cmd(g_dev_bc26,at_band);
+				}
+				break;
+			case BC26_CFUN_1:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_pcie[g_index]->cpin_cnt=0;
+					g_bc26_state = BC26_STATE_CGATT;
+					gprs_at_cmd(g_dev_bc26,cgatt);
 				}
 				break;
 			case BC26_STATE_QENG:
