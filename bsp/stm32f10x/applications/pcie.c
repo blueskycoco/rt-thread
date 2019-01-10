@@ -126,6 +126,11 @@ static void pcie1_rcv(void* parameter)
 			rt_memset(buf,0,1600);
 			#endif
 		}
+		else
+		{
+			if (total_len >= 1600)
+				total_len = 0;
+		}
 	}
 }
 static void pcie0_rcv(void* parameter)
@@ -195,6 +200,11 @@ static void pcie0_rcv(void* parameter)
 			total_len = 0;
 			rt_memset(buf,0,1600);
 			#endif
+		}
+		else
+		{
+			if (total_len >= 1600)
+				total_len = 0;
 		}
 	}
 }
@@ -936,6 +946,8 @@ void switch_pcie_power(rt_uint8_t type)
 rt_uint8_t pcie_switch(rt_uint8_t type)
 {
 	g_module_type = type;
+	rt_data_queue_reset(&g_data_queue[1]);
+	rt_data_queue_reset(&g_data_queue[0]);
 	switch (type) 
 	{
 		case PCIE_1_IP:

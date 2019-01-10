@@ -18,7 +18,7 @@ static char fullpath[256];
 void list_dir(const char* path)
 {
 	DIR *dir;
-
+	rt_kprintf("/***********************************************/\r\n");
 	dir = opendir(path);
 	if (dir != RT_NULL)
 	{
@@ -48,6 +48,7 @@ void list_dir(const char* path)
 		closedir(dir);
 	}
 	else rt_kprintf("open %s directory failed\n", path);
+	rt_kprintf("/***********************************************/\r\n");
 }
 
 #ifdef RT_USING_FINSH

@@ -137,6 +137,7 @@
 #define qideact 						"AT+QIDEACT\r\n"
 #define ati								"ATI\r\n"
 #define qindi 							"AT+QINDI=1\r\n"
+//#define at_band							"AT+NBAND=5,8,3,28,20,1\r\n"
 #define at_band							"AT+NBAND?\r\n"
 #define at_qeng 						"AT+QENG=0\r\n"
 //#define qird 							"AT+QIRD=0,512\r\n"
@@ -412,7 +413,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
-	if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
+	//if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
 		rt_kprintf("\r\n<== (BC28 %d %d)\r\n",g_bc26_state, data_size);
 		for (i=0; i<data_size; i++)
 			if (isascii(tmp[i]) && (g_bc26_state != BC26_STATE_READ_FILE))
@@ -425,7 +426,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
 		
 		}
-	}
+	//}
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY))
 		{
@@ -464,8 +465,11 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case BC26_STATE_BAND:
 				if (have_str(last_data_ptr,STR_OK)) {
-					g_bc26_state = BC26_CFUN_1;
-					gprs_at_cmd(g_dev_bc26,cfun1);
+					//g_bc26_state = BC26_CFUN_1;
+					//gprs_at_cmd(g_dev_bc26,cfun1);
+					g_pcie[g_index]->cpin_cnt=0;
+					g_bc26_state = BC26_STATE_CGATT;
+					gprs_at_cmd(g_dev_bc26,cgatt);
 				}
 				break;
 			case BC26_STATE_V:
@@ -501,6 +505,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_bc26,at_csq);
 				} else {
 					rt_thread_delay(RT_TICK_PER_SECOND);
+					//gprs_at_cmd(g_dev_bc26,at_csq);
 					gprs_at_cmd(g_dev_bc26,cgatt);
 				}
 				break;	
