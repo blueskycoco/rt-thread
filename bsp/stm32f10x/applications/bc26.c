@@ -59,6 +59,8 @@
 #define BC26_STATE_QENG					43
 #define BC26_CFUN_0						44
 #define BC26_CFUN_1						45
+#define BC26_QREG_ASK					46
+#define BC26_QREG_SET					47
 #define STR_NSOCR						"+NSOCR"
 #define STR_CSCON						"+CSCON:0,1"
 #define STR_GSN							"+CGSN:"
@@ -109,7 +111,9 @@
 #define STR_QCCID						"+NCCID:"
 #define STR_QSOC						"+QSOC=0"
 #define STR_PDP_DEACT					"+PDP DEACT"
-
+#define STR_QREG_2						"+QREGSWT:2"
+#define STR_QREG_1						"+QREGSWT:1"
+#define STR_QREG_0						"+QREGSWT:0"
 
 #define c_socket						"AT+QSOC=1,1,1\r\n"
 #define cscon							"AT+CSCON?\r\n"
@@ -151,6 +155,8 @@
 #define qiact 							"AT+QIACT\r\n"
 #define cfun0							"AT+CFUN=0\r\n"
 #define cfun1							"AT+CFUN=1\r\n"
+#define qregswt_ask						"AT+QREGSWT?\r\n"
+#define qregswt_set						"AT+QREGSWT=2\r\n"
 uint8_t 	  qicsgp_bc26[32]			= {0};
 uint8_t 	  qiopen_bc26[64]			= {0};
 uint8_t 	  qisend_bc26[32] 			= {0};
@@ -465,8 +471,6 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case BC26_STATE_BAND:
 				if (have_str(last_data_ptr,STR_OK)) {
-					//g_bc26_state = BC26_CFUN_1;
-					//gprs_at_cmd(g_dev_bc26,cfun1);
 					g_pcie[g_index]->cpin_cnt=0;
 					g_bc26_state = BC26_STATE_CGATT;
 					gprs_at_cmd(g_dev_bc26,cgatt);
@@ -474,12 +478,26 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case BC26_STATE_V:
 				if (have_str(last_data_ptr, STR_OK)) {
-					//g_bc26_state = BC26_CFUN_0;
-					//gprs_at_cmd(g_dev_bc26,cfun0);
-					g_bc26_state = BC26_STATE_BAND;
-					gprs_at_cmd(g_dev_bc26,at_band);
+					g_bc26_state = BC26_QREG_ASK;
+					gprs_at_cmd(g_dev_bc26,qregswt_ask);
 				}
 				break;
+			case BC26_QREG_ASK:
+				if (have_str(last_data_ptr, STR_QREG_2)) {
+					g_bc26_state = BC26_STATE_BAND;
+					gprs_at_cmd(g_dev_bc26,at_band);
+				} else if (have_str(last_data_ptr, STR_QREG_1) ||
+						have_str(last_data_ptr, STR_QREG_0)) {
+					g_bc26_state = BC26_QREG_SET;
+					gprs_at_cmd(g_dev_bc26,qregswt_set);
+				}
+			case BC26_QREG_SET:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_heart_cnt=0;
+					g_net_state = NET_STATE_UNKNOWN;
+					pcie_switch(g_module_type);
+					rt_kprintf("set qregswt to 2 ok\r\n");
+				}
 			case BC26_CFUN_0:
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_bc26_state = BC26_STATE_BAND;
