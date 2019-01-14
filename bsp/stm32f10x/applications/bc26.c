@@ -98,7 +98,7 @@
 #define STR_CONNECT_OK					"+QIOPEN: 0,0"
 #define STR_CLOSE_OK					"CLOSE OK"
 #define STR_SEND_OK						"SEND OK"
-#define STR_QIRDI						"+NSONMI:1" 
+#define STR_QIRDI						"+NSONMI:" 
 #define STR_QISACK						"+QISACK"
 #define STR_SOCKET_BUSSY				"+QIOPEN: 0,566"
 #define STR_CONNECT_FAIL				"CONNECT FAIL"
@@ -118,7 +118,7 @@
 #define c_socket						"AT+QSOC=1,1,1\r\n"
 #define cscon							"AT+CSCON?\r\n"
 #define qistat 							"AT+QISTAT\r\n"
-#define qiclose 						"AT+NSOCL=1\r\n"
+//#define qiclose 						"AT+NSOCL=1\r\n"
 #define qilocip 						"AT+QILOCIP\r\n"
 #define qilport 						"AT+QILPORT?\r\n"
 #define e0 								"ATE0\r\n"
@@ -164,6 +164,7 @@ uint8_t 	  qisend_bc26[32] 			= {0};
 uint8_t 	  qiftp_bc26_ram[32]		= {0};
 uint8_t		  qiftp_get_bc26[32]		= {0};
 uint8_t 	  qird[32] = {0};
+uint8_t		  qiclose[32] 				= {0};
 rt_bool_t 	  g_data_in_bc26 			= RT_FALSE;
 extern int 	  g_index;
 //rt_uint32_t ftp_ofs 					= 0;
@@ -202,6 +203,7 @@ extern rt_uint8_t 	g_module_type;
 rt_uint8_t 			entering_ftp_mode_bc26=0;
 extern rt_uint8_t 	update_flag;
 extern struct rt_event 	g_info_event;
+rt_uint8_t			g_socket_no			= '1';
 void toHex(uint8_t *input, uint32_t len, uint8_t *output)
 {
 	int ix=0,iy=0;
@@ -491,6 +493,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					g_bc26_state = BC26_QREG_SET;
 					gprs_at_cmd(g_dev_bc26,qregswt_set);
 				}
+				break;
 			case BC26_QREG_SET:
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_heart_cnt=0;
@@ -498,6 +501,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					pcie_switch(g_module_type);
 					rt_kprintf("set qregswt to 2 ok\r\n");
 				}
+				break;
 			case BC26_CFUN_0:
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_bc26_state = BC26_STATE_BAND;
@@ -685,17 +689,20 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case BC26_CREATE_SOCKET:
 				if (have_str(last_data_ptr, STR_OK)) {					
+					g_socket_no = tmp[2];
 					g_bc26_state = BC26_STATE_SET_QIOPEN;
 					if (!entering_ftp_mode) {
 						rt_memset(qiopen_bc26, 0, 64);					
-						rt_sprintf(qiopen_bc26, "AT+NSOCO=1,%d.%d.%d.%d,%d\r\n",
+						rt_sprintf(qiopen_bc26, "AT+NSOCO=%c,%d.%d.%d.%d,%d\r\n",g_socket_no,
 								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
 								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
 								mp.socketAddress[g_ip_index].port);
 						rt_kprintf("open ip index %d\r\n",g_ip_index);
 						gprs_at_cmd(g_dev_bc26,qiopen_bc26);
 					} else {
-						gprs_at_cmd(g_dev_bc26,"AT+NSOCO=1,106.14.177.87,1706\r\n");
+						rt_memset(qiopen_bc26, 0, 64);					
+						rt_sprintf(qiopen_bc26, "AT+NSOCO=%c,106.14.177.87,1706\r\n",g_socket_no);
+						gprs_at_cmd(g_dev_bc26,qiopen_bc26);
 						update_flag=1;
 					}
 				}
@@ -766,7 +773,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					/*server data in */					
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
 					int len=0;
-					char *len_ptr = strstr(last_data_ptr, "1,");
+					char *len_ptr = strstr(last_data_ptr, ":");
 					while(len_ptr[len] != '\r' && len_ptr[len] != '\n')
 						len++;
 					g_bc26_state = BC26_STATE_DATA_READ;
@@ -778,7 +785,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_kprintf("len %d\r\n", len);
 					memset(qird,0,32);
 					strcpy(qird,"AT+NSORF=");
-					memcpy(qird+strlen("AT+NSORF="),len_ptr, len+2);
+					memcpy(qird+strlen("AT+NSORF="),len_ptr+1, len+1);
 					//strcat(qird,"\r\n");
 					gprs_at_cmd(g_dev_bc26,qird);
 					server_len_bc26 = 0;
@@ -800,6 +807,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					if (g_server_addr != g_server_addr_bak || g_server_port != g_server_port_bak) {
 						g_ip_index=0;
 						g_bc26_state = BC26_STATE_SET_QICLOSE;
+						rt_sprintf(qiclose, "AT+NSOCL=%c\r\n",g_socket_no);
 						gprs_at_cmd(g_dev_bc26,qiclose);
 						break;
 					}
@@ -835,7 +843,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_uint8_t *hex_string = (rt_uint8_t *)rt_malloc((send_size_bc26*2+1)*sizeof(rt_uint8_t));
 						rt_memset(hex_string,0,send_size_bc26*2+1);
 						toHex(send_data_ptr_bc26, send_size_bc26, hex_string);
-						rt_sprintf(qisend_bc26, "AT+NSOSD=1,%d,", send_size_bc26);
+						rt_sprintf(qisend_bc26, "AT+NSOSD=%c,%d,", g_socket_no,send_size_bc26);
 						gprs_at_cmd(g_dev_bc26,qisend_bc26);
 						gprs_at_cmd(g_dev_bc26,hex_string);
 						gprs_at_cmd(g_dev_bc26,"\r\n");
