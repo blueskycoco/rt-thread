@@ -61,6 +61,7 @@
 #define BC26_CFUN_1						45
 #define BC26_QREG_ASK					46
 #define BC26_QREG_SET					47
+#define BC26_NUESTATS					48
 #define STR_NSOCR						"+NSOCR"
 #define STR_CSCON						"+CSCON:0,1"
 #define STR_GSN							"+CGSN:"
@@ -115,6 +116,7 @@
 #define STR_QREG_1						"+QREGSWT:1"
 #define STR_QREG_0						"+QREGSWT:0"
 
+#define nuestats						"AT+NUESTATS\r\n"
 #define c_socket						"AT+QSOC=1,1,1\r\n"
 #define cscon							"AT+CSCON?\r\n"
 #define qistat 							"AT+QISTAT\r\n"
@@ -859,6 +861,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_bc26_state = BC26_STATE_DATA_WRITE;
 					} else {
 						if (!g_data_in_bc26) {
+						//gprs_at_cmd(g_dev_bc26, nuestats);
 						rt_thread_delay(100);
 						gprs_at_cmd(g_dev_bc26,at_csq);
 						}

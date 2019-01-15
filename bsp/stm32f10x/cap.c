@@ -35,7 +35,6 @@
 #include <sys/msg.h>
 #include <sys/epoll.h>
 #define MAXEVENTS 64
-#define MAXLOG_SIZE	40*1024*1024
 #define BUF_LEN	10*1024*1024
 pthread_mutex_t log_mutex	= PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  log_signal 	= PTHREAD_COND_INITIALIZER;
@@ -43,17 +42,38 @@ uint32_t log_w_ptr, log_r_ptr;
 uint8_t *log_buffer = NULL;
 FILE *g_file_fd;
 uint8_t new_file_flag = 1;
+char file_name[256] = {0};
+char bak_file_name[256] = {0};
+void *log_7z(void *arg)
+{
+	char cmd[256] = {0};
+	strcpy(cmd, "/usr/bin/7z a -t7z ");
+	strcat(cmd, arg);
+	strcat(cmd, ".7z ");
+	strcat(cmd, arg);
+	printf("execute cmd, %s\r\n", cmd);
+	system(cmd);
+	strcpy(cmd, "/bin/rm -f ");
+	strcat(cmd, arg);
+	printf("execute cmd, %s\r\n", cmd);
+	system(cmd);
+	printf("cmd execute over\r\n");
+}
 void new_log_file(void)
 {
 	struct timeval    tv;
 	struct timezone   tz;
 	struct tm         *p;
-	char file_name[256] = {0};
+	pthread_t 		  tid;
 	if (new_file_flag) {
 		fclose(g_file_fd);
+		strcpy(bak_file_name, file_name);
+		if (pthread_create(&tid, NULL, log_7z, (void *)bak_file_name)) {
+			printf("error creating log_7z thread.");
+		}
 		gettimeofday(&tv, &tz);
 		p = localtime(&tv.tv_sec);
-		sprintf(file_name, "/home/pi/glass-%04d-%02d-%02d_%02d:%02d:%02d.log", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
+		sprintf(file_name, "/home/pi/glass-%04d-%02d-%02d_%02d-%02d-%02d.log", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
 		g_file_fd = fopen(file_name,"wb");
 		new_file_flag = 0;
 	}
@@ -233,31 +253,29 @@ void *log_write(void *arg)
 		pthread_cond_wait(&log_signal, &log_mutex);
 		if (log_w_ptr != log_r_ptr) {
 			if (log_r_ptr < log_w_ptr) {
-					log_write_file(log_r_ptr, log_w_ptr);
-					log_r_ptr = log_w_ptr;
+				log_write_file(log_r_ptr, log_w_ptr);
+				log_r_ptr = log_w_ptr;
 			} else {
-					log_write_file(log_r_ptr, BUF_LEN);
-					log_r_ptr = 0;
-					log_write_file(log_r_ptr, log_w_ptr);
-					log_r_ptr = log_w_ptr;				
+				log_write_file(log_r_ptr, BUF_LEN);
+				log_r_ptr = 0;
+				log_write_file(log_r_ptr, log_w_ptr);
+				log_r_ptr = log_w_ptr;				
 			}
 			fflush(g_file_fd);
 		}
 		pthread_mutex_unlock(&log_mutex);
-
 	}
 }
 int main(int argc, void *argv[])
 {
 	int fd_com = 0;
-	char file_name[256] = {0};
 	struct timeval    tv;
 	struct timezone   tz;
 	struct tm         *p;
 	//sleep(10);	
 	gettimeofday(&tv, &tz);
 	p = localtime(&tv.tv_sec);
-	sprintf(file_name, "/home/pi/glass-%04d-%02d-%02d_%02d:%02d:%02d.log", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
+	sprintf(file_name, "/home/pi/glass-%04d-%02d-%02d_%02d-%02d-%02d.log", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
 
 	if((fd_com=open_com_port("/dev/ttyAMA0"))<0)
 	{
@@ -287,7 +305,7 @@ int main(int argc, void *argv[])
 	} else {
 		pthread_t tid;
 		if (pthread_create(&tid, NULL, log_write, NULL)) {
-			printf("error creating thread.");
+			printf("error creating log_write thread.");
 			fclose(g_file_fd);
 			close(fd_com);
 		} else
