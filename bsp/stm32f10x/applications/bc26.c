@@ -775,7 +775,7 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					/*server data in */					
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
 					int len=0;
-					char *len_ptr = strstr(last_data_ptr, ":");
+					char *len_ptr = strstr(last_data_ptr, "NSONMI:");
 					while(len_ptr[len] != '\r' && len_ptr[len] != '\n')
 						len++;
 					g_bc26_state = BC26_STATE_DATA_READ;
@@ -784,10 +784,10 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					//else						
 					//rtk_printf("len ptr len %d\r\n", strlen(len_ptr));
 					//rt_sprintf(qird,"AT+NSORF=%s", len_ptr);
-					rt_kprintf("len %d\r\n", len);
+					rt_kprintf("len %d %s\r\n", len-7,len_ptr+7);
 					memset(qird,0,32);
 					strcpy(qird,"AT+NSORF=");
-					memcpy(qird+strlen("AT+NSORF="),len_ptr+1, len+1);
+					memcpy(qird+strlen("AT+NSORF="),len_ptr+7, len-5);
 					//strcat(qird,"\r\n");
 					gprs_at_cmd(g_dev_bc26,qird);
 					server_len_bc26 = 0;
