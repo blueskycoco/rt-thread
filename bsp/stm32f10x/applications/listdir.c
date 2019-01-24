@@ -15,6 +15,24 @@
 #include <dfs_posix.h>
 
 static char fullpath[256];
+int cur_storage(const char *path)
+{
+    int result;
+    long long cap;
+    struct statfs buffer;
+
+    result = dfs_statfs(path ? path : NULL, &buffer);
+    if (result != 0)
+    {
+        rt_kprintf("dfs_statfs failed.\n");
+        return -1;
+    }
+
+    cap = buffer.f_bsize * buffer.f_bfree / 1024;
+    rt_kprintf("disk free: %d KB [ %d block, %d bytes per block ]\n",
+    (unsigned long)cap, buffer.f_bfree, buffer.f_bsize);
+    return 0;
+}
 void list_dir(const char* path)
 {
 	DIR *dir;
@@ -48,7 +66,9 @@ void list_dir(const char* path)
 		closedir(dir);
 	}
 	else rt_kprintf("open %s directory failed\n", path);
+	cur_storage("/");
 	rt_kprintf("/***********************************************/\r\n");
+	
 }
 
 #ifdef RT_USING_FINSH
