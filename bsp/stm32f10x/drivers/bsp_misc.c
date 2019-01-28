@@ -560,14 +560,14 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 			if (length > 0) {
 				while((Address < len) && (FLASHStatus == FLASH_COMPLETE))
 				{
-					rt_uint32_t tmp_dat = (Data[i]<<24)|(Data[i+1]<<16)|(Data[i+2]<<8)|Data[i+3];
+					rt_uint32_t tmp_dat = (Data[i+3]<<24)|(Data[i+2]<<16)|(Data[i+1]<<8)|Data[i+0];
 					FLASHStatus = FLASH_ProgramWord(start_addr+Address, tmp_dat);
 					Address = Address + 4;
 					i+=4;
-					if (i>length)
+					if (i>=length)
 						break;
 				}	
-				if (i>length && length != 2048)
+				if (i>=length && length != 2048)
 					break;
 			} else
 				break;

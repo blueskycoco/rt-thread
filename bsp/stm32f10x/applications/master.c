@@ -137,7 +137,7 @@ void info_user(void *param)
 	while (1) {
 		rt_event_recv( &(g_info_event), 0xffffffff, RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &ev ); 
 		rt_mutex_take(&g_stm32_lock,RT_WAITING_FOREVER);
-		rt_kprintf("get message %d\r\n", ev);
+		rt_kprintf("get message %x\r\n", ev);
 		if (ev & INFO_EVENT_CODING) {
 			if (cur_status == 1) {
 				/*need protection off first

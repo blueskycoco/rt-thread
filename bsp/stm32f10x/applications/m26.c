@@ -99,6 +99,7 @@
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
 #define STR_GPRSACT					"IP GPRSACT"
+#define STR_FTP_RESULT				"QFTPOPEN"
 #define qistat 				"AT+QISTAT\r\n"
 #define qiclose "AT+QICLOSE\r\n"
 #define qilocip "AT+QILOCIP\r\n"
@@ -748,7 +749,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 							down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);			
 						else
 							down_fd = open("/BootLoader.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);			
-					} else {
+					} else if (have_str(last_data_ptr, STR_FTP_RESULT)){
 						if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
 							rt_thread_delay(100);
 							gprs_at_cmd(g_dev_m26,qiftp_m26);
@@ -901,6 +902,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						}
 						if (!cur_status) {
 						rt_thread_delay(500);
+						rt_kprintf("programing boot done, reseting ...\r\n");
 						NVIC_SystemReset();
 						}
 					}
