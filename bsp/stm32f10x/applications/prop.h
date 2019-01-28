@@ -98,8 +98,8 @@ struct HwVersion
 	rt_uint8_t   hdVersion;
 	  rt_uint8_t	  lcdVersion;
 	  rt_uint8_t	  isdVersion;
-	  rt_uint8_t	undefine0;	
-	  rt_uint8_t	undefine1;	
+	  rt_uint8_t	bootversion0;	
+	  rt_uint8_t	bootversion1;	
 	  rt_uint8_t	undefine2;	
 	  rt_uint8_t	undefine3;	
 	  rt_uint8_t	undefine4;	
@@ -120,7 +120,7 @@ struct MachineProperty mp;
 struct HwVersion	hwv;
 #define TYPE_MP 		0
 #define TYPE_FQP 		1
-
+#define TYPE_HWV		2
 #define TYPE_WIRE				0x00
 #define TYPE_WIRELESS			0x01
 #define TYPE_NOW				0x00

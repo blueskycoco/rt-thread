@@ -75,6 +75,7 @@ rt_uint8_t m26_restart_flag;
 extern void set_alarm_now();
 extern void reset_alarm_now();
 extern 	void begin_yunduo();
+rt_uint8_t upgrade_type = 0; /* 0 for Boot, 1 for App*/
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -536,6 +537,9 @@ void info_user(void *param)
 		if (ev & INFO_EVENT_SAVE_MAIN) {
 			save_param(0);
 		}
+		if (ev & INFO_EVENT_SAVE_HWV) {
+			save_param(2);
+		}
 		if (ev & INFO_EVENT_MUTE) {
 			rt_kprintf("do mute\r\n");
 			Stop_Playing();
@@ -645,7 +649,35 @@ long _list_thread(struct rt_list_node *list)
     return 0;
 }
 extern struct rt_object_information rt_object_container[];
+void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
+{
+	g_crc = (cmd[7] << 8)|cmd[8];
+	if (g_ftp != RT_NULL)
+		rt_free(g_ftp);
+	g_ftp = rt_malloc((cmd[9] + 1)*sizeof(rt_uint8_t));
+	rt_kprintf("server crc\t %x\r\n",g_crc);
+	rt_kprintf("len %d\r\n", cmd[9]);
+	rt_memset(g_ftp,0,cmd[9]+1);
+	memcpy(g_ftp,cmd+10,cmd[9]);
+	rt_kprintf("ftp addrss %s\r\n",g_ftp);
+					
+	if (!cur_status) {					
+		g_exit_reason = 0x01;
+		upload_server(CMD_EXIT);
+		rt_thread_delay(200);
+		entering_ftp_mode = 1;						
+		upgrade_type = type;
+		if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
+					(g_index == 0 && g_type0 == PCIE_1_NBIOT))
+			)
+		{
+				entering_ftp_mode_bc26=1;
+				g_bc26_update_len = 0;
+				bc26_module = 1;
+		}
+	}
 
+}
 void handle_heart_beat_ack(rt_uint8_t *cmd)
 {
 	rt_uint32_t ts = cmd[0]<<24|cmd[1]<<16|cmd[2]<<8|cmd[3]<<0;
@@ -659,31 +691,8 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 		switch (cmd[4]) {
 			case 0x01:			
 				rt_kprintf("new APP version: \t%d",v);
-					g_app_v = v;
-					g_crc = (cmd[7] << 8)|cmd[8];
-					if (g_ftp != RT_NULL)
-						rt_free(g_ftp);
-					g_ftp = rt_malloc((cmd[9] + 1)*sizeof(rt_uint8_t));
-					rt_kprintf("server crc\t %x\r\n",g_crc);
-					rt_kprintf("len %d\r\n", cmd[9]);
-					rt_memset(g_ftp,0,cmd[9]+1);
-					memcpy(g_ftp,cmd+10,cmd[9]);
-					rt_kprintf("ftp addrss %s\r\n",g_ftp);
-					
-				if (!cur_status) {					
-					g_exit_reason = 0x01;
-					upload_server(CMD_EXIT);
-					rt_thread_delay(200);
-					entering_ftp_mode = 1;							
-					if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
-								(g_index == 0 && g_type0 == PCIE_1_NBIOT))
-								)
-					{
-									entering_ftp_mode_bc26=1;
-									g_bc26_update_len = 0;
-									bc26_module = 1;
-					}
-				}
+				g_app_v = v;
+				prepare_upgrade(cmd,1);
 				break;
 			case 0x02:			
 				rt_kprintf("new SokcetIP version: \t%d",v);
@@ -692,6 +701,13 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 			case 0x03:			
 				rt_kprintf("new UpdateIP version: \t%d",v);
 				mp.updateAddressVersion = v;
+				break;
+			case 0x04:
+				rt_kprintf("new BOOT version: \t%d", v);
+				hwv.bootversion0 = (v>>8)&0xff;
+				hwv.bootversion1 = v&0xff;
+				g_app_v = v;
+				prepare_upgrade(cmd,0);
 				break;
 		}
 		if (cmd[4] == 2 || cmd[4] == 3) {

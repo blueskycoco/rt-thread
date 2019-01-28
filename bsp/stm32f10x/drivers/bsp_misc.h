@@ -20,4 +20,5 @@ void alarm_flow(void);
 void show_memory_info(void);
 void print_ts(rt_uint8_t *ptr);
 rt_uint16_t ADC_Get_aveg(void); 
+rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len);
 #endif

@@ -184,6 +184,7 @@ extern rt_uint8_t in_qiact;
 extern rt_uint32_t qiact_times;
 extern rt_uint8_t m26_restart_flag;
 extern void begin_yunduo();
+extern rt_uint8_t upgrade_type;
 void reset_at_timeout()
 {
 	rt_kprintf("reset m26 timer\r\n");
@@ -736,11 +737,17 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					if (have_str(last_data_ptr, STR_FTP_OK_M26)) {
 						rt_kprintf("login ftp ok\r\n");
 						m26_cnt = 0;
-						sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/stm32_%d.bin\"\r\n",m26_cnt);
+						if (upgrade_type)
+							sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/stm32_%d.bin\"\r\n",m26_cnt);
+						else
+							sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/BootLoader.bin\"\r\n");
 						gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
 						g_m26_state = M26_STATE_SET_LOCATION;
-						ftp_rty=0;			
-						down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);			
+						ftp_rty=0;		
+						if (upgrade_type)
+							down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);			
+						else
+							down_fd = open("/BootLoader.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);			
 					} else {
 						if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
 							rt_thread_delay(100);
@@ -763,14 +770,20 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;
 			case M26_STATE_CLEAN_RAM:
-				sprintf(qiftp_get_m26, "AT+QFTPGET=\"%sstm32_%d.bin\"\r\n",g_ftp,m26_cnt);
+				if (upgrade_type)
+					sprintf(qiftp_get_m26, "AT+QFTPGET=\"%sstm32_%d.bin\"\r\n",g_ftp,m26_cnt);
+				else
+					sprintf(qiftp_get_m26, "AT+QFTPGET=\"%sBootLoader.bin\"\r\n",g_ftp);
 				gprs_at_cmd(g_dev_m26, qiftp_get_m26);
 				g_m26_state = M26_STATE_GET_FILE;
 				break;
 			case M26_STATE_CLOSE_FILE:
 				if (have_str(last_data_ptr, STR_OK)) {
 					m26_cnt++;
-					sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/stm32_%d.bin\"\r\n",m26_cnt);
+					if (upgrade_type)
+						sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/stm32_%d.bin\"\r\n",m26_cnt);
+					else
+						sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/BootLoader.bin\"\r\n");
 					gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
 					g_m26_state = M26_STATE_SET_LOCATION;
 				}
@@ -786,7 +799,10 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_m26_state = M26_STATE_LOGOUT_FTP;
 						m26_cnt = 0;
 					} else {
-						sprintf(qiftp_m26_ram,"AT+QFOPEN=\"RAM:stm32_%d.bin\",0\r\n",m26_cnt);
+						if (upgrade_type)
+							sprintf(qiftp_m26_ram,"AT+QFOPEN=\"RAM:stm32_%d.bin\",0\r\n",m26_cnt);
+						else
+							sprintf(qiftp_m26_ram,"AT+QFOPEN=\"RAM:BootLoader.bin\",0\r\n");
 						gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
 						g_m26_state = M26_STATE_READ_FILE;
 						stm32_fd=0;	
@@ -845,10 +861,14 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 							//cat_file("/stm32.bin");
 							sprintf(qiftp_close_file,"AT+QFCLOSE=%d\r\n",stm32_fd);
 							gprs_at_cmd(g_dev_m26,qiftp_close_file);
+							if (upgrade_type) {
 							if (m26_cnt == 2) {
 								g_m26_state = M26_STATE_LOGOUT_FTP;
 							} else {
 								g_m26_state = M26_STATE_CLOSE_FILE;
+							}
+							} else {
+								g_m26_state = M26_STATE_LOGOUT_FTP;
 							}
 						}	
 					}
@@ -858,17 +878,27 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_OK))
 				{
 					close(down_fd);
+					if (upgrade_type)
 					mp.firmCRC = CRC_check_file("/stm32.bin");
+					else
+					mp.firmCRC = CRC_check_file("/BootLoader.bin");
 					if (mp.firmCRC != g_crc)
 					{
-						rt_kprintf("App download failed %x %x\r\n",mp.firmCRC,g_crc);
+						rt_kprintf("App or Boot download failed %x %x\r\n",mp.firmCRC,g_crc);
 					}
 					else {
 						rt_kprintf("App donwload ok\r\n");
+						if (upgrade_type) {
 						if (g_app_v!=0)
 							mp.firmVersion = g_app_v;
 						mp.firmLength = stm32_len;
 						rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+						} else {
+							rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
+							/* real update boot*/
+							rt_kprintf("going to upgrade Boot\r\n");
+							write_flash(0x08000000, "/BootLoader.bin", stm32_len);
+						}
 						if (!cur_status) {
 						rt_thread_delay(500);
 						NVIC_SystemReset();

@@ -512,8 +512,14 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[18] = 0x03;
 			cmd[19] = mp.updateAddressVersion >> 8;
 			cmd[20] = mp.updateAddressVersion & 0xff;
-			heart_type = 0;
+			heart_type = 3;
 			rt_kprintf("addr_type\tUpgradeIP %d\r\n",mp.updateAddressVersion);
+		} else if (heart_type == 3) {
+			cmd[18] = 0x04;
+			cmd[19] = hwv.bootversion0;
+			cmd[20] = hwv.bootversion1;
+			heart_type = 0;
+			rt_kprintf("addr_type\tBOOT %d\r\n",(hwv.bootversion0<<8)|hwv.bootversion1);
 		}
 		ofs = 21;
 		memcpy(cmd+ofs,mp.roProperty.CAPTCHA,6);

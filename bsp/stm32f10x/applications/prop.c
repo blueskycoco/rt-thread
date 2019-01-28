@@ -102,6 +102,8 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 	rt_kprintf("hdVersion \t\t%d\r\n", hwv.hdVersion);
 	rt_kprintf("isdVersion \t\t%d\r\n", hwv.isdVersion);
 	rt_kprintf("lcddVersion \t\t%d\r\n\r\n", hwv.lcdVersion);
+	rt_kprintf("bootversion0 \t\t%d\r\n\r\n", hwv.bootversion0);
+	rt_kprintf("bootversion1 \t\t%d\r\n\r\n", hwv.bootversion1);
 	rt_kprintf("wire fq\r\n");
 	for(i=0;i<WIRE_MAX;i++)
 	{
@@ -528,6 +530,8 @@ int load_param()
 		hwv.hdVersion=30;
 		hwv.lcdVersion=1;
 		hwv.isdVersion=1;
+		hwv.bootversion0=0;
+		hwv.bootversion1=0;
 	}
 	/*mp.socketAddress[0].port = 8434;
 	
@@ -579,7 +583,7 @@ void save_param(int type)
 		}
 		//dump_mp(mp);
 	}
-	else
+	else if (type == TYPE_FQP)
 	{
 		fd = open(FQP_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0);
 		crc = CRC_check((unsigned char *)&fqp, sizeof(struct FangQuProperty));
@@ -628,6 +632,34 @@ void save_param(int type)
 			return ;
 		}
 		//dump_fqp(fqp,fangqu_wire,fangqu_wireless);		
+	} else if (type == TYPE_HWV) {
+		fd = open(HWV_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0);
+		if (fd<0) {
+			rt_mutex_release(&file_lock);
+			rt_kprintf("save open failed 0\r\n");
+			return ;
+		}
+		crc = CRC_check((unsigned char *)&hwv, sizeof(hwv));
+		rt_kprintf("crc %x\r\n", crc);
+		level = rt_hw_interrupt_disable();
+		length = write(fd, &crc, sizeof(rt_uint16_t));
+		//fsync(fd);
+		//rt_hw_interrupt_enable(level);
+		if (length != sizeof(rt_uint16_t))
+		{
+			rt_kprintf("write hwv crc data failed %d\n",length);
+		}
+		//level = rt_hw_interrupt_disable();
+		length = write(fd, &hwv, sizeof(hwv));
+		fsync(fd);
+		rt_hw_interrupt_enable(level);
+		if (length != sizeof(hwv))
+		{
+			rt_kprintf("write hwv data failed %d\n",length);
+			close(fd);
+			rt_mutex_release(&file_lock);
+			return ;
+		}
 	}
 	close(fd);
 	rt_mutex_release(&file_lock);

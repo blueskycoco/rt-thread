@@ -3,12 +3,15 @@
 #include <string.h>
 #include "cJSON.h"
 #include <rtthread.h>
+#include <rthw.h>
 #include <dfs_posix.h>
 #include "stm32f10x.h"
 #include "bsp_misc.h"
 #include "prop.h"
 #include "lcd.h"
 #include "led.h"
+#define FLASH_PAGE_SIZE    ((uint16_t)0x800) 
+#define WRITE_START_ADDR   ((uint32_t)0x08000000)
 extern rt_uint8_t g_main_state;
 extern rt_uint32_t g_server_addr_bak;
 extern rt_uint32_t g_server_port_bak;
@@ -44,11 +47,11 @@ unsigned int CRC_check_file(unsigned char *file)
 	unsigned char *Data = RT_NULL;
 	unsigned short Data_length=0,Data_length1=0;
 	unsigned int CRC1=0xFFFF;
-	
+
 	int fd = open(file, O_RDONLY, 0);
 	if (fd < 0)
 	{
-		rt_kprintf("CRC check file ,open %s failed\n");
+		rt_kprintf("CRC check file ,open %s failed\n", file);
 		return 0;
 	}
 	Data = (unsigned char *)rt_malloc(1024*sizeof(unsigned char));
@@ -115,7 +118,7 @@ void cat_file(unsigned char *file)
 				rt_kprintf("%02x", Data[i]);
 			rt_kprintf("\r\n");
 		}		
-		}while(Data_length >0);
+	}while(Data_length >0);
 	rt_free(Data);
 	close(fd);
 }
@@ -169,7 +172,7 @@ char *doit_data(char *text,char *item_str)
 	if (!item_json) {rt_kprintf("Error data before: [%s]\n",cJSON_GetErrorPtr());}
 	else
 	{
-	 		 
+
 		cJSON *data;
 		data=cJSON_GetObjectItem(item_json,item_str);
 		if(data)
@@ -287,13 +290,13 @@ void show_battery(int v)
 	//rt_kprintf("battery %d level %d\r\n", v,level);
 	if (level == 5) {
 		//if (battery_insert()) {
-			if (blink) {
-				blink = RT_FALSE;
-				SetBatteryIco(level);
-			} else {
-				blink = RT_TRUE;
-				SetBatteryIco(1);
-			}
+		if (blink) {
+			blink = RT_FALSE;
+			SetBatteryIco(level);
+		} else {
+			blink = RT_TRUE;
+			SetBatteryIco(1);
+		}
 		//} else {
 		//	SetBatteryIco(level);
 		//}
@@ -393,13 +396,13 @@ void adjust_time(rt_uint8_t *server_time)
 	rt_time_t local_time,server_ts;
 	struct tm *to;
 	time(&local_time);
-	#if 0
+#if 0
 	server_ts = time2ts((server_time[0]<<8)|server_time[1],server_time[2],
-		server_time[3],server_time[4],server_time[5],server_time[6]);
-	
-	#else
+			server_time[3],server_time[4],server_time[5],server_time[6]);
+
+#else
 	server_ts = (server_time[0] << 24) | (server_time[1] << 16) | (server_time[2] << 8) | (server_time[3] << 0);
-	#endif
+#endif
 	if (abs(local_time-server_ts) >= 30) {		
 		rt_kprintf("local time \t%d \r\nserver time \t%d\r\n", local_time, server_ts);
 		rt_device_t device = rt_device_find("rtc");
@@ -433,7 +436,7 @@ void strip2hex(char *str,struct IPAddress *ip)
 			ip->port = strtol(tmpBuf, NULL, 10); 
 		}
 	}
-//	rt_kprintf("%d.%d.%d.%d:%04d\n",ip->IP[0],ip->IP[1],ip->IP[2],ip->IP[3],ip->port);
+	//	rt_kprintf("%d.%d.%d.%d:%04d\n",ip->IP[0],ip->IP[1],ip->IP[2],ip->IP[3],ip->port);
 }
 void update_ip_list(rt_uint8_t *ip, rt_uint8_t len)
 {
@@ -455,9 +458,9 @@ void update_ip_list(rt_uint8_t *ip, rt_uint8_t len)
 	strip2hex(local_ip,&(mp.socketAddress[0]));
 	rt_free(local_ip);	
 	g_server_addr_bak = (mp.socketAddress[0].IP[0] << 24)|
-					(mp.socketAddress[0].IP[1] << 16)|
-					(mp.socketAddress[0].IP[2] <<  8)|
-					(mp.socketAddress[0].IP[3] <<  0);
+		(mp.socketAddress[0].IP[1] << 16)|
+		(mp.socketAddress[0].IP[2] <<  8)|
+		(mp.socketAddress[0].IP[3] <<  0);
 	g_server_port_bak = mp.socketAddress[0].port;
 }
 int get_len(rt_uint8_t *pos, rt_uint16_t len)
@@ -475,9 +478,9 @@ rt_uint8_t con_rssi(rt_uint8_t cc_rssi)
 {	
 	rt_uint8_t rssi;
 	if (cc_rssi >= 128) {
-	  rssi = 100+((cc_rssi-256)>>1) - 72;
+		rssi = 100+((cc_rssi-256)>>1) - 72;
 	} else {
-	  rssi = 100+(cc_rssi>>1) - 72;
+		rssi = 100+(cc_rssi>>1) - 72;
 	}
 	return rssi;
 }
@@ -485,12 +488,12 @@ void net_flow(void)
 {
 	int i;
 	for (i=0; i<2; i++) {
-	SetStateIco(8,ICO_ON);
-	SetStateIco(9,ICO_OFF);
-	rt_thread_delay(40);
-	SetStateIco(8,ICO_OFF);
-	SetStateIco(9,ICO_ON);
-	rt_thread_delay(40);
+		SetStateIco(8,ICO_ON);
+		SetStateIco(9,ICO_OFF);
+		rt_thread_delay(40);
+		SetStateIco(8,ICO_OFF);
+		SetStateIco(9,ICO_ON);
+		rt_thread_delay(40);
 	}
 	SetStateIco(8,ICO_OFF);
 	SetStateIco(9,ICO_OFF);
@@ -511,9 +514,9 @@ void show_memory_info(void)
 	rt_uint32_t total,used,maxused;
 	rt_memory_info(&total,&used,&maxused);
 	rt_kprintf("++++++++++++++++++++++++++++++++++++++++++++++++\r\n");
-    rt_kprintf("total memory: %d\n", total);
-    rt_kprintf("used memory : %d\n", used);
-    rt_kprintf("maximum allocated memory: %d\n", maxused);	
+	rt_kprintf("total memory: %d\n", total);
+	rt_kprintf("used memory : %d\n", used);
+	rt_kprintf("maximum allocated memory: %d\n", maxused);	
 	rt_kprintf("++++++++++++++++++++++++++++++++++++++++++++++++\r\n");
 }
 void print_ts(rt_uint8_t *ptr)
@@ -521,3 +524,58 @@ void print_ts(rt_uint8_t *ptr)
 	rt_time_t cur_time = time(RT_NULL);
 	rt_kprintf(" %s %s\r\n",ptr,ctime(&cur_time));
 }
+rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len)
+{
+	rt_uint32_t EraseCounter = 0x00, Address = 0x00;
+	rt_uint8_t *Data = NULL;
+	rt_uint32_t NbrOfPage = 0x00;
+	volatile FLASH_Status FLASHStatus = FLASH_COMPLETE;
+	int fd = open(file, O_RDONLY, 0);
+	if (fd < 0)
+	{
+		rt_kprintf("write flash ,open %s failed\n", file);
+		return 0;
+	}
+
+	NbrOfPage = len / FLASH_PAGE_SIZE;
+	if ((len % FLASH_PAGE_SIZE) !=0)
+		NbrOfPage += 1;
+
+	rt_base_t level = rt_hw_interrupt_disable();
+	FLASH_Unlock();	
+	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);
+	for(EraseCounter = 0; (EraseCounter < NbrOfPage) && (FLASHStatus == FLASH_COMPLETE); EraseCounter++)
+	{
+		FLASHStatus = FLASH_ErasePage(start_addr + (FLASH_PAGE_SIZE * EraseCounter));
+	}
+	if (EraseCounter != NbrOfPage)
+		rt_kprintf("erase boot area failed\r\n");
+	else {
+		rt_kprintf("erase boot area ok\r\n");
+		Data = (rt_uint8_t *)rt_malloc(2048*sizeof(rt_uint8_t));
+		while (1) {
+			rt_uint32_t length = read(fd, Data, 2048);
+			rt_uint32_t i =0;
+			rt_kprintf("begin to prog %08x\r\n", start_addr+Address);
+			if (length > 0) {
+				while((Address < len) && (FLASHStatus == FLASH_COMPLETE))
+				{
+					rt_uint32_t tmp_dat = (Data[i]<<24)|(Data[i+1]<<16)|(Data[i+2]<<8)|Data[i+3];
+					FLASHStatus = FLASH_ProgramWord(start_addr+Address, tmp_dat);
+					Address = Address + 4;
+					i+=4;
+					if (i>length)
+						break;
+				}	
+				if (i>length && length != 2048)
+					break;
+			} else
+				break;
+		}
+	}
+	close(fd);
+	free(Data);
+	rt_hw_interrupt_enable(level);
+	return 1;
+}
+
