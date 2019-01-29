@@ -667,10 +667,12 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 		rt_thread_delay(200);
 		entering_ftp_mode = 1;						
 		upgrade_type = type;
+		HtbLcdClear();
 		if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
 					(g_index == 0 && g_type0 == PCIE_1_NBIOT))
 			)
 		{
+	
 				entering_ftp_mode_bc26=1;
 				g_bc26_update_len = 0;
 				bc26_module = 1;
@@ -840,6 +842,10 @@ void handle_set_sub(rt_uint8_t *cmd)
 		cmd[i+1],cmd[i+2],cmd[i+3],cmd[i+4],cmd[i+5],cmd[i+6]);
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	rt_thread_delay(100);
+	if (mp.reload & 0x02) {
+		mp.reload = 0x00;
+		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+	}
 	/*build proc main ack*/
 	upload_server(CMD_ASK_SUB_ACK);
 

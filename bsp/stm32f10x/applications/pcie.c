@@ -473,10 +473,14 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			ofs+=10;
 			rt_kprintf("qccid\t\t%010x\r\n",g_pcie[g_index]->qccid);
 		}
-		if (cur_status)
-			cmd[ofs++] = 2;
-		else
-			cmd[ofs++] = 1;
+		if (mp.reload & 0x02) {
+			cmd[ofs++] = 0xff;
+		} else {
+			if (cur_status)
+				cmd[ofs++] = 2;
+			else
+				cmd[ofs++] = 1;
+		}
 		need_read = 1;
 		rt_kprintf("csq\t\t%d\r\n",	cmd[15]);
 		rt_kprintf("imei\t\t%02x%02x%02x%02x%02x%02x%02x%02x\r\n",cmd[22],cmd[23],cmd[24],cmd[25],cmd[26],cmd[27],cmd[28],cmd[29]);
@@ -671,6 +675,12 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				//	cmd[ofs]|=0x04;	
 				ofs++;
 				cmd[ofs++] = fangqu_wire[i].slave_type;
+				memcpy(cmd+ofs, (uint8_t *)&(fangqu_wire[i].slave_sn), 4);
+				ofs += 4;
+				memcpy(cmd+ofs, (uint8_t *)&fangqu_wire[i].slave_model, 2);
+				ofs += 2;
+				memcpy(cmd+ofs, (uint8_t *)fangqu_wire[i].slave_batch, 4);
+				ofs += 4;
 				(cmd[17])++;
 			}
 		}
@@ -699,6 +709,12 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				//	cmd[ofs]|=0x04;				
 				ofs++;
 				cmd[ofs++] = fangqu_wireless[i].slave_type;
+				memcpy(cmd+ofs, (uint8_t *)&(fangqu_wireless[i].slave_sn), 4);
+				ofs += 4;
+				memcpy(cmd+ofs, (uint8_t *)&fangqu_wireless[i].slave_model, 2);
+				ofs += 2;
+				memcpy(cmd+ofs, (uint8_t *)fangqu_wireless[i].slave_batch, 4);
+				ofs += 4;
 				(cmd[17])++;
 			}
 		}		

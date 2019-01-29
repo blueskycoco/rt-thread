@@ -828,6 +828,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				} else {
 					rt_uint8_t *ptr = (rt_uint8_t *)last_data_ptr;					
 					rt_uint16_t cnt=0;
+					begin_yunduo();
 
 					rt_memcpy(tmp_stm32_bin+tmp_stm32_len, (rt_uint8_t *)last_data_ptr, data_size);
 					tmp_stm32_len += data_size; 					
