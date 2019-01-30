@@ -19,6 +19,7 @@ rt_uint8_t g_delay_in=0;
 rt_uint8_t g_delay_out=0;
 extern rt_uint8_t g_index_sub;
 rt_uint8_t g_alarm_voice=0;
+rt_uint8_t startup_flag = 0;
 extern rt_uint8_t g_main_state;
 extern rt_uint8_t g_alarmType;
 extern rt_uint8_t s1;
@@ -160,6 +161,10 @@ void info_user(void *param)
 			Wtn6_Play(VOICE_TUICHUDM,ONCE,1);
 			g_main_state = 0;	
 			}
+			if (startup_flag == 0) {
+				startup_flag = 1;
+			} else
+				upload_server(CMD_ASK_SUB_ACK);
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
 			g_main_state = 2;
@@ -823,17 +828,21 @@ void handle_set_sub(rt_uint8_t *cmd)
 	//if (cmd[1] != 0)
 		fqp.delay_in = cmd[1];
 	if (cmd[2] != 0) {
-		for (i=3; i<cmd[2]*4+3;i+=4) {
+		for (i=3; i<cmd[2]*14+3;i+=14) {
 			if (cmd[i+3] == 0xff) /*delete fq*/
 			{
 				delete_fq(cmd[i],cmd[i+1]);	
 			} else {
 				rt_kprintf("edit fq %x %x %x\r\n",cmd[i],cmd[i+1],cmd[i+2]);
-				edit_fq(cmd[i],cmd[i+1],cmd[i+2]);
+				edit_fq(cmd[i],cmd[i+1],cmd[i+2],cmd[i+3],
+						(cmd[i+4]<<24)|(cmd[i+5]<<16)|(cmd[i+6]<<8)|cmd[i+7],
+						(cmd[i+8]<<8)|cmd[i+9],
+						(cmd[i+4]<<10)|(cmd[i+5]<<11)|(cmd[i+6]<<12)|cmd[i+13]
+						);
 			}
 		}
 	}
-	i=cmd[2]*4+3;
+	i=cmd[2]*14+3;
 	g_operate_platform = cmd[i];
 	memcpy(g_operater,cmd+i+1,6);
 	
@@ -980,6 +989,8 @@ void handle_proc_sub(rt_uint8_t *cmd)
 			proc_detail_fq(cmd[2], cmd[0]);
 			if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
 				upload_server(CMD_SUB_EVENT);
+			if (cmd[0] == 5)
+			upload_server(CMD_ASK_SUB_ACK);
 		}
 	} else {
 		/*proc multi fq*/
@@ -988,6 +999,8 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		proc_fq(cmd+2, 10, cmd[0]);
 		if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
 			upload_server(CMD_SUB_EVENT);
+		if (cmd[0] == 5)
+		upload_server(CMD_ASK_SUB_ACK);
 	}
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	rt_thread_delay(100);

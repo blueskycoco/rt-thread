@@ -3,7 +3,9 @@
 #include "prop.h"
 void set_fq_on(struct FangQu *list, int len);
 void handleSub(rt_uint8_t *data);
-void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1);
+void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1,
+		rt_uint8_t param2,rt_uint32_t param3,rt_uint16_t param4,
+		rt_uint32_t param5);
 void delete_fq(rt_uint8_t index, rt_uint8_t type);
 void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code);
 void proc_detail_fq(rt_uint8_t index, rt_uint8_t code);

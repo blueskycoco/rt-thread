@@ -675,12 +675,16 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				//	cmd[ofs]|=0x04;	
 				ofs++;
 				cmd[ofs++] = fangqu_wire[i].slave_type;
-				memcpy(cmd+ofs, (uint8_t *)&(fangqu_wire[i].slave_sn), 4);
-				ofs += 4;
-				memcpy(cmd+ofs, (uint8_t *)&fangqu_wire[i].slave_model, 2);
-				ofs += 2;
-				memcpy(cmd+ofs, (uint8_t *)fangqu_wire[i].slave_batch, 4);
-				ofs += 4;
+				cmd[ofs++] = (fangqu_wire[i].slave_sn >> 24) & 0xff;
+				cmd[ofs++] = (fangqu_wire[i].slave_sn >> 16) & 0xff;
+				cmd[ofs++] = (fangqu_wire[i].slave_sn >> 8) & 0xff;
+				cmd[ofs++] = (fangqu_wire[i].slave_sn >> 0) & 0xff;
+				cmd[ofs++] = (fangqu_wire[i].slave_model >> 8) & 0xff;
+				cmd[ofs++] = (fangqu_wire[i].slave_model >> 0) & 0xff;
+				cmd[ofs++] = (fangqu_wire[i].slave_batch >> 24) & 0xff;
+				cmd[ofs++] = (fangqu_wire[i].slave_batch >> 16) & 0xff;
+				cmd[ofs++] = (fangqu_wire[i].slave_batch >> 8) & 0xff;
+				cmd[ofs++] = (fangqu_wire[i].slave_batch >> 0) & 0xff;
 				(cmd[17])++;
 			}
 		}
@@ -709,18 +713,23 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				//	cmd[ofs]|=0x04;				
 				ofs++;
 				cmd[ofs++] = fangqu_wireless[i].slave_type;
-				memcpy(cmd+ofs, (uint8_t *)&(fangqu_wireless[i].slave_sn), 4);
-				ofs += 4;
-				memcpy(cmd+ofs, (uint8_t *)&fangqu_wireless[i].slave_model, 2);
-				ofs += 2;
-				memcpy(cmd+ofs, (uint8_t *)fangqu_wireless[i].slave_batch, 4);
-				ofs += 4;
+				cmd[ofs++] = (fangqu_wireless[i].slave_sn >> 24) & 0xff;
+				cmd[ofs++] = (fangqu_wireless[i].slave_sn >> 16) & 0xff;
+				cmd[ofs++] = (fangqu_wireless[i].slave_sn >> 8) & 0xff;
+				cmd[ofs++] = (fangqu_wireless[i].slave_sn >> 0) & 0xff;
+				cmd[ofs++] = (fangqu_wireless[i].slave_model >> 8) & 0xff;
+				cmd[ofs++] = (fangqu_wireless[i].slave_model >> 0) & 0xff;
+				cmd[ofs++] = (fangqu_wireless[i].slave_batch >> 24) & 0xff;
+				cmd[ofs++] = (fangqu_wireless[i].slave_batch >> 16) & 0xff;
+				cmd[ofs++] = (fangqu_wireless[i].slave_batch >> 8) & 0xff;
+				cmd[ofs++] = (fangqu_wireless[i].slave_batch >> 0) & 0xff;
 				(cmd[17])++;
 			}
 		}		
 		cmd[ofs++] = g_operate_platform;
 		memcpy(cmd+ofs,g_operater,6);
 		ofs += 6;
+		rt_kprintf("now ofs is %d\r\n", ofs);
 	} else if (type == CMD_ASK_MAIN_ACK) {	
 		rt_kprintf("req\t\tCMD ASK MAIN ADDR Packet\r\n");
 		cmd[5] = (CMD_ASK_MAIN_ACK >> 8) & 0xff;//ask addr
