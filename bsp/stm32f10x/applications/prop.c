@@ -473,6 +473,7 @@ int load_param()
 		if (length != sizeof(fqp)|| tmp_crc!=crc)
 		{
 			rt_kprintf("check: fqp crc not same, read fqp data failed\n");
+			mp.reload |= 0x02;
 			close(fd);
 			return 0;
 		}
@@ -488,6 +489,7 @@ int load_param()
 			rt_kprintf("check: wireless crc not same, read failed\n");
 			close(fd);
 			rt_free(tmp_fangquList);
+			mp.reload |= 0x02;
 			return 0;
 		}		
 		memcpy(fangqu_wireless,tmp_fangquList,sizeof(struct FangQu)*WIRELESS_MAX);
@@ -501,6 +503,7 @@ int load_param()
 			rt_kprintf("check: wireless crc not same, read failed\n");
 			close(fd);
 			rt_free(tmp_fangquList);
+			mp.reload |= 0x02;
 			return 0;
 		}
 		memcpy(fangqu_wire,tmp_fangquList,sizeof(struct FangQu)*WIRE_MAX);

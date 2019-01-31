@@ -192,7 +192,8 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 		list[index].slave_type = param2;
 		list[index].slave_sn = param3;
 		list[index].slave_model = param4;
-		list[index].slave_batch = param5;		
+		list[index].slave_batch = param5;	
+		list[index].index = index+2;
 		/*if ((param1 & 0x40))
 			list[index].slave_delay = 1;
 		else
