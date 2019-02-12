@@ -4,7 +4,7 @@
 #include "led.h"
 #include <string.h>
 #include "m26.h"
-#include "bc26.h"
+#include "nbiot.h"
 #include "ec20.h"
 //#include "nb_iot.h"
 //#include "ip_module.h"
@@ -45,8 +45,8 @@ extern rt_uint8_t entering_ftp_mode;
 rt_mp_t cmd_mp = RT_NULL;
 rt_mp_t pci_mp = RT_NULL;
 rt_mp_t server_mp = RT_NULL;
-rt_uint32_t g_bc26_update_len = 0;
-extern rt_uint8_t bc26_module;
+rt_uint32_t g_nbiot_update_len = 0;
+extern rt_uint8_t nbiot_module;
 rt_uint8_t update_flag=0;
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
@@ -242,7 +242,7 @@ void pcie1_sm(void* parameter)
 					ec20_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_2_NBIOT:
-					bc26_proc((void *)last_data_ptr, data_size);
+					nbiot_proc((void *)last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie1 unknown sm\r\n");
@@ -280,7 +280,7 @@ void pcie0_sm(void* parameter)
 					ec20_proc((void *)last_data_ptr, data_size);
 					break;
 				case PCIE_1_NBIOT:
-					bc26_proc((void *)last_data_ptr, data_size);
+					nbiot_proc((void *)last_data_ptr, data_size);
 					break;
 				default:
 					rt_kprintf("pcie0 unknown sm\r\n");
@@ -772,10 +772,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 	}else if (type == CMD_UPDATE) {		
 		cmd[5] = (CMD_UPDATE >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_UPDATE&0xff;
-		cmd[15] = (g_bc26_update_len>>24) & 0xff;
-		cmd[16] = (g_bc26_update_len>>16) & 0xff;
-		cmd[17] = (g_bc26_update_len>>8)  & 0xff;
-		cmd[18] = (g_bc26_update_len>>0)  & 0xff;
+		cmd[15] = (g_nbiot_update_len>>24) & 0xff;
+		cmd[16] = (g_nbiot_update_len>>16) & 0xff;
+		cmd[17] = (g_nbiot_update_len>>8)  & 0xff;
+		cmd[18] = (g_nbiot_update_len>>0)  & 0xff;
 		ofs = 19;
 	}
 	//rt_kprintf("ofs is %d\r\n", ofs);
@@ -804,7 +804,7 @@ void send_process(void* parameter)
 		rt_kprintf("wait lock\r\n");		
 		if (entering_ftp_mode)
 		{
-			if (bc26_module && g_net_state == NET_STATE_INIT) {
+			if (nbiot_module && g_net_state == NET_STATE_INIT) {
 				if (update_flag) {
 				g_net_state = NET_STATE_LOGIN;
 				rt_kprintf("KKKKKKKKK\r\n");
@@ -865,7 +865,7 @@ void upload_server(rt_uint16_t cmdType)
 	char buf[400] = {0};
 	char *cmd = RT_NULL;
 	rt_kprintf("net state %d cmdType %x\r\n",g_net_state,cmdType);
-	if ((g_net_state != NET_STATE_LOGED || entering_ftp_mode) && !bc26_module)
+	if ((g_net_state != NET_STATE_LOGED || entering_ftp_mode) && !nbiot_module)
 		return ;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
 	int send_len = build_cmd(buf,cmdType);
@@ -997,7 +997,7 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			rt_thread_delay(10);
 			switch_pcie_power(0);
 			rt_thread_delay(10);
-			bc26_start(0);
+			nbiot_start(0);
 			break;
 		case PCIE_2_IP:
 			//ip_module_start(1);
@@ -1015,7 +1015,7 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			rt_thread_delay(10);
 			switch_pcie_power(1);
 			rt_thread_delay(10);
-			bc26_start(1);
+			nbiot_start(1);
 			break;
 		default:
 			rt_kprintf("uninsert module on pcie\r\n");

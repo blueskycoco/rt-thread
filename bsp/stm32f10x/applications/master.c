@@ -62,9 +62,9 @@ extern rt_uint8_t wire_code;
 extern int g_index;
 extern rt_uint8_t g_type0;
 extern rt_uint8_t g_type1;
-extern rt_uint32_t g_bc26_update_len;
-rt_uint8_t bc26_module = 0;
-extern rt_uint8_t entering_ftp_mode_bc26;
+extern rt_uint32_t g_nbiot_update_len;
+rt_uint8_t nbiot_module = 0;
+extern rt_uint8_t entering_ftp_mode_nbiot;
 extern rt_uint8_t g_module_type;
 rt_uint8_t g_wire_type;
 rt_uint32_t g_wire_addr;
@@ -678,9 +678,9 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 			)
 		{
 	
-				entering_ftp_mode_bc26=1;
-				g_bc26_update_len = 0;
-				bc26_module = 1;
+				entering_ftp_mode_nbiot=1;
+				g_nbiot_update_len = 0;
+				nbiot_module = 1;
 		}
 	}
 
@@ -1014,8 +1014,8 @@ void handle_bc26_update(rt_uint8_t *data)
 	rt_kprintf("cmd_type \tbc26 update\r\n");
 	rt_kprintf("all len \t%d\r\n", all_len);
 	rt_kprintf("cur len \t%d\r\n", cur_len);
-	g_bc26_update_len += cur_len;
-	if (g_bc26_update_len < all_len)
+	g_nbiot_update_len += cur_len;
+	if (g_nbiot_update_len < all_len)
 	{
 		if (bc28_down_fd == -1) {
 			bc28_down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);	

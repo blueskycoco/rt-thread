@@ -6,62 +6,75 @@
 #include <ctype.h>
 #include "led.h"
 #include <string.h>
-#include "bc26.h"
+#include "nbiot.h"
 #include "pcie.h"
 #include "bsp_misc.h"
 #include "master.h"
 #include "prop.h"
 #include "lcd.h"
 
-#define BC26_EVENT_0 					(1<<0)
-#define BC26_STATE_INIT					0
-#define BC26_STATE_CHECK_CPIN			1
-#define BC26_STATE_SET_QINDI			2
-#define BC26_STATE_SET_QIMUX			3
-#define BC26_STATE_CHECK_CGREG			4
-#define BC26_STATE_CHECK_QISTAT			5
-#define BC26_STATE_SET_QICSGP			6
-#define BC26_STATE_SET_QIREGAPP			7
-#define BC26_STATE_SET_QISRVC			8
-#define BC26_STATE_SET_QIACT			9
-#define BC26_STATE_CHECK_CIMI			10
-#define BC26_STATE_SET_QIFGCNT			11
-#define BC26_STATE_SET_QIOPEN 			12
-#define BC26_STATE_SET_QIDEACT  		13
-#define BC26_STATE_DATA_PROCESSING 		14
-#define BC26_STATE_DATA_READ			15
-#define BC26_STATE_SET_QICLOSE			16
-#define BC26_STATE_DATA_WRITE			17
-#define BC26_STATE_DATA_ACK				18
-#define BC26_STATE_DATA_PRE_WRITE		19
-#define BC26_STATE_ATE0 				21
-#define BC26_STATE_CSQ					22
-#define BC26_STATE_LAC					23
-#define BC26_STATE_ICCID				24
-#define BC26_STATE_IMEI					25
-#define BC26_STATE_LACR					26
-#define BC26_STATE_CSCON				27
-#define BC26_STATE_CFG_FTP				28
-#define BC26_STATE_OPEN_FTP				29
-#define BC26_STATE_GET_FILE				30
-#define BC26_STATE_READ_FILE			31
-#define BC26_STATE_LOGOUT_FTP			32
-#define BC26_STATE_SET_LOCATION			33
-#define BC26_STATE_V					34
-#define BC26_STATE_CLEAN_RAM			35
-#define BC26_STATE_CLOSE_FILE			36
-#define BC26_STATE_CGATT				37
-#define BC26_CREATE_SOCKET				38
-#define BC26_NSOCR						39
-#define BC26_QENG						40
-#define BC26_CPSMS						41
-#define BC26_STATE_BAND					42
-#define BC26_STATE_QENG					43
-#define BC26_CFUN_0						44
-#define BC26_CFUN_1						45
-#define BC26_QREG_ASK					46
-#define BC26_QREG_SET					47
-#define BC26_NUESTATS					48
+#define BC28_EVENT_0 					(1<<0)
+#define BC28_STATE_INIT					0
+#define BC28_STATE_CHECK_CPIN			1
+#define BC28_STATE_SET_QINDI			2
+#define BC28_STATE_SET_QIMUX			3
+#define BC28_STATE_CHECK_CGREG			4
+#define BC28_STATE_CHECK_QISTAT			5
+#define BC28_STATE_SET_QICSGP			6
+#define BC28_STATE_SET_QIREGAPP			7
+#define BC28_STATE_SET_QISRVC			8
+#define BC28_STATE_SET_QIACT			9
+#define BC28_STATE_CHECK_CIMI			10
+#define BC28_STATE_SET_QIFGCNT			11
+#define BC28_STATE_SET_QIOPEN 			12
+#define BC28_STATE_SET_QIDEACT  		13
+#define BC28_STATE_DATA_PROCESSING 		14
+#define BC28_STATE_DATA_READ			15
+#define BC28_STATE_SET_QICLOSE			16
+#define BC28_STATE_DATA_WRITE			17
+#define BC28_STATE_DATA_ACK				18
+#define BC28_STATE_DATA_PRE_WRITE		19
+#define BC28_STATE_ATE0 				21
+#define BC28_STATE_CSQ					22
+#define BC28_STATE_LAC					23
+#define BC28_STATE_ICCID				24
+#define BC28_STATE_IMEI					25
+#define BC28_STATE_LACR					26
+#define BC28_STATE_CSCON				27
+#define BC28_STATE_CFG_FTP				28
+#define BC28_STATE_OPEN_FTP				29
+#define BC28_STATE_GET_FILE				30
+#define BC28_STATE_READ_FILE			31
+#define BC28_STATE_LOGOUT_FTP			32
+#define BC28_STATE_SET_LOCATION			33
+#define BC28_STATE_V					34
+#define BC28_STATE_CLEAN_RAM			35
+#define BC28_STATE_CLOSE_FILE			36
+#define BC28_STATE_CGATT				37
+#define BC28_CREATE_SOCKET				38
+#define BC28_NSOCR						39
+#define BC28_QENG						40
+#define BC28_CPSMS						41
+#define BC28_STATE_BAND					42
+#define BC28_STATE_QENG					43
+#define BC28_CFUN_0						44
+#define BC28_CFUN_1						45
+#define BC28_QREG_ASK					46
+#define BC28_QREG_SET					47
+#define BC28_NUESTATS					48
+/******************support for m5311**********/
+#define M5311_STATE_INIT				49
+#define M5311_STATE_WAIT_CSCON			50
+#define M5311_STATE_CHECK_CEREG			51
+#define M5311_STATE_CHECK_CSQ			52
+
+#define STR_M5311_RDY					"*ATREADY:"
+#define STR_MCEREG1						"+CEREG:1"
+#define STR_MCEREG5						"+CEREG:5"
+#define STR_MCSCON						"+CSCON:1"
+
+#define mcereg							"AT+CEREG?\r\n"
+/******************support for m5311**********/
 #define STR_NSOCR						"+NSOCR"
 #define STR_CSCON						"+CSCON:0,1"
 #define STR_GSN							"+CGSN:"
@@ -159,24 +172,22 @@
 #define cfun1							"AT+CFUN=1\r\n"
 #define qregswt_ask						"AT+QREGSWT?\r\n"
 #define qregswt_set						"AT+QREGSWT=2\r\n"
-uint8_t 	  qicsgp_bc26[32]			= {0};
-uint8_t 	  qiopen_bc26[64]			= {0};
-uint8_t 	  qisend_bc26[32] 			= {0};
-//uint8_t 	  qiftp_set_resuming[32] 	= {0};
-uint8_t 	  qiftp_bc26_ram[32]		= {0};
-uint8_t		  qiftp_get_bc26[32]		= {0};
+uint8_t 	  qicsgp_bc28[32]			= {0};
+uint8_t 	  qiopen_bc28[64]			= {0};
+uint8_t 	  qisend_bc28[32] 			= {0};
+uint8_t 	  qiftp_bc28_ram[32]		= {0};
+uint8_t		  qiftp_get_bc28[32]		= {0};
 uint8_t 	  qird[32] = {0};
 uint8_t		  qiclose[32] 				= {0};
-rt_bool_t 	  g_data_in_bc26 			= RT_FALSE;
+rt_bool_t 	  g_data_in_bc28 			= RT_FALSE;
 extern int 	  g_index;
-//rt_uint32_t ftp_ofs 					= 0;
-rt_device_t   g_dev_bc26;
-uint8_t 	  g_bc26_state 				= BC26_STATE_INIT;
-uint32_t 	  server_len_bc26 			= 0;
-uint8_t 	  *server_buf_bc26 			= RT_NULL;
-void 		  *send_data_ptr_bc26 		= RT_NULL;
-rt_size_t 	  send_size_bc26;
-rt_uint8_t 	  bc26_cnt 					= 0;
+rt_device_t   g_dev_nbiot;
+uint8_t 	  g_nbiot_state 				= BC28_STATE_INIT;
+uint32_t 	  server_len_bc28 			= 0;
+uint8_t 	  *server_buf_bc28 			= RT_NULL;
+void 		  *send_data_ptr_bc28 		= RT_NULL;
+rt_size_t 	  send_size_bc28;
+rt_uint8_t 	  bc28_cnt 					= 0;
 extern rt_uint8_t 	g_net_state;
 extern rt_uint32_t 	g_server_addr;
 extern rt_uint32_t 	g_server_addr_bak;
@@ -195,14 +206,14 @@ extern int 			stm32_fd;
 extern int 			stm32_len;
 extern int 			cur_stm32_len;
 extern int 			down_fd;
-uint8_t 	  		qiftp_bc26[64];
+uint8_t 	  		qiftp_bc28[64];
 extern uint8_t		qiftp_read_file[32];//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
 extern uint8_t		qiftp_close_file[32];
 extern rt_uint8_t 	ftp_rty;
 extern rt_uint16_t 	g_app_v;
 extern rt_mp_t 		server_mp;
 extern rt_uint8_t 	g_module_type;
-rt_uint8_t 			entering_ftp_mode_bc26=0;
+rt_uint8_t 			entering_ftp_mode_nbiot=0;
 extern rt_uint8_t 	update_flag;
 extern struct rt_event 	g_info_event;
 rt_uint8_t			g_socket_no			= '1';
@@ -257,128 +268,35 @@ void fromHex(uint8_t *input, uint32_t len, uint8_t *output)
 		iy++;
 	}
 }
-void handle_bc26_server_in(const void *last_data_ptr,rt_size_t len)
+void handle_bc28_server_in(const void *last_data_ptr,rt_size_t len)
 {
 	static rt_bool_t flag = RT_FALSE;	
 	int i;
 	int ofs;
 	rt_kprintf("server in 1\r\n");
-	if (/*have_str(last_data_ptr, STR_OK) &&*/ have_str(last_data_ptr, "ADAC")) {
+	if (have_str(last_data_ptr, "ADAC")) {
 		uint8_t *pos = (uint8_t *)strstr(last_data_ptr, "ADAC");
 		uint32_t len_ofs = 0;
 		rt_kprintf("server in 2\r\n");
 		while (pos[len_ofs] != ',' && len_ofs < len)
 			len_ofs++;
-		rt_uint8_t *server_buf_bc26_1 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
-		fromHex(pos, len_ofs,server_buf_bc26_1);
-		rt_data_queue_push(&g_data_queue[3], server_buf_bc26_1, len_ofs/2, RT_WAITING_FOREVER);
-		g_bc26_state = BC26_STATE_DATA_PROCESSING;
-		g_data_in_bc26 = 0;
-		gprs_at_cmd(g_dev_bc26,at_csq);
+		rt_uint8_t *server_buf_bc28_1 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
+		fromHex(pos, len_ofs,server_buf_bc28_1);
+		rt_data_queue_push(&g_data_queue[3], server_buf_bc28_1, len_ofs/2, RT_WAITING_FOREVER);
+		g_nbiot_state = BC28_STATE_DATA_PROCESSING;
+		g_data_in_bc28 = 0;
+		gprs_at_cmd(g_dev_nbiot,at_csq);
 	}
-	#if 0
-	if ((ofs = match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRD,rt_strlen(STR_QIRD)))!=-1)
-	{	
-			uint8_t *pos = (uint8_t *)last_data_ptr;
-		//	for(i=0;i<256;i++)
-	//			rt_kprintf("%02x",pos[i]);
-			rt_kprintf("ofs is %d\r\n",ofs);
-			//if (pos != RT_NULL) {
-				int i = 7+ofs;
-				//rt_kprintf("\r\n<>%x%x%x%x%x%x%x%x%x%x%x%x<>\r\n",
-				//	pos[ofs],pos[ofs+1],pos[ofs+2],pos[ofs+3],pos[ofs+4],pos[ofs+5],pos[ofs+6],pos[ofs+7],
-				//	pos[ofs+8],pos[ofs+9],pos[ofs+10],pos[ofs+11]);
-				while (pos[i] != '\r' && pos[i+1] != '\n' && i<len)
-				{
-					server_len_bc26 = server_len_bc26*10 + pos[i] - '0';
-					i++;
-				}
-				//server_len_ec20 = get_len(pos+i,len-i);
-				server_len_bc26 *=2;
-				rt_kprintf("server len %d\r\n", server_len_bc26);
-				server_buf_bc26 = (uint8_t *)rt_malloc(server_len_bc26* sizeof(uint8_t));
-				if (server_buf_bc26 == RT_NULL)
-					rt_kprintf("malloc buf 26 failed\r\n");
-				rt_memset(server_buf_bc26,0,server_len_bc26);
-				//server_len_ec20 = 0;
-				i+=2;
-				rt_kprintf("i %d\r\n",i);
-				if (i+server_len_bc26 < len)
-					rt_memcpy(server_buf_bc26,pos+i,server_len_bc26);
-				else
-				{
-					server_len_bc26 = i+server_len_bc26-len;
-					rt_memcpy(server_buf_bc26,pos+i,server_len_bc26);
-				}
-				/*while(i<len && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
-				{
-	
-					server_buf_ec20[server_len_ec20++] = pos[i++];
-					rt_kprintf("<%02x>\r\n", server_buf_ec20[server_len_ec20-1]);
-				}*/
-				if (match_bin(pos, len, "OK",rt_strlen("OK"))!=-1)
-				{
-					rt_uint8_t *server_buf_bc26_1 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
-					fromHex(server_buf_bc26, server_len_bc26,server_buf_bc26_1);
-					rt_free(server_buf_bc26);
-					rt_data_queue_push(&g_data_queue[3], server_buf_bc26_1, server_len_bc26/2, RT_WAITING_FOREVER);
-					if (server_len_bc26 == 1500) {
-						g_bc26_state = BC26_STATE_CHECK_QISTAT;
-						gprs_at_cmd(g_dev_bc26,qistat);
-					} else {
-						g_bc26_state = BC26_STATE_DATA_PROCESSING;
-						gprs_at_cmd(g_dev_bc26,at_csq);
-					}
-					if (match_bin((rt_uint8_t *)last_data_ptr, len,STR_QIRDI,rt_strlen(STR_QIRDI))==-1)
-						g_data_in_bc26 = RT_FALSE;
-	
-					flag = RT_FALSE;
-				}
-				else
-					flag = RT_TRUE;
-	}
-	else if (flag){	
-		int i=0;
-		uint8_t *pos = (uint8_t *)last_data_ptr;
-		while(i<strlen(pos) && pos[i]!='\r' &&pos[i+1]!='\n' &&pos[i+2]!='O' &&pos[i+3]!='K' && pos[i]!=0x1e &&pos[i+1]!=0x01)
-		{
-			server_buf_bc26[server_len_bc26++] = pos[i++];
-		}
-
-		if (strstr(pos, "OK")!=RT_NULL)
-		{
-			
-			rt_uint8_t *server_buf_bc26_1 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
-			fromHex(server_buf_bc26, server_len_bc26,server_buf_bc26_1);
-			rt_free(server_buf_bc26);
-			rt_data_queue_push(&g_data_queue[3], server_buf_bc26_1, server_len_bc26/2, RT_WAITING_FOREVER);
-			if (server_len_bc26 == 1500) {
-				g_bc26_state = BC26_STATE_CHECK_QISTAT;
-				gprs_at_cmd(g_dev_bc26,qistat);
-			} else {
-				g_bc26_state = BC26_STATE_DATA_PROCESSING;
-				gprs_at_cmd(g_dev_bc26,at_csq);		
-			}
-			if (!have_str(last_data_ptr, STR_QIRDI))
-				g_data_in_bc26 = RT_FALSE;
-			//rt_mutex_release(&(g_pcie[g_index]->lock));
-			flag = RT_FALSE;
-		}
-		
-	}else {
-		
-	}
-	#endif
 }
 
-void bc26_start(int index)
+void nbiot_start(int index)
 {
 	rt_uint32_t power_rcc,pwr_key_rcc;
 	rt_uint16_t power_pin,pwr_key_pin;
 	GPIO_TypeDef* GPIO_power,*GPIO_pwr;
 	GPIO_InitTypeDef GPIO_InitStructure;
 	g_index = index;
-	g_dev_bc26 = g_pcie[index]->dev;
+	g_dev_nbiot = g_pcie[index]->dev;
 	if (index) {
 		power_rcc = RCC_APB2Periph_GPIOE;
 		pwr_key_rcc = RCC_APB2Periph_GPIOE;
@@ -395,7 +313,7 @@ void bc26_start(int index)
 		GPIO_pwr = GPIOC;
 		rt_kprintf("use pcie0 gpioc pin 7\r\n");
 	}
-	g_bc26_state = BC26_STATE_INIT;
+	g_nbiot_state = BC28_STATE_INIT;
 	RCC_APB2PeriphClockCmd(power_rcc|pwr_key_rcc,ENABLE);
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -411,7 +329,7 @@ void bc26_start(int index)
 	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
 	rt_thread_delay(RT_TICK_PER_SECOND);
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
-	rt_kprintf("bc26 power on done\r\n");
+	rt_kprintf("bc28 power on done\r\n");
 	
 	strcpy(ftp_addr,"u.110LW.com");
 	//strcpy(ftp_addr,"47.93.48.167");
@@ -419,14 +337,14 @@ void bc26_start(int index)
 	strcpy(ftp_passwd,"minfei123");
 }
 
-void bc26_proc(void *last_data_ptr, rt_size_t data_size)
+void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
 	//if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
-		rt_kprintf("\r\n<== (BC28 %d %d)\r\n",g_bc26_state, data_size);
+		rt_kprintf("\r\n<== (BC28 %d %d)\r\n",g_nbiot_state, data_size);
 		for (i=0; i<data_size; i++)
-			if (isascii(tmp[i]) && (g_bc26_state != BC26_STATE_READ_FILE))
+			if (isascii(tmp[i]) && (g_nbiot_state != BC28_STATE_READ_FILE))
 				rt_kprintf("%c", tmp[i]);
 			else
 				//rt_kprintf("%02x", tmp[i]);
@@ -438,65 +356,61 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 		}
 	//}
 	if (data_size >= 2) {
-		if (have_str(last_data_ptr,STR_RDY))
-		{
+		if (have_str(last_data_ptr,STR_RDY)) {
 			rt_kprintf("got bc28 rdy\r\n");
-			g_bc26_state = BC26_STATE_INIT;
+			g_nbiot_state = BC28_STATE_INIT;
+		} else if (have_str(last_data_ptr, STR_M5311_RDY)) {
+			rt_kprintf("got m5311 rdy\r\n");
+			g_nbiot_state = M5311_STATE_INIT;
 		}
 		if (have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
 		{
-			//if (have_str(last_data_ptr,STR_PDP_DEACT)) {
 				rt_kprintf("MODULE lost\r\n");
 				g_heart_cnt=0;
 				g_net_state = NET_STATE_UNKNOWN;
 				pcie_switch(g_module_type);
 				return;
-			//} else {				
-			//	g_bc26_state = BC26_CREATE_SOCKET;
-			//	gprs_at_cmd(g_dev_bc26,nsocr);
-			//	return;
-			//}
 		}
-		switch (g_bc26_state) {
-			case BC26_STATE_INIT:
+		switch (g_nbiot_state) {
+			case BC28_STATE_INIT:
 				//if (have_str(last_data_ptr,STR_RDY)) {
-				g_bc26_state = BC26_STATE_ATE0;
-				gprs_at_cmd(g_dev_bc26,e0);	
+				g_nbiot_state = BC28_STATE_ATE0;
+				gprs_at_cmd(g_dev_nbiot,e0);	
 				//}
 				break;
-			case BC26_STATE_ATE0:
+			case BC28_STATE_ATE0:
 				if (have_str(last_data_ptr,STR_OK)) {
-					g_bc26_state = BC26_STATE_V;
-					gprs_at_cmd(g_dev_bc26,ati);
+					g_nbiot_state = BC28_STATE_V;
+					gprs_at_cmd(g_dev_nbiot,ati);
 				} else {
 					rt_thread_delay(RT_TICK_PER_SECOND);
-					gprs_at_cmd(g_dev_bc26,e0);
+					gprs_at_cmd(g_dev_nbiot,e0);
 				}
 				break;
-			case BC26_STATE_BAND:
+			case BC28_STATE_BAND:
 				if (have_str(last_data_ptr,STR_OK)) {
 					g_pcie[g_index]->cpin_cnt=0;
-					g_bc26_state = BC26_STATE_CGATT;
-					gprs_at_cmd(g_dev_bc26,cgatt);
+					g_nbiot_state = BC28_STATE_CGATT;
+					gprs_at_cmd(g_dev_nbiot,cgatt);
 				}
 				break;
-			case BC26_STATE_V:
+			case BC28_STATE_V:
 				if (have_str(last_data_ptr, STR_OK)) {
-					g_bc26_state = BC26_QREG_ASK;
-					gprs_at_cmd(g_dev_bc26,qregswt_ask);
+					g_nbiot_state = BC28_QREG_ASK;
+					gprs_at_cmd(g_dev_nbiot,qregswt_ask);
 				}
 				break;
-			case BC26_QREG_ASK:
+			case BC28_QREG_ASK:
 				if (have_str(last_data_ptr, STR_QREG_2)) {
-					g_bc26_state = BC26_STATE_BAND;
-					gprs_at_cmd(g_dev_bc26,at_band);
+					g_nbiot_state = BC28_STATE_BAND;
+					gprs_at_cmd(g_dev_nbiot,at_band);
 				} else if (have_str(last_data_ptr, STR_QREG_1) ||
 						have_str(last_data_ptr, STR_QREG_0)) {
-					g_bc26_state = BC26_QREG_SET;
-					gprs_at_cmd(g_dev_bc26,qregswt_set);
+					g_nbiot_state = BC28_QREG_SET;
+					gprs_at_cmd(g_dev_nbiot,qregswt_set);
 				}
 				break;
-			case BC26_QREG_SET:
+			case BC28_QREG_SET:
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_heart_cnt=0;
 					g_net_state = NET_STATE_UNKNOWN;
@@ -504,36 +418,36 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_kprintf("set qregswt to 2 ok\r\n");
 				}
 				break;
-			case BC26_CFUN_0:
+			case BC28_CFUN_0:
 				if (have_str(last_data_ptr, STR_OK)) {
-					g_bc26_state = BC26_STATE_BAND;
-					gprs_at_cmd(g_dev_bc26,at_band);
+					g_nbiot_state = BC28_STATE_BAND;
+					gprs_at_cmd(g_dev_nbiot,at_band);
 				}
 				break;
-			case BC26_CFUN_1:
+			case BC28_CFUN_1:
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_pcie[g_index]->cpin_cnt=0;
-					g_bc26_state = BC26_STATE_CGATT;
-					gprs_at_cmd(g_dev_bc26,cgatt);
+					g_nbiot_state = BC28_STATE_CGATT;
+					gprs_at_cmd(g_dev_nbiot,cgatt);
 				}
 				break;
-			case BC26_STATE_QENG:
+			case BC28_STATE_QENG:
 				if (have_str(last_data_ptr,STR_OK)) {
-					g_bc26_state = BC26_STATE_BAND;
-					gprs_at_cmd(g_dev_bc26,at_qeng);
+					g_nbiot_state = BC28_STATE_BAND;
+					gprs_at_cmd(g_dev_nbiot,at_qeng);
 				}
 				break;
-			case BC26_STATE_CGATT:
+			case BC28_STATE_CGATT:
 				if (have_str(last_data_ptr, STR_CGATT_OK)) {
-					g_bc26_state = BC26_STATE_CSQ;
-					gprs_at_cmd(g_dev_bc26,at_csq);
+					g_nbiot_state = BC28_STATE_CSQ;
+					gprs_at_cmd(g_dev_nbiot,at_csq);
 				} else {
 					rt_thread_delay(RT_TICK_PER_SECOND);
-					//gprs_at_cmd(g_dev_bc26,at_csq);
-					gprs_at_cmd(g_dev_bc26,cgatt);
+					//gprs_at_cmd(g_dev_nbiot,at_csq);
+					gprs_at_cmd(g_dev_nbiot,cgatt);
 				}
 				break;	
-			case BC26_STATE_CSQ:
+			case BC28_STATE_CSQ:
 				if (have_str(last_data_ptr,STR_CSQ)) {
 					if (tmp[9] == 0x2c) {
 						if (tmp[7] == ':')
@@ -545,40 +459,34 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_pcie[g_index]->csq = tmp[7]-0x30;
 					rt_kprintf("csq is %x %x %x %d\r\n",tmp[7],tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
-					//g_bc26_state = BC26_STATE_LAC;
-					//gprs_at_cmd(g_dev_bc26,cregs);
-					//gprs_at_cmd(g_dev_bc26,qeng);
-					//g_bc26_state = BC26_QENG;
-					gprs_at_cmd(g_dev_bc26,cpsms);
-					g_bc26_state = BC26_CPSMS;
+					gprs_at_cmd(g_dev_nbiot,cpsms);
+					g_nbiot_state = BC28_CPSMS;
 				} 
 				break;
-			case BC26_QENG:				
-				gprs_at_cmd(g_dev_bc26,cpsms);
-				g_bc26_state = BC26_CPSMS;
+			case BC28_QENG:				
+				gprs_at_cmd(g_dev_nbiot,cpsms);
+				g_nbiot_state = BC28_CPSMS;
 				break;
-			case BC26_CPSMS:
-				gprs_at_cmd(g_dev_bc26,cscon);
-				g_bc26_state = BC26_STATE_CSCON;
+			case BC28_CPSMS:
+				gprs_at_cmd(g_dev_nbiot,cscon);
+				g_nbiot_state = BC28_STATE_CSCON;
 				break;
-			case BC26_STATE_CSCON:
+			case BC28_STATE_CSCON:
 				if (have_str(last_data_ptr, STR_CSCON)) {
-					//g_bc26_state = BC26_STATE_LAC;
-					//gprs_at_cmd(g_dev_bc26,cregs);
-					g_bc26_state = BC26_STATE_ICCID;
-						gprs_at_cmd(g_dev_bc26,at_qccid);
+					g_nbiot_state = BC28_STATE_ICCID;
+						gprs_at_cmd(g_dev_nbiot,at_qccid);
 					} else {
 					rt_thread_delay(RT_TICK_PER_SECOND);
-					gprs_at_cmd(g_dev_bc26,cscon);
+					gprs_at_cmd(g_dev_nbiot,cscon);
 					}
 					break;
-			case BC26_STATE_LAC:
+			case BC28_STATE_LAC:
 				if (have_str(last_data_ptr,STR_OK)) {
-					g_bc26_state = BC26_STATE_LACR;
-					gprs_at_cmd(g_dev_bc26,cregr);
+					g_nbiot_state = BC28_STATE_LACR;
+					gprs_at_cmd(g_dev_nbiot,cregr);
 				} 
 				break;
-			case BC26_STATE_LACR:
+			case BC28_STATE_LACR:
 				if (have_str(last_data_ptr,STR_CREG)) {
 						if (((rt_uint8_t *)last_data_ptr)[14]>='A' && ((rt_uint8_t *)last_data_ptr)[14]<='F' )
 							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[14]-'A'+10;
@@ -619,11 +527,11 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 							((rt_uint8_t *)last_data_ptr)[21],((rt_uint8_t *)last_data_ptr)[22],
 							((rt_uint8_t *)last_data_ptr)[23],((rt_uint8_t *)last_data_ptr)[24],
 							g_pcie[g_index]->lac_ci);
-						g_bc26_state = BC26_STATE_ICCID;
-						gprs_at_cmd(g_dev_bc26,at_qccid);
+						g_nbiot_state = BC28_STATE_ICCID;
+						gprs_at_cmd(g_dev_nbiot,at_qccid);
 				} 
 				break;
-			case BC26_STATE_ICCID:
+			case BC28_STATE_ICCID:
 				if (have_str(last_data_ptr, STR_QCCID)) {
 					i=2;
 					while(/*tmp[i]!='\r'*/i<22)
@@ -644,11 +552,11 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_kprintf("qccid[%d] = %02X\r\n",i/2-1,g_pcie[g_index]->qccid[i/2-1]);
 						i+=2;						
 					}					
-					g_bc26_state = BC26_STATE_IMEI;
-					gprs_at_cmd(g_dev_bc26,gsn);
+					g_nbiot_state = BC28_STATE_IMEI;
+					gprs_at_cmd(g_dev_nbiot,gsn);
 					}
 					break;
-			case BC26_STATE_IMEI:
+			case BC28_STATE_IMEI:
 
 				if (have_str(last_data_ptr, STR_GSN)) {
 				g_pcie[g_index]->imei[0]=0x0;
@@ -662,7 +570,6 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					else if (tmp[i]>='A' && tmp[i+6]<='F')
 						g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-'A'+10);
 					rt_kprintf("imei[%d] = %02X\r\n",i/2-1,g_pcie[g_index]->imei[i/2-1]);
-					//i+=2;
 					if (tmp[i+7]>='0' && tmp[i+7]<='9')
 						g_pcie[g_index]->imei[i/2] = (tmp[i+7]-0x30)*16;
 					else if (tmp[i+1]>='a' && tmp[i+7]<='f')
@@ -672,53 +579,40 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				
 					i+=2;						
 				}					
-					g_bc26_state = BC26_CREATE_SOCKET;
-					gprs_at_cmd(g_dev_bc26,nsocr);
+					g_nbiot_state = BC28_CREATE_SOCKET;
+					gprs_at_cmd(g_dev_nbiot,nsocr);
 					}
 					break;
-			//case BC26_NSOCR:
-			//	if (have_str(last_data_ptr, STR_QSOC)) {						
-			//		g_bc26_state = BC26_CREATE_SOCKET;
-			//		gprs_at_cmd(g_dev_bc26,qicfg);
-			//	}
-			//	break;
-			case BC26_STATE_SET_QICLOSE:
+			case BC28_STATE_SET_QICLOSE:
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_net_state = NET_STATE_UNKNOWN;
-					g_bc26_state = BC26_CREATE_SOCKET;
-					gprs_at_cmd(g_dev_bc26,nsocr);
+					g_nbiot_state = BC28_CREATE_SOCKET;
+					gprs_at_cmd(g_dev_nbiot,nsocr);
 				}
 				break;
-			case BC26_CREATE_SOCKET:
+			case BC28_CREATE_SOCKET:
 				if (have_str(last_data_ptr, STR_OK)) {					
 					g_socket_no = tmp[2];
-					g_bc26_state = BC26_STATE_SET_QIOPEN;
+					g_nbiot_state = BC28_STATE_SET_QIOPEN;
 					if (!entering_ftp_mode) {
-						rt_memset(qiopen_bc26, 0, 64);					
-						rt_sprintf(qiopen_bc26, "AT+NSOCO=%c,%d.%d.%d.%d,%d\r\n",g_socket_no,
+						rt_memset(qiopen_bc28, 0, 64);					
+						rt_sprintf(qiopen_bc28, "AT+NSOCO=%c,%d.%d.%d.%d,%d\r\n",g_socket_no,
 								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
 								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
 								mp.socketAddress[g_ip_index].port);
 						rt_kprintf("open ip index %d\r\n",g_ip_index);
-						gprs_at_cmd(g_dev_bc26,qiopen_bc26);
+						gprs_at_cmd(g_dev_nbiot,qiopen_bc28);
 					} else {
-						rt_memset(qiopen_bc26, 0, 64);					
-						rt_sprintf(qiopen_bc26, "AT+NSOCO=%c,106.14.177.87,1706\r\n",g_socket_no);
-						gprs_at_cmd(g_dev_bc26,qiopen_bc26);
+						rt_memset(qiopen_bc28, 0, 64);					
+						rt_sprintf(qiopen_bc28, "AT+NSOCO=%c,106.14.177.87,1706\r\n",g_socket_no);
+						gprs_at_cmd(g_dev_nbiot,qiopen_bc28);
 						update_flag=1;
 					}
 				}
 				break;
-			case BC26_STATE_SET_QIOPEN:
+			case BC28_STATE_SET_QIOPEN:
 				if (have_str(last_data_ptr, STR_OK)) {
-					g_bc26_state = BC26_STATE_DATA_PROCESSING;
-					/*send data here */
-				//	rt_kprintf("connect to server ok\r\n");
-				//	rt_event_send(&(g_pcie[g_index]->event), BC26_EVENT_0);
-				//	gprs_at_cmd(g_dev_bc26,at_csq);
-				//	rt_hw_led_on(NET_LED);
-
-					
+					g_nbiot_state = BC28_STATE_DATA_PROCESSING;
 					/*send data here */
 					g_server_addr = (mp.socketAddress[g_ip_index].IP[0] << 24)|
 									(mp.socketAddress[g_ip_index].IP[1] << 16)|
@@ -730,12 +624,12 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_kprintf("connect to server ok\r\n");
 					g_heart_cnt=0;
 					g_net_state = NET_STATE_INIT;
-					rt_event_send(&(g_pcie[g_index]->event), BC26_EVENT_0);
-					gprs_at_cmd(g_dev_bc26,at_csq);
+					rt_event_send(&(g_pcie[g_index]->event), BC28_EVENT_0);
+					gprs_at_cmd(g_dev_nbiot,at_csq);
 					rt_hw_led_on(NET_LED);
 					//entering_ftp_mode=1;
 				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
-					g_bc26_state = BC26_CREATE_SOCKET;			
+					g_nbiot_state = BC28_CREATE_SOCKET;			
 					
 					rt_kprintf("before , ip index %d\r\n", g_ip_index);
 					if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
@@ -748,29 +642,10 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 						g_ip_index=0;
 					rt_kprintf("after , ip index %d\r\n", g_ip_index);
 					rt_thread_delay(100);					
-					gprs_at_cmd(g_dev_bc26,at_csq);		
+					gprs_at_cmd(g_dev_nbiot,at_csq);		
 				}
-					#if 0
-				else {
-					if (!have_str(last_data_ptr, STR_OK)) {
-						rt_thread_delay(100*3);
-						g_bc26_state = BC26_STATE_CHECK_QISTAT;
-						gprs_at_cmd(g_dev_bc26,qistat);
-						rt_kprintf("before , ip index %d\r\n", g_ip_index);
-						if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
-							mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
-							mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
-							mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
-							mp.socketAddress[g_ip_index+1].port !=0))
-							g_ip_index++;
-						else
-							g_ip_index=0;
-						rt_kprintf("after , ip index %d\r\n", g_ip_index);
-					}
-				}
-				#endif
 				break;
-			case BC26_STATE_DATA_PROCESSING:
+			case BC28_STATE_DATA_PROCESSING:
 				if (have_str(last_data_ptr, STR_QIRDI)) {
 					/*server data in */					
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
@@ -778,21 +653,14 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					char *len_ptr = strstr(last_data_ptr, "NSONMI:");
 					while(len_ptr[len] != '\r' && len_ptr[len] != '\n')
 						len++;
-					g_bc26_state = BC26_STATE_DATA_READ;
-					//if (strstr(len_ptr, "535")) 
-					//	strcpy(qird,"AT+NSORF=10\r\n");
-					//else						
-					//rtk_printf("len ptr len %d\r\n", strlen(len_ptr));
-					//rt_sprintf(qird,"AT+NSORF=%s", len_ptr);
+					g_nbiot_state = BC28_STATE_DATA_READ;
 					rt_kprintf("len %d %s\r\n", len-7,len_ptr+7);
 					memset(qird,0,32);
 					strcpy(qird,"AT+NSORF=");
 					memcpy(qird+strlen("AT+NSORF="),len_ptr+7, len-5);
-					//strcat(qird,"\r\n");
-					gprs_at_cmd(g_dev_bc26,qird);
-					server_len_bc26 = 0;
-					g_data_in_bc26 = RT_TRUE;
-				//} else if (have_str(last_data_ptr, STR_OK)){
+					gprs_at_cmd(g_dev_nbiot,qird);
+					server_len_bc28 = 0;
+					g_data_in_bc28 = RT_TRUE;
 				} else if (have_str(last_data_ptr,STR_CSQ)) {
 					if (tmp[9] == 0x2c) {
 						if (tmp[7] == ':')
@@ -808,19 +676,14 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 				
 					if (g_server_addr != g_server_addr_bak || g_server_port != g_server_port_bak) {
 						g_ip_index=0;
-						g_bc26_state = BC26_STATE_SET_QICLOSE;
+						g_nbiot_state = BC28_STATE_SET_QICLOSE;
 						rt_sprintf(qiclose, "AT+NSOCL=%c\r\n",g_socket_no);
-						gprs_at_cmd(g_dev_bc26,qiclose);
+						gprs_at_cmd(g_dev_nbiot,qiclose);
 						break;
 					}
-//			if (g_heart_cnt > 5 || entering_ftp_mode) {
-							//if (g_heart_cnt > 5) {
-							//	g_bc26_state = BC26_STATE_SET_QICLOSE;
-							//	gprs_at_cmd(g_dev_bc26,qiclose);
-							//}/ else {
-								if (entering_ftp_mode_bc26 && entering_ftp_mode) {
+								if (entering_ftp_mode_nbiot && entering_ftp_mode) {
 									rt_kprintf("goto update\r\n");
-									entering_ftp_mode_bc26=0;
+									entering_ftp_mode_nbiot=0;
 									g_heart_cnt=0;
 									g_net_state = NET_STATE_UNKNOWN;
 									pcie_switch(g_module_type);
@@ -833,37 +696,32 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 									pcie_switch(g_module_type);
 									break;
 								}
-					//}
-	//			break;
-					//
-
 					/*check have data to send */
-					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_bc26,&send_size_bc26) == RT_EOK)
+					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_bc28,&send_size_bc28) == RT_EOK)
 					{	
-						rt_data_queue_pop(&g_data_queue[2], (const void **)&send_data_ptr_bc26, &send_size_bc26, RT_WAITING_FOREVER);
-						rt_kprintf("should send data %d\r\n", send_size_bc26);
-						rt_uint8_t *hex_string = (rt_uint8_t *)rt_malloc((send_size_bc26*2+1)*sizeof(rt_uint8_t));
-						rt_memset(hex_string,0,send_size_bc26*2+1);
-						toHex(send_data_ptr_bc26, send_size_bc26, hex_string);
-						rt_sprintf(qisend_bc26, "AT+NSOSD=%c,%d,", g_socket_no,send_size_bc26);
-						gprs_at_cmd(g_dev_bc26,qisend_bc26);
-						gprs_at_cmd(g_dev_bc26,hex_string);
-						gprs_at_cmd(g_dev_bc26,"\r\n");
+						rt_data_queue_pop(&g_data_queue[2], (const void **)&send_data_ptr_bc28, &send_size_bc28, RT_WAITING_FOREVER);
+						rt_kprintf("should send data %d\r\n", send_size_bc28);
+						rt_uint8_t *hex_string = (rt_uint8_t *)rt_malloc((send_size_bc28*2+1)*sizeof(rt_uint8_t));
+						rt_memset(hex_string,0,send_size_bc28*2+1);
+						toHex(send_data_ptr_bc28, send_size_bc28, hex_string);
+						rt_sprintf(qisend_bc28, "AT+NSOSD=%c,%d,", g_socket_no,send_size_bc28);
+						gprs_at_cmd(g_dev_nbiot,qisend_bc28);
+						gprs_at_cmd(g_dev_nbiot,hex_string);
+						gprs_at_cmd(g_dev_nbiot,"\r\n");
 						rt_free(hex_string);
-						if (send_data_ptr_bc26) {
-							if (send_size_bc26 <= 64) {
-								rt_mp_free(send_data_ptr_bc26);
+						if (send_data_ptr_bc28) {
+							if (send_size_bc28 <= 64) {
+								rt_mp_free(send_data_ptr_bc28);
 							} else {
-								rt_free(send_data_ptr_bc26);
+								rt_free(send_data_ptr_bc28);
 							}
-							send_data_ptr_bc26 = RT_NULL;
+							send_data_ptr_bc28 = RT_NULL;
 						}
-						g_bc26_state = BC26_STATE_DATA_WRITE;
+						g_nbiot_state = BC28_STATE_DATA_WRITE;
 					} else {
-						if (!g_data_in_bc26) {
-						//gprs_at_cmd(g_dev_bc26, nuestats);
+						if (!g_data_in_bc28) {
 						rt_thread_delay(100);
-						gprs_at_cmd(g_dev_bc26,at_csq);
+						gprs_at_cmd(g_dev_nbiot,at_csq);
 						}
 					}
 				} else if (have_str(last_data_ptr,STR_CREG)) {
@@ -901,64 +759,93 @@ void bc26_proc(void *last_data_ptr, rt_size_t data_size)
 					else
 						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'0';
 							rt_kprintf("LAC_CI %08x\r\n", g_pcie[g_index]->lac_ci);
-							gprs_at_cmd(g_dev_bc26,at_csq);
+							gprs_at_cmd(g_dev_nbiot,at_csq);
 					} 
-					/*else {
-					g_bc26_state = BC26_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_bc26,qistat);
-					rt_hw_led_off(NET_LED);
-					}*/
 
 				break;
-			case BC26_STATE_DATA_READ:
+			case BC28_STATE_DATA_READ:
 				//for (int m=0;m<data_size;m++)
 				//
 				//{
 				//	rt_kprintf("%c",((rt_uint8_t *)last_data_ptr)[m]);
 				//}
-				handle_bc26_server_in(last_data_ptr,data_size);
+				handle_bc28_server_in(last_data_ptr,data_size);
 				break;
-			case BC26_STATE_DATA_WRITE:
+			case BC28_STATE_DATA_WRITE:
 				if (have_str(last_data_ptr, STR_OK)) {
-					//g_bc26_state = BC26_STATE_DATA_ACK;
-					//gprs_at_cmd(g_dev_bc26,(qisack);
-					g_bc26_state = BC26_STATE_DATA_PROCESSING;
-					gprs_at_cmd(g_dev_bc26,at_csq);
+					g_nbiot_state = BC28_STATE_DATA_PROCESSING;
+					gprs_at_cmd(g_dev_nbiot,at_csq);
 					rt_time_t cur_time = time(RT_NULL);
 					rt_kprintf("send server ok %s\r\n",ctime(&cur_time));
 					if (!entering_ftp_mode)
-						rt_event_send(&(g_pcie[g_index]->event), BC26_EVENT_0);
+						rt_event_send(&(g_pcie[g_index]->event), BC28_EVENT_0);
 				} else {
 					/*if (!have_str(last_data_ptr, STR_QIRDI) && 
 							!have_str(last_data_ptr, STR_QIURC)) {
-						g_bc26_state = BC26_STATE_CHECK_QISTAT;
-						gprs_at_cmd(g_dev_bc26,qistat);
+						g_nbiot_state = BC28_STATE_CHECK_QISTAT;
+						gprs_at_cmd(g_dev_nbiot,qistat);
 					}*/
 				}
-				if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_bc26)
+				if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_bc28)
 				{
-						g_bc26_state = BC26_STATE_DATA_READ;
-						gprs_at_cmd(g_dev_bc26,qird);
-						server_len_bc26 = 0;
+						g_nbiot_state = BC28_STATE_DATA_READ;
+						gprs_at_cmd(g_dev_nbiot,qird);
+						server_len_bc28 = 0;
 				}
 				break;
-			case BC26_STATE_DATA_ACK:
+			case BC28_STATE_DATA_ACK:
 				if (have_str(last_data_ptr, STR_QISACK)) {
-					g_bc26_state = BC26_STATE_DATA_PROCESSING;
-					if (g_data_in_bc26 || have_str(last_data_ptr, STR_QIRDI)) {
-						g_bc26_state = BC26_STATE_DATA_READ;
-						gprs_at_cmd(g_dev_bc26,qird);
-						server_len_bc26 = 0;
+					g_nbiot_state = BC28_STATE_DATA_PROCESSING;
+					if (g_data_in_bc28 || have_str(last_data_ptr, STR_QIRDI)) {
+						g_nbiot_state = BC28_STATE_DATA_READ;
+						gprs_at_cmd(g_dev_nbiot,qird);
+						server_len_bc28 = 0;
 					} else {
-						gprs_at_cmd(g_dev_bc26,at_csq);
+						gprs_at_cmd(g_dev_nbiot,at_csq);
 					}
 				} else if (have_str(last_data_ptr, STR_QIRDI))
-					g_data_in_bc26 = RT_TRUE;
+					g_data_in_bc28 = RT_TRUE;
 				else{
-					g_bc26_state = BC26_STATE_CHECK_QISTAT;
-					gprs_at_cmd(g_dev_bc26,qistat);
+					g_nbiot_state = BC28_STATE_CHECK_QISTAT;
+					gprs_at_cmd(g_dev_nbiot,qistat);
 				}
-				break;		
+				break;	
+/********************Support for M5311******************************************************************************/
+			case M5311_STATE_INIT:
+				g_nbiot_state = M5311_STATE_WAIT_CSCON;
+				break;
+			case M5311_STATE_WAIT_CSCON:
+				if (have_str(last_data_ptr, STR_MCSCON)) {
+					g_nbiot_state = M5311_STATE_CHECK_CEREG;
+					gprs_at_cmd(g_dev_nbiot, mcereg);
+				}
+				break;
+			case M5311_STATE_CHECK_CEREG:
+				if (have_str(last_data_ptr, STR_MCEREG1) ||
+					have_str(last_data_ptr, STR_MCEREG5)) {
+					g_nbiot_state = M5311_STATE_CHECK_CSQ;
+					gprs_at_cmd(g_dev_nbiot, at_csq);
+				} else {
+					rt_thread_delay(RT_TICK_PER_SECOND);
+					gprs_at_cmd(g_dev_nbiot, mcereg);
+				}
+				break;
+			case M5311_STATE_CHECK_CSQ:
+				if (have_str(last_data_ptr,STR_CSQ)) {
+					if (tmp[9] == 0x2c) {
+						if (tmp[7] == ':')
+							g_pcie[g_index]->csq = tmp[8]-0x30;
+						else
+							g_pcie[g_index]->csq = (tmp[7]-0x30)*10 + tmp[8]-0x30;
+					}
+					else if (tmp[8] == 0x2c)
+						g_pcie[g_index]->csq = tmp[7]-0x30;
+					rt_kprintf("csq is %x %x %x %d\r\n",tmp[7],tmp[8],tmp[9],g_pcie[g_index]->csq);
+					show_signal(g_pcie[g_index]->csq);
+					//gprs_at_cmd(g_dev_nbiot,cpsms);
+					//g_nbiot_state = BC28_CPSMS;
+				} 
+				break;
 		}
 	}
 }

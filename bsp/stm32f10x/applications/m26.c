@@ -1066,6 +1066,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_kprintf("connect to server ok %d\r\n",g_index);
 					g_heart_cnt=0;
 					g_net_state = NET_STATE_INIT;
+					//g_net_state = NET_STATE_LOGED;
 					rt_event_send(&(g_pcie[g_index]->event), M26_EVENT_0);
 					gprs_at_cmd(g_dev_m26,at_csq);
 					rt_hw_led_on(NET_LED);
