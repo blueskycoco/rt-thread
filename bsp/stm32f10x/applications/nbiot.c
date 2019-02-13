@@ -67,13 +67,25 @@
 #define M5311_STATE_WAIT_CSCON			50
 #define M5311_STATE_CHECK_CEREG			51
 #define M5311_STATE_CHECK_CSQ			52
+#define M5311_STATE_CHECK_CGACT			53
+#define M5311_STATE_SET_CREG			54
+#define M5311_STATE_GET_CREG			55
+#define M5311_STATE_GET_ICCID			56
+#define M5311_STATE_GET_IMEI			57
+#define M5311_CREATE_SOCKET				58
+
 
 #define STR_M5311_RDY					"*ATREADY:"
 #define STR_MCEREG1						"+CEREG:1"
 #define STR_MCEREG5						"+CEREG:5"
 #define STR_MCSCON						"+CSCON:1"
+#define STR_MCGACT						"+CGACT:1,1"
+#define STR_ICCID						"+ICCID:"
 
 #define mcereg							"AT+CEREG?\r\n"
+#define mcgact							"AT+CGACT?\r\n"
+#define mgsn 							"AT+GSN\r\n"
+#define miccid							"AT+ICCID\r\n"
 /******************support for m5311**********/
 #define STR_NSOCR						"+NSOCR"
 #define STR_CSCON						"+CSCON:0,1"
@@ -173,7 +185,7 @@
 #define qregswt_ask						"AT+QREGSWT?\r\n"
 #define qregswt_set						"AT+QREGSWT=2\r\n"
 uint8_t 	  qicsgp_bc28[32]			= {0};
-uint8_t 	  qiopen_bc28[64]			= {0};
+uint8_t 	  open_nbiot[64]			= {0};
 uint8_t 	  qisend_bc28[32] 			= {0};
 uint8_t 	  qiftp_bc28_ram[32]		= {0};
 uint8_t		  qiftp_get_bc28[32]		= {0};
@@ -330,7 +342,7 @@ void nbiot_start(int index)
 	rt_thread_delay(RT_TICK_PER_SECOND);
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
 	rt_kprintf("bc28 power on done\r\n");
-	
+
 	strcpy(ftp_addr,"u.110LW.com");
 	//strcpy(ftp_addr,"47.93.48.167");
 	strcpy(ftp_user,"minfei");
@@ -342,18 +354,18 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
 	//if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
-		rt_kprintf("\r\n<== (BC28 %d %d)\r\n",g_nbiot_state, data_size);
-		for (i=0; i<data_size; i++)
-			if (isascii(tmp[i]) && (g_nbiot_state != BC28_STATE_READ_FILE))
-				rt_kprintf("%c", tmp[i]);
-			else
-				//rt_kprintf("%02x", tmp[i]);
-				break;
-		if (have_str(last_data_ptr, STR_QIRDI)) {
-			rt_time_t cur_time = time(RT_NULL);
-			rt_kprintf("get server message %s\r\n",ctime(&cur_time));
-		
-		}
+	rt_kprintf("\r\n<== (BC28 %d %d)\r\n",g_nbiot_state, data_size);
+	for (i=0; i<data_size; i++)
+		if (isascii(tmp[i]) && (g_nbiot_state != BC28_STATE_READ_FILE))
+			rt_kprintf("%c", tmp[i]);
+		else
+			//rt_kprintf("%02x", tmp[i]);
+			break;
+	if (have_str(last_data_ptr, STR_QIRDI)) {
+		rt_time_t cur_time = time(RT_NULL);
+		rt_kprintf("get server message %s\r\n",ctime(&cur_time));
+
+	}
 	//}
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY)) {
@@ -365,11 +377,11 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 		}
 		if (have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
 		{
-				rt_kprintf("MODULE lost\r\n");
-				g_heart_cnt=0;
-				g_net_state = NET_STATE_UNKNOWN;
-				pcie_switch(g_module_type);
-				return;
+			rt_kprintf("MODULE lost\r\n");
+			g_heart_cnt=0;
+			g_net_state = NET_STATE_UNKNOWN;
+			pcie_switch(g_module_type);
+			return;
 		}
 		switch (g_nbiot_state) {
 			case BC28_STATE_INIT:
@@ -474,12 +486,12 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 			case BC28_STATE_CSCON:
 				if (have_str(last_data_ptr, STR_CSCON)) {
 					g_nbiot_state = BC28_STATE_ICCID;
-						gprs_at_cmd(g_dev_nbiot,at_qccid);
-					} else {
+					gprs_at_cmd(g_dev_nbiot,at_qccid);
+				} else {
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_nbiot,cscon);
-					}
-					break;
+				}
+				break;
 			case BC28_STATE_LAC:
 				if (have_str(last_data_ptr,STR_OK)) {
 					g_nbiot_state = BC28_STATE_LACR;
@@ -488,47 +500,47 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case BC28_STATE_LACR:
 				if (have_str(last_data_ptr,STR_CREG)) {
-						if (((rt_uint8_t *)last_data_ptr)[14]>='A' && ((rt_uint8_t *)last_data_ptr)[14]<='F' )
-							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[14]-'A'+10;
-						else
-							g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[14]-'0';
-						
-						if (((rt_uint8_t *)last_data_ptr)[15]>='A' && ((rt_uint8_t *)last_data_ptr)[15]<='F' )
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'A'+10;
-						else
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'0';
-						if (((rt_uint8_t *)last_data_ptr)[16]>='A' && ((rt_uint8_t *)last_data_ptr)[16]<='F' )
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[16]-'A'+10;
-						else
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[16]-'0';
-						if (((rt_uint8_t *)last_data_ptr)[17]>='A' && ((rt_uint8_t *)last_data_ptr)[17]<='F' )
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[17]-'A'+10;
-						else
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[17]-'0';
-						if (((rt_uint8_t *)last_data_ptr)[21]>='A' && ((rt_uint8_t *)last_data_ptr)[21]<='F' )
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'A'+10;
-						else
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'0';
-						if (((rt_uint8_t *)last_data_ptr)[22]>='A' && ((rt_uint8_t *)last_data_ptr)[22]<='F' )
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'A'+10;
-						else
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'0';
-						if (((rt_uint8_t *)last_data_ptr)[23]>='A' && ((rt_uint8_t *)last_data_ptr)[23]<='F' )
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[23]-'A'+10;
-						else
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[23]-'0';
-						if (((rt_uint8_t *)last_data_ptr)[24]>='A' && ((rt_uint8_t *)last_data_ptr)[24]<='F' )
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[24]-'A'+10;
-						else
-							g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[24]-'0';
-						rt_kprintf("ORI %c%c%c%c%c%c%c%c LAC_CI %08x\r\n", 
+					if (((rt_uint8_t *)last_data_ptr)[14]>='A' && ((rt_uint8_t *)last_data_ptr)[14]<='F' )
+						g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[14]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[14]-'0';
+
+					if (((rt_uint8_t *)last_data_ptr)[15]>='A' && ((rt_uint8_t *)last_data_ptr)[15]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[16]>='A' && ((rt_uint8_t *)last_data_ptr)[16]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[16]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[16]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[17]>='A' && ((rt_uint8_t *)last_data_ptr)[17]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[17]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[17]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[21]>='A' && ((rt_uint8_t *)last_data_ptr)[21]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[22]>='A' && ((rt_uint8_t *)last_data_ptr)[22]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[23]>='A' && ((rt_uint8_t *)last_data_ptr)[23]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[23]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[23]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[24]>='A' && ((rt_uint8_t *)last_data_ptr)[24]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[24]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[24]-'0';
+					rt_kprintf("ORI %c%c%c%c%c%c%c%c LAC_CI %08x\r\n", 
 							((rt_uint8_t *)last_data_ptr)[14],((rt_uint8_t *)last_data_ptr)[15],
 							((rt_uint8_t *)last_data_ptr)[16],((rt_uint8_t *)last_data_ptr)[17],
 							((rt_uint8_t *)last_data_ptr)[21],((rt_uint8_t *)last_data_ptr)[22],
 							((rt_uint8_t *)last_data_ptr)[23],((rt_uint8_t *)last_data_ptr)[24],
 							g_pcie[g_index]->lac_ci);
-						g_nbiot_state = BC28_STATE_ICCID;
-						gprs_at_cmd(g_dev_nbiot,at_qccid);
+					g_nbiot_state = BC28_STATE_ICCID;
+					gprs_at_cmd(g_dev_nbiot,at_qccid);
 				} 
 				break;
 			case BC28_STATE_ICCID:
@@ -554,35 +566,35 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					}					
 					g_nbiot_state = BC28_STATE_IMEI;
 					gprs_at_cmd(g_dev_nbiot,gsn);
-					}
-					break;
+				}
+				break;
 			case BC28_STATE_IMEI:
 
 				if (have_str(last_data_ptr, STR_GSN)) {
-				g_pcie[g_index]->imei[0]=0x0;
-				i=2;//866159032379171
-				while(tmp[i+6]!='\r' && i<17)
-				{
-					if (tmp[i+6]>='0' && tmp[i+6]<='9')
-						g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-0x30);
-					else if (tmp[i]>='a' && tmp[i+6]<='f')
-						g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-'a'+10);
-					else if (tmp[i]>='A' && tmp[i+6]<='F')
-						g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-'A'+10);
-					rt_kprintf("imei[%d] = %02X\r\n",i/2-1,g_pcie[g_index]->imei[i/2-1]);
-					if (tmp[i+7]>='0' && tmp[i+7]<='9')
-						g_pcie[g_index]->imei[i/2] = (tmp[i+7]-0x30)*16;
-					else if (tmp[i+1]>='a' && tmp[i+7]<='f')
-						g_pcie[g_index]->imei[i/2] = (tmp[i+7]-'a'+10)*16;
-					else if (tmp[i+1]>='A' && tmp[i+7]<='F')
-						g_pcie[g_index]->imei[i/2] = (tmp[i+7]-'A'+10)*16;
-				
-					i+=2;						
-				}					
+					g_pcie[g_index]->imei[0]=0x0;
+					i=2;//866159032379171
+					while(tmp[i+6]!='\r' && i<17)
+					{
+						if (tmp[i+6]>='0' && tmp[i+6]<='9')
+							g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-0x30);
+						else if (tmp[i]>='a' && tmp[i+6]<='f')
+							g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-'a'+10);
+						else if (tmp[i]>='A' && tmp[i+6]<='F')
+							g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-'A'+10);
+						rt_kprintf("imei[%d] = %02X\r\n",i/2-1,g_pcie[g_index]->imei[i/2-1]);
+						if (tmp[i+7]>='0' && tmp[i+7]<='9')
+							g_pcie[g_index]->imei[i/2] = (tmp[i+7]-0x30)*16;
+						else if (tmp[i+1]>='a' && tmp[i+7]<='f')
+							g_pcie[g_index]->imei[i/2] = (tmp[i+7]-'a'+10)*16;
+						else if (tmp[i+1]>='A' && tmp[i+7]<='F')
+							g_pcie[g_index]->imei[i/2] = (tmp[i+7]-'A'+10)*16;
+
+						i+=2;						
+					}					
 					g_nbiot_state = BC28_CREATE_SOCKET;
 					gprs_at_cmd(g_dev_nbiot,nsocr);
-					}
-					break;
+				}
+				break;
 			case BC28_STATE_SET_QICLOSE:
 				if (have_str(last_data_ptr, STR_OK)) {
 					g_net_state = NET_STATE_UNKNOWN;
@@ -595,17 +607,17 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					g_socket_no = tmp[2];
 					g_nbiot_state = BC28_STATE_SET_QIOPEN;
 					if (!entering_ftp_mode) {
-						rt_memset(qiopen_bc28, 0, 64);					
-						rt_sprintf(qiopen_bc28, "AT+NSOCO=%c,%d.%d.%d.%d,%d\r\n",g_socket_no,
+						rt_memset(open_nbiot, 0, 64);					
+						rt_sprintf(open_nbiot, "AT+NSOCO=%c,%d.%d.%d.%d,%d\r\n",g_socket_no,
 								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
 								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
 								mp.socketAddress[g_ip_index].port);
 						rt_kprintf("open ip index %d\r\n",g_ip_index);
-						gprs_at_cmd(g_dev_nbiot,qiopen_bc28);
+						gprs_at_cmd(g_dev_nbiot,open_nbiot);
 					} else {
-						rt_memset(qiopen_bc28, 0, 64);					
-						rt_sprintf(qiopen_bc28, "AT+NSOCO=%c,106.14.177.87,1706\r\n",g_socket_no);
-						gprs_at_cmd(g_dev_nbiot,qiopen_bc28);
+						rt_memset(open_nbiot, 0, 64);					
+						rt_sprintf(open_nbiot, "AT+NSOCO=%c,106.14.177.87,1706\r\n",g_socket_no);
+						gprs_at_cmd(g_dev_nbiot,open_nbiot);
 						update_flag=1;
 					}
 				}
@@ -615,9 +627,9 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					g_nbiot_state = BC28_STATE_DATA_PROCESSING;
 					/*send data here */
 					g_server_addr = (mp.socketAddress[g_ip_index].IP[0] << 24)|
-									(mp.socketAddress[g_ip_index].IP[1] << 16)|
-									(mp.socketAddress[g_ip_index].IP[2] <<  8)|
-									(mp.socketAddress[g_ip_index].IP[3] <<  0);
+						(mp.socketAddress[g_ip_index].IP[1] << 16)|
+						(mp.socketAddress[g_ip_index].IP[2] <<  8)|
+						(mp.socketAddress[g_ip_index].IP[3] <<  0);
 					g_server_port = mp.socketAddress[g_ip_index].port;
 					g_server_addr_bak = g_server_addr;
 					g_server_port_bak = g_server_port;					
@@ -630,13 +642,13 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					//entering_ftp_mode=1;
 				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
 					g_nbiot_state = BC28_CREATE_SOCKET;			
-					
+
 					rt_kprintf("before , ip index %d\r\n", g_ip_index);
 					if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
-						mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
-						mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
-						mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
-						mp.socketAddress[g_ip_index+1].port !=0))
+								mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
+								mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
+								mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
+								mp.socketAddress[g_ip_index+1].port !=0))
 						g_ip_index++;
 					else
 						g_ip_index=0;
@@ -673,7 +685,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_kprintf("csq is %x %x %x %d\r\n",tmp[7],tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
 
-				
+
 					if (g_server_addr != g_server_addr_bak || g_server_port != g_server_port_bak) {
 						g_ip_index=0;
 						g_nbiot_state = BC28_STATE_SET_QICLOSE;
@@ -681,21 +693,21 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_nbiot,qiclose);
 						break;
 					}
-								if (entering_ftp_mode_nbiot && entering_ftp_mode) {
-									rt_kprintf("goto update\r\n");
-									entering_ftp_mode_nbiot=0;
-									g_heart_cnt=0;
-									g_net_state = NET_STATE_UNKNOWN;
-									pcie_switch(g_module_type);
-									break;
-								}
-								if (g_heart_cnt > 5) {
-									rt_kprintf("hehehe 1\r\n");
-									g_heart_cnt=0;
-									g_net_state = NET_STATE_UNKNOWN;
-									pcie_switch(g_module_type);
-									break;
-								}
+					if (entering_ftp_mode_nbiot && entering_ftp_mode) {
+						rt_kprintf("goto update\r\n");
+						entering_ftp_mode_nbiot=0;
+						g_heart_cnt=0;
+						g_net_state = NET_STATE_UNKNOWN;
+						pcie_switch(g_module_type);
+						break;
+					}
+					if (g_heart_cnt > 5) {
+						rt_kprintf("hehehe 1\r\n");
+						g_heart_cnt=0;
+						g_net_state = NET_STATE_UNKNOWN;
+						pcie_switch(g_module_type);
+						break;
+					}
 					/*check have data to send */
 					if (rt_data_queue_peak(&g_data_queue[2],(const void **)&send_data_ptr_bc28,&send_size_bc28) == RT_EOK)
 					{	
@@ -720,8 +732,8 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						g_nbiot_state = BC28_STATE_DATA_WRITE;
 					} else {
 						if (!g_data_in_bc28) {
-						rt_thread_delay(100);
-						gprs_at_cmd(g_dev_nbiot,at_csq);
+							rt_thread_delay(100);
+							gprs_at_cmd(g_dev_nbiot,at_csq);
 						}
 					}
 				} else if (have_str(last_data_ptr,STR_CREG)) {
@@ -729,7 +741,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[12]-'A'+10;
 					else
 						g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[12]-'0';
-					
+
 					if (((rt_uint8_t *)last_data_ptr)[13]>='A' && ((rt_uint8_t *)last_data_ptr)[13]<='F' )
 						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[13]-'A'+10;
 					else
@@ -758,9 +770,9 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'A'+10;
 					else
 						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'0';
-							rt_kprintf("LAC_CI %08x\r\n", g_pcie[g_index]->lac_ci);
-							gprs_at_cmd(g_dev_nbiot,at_csq);
-					} 
+					rt_kprintf("LAC_CI %08x\r\n", g_pcie[g_index]->lac_ci);
+					gprs_at_cmd(g_dev_nbiot,at_csq);
+				} 
 
 				break;
 			case BC28_STATE_DATA_READ:
@@ -781,16 +793,16 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_event_send(&(g_pcie[g_index]->event), BC28_EVENT_0);
 				} else {
 					/*if (!have_str(last_data_ptr, STR_QIRDI) && 
-							!have_str(last_data_ptr, STR_QIURC)) {
-						g_nbiot_state = BC28_STATE_CHECK_QISTAT;
-						gprs_at_cmd(g_dev_nbiot,qistat);
-					}*/
+					  !have_str(last_data_ptr, STR_QIURC)) {
+					  g_nbiot_state = BC28_STATE_CHECK_QISTAT;
+					  gprs_at_cmd(g_dev_nbiot,qistat);
+					  }*/
 				}
 				if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_bc28)
 				{
-						g_nbiot_state = BC28_STATE_DATA_READ;
-						gprs_at_cmd(g_dev_nbiot,qird);
-						server_len_bc28 = 0;
+					g_nbiot_state = BC28_STATE_DATA_READ;
+					gprs_at_cmd(g_dev_nbiot,qird);
+					server_len_bc28 = 0;
 				}
 				break;
 			case BC28_STATE_DATA_ACK:
@@ -810,7 +822,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_nbiot,qistat);
 				}
 				break;	
-/********************Support for M5311******************************************************************************/
+				/********************Support for M5311******************************************************************************/
 			case M5311_STATE_INIT:
 				g_nbiot_state = M5311_STATE_WAIT_CSCON;
 				break;
@@ -822,13 +834,20 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case M5311_STATE_CHECK_CEREG:
 				if (have_str(last_data_ptr, STR_MCEREG1) ||
-					have_str(last_data_ptr, STR_MCEREG5)) {
-					g_nbiot_state = M5311_STATE_CHECK_CSQ;
-					gprs_at_cmd(g_dev_nbiot, at_csq);
+						have_str(last_data_ptr, STR_MCEREG5)) {
+					g_nbiot_state = M5311_STATE_CHECK_CGACT;
+					gprs_at_cmd(g_dev_nbiot, mcgact);
 				} else {
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_nbiot, mcereg);
 				}
+				break;
+			case M5311_STATE_CHECK_CGACT:
+				if (have_str(last_data_ptr, STR_MCGACT)) {
+					g_nbiot_state = M5311_STATE_CHECK_CSQ;
+					gprs_at_cmd(g_dev_nbiot, at_csq);
+				} else
+					gprs_at_cmd(g_dev_nbiot, mcgact);
 				break;
 			case M5311_STATE_CHECK_CSQ:
 				if (have_str(last_data_ptr,STR_CSQ)) {
@@ -842,10 +861,162 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						g_pcie[g_index]->csq = tmp[7]-0x30;
 					rt_kprintf("csq is %x %x %x %d\r\n",tmp[7],tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
-					//gprs_at_cmd(g_dev_nbiot,cpsms);
-					//g_nbiot_state = BC28_CPSMS;
+					gprs_at_cmd(g_dev_nbiot,cregs);
+					g_nbiot_state = M5311_STATE_SET_CREG;
+				} else
+					gprs_at_cmd(g_dev_nbiot, at_csq);
+				break;
+			case M5311_STATE_SET_CREG:
+				if (have_str(last_data_ptr, STR_OK)) {
+					gprs_at_cmd(g_dev_nbiot,cregr);
+					g_nbiot_state = M5311_STATE_GET_CREG;
+				} else
+					gprs_at_cmd(g_dev_nbiot,cregs);
+				break;
+			case M5311_STATE_GET_CREG:
+				if (have_str(last_data_ptr, STR_CREG)) {
+					if (((rt_uint8_t *)last_data_ptr)[14]>='A' && ((rt_uint8_t *)last_data_ptr)[14]<='F' )
+						g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[14]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = ((rt_uint8_t *)last_data_ptr)[14]-'0';
+
+					if (((rt_uint8_t *)last_data_ptr)[15]>='A' && ((rt_uint8_t *)last_data_ptr)[15]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[15]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[16]>='A' && ((rt_uint8_t *)last_data_ptr)[16]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[16]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[16]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[17]>='A' && ((rt_uint8_t *)last_data_ptr)[17]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[17]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[17]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[21]>='A' && ((rt_uint8_t *)last_data_ptr)[21]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[21]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[22]>='A' && ((rt_uint8_t *)last_data_ptr)[22]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[22]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[23]>='A' && ((rt_uint8_t *)last_data_ptr)[23]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[23]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[23]-'0';
+					if (((rt_uint8_t *)last_data_ptr)[24]>='A' && ((rt_uint8_t *)last_data_ptr)[24]<='F' )
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[24]-'A'+10;
+					else
+						g_pcie[g_index]->lac_ci = g_pcie[g_index]->lac_ci*16 + ((rt_uint8_t *)last_data_ptr)[24]-'0';
+					rt_kprintf("ORI %c%c%c%c%c%c%c%c LAC_CI %08x\r\n", 
+							((rt_uint8_t *)last_data_ptr)[14],((rt_uint8_t *)last_data_ptr)[15],
+							((rt_uint8_t *)last_data_ptr)[16],((rt_uint8_t *)last_data_ptr)[17],
+							((rt_uint8_t *)last_data_ptr)[21],((rt_uint8_t *)last_data_ptr)[22],
+							((rt_uint8_t *)last_data_ptr)[23],((rt_uint8_t *)last_data_ptr)[24],
+							g_pcie[g_index]->lac_ci);
+					g_nbiot_state = M5311_STATE_GET_ICCID;
+					gprs_at_cmd(g_dev_nbiot, miccid);
 				} 
 				break;
+			case M5311_STATE_GET_ICCID:
+				if (have_str(last_data_ptr, STR_ICCID)) {
+					i=2;
+					while(i<22)
+					{
+						if (tmp[i+7]>='0' && tmp[i+7]<='9')
+							g_pcie[g_index]->qccid[i/2-1] = (tmp[i+7]-0x30)*16;
+						else if (tmp[i+7]>='a' && tmp[i+7]<='f')
+							g_pcie[g_index]->qccid[i/2-1] = (tmp[i+7]-'a'+10)*16;
+						else if (tmp[i+7]>='A' && tmp[i+7]<='F')
+							g_pcie[g_index]->qccid[i/2-1] = (tmp[i+7]-'A'+10)*16;
+
+						if (tmp[i+8]>='0' && tmp[i+8]<='9')
+							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+8]-0x30);
+						else if (tmp[i+8]>='a' && tmp[i+8]<='f')
+							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+8]-'a'+10);
+						else if (tmp[i+8]>='A' && tmp[i+8]<='F')
+							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+8]-'A'+10);
+						rt_kprintf("qccid[%d] = %02X\r\n",i/2-1,g_pcie[g_index]->qccid[i/2-1]);
+						i+=2;						
+					}					
+					g_nbiot_state = M5311_STATE_GET_IMEI;
+					gprs_at_cmd(g_dev_nbiot,mgsn);
+				}
+				break;
+			case M5311_STATE_GET_IMEI:
+				if (have_str(last_data_ptr, STR_GSN)) {
+					g_pcie[g_index]->imei[0]=0x0;
+					i=2;//866159032379171
+					while(tmp[i+6]!='\r' && i<17)
+					{
+						if (tmp[i+6]>='0' && tmp[i+6]<='9')
+							g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-0x30);
+						else if (tmp[i]>='a' && tmp[i+6]<='f')
+							g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-'a'+10);
+						else if (tmp[i]>='A' && tmp[i+6]<='F')
+							g_pcie[g_index]->imei[i/2-1] += (tmp[i+6]-'A'+10);
+						rt_kprintf("imei[%d] = %02X\r\n",i/2-1,g_pcie[g_index]->imei[i/2-1]);
+						if (tmp[i+7]>='0' && tmp[i+7]<='9')
+							g_pcie[g_index]->imei[i/2] = (tmp[i+7]-0x30)*16;
+						else if (tmp[i+1]>='a' && tmp[i+7]<='f')
+							g_pcie[g_index]->imei[i/2] = (tmp[i+7]-'a'+10)*16;
+						else if (tmp[i+1]>='A' && tmp[i+7]<='F')
+							g_pcie[g_index]->imei[i/2] = (tmp[i+7]-'A'+10)*16;
+
+						i+=2;						
+					}					
+					g_nbiot_state = M5311_CREATE_SOCKET;
+					if (!entering_ftp_mode) {
+					rt_memset(open_nbiot, 0, 64);					
+					rt_sprintf(open_nbiot, "AT+IPSTART=0,\"TCP\",\"%d.%d.%d.%d\",%d\r\n",
+							mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+							mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+							mp.socketAddress[g_ip_index].port);
+					rt_kprintf("open ip index %d\r\n",g_ip_index);
+					} else {
+						rt_memset(open_nbiot, 0, 64);					
+						rt_sprintf(open_nbiot, "AT+IPSTART=0,\"TCP\",\"106.14.177.87\",1706\r\n");
+						update_flag=1;
+					}
+					gprs_at_cmd(g_dev_nbiot,open_nbiot);
+				}
+				break;
+			case M5311_CREATE_SOCKET:
+				if (have_str(last_data_ptr, STR_OK)) {					
+					g_nbiot_state = BC28_STATE_DATA_PROCESSING;
+					/*send data here */
+					g_server_addr = (mp.socketAddress[g_ip_index].IP[0] << 24)|
+						(mp.socketAddress[g_ip_index].IP[1] << 16)|
+						(mp.socketAddress[g_ip_index].IP[2] <<  8)|
+						(mp.socketAddress[g_ip_index].IP[3] <<  0);
+					g_server_port = mp.socketAddress[g_ip_index].port;
+					g_server_addr_bak = g_server_addr;
+					g_server_port_bak = g_server_port;					
+					rt_kprintf("connect to server ok\r\n");
+					g_heart_cnt=0;
+					g_net_state = NET_STATE_INIT;
+					rt_event_send(&(g_pcie[g_index]->event), BC28_EVENT_0);
+					gprs_at_cmd(g_dev_nbiot,at_csq);
+					rt_hw_led_on(NET_LED);
+					//entering_ftp_mode=1;
+				} else if (have_str(last_data_ptr, STR_SOCKET_BUSSY)){
+					g_nbiot_state = BC28_CREATE_SOCKET;			
+
+					rt_kprintf("before , ip index %d\r\n", g_ip_index);
+					if (g_ip_index+1<MAX_IP_LIST && (mp.socketAddress[g_ip_index+1].IP[0] !=0 &&
+								mp.socketAddress[g_ip_index+1].IP[1] !=0 &&
+								mp.socketAddress[g_ip_index+1].IP[2] !=0 &&
+								mp.socketAddress[g_ip_index+1].IP[3] !=0 &&
+								mp.socketAddress[g_ip_index+1].port !=0))
+						g_ip_index++;
+					else
+						g_ip_index=0;
+					rt_kprintf("after , ip index %d\r\n", g_ip_index);
+					rt_thread_delay(100);					
+					gprs_at_cmd(g_dev_nbiot,at_csq);		
+				}
+				break;
+				/********************Support for M5311******************************************************************************/
 		}
 	}
 }
