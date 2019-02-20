@@ -579,3 +579,18 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 	return 1;
 }
 
+int parse_at_resp(const char *buf, const char *format, ...)
+{
+	va_list args;
+	int resp_args_num = 0;
+
+	RT_ASSERT(format);
+	
+	va_start(args, format);
+
+    resp_args_num = vsscanf(buf, format, args);
+
+    va_end(args);
+
+    return resp_args_num;
+}

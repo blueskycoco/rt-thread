@@ -73,11 +73,14 @@
 #define M5311_STATE_GET_ICCID			56
 #define M5311_STATE_GET_IMEI			57
 #define M5311_CREATE_SOCKET				58
+#define M5311_STATE_OPEN_CSCON			59
+#define M5311_STATE_OPEN_CEREG			60
+#define M5311_STATE_OPEN_LED			61
 
 
 #define STR_M5311_RDY					"*ATREADY:"
-#define STR_MCEREG1						"+CEREG:1"
-#define STR_MCEREG5						"+CEREG:5"
+#define STR_MCEREG1						"+CEREG: 1,1"
+#define STR_MCEREG5						"+CEREG: 1,5"
 #define STR_MCSCON						"+CSCON:1"
 #define STR_MCGACT						"+CGACT:1,1"
 #define STR_ICCID						"+ICCID:"
@@ -86,6 +89,9 @@
 #define mcgact							"AT+CGACT?\r\n"
 #define mgsn 							"AT+GSN\r\n"
 #define miccid							"AT+ICCID\r\n"
+#define mcscon							"AT+CSCON=1\r\n"
+#define mceregs							"AT+CEREG=1\r\n"
+#define mqled							"AT+CMSYSCTRL=0,2\r\n"
 /******************support for m5311**********/
 #define STR_NSOCR						"+NSOCR"
 #define STR_CSCON						"+CSCON:0,1"
@@ -334,13 +340,13 @@ void nbiot_start(int index)
 	GPIO_InitStructure.GPIO_Pin   = pwr_key_pin;
 	GPIO_Init(GPIO_pwr, &GPIO_InitStructure);
 	/*open pciex power*/
-	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
+	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
 	//GPIO_ResetBits(GPIO_power, power_pin);
 	rt_thread_delay(RT_TICK_PER_SECOND);
-	GPIO_SetBits(GPIO_power, power_pin);
-	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
-	rt_thread_delay(RT_TICK_PER_SECOND);
+	GPIO_ResetBits(GPIO_power, power_pin);
 	GPIO_SetBits(GPIO_pwr, pwr_key_pin);
+	rt_thread_delay(3*RT_TICK_PER_SECOND);
+	GPIO_ResetBits(GPIO_pwr, pwr_key_pin);
 	rt_kprintf("bc28 power on done\r\n");
 
 	strcpy(ftp_addr,"u.110LW.com");
@@ -822,12 +828,26 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_nbiot,qistat);
 				}
 				break;	
-				/********************Support for M5311******************************************************************************/
+/********************Support for M5311******************************************************************************/
 			case M5311_STATE_INIT:
-				g_nbiot_state = M5311_STATE_WAIT_CSCON;
+				g_nbiot_state = M5311_STATE_OPEN_LED;
+				gprs_at_cmd(g_dev_nbiot,e0);	
+				gprs_at_cmd(g_dev_nbiot, mqled);
 				break;
-			case M5311_STATE_WAIT_CSCON:
-				if (have_str(last_data_ptr, STR_MCSCON)) {
+			case M5311_STATE_OPEN_LED:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_nbiot_state = M5311_STATE_OPEN_CSCON;
+					gprs_at_cmd(g_dev_nbiot, mcscon);
+				}
+				break;
+			case M5311_STATE_OPEN_CSCON:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_nbiot_state = M5311_STATE_OPEN_CEREG;
+					gprs_at_cmd(g_dev_nbiot, mceregs);
+				}
+				break;
+			case M5311_STATE_OPEN_CEREG:
+				if (have_str(last_data_ptr, STR_OK)) {
 					g_nbiot_state = M5311_STATE_CHECK_CEREG;
 					gprs_at_cmd(g_dev_nbiot, mcereg);
 				}
@@ -838,6 +858,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					g_nbiot_state = M5311_STATE_CHECK_CGACT;
 					gprs_at_cmd(g_dev_nbiot, mcgact);
 				} else {
+					gprs_at_cmd(g_dev_nbiot, at_csq);
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					gprs_at_cmd(g_dev_nbiot, mcereg);
 				}
@@ -916,7 +937,8 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 							g_pcie[g_index]->lac_ci);
 					g_nbiot_state = M5311_STATE_GET_ICCID;
 					gprs_at_cmd(g_dev_nbiot, miccid);
-				} 
+				} else 
+					gprs_at_cmd(g_dev_nbiot,cregr);
 				break;
 			case M5311_STATE_GET_ICCID:
 				if (have_str(last_data_ptr, STR_ICCID)) {
@@ -938,10 +960,11 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 							g_pcie[g_index]->qccid[i/2-1] += (tmp[i+8]-'A'+10);
 						rt_kprintf("qccid[%d] = %02X\r\n",i/2-1,g_pcie[g_index]->qccid[i/2-1]);
 						i+=2;						
-					}					
+					} 					
 					g_nbiot_state = M5311_STATE_GET_IMEI;
 					gprs_at_cmd(g_dev_nbiot,mgsn);
-				}
+				} else
+					gprs_at_cmd(g_dev_nbiot, miccid);
 				break;
 			case M5311_STATE_GET_IMEI:
 				if (have_str(last_data_ptr, STR_GSN)) {
@@ -979,7 +1002,8 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						update_flag=1;
 					}
 					gprs_at_cmd(g_dev_nbiot,open_nbiot);
-				}
+				} else
+					gprs_at_cmd(g_dev_nbiot,mgsn);
 				break;
 			case M5311_CREATE_SOCKET:
 				if (have_str(last_data_ptr, STR_OK)) {					
@@ -1016,7 +1040,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_nbiot,at_csq);		
 				}
 				break;
-				/********************Support for M5311******************************************************************************/
+/********************Support for M5311******************************************************************************/
 		}
 	}
 }
