@@ -46,6 +46,8 @@ extern rt_uint8_t g_fq_index;
 extern rt_uint8_t  	g_operationType;
 extern rt_uint8_t  	g_voiceType;
 extern rt_uint8_t s_bufang;
+extern rt_uint8_t g_all_fq_num;
+extern rt_uint8_t g_all_fq_num_bak;
 rt_uint8_t wireless_infrar_mode = 0;
 char *cmd_type(rt_uint16_t type)
 {
@@ -401,6 +403,7 @@ void save_fq(struct FangQu *list, int len)
 				i,list[i].index,list[i].slave_sn);			
 			Wtn6_Play(VOICE_DUIMA,ONCE,1);
 			rt_kprintf("duima ok\r\n");
+			g_all_fq_num++;
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 			return;

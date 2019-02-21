@@ -38,6 +38,8 @@ extern rt_uint8_t 	g_mute;
 extern rt_uint8_t g_ac;
 extern rt_uint8_t g_wire_type;
 extern rt_uint32_t g_wire_addr;
+extern rt_uint8_t g_all_fq_num;
+extern rt_uint8_t g_all_fq_num_bak;
 #if 0
 int poll_can()
 {
@@ -276,6 +278,7 @@ void save_fq_wire(int addr, rt_uint8_t type, rt_uint32_t fact_time)
 		rt_kprintf("duima ok\r\n");
 		g_wire_type = type;
 		g_wire_addr = addr;
+		g_all_fq_num++;
 		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);
 	}

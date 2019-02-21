@@ -78,6 +78,8 @@ extern void set_alarm_now();
 extern void reset_alarm_now();
 extern 	void begin_yunduo();
 rt_uint8_t upgrade_type = 0; /* 0 for Boot, 1 for App*/
+rt_uint8_t g_all_fq_num = 0;
+rt_uint8_t g_all_fq_num_bak = 0;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -162,10 +164,12 @@ void info_user(void *param)
 			Wtn6_Play(VOICE_TUICHUDM,ONCE,1);
 			g_main_state = 0;	
 			}
+			/*
 			if (startup_flag == 0) {
 				startup_flag = 1;
 			} else
 				upload_server(CMD_ASK_SUB_ACK);
+			*/
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
 			g_main_state = 2;
@@ -740,6 +744,11 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 		rt_sem_release(&(cc1101_rx_sem));
 	}*/
 		rt_kprintf("%s%s %s\r\n", APP_BUILD_TIME,__DATE__,__TIME__);
+	if (g_all_fq_num != g_all_fq_num_bak) {
+		rt_kprintf("need upgrade fq list to server\r\n");
+		g_all_fq_num_bak = g_all_fq_num;
+		upload_server(CMD_ASK_SUB_ACK);
+	}
 }
 void handle_t_common_ack(rt_uint8_t *cmd)
 {

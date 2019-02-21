@@ -14,6 +14,8 @@ rt_uint32_t 	g_fangqu_ts_cnt = 0;
 extern rt_uint8_t g_alarm_fq;
 struct rt_mutex file_lock;
 extern rt_uint16_t g_alarm_reason;
+extern rt_uint8_t g_all_fq_num;
+extern rt_uint8_t g_all_fq_num_bak;
 void dump_mp(struct MachineProperty v)
 {
 	int i;
@@ -247,6 +249,8 @@ void del_fqp_t(rt_uint8_t index)
 	for (i=0; i<g_fangqu_ts_cnt; i++)
 		rt_kprintf("after delete fangqu ts %d %x %d\r\n",
 		fangqu_ts[i].index,fangqu_ts[i].slave_type,fangqu_ts[i].heart_ts);
+	if (g_all_fq_num >= 1)
+		g_all_fq_num--;
 }
 void record_fqp_ts(rt_uint8_t index)
 {
