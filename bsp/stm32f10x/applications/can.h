@@ -5,4 +5,5 @@ int can_send(unsigned short id, unsigned char *payload, unsigned char payload_le
 int can_read(unsigned char *buf, unsigned char *buf_len);
 void set_id(unsigned short id);
 int poll_can();
+void set_sub_wire_led(rt_uint8_t addr, rt_uint8_t time);
 #endif

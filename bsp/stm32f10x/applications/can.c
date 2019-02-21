@@ -281,7 +281,21 @@ void save_fq_wire(int addr, rt_uint8_t type, rt_uint32_t fact_time)
 	}
 	add_fqp_t(fangqu_wire[g_wire_addr].index,g_wire_type);
 }
-
+void set_sub_wire_led(rt_uint8_t addr, rt_uint8_t time)
+{
+	rt_uint8_t cmd[8];
+	cmd[0] = 0x00;
+	cmd[1] = 0x12;
+	cmd[2] = 0x01;
+	cmd[3] = time;
+	cmd[4] = (fangqu_wire[addr].slave_sn>>24) & 0xff;
+	cmd[5] = (fangqu_wire[addr].slave_sn>>16) & 0xff;
+	cmd[6] = (fangqu_wire[addr].slave_sn>>8) & 0xff;
+	cmd[7] = (fangqu_wire[addr].slave_sn>>0) & 0xff;
+	rt_kprintf("going to light %d 10 secs\r\n", addr);
+	if (!can_send(addr+WIRELESS_MAX,cmd,8))
+		can_init();
+}
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
     //rt_kprintf("can1 rx0 %d\r\n", CAN_GetITStatus(CAN1,CAN_IT_FMP0));

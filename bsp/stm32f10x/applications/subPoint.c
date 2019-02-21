@@ -11,6 +11,7 @@
 #include "subPoint.h"
 #include "pcie.h"
 #include "prop.h"
+#include "can.h"
 #define 	MSG_HEAD0		0x6c
 #define 	MSG_HEAD1		0xaa
 
@@ -277,6 +278,25 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 	}
 
 	//dump_fqp(fqp,fangqu_wire,fangqu_wireless);
+}
+void proc_wire_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
+{
+	int i,j,index=1;
+	rt_uint8_t tmp;
+	for (i=len-1; i>=0; i--)
+	{
+		tmp = fq[i];
+		index = (len-i-1)*8+1;
+		for (j=0; j<8; j++)
+		{
+			if (tmp & 0x01) {
+					rt_kprintf("need light wire fq %d %d\r\n", index+j,code);
+					set_sub_wire_led(index+j-50, 10);
+			}
+			tmp = tmp >> 1;
+		}
+	}
+	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
 }
 void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
 {

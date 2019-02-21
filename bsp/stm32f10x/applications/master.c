@@ -11,6 +11,7 @@
 #include "button.h"
 #include "subPoint.h"
 #include "pcie.h"
+#include "can.h"
 struct rt_event g_info_event;
 extern rt_uint8_t cur_status;
 rt_uint8_t g_num=0;
@@ -980,6 +981,11 @@ void handle_proc_sub(rt_uint8_t *cmd)
 					flag = 1;
 					//Wtn6_Play(VOICE_ERRORTIP,ONCE);
 				}
+			} else if (cmd[0] == 0x07) {
+				for (int i=0; i<WIRE_MAX; i++) 
+				if (fangqu_wire[i].slave_batch != 0) {
+					set_sub_wire_led(i, 10);
+				}
 			}
 		} else {
 			/*proc signle fq*/
@@ -991,6 +997,8 @@ void handle_proc_sub(rt_uint8_t *cmd)
 				upload_server(CMD_SUB_EVENT);
 			if (cmd[0] == 5)
 			upload_server(CMD_ASK_SUB_ACK);
+			if (cmd[0] == 7)
+				set_sub_wire_led(cmd[2]-50, 10);
 		}
 	} else {
 		/*proc multi fq*/
@@ -1001,6 +1009,8 @@ void handle_proc_sub(rt_uint8_t *cmd)
 			upload_server(CMD_SUB_EVENT);
 		if (cmd[0] == 5)
 		upload_server(CMD_ASK_SUB_ACK);
+		if (cmd[0] == 7)
+			proc_wire_fq(cmd+2, 10, cmd[0]);
 	}
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	rt_thread_delay(100);
