@@ -381,8 +381,10 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 					rt_kprintf("alarm\t\t%s\r\n", cmd_sub_type(resp[3]));
                     if (!can_send(resp[2],cmd,8))
 						can_init();
-					handle_wire_alarm(addr);
-				record_fqp_ts(fangqu_wire[addr].index);
+					if (fangqu_wire[addr].slave_sn != 0) {
+						handle_wire_alarm(addr);
+						record_fqp_ts(fangqu_wire[addr].index);
+					}
                 } else if (resp[0] == 0x00 && resp[1] == 0x10) {
                     //curr status
                     if (resp[2] < WIRELESS_MAX)

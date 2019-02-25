@@ -80,6 +80,8 @@ extern 	void begin_yunduo();
 rt_uint8_t upgrade_type = 0; /* 0 for Boot, 1 for App*/
 rt_uint8_t g_all_fq_num = 0;
 rt_uint8_t g_all_fq_num_bak = 0;
+rt_uint16_t g_async_alarm = 0;
+rt_uint16_t g_async_event = 0;
 void handle_led(int type)
 {
 	rt_uint8_t v;
@@ -554,7 +556,11 @@ void info_user(void *param)
 			rt_kprintf("do mute\r\n");
 			Stop_Playing();
 			bell_ctl(0);
-		}		
+		}	
+		if (ev & INFO_EVENT_ASYNC_EVENT) {
+			g_alarm_reason = g_async_alarm;/*0x0017;*/
+			upload_server(g_async_event/*0x0004*/); 	
+		}
 		//rt_mutex_release(&g_stm32_lock);
 	}
 }

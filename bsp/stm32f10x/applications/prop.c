@@ -10,12 +10,16 @@
 #include "wtn6.h"
 #include "subpoint.h"
 #include "pcie.h"
+#include "master.h"
 rt_uint32_t 	g_fangqu_ts_cnt = 0;
 extern rt_uint8_t g_alarm_fq;
 struct rt_mutex file_lock;
 extern rt_uint16_t g_alarm_reason;
 extern rt_uint8_t g_all_fq_num;
 extern rt_uint8_t g_all_fq_num_bak;
+extern rt_uint16_t g_async_alarm;
+extern rt_uint16_t g_async_event;
+extern struct rt_event g_info_event;
 void dump_mp(struct MachineProperty v)
 {
 	int i;
@@ -110,6 +114,8 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 	for(i=0;i<WIRE_MAX;i++)
 	{
 		if(v2[i].index != 0) {
+			if (v2[i].index < WIRELESS_MAX)
+				mp.reload |= 0x02;
 			rt_kprintf("FangQu[%d]\r\n",
 				v2[i].index);
 			rt_kprintf("type \t%d\r\n",v2[i].type);
@@ -217,8 +223,11 @@ void add_fqp_t(rt_uint8_t index, rt_uint8_t slave_type)
 		g_alarm_fq = fangqu_ts[g_fangqu_ts_cnt].index;
 		g_fangqu_ts_cnt++;
 		if (slave_type != 0x01) {
-			g_alarm_reason = 0x0017;
-			upload_server(0x0004); 	
+			//g_alarm_reason = 0x0017;
+			//upload_server(0x0004); 
+			g_async_alarm = 0x0017;
+			g_async_event = 0x0004;
+			rt_event_send(&(g_info_event), INFO_EVENT_ASYNC_EVENT);
 		}
 		
 		for (i=0; i<g_fangqu_ts_cnt; i++)

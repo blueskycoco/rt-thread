@@ -779,7 +779,11 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		ofs = 19;
 	}
 	//rt_kprintf("ofs is %d\r\n", ofs);
-	cmd[3]=ofs+2;
+	if (ofs > 254) {
+		cmd[2] = (ofs+2)>>8 & 0xff;
+		cmd[3] = (ofs+2) & 0xff;
+	} else
+		cmd[3] = ofs+2;
 	rt_uint16_t crc = CRC_check(cmd+2,ofs-2);
 	//rt_kprintf("crc is %x\r\n",crc);
 	cmd[ofs++]=(crc>>8)&0xff;
@@ -862,7 +866,7 @@ void send_process(void* parameter)
 }
 void upload_server(rt_uint16_t cmdType)
 {
-	char buf[400] = {0};
+	char buf[1024] = {0};
 	char *cmd = RT_NULL;
 	rt_kprintf("net state %d cmdType %x\r\n",g_net_state,cmdType);
 	if ((g_net_state != NET_STATE_LOGED || entering_ftp_mode) && !nbiot_module)
