@@ -962,6 +962,8 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		g_sub_event_code = 0x200D;
 	else if (cmd[0] == 6)
 		g_sub_event_code = 0x2005;
+	else if (cmd[0] == 7)
+		g_sub_event_code = 0x200e;
 	/*execute cmd*/
 	if (cmd[1] == 1) {
 		if (cmd[2] == 0xff) {
