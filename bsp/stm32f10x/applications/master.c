@@ -853,7 +853,7 @@ void handle_set_sub(rt_uint8_t *cmd)
 				edit_fq(cmd[i],cmd[i+1],cmd[i+2],cmd[i+3],
 						(cmd[i+4]<<24)|(cmd[i+5]<<16)|(cmd[i+6]<<8)|cmd[i+7],
 						(cmd[i+8]<<8)|cmd[i+9],
-						(cmd[i+4]<<10)|(cmd[i+5]<<11)|(cmd[i+6]<<12)|cmd[i+13]
+						(cmd[i+10]<<24)|(cmd[i+11]<<16)|(cmd[i+12]<<8)|cmd[i+13]
 						);
 			}
 		}
