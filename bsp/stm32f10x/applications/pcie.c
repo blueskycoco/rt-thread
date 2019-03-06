@@ -671,8 +671,13 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 					cmd[ofs]|=0x10;
 				if (fangqu_offline(fangqu_wire[i].index))
 					cmd[ofs]|= 0x08;
+				rt_kprintf("wire parm [%d] %02x %02x %02x %02x %d\r\n",
+					i, fangqu_wire[i].voiceType, fangqu_wire[i].status,
+					fangqu_wire[i].slave_delay,fangqu_wire[i].isBypass,
+					fangqu_offline(fangqu_wire[i].index));
 				//if (fangqu_wire[i].normal_info)
 				//	cmd[ofs]|=0x04;	
+				rt_kprintf("wire build %d cmd ofsbyte %02x\r\n", i, cmd[ofs]);
 				ofs++;
 				cmd[ofs++] = fangqu_wire[i].slave_type;
 				cmd[ofs++] = (fangqu_wire[i].slave_sn >> 24) & 0xff;
@@ -710,7 +715,12 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				if (fangqu_offline(fangqu_wireless[i].index))
 					cmd[ofs]|= 0x08;
 				//if (fangqu_wireless[i].normal_info)
-				//	cmd[ofs]|=0x04;				
+				//	cmd[ofs]|=0x04;			
+				rt_kprintf("wireless parm [%d] %02x %02x %02x %02x %d\r\n",
+						i, fangqu_wireless[i].voiceType, fangqu_wireless[i].status,
+						fangqu_wireless[i].slave_delay, fangqu_wireless[i].isBypass,
+						fangqu_offline(fangqu_wireless[i].index));
+				rt_kprintf("wireless build %d cmd ofsbyte %02x\r\n", i, cmd[ofs]);
 				ofs++;
 				cmd[ofs++] = fangqu_wireless[i].slave_type;
 				cmd[ofs++] = (fangqu_wireless[i].slave_sn >> 24) & 0xff;

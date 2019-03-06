@@ -185,7 +185,7 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 			list[index].status = cur_status+1;
 		}
 		list[index].alarmType = param0 & 0x0f;
-		rt_kprintf("param %x %x %x %x %x %x %x\r\n",index,param0,param1,
+		rt_kprintf("param %02x %02x %02x %02x %08x %06x %06x\r\n",index,param0,param1,
 				param2,param3,param4,param5);
 		if ((param1 & 0x80))
 			list[index].voiceType = 1;
@@ -196,7 +196,7 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 		list[index].slave_sn = param3;
 		list[index].slave_model = param4;
 		list[index].slave_batch = param5;	
-		if (param1 & 0x80) 
+		if (param0 & 0x80) 
 			list[index].index = index+2;
 		else
 			list[index].index = index+WIRELESS_MAX;
@@ -215,22 +215,26 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 		else
 			list[index].isBypass = 0;*/
 	//}
-}
+	rt_kprintf("after modify fq[%02x]\r\nindex = %02x\r\nslave_type = %02x\r\n",
+				index, list[index].index, list[index].slave_type);
+}		
 void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1, 
 		rt_uint8_t param2, rt_uint32_t param3,rt_uint16_t param4,
 		rt_uint32_t param5)
 {	
 	if ((param0 & 0x80) == 0x80) /*wireless*/
 	{
-		if (index > 0 && index < 51)
-		{
+		if (index > 0 && index < 51) {
+			rt_kprintf("edit wireless fq %d\r\n", index-2);
 			edit_fq_detail(fangqu_wireless,index-2,param0,param1,param2,
 					param3,param4,param5);
 		}
 	} else {
-		if (index >= 51 && index < 80)
+		if (index >= 51 && index < 80) {
+			rt_kprintf("edit wirele fq %d\r\n", index-WIRELESS_MAX);
 			edit_fq_detail(fangqu_wire,index-WIRELESS_MAX,param0,param1,
 					param2,param3,param4,param5);
+		}
 	}
 }
 void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
