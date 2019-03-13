@@ -21,6 +21,7 @@
 #define CMD_ASK_SUB_ACK		0x8711
 #define CMD_ASK_MAIN_ACK	0x8712
 #define CMD_UPDATE			0x5000
+#define CMD_UPDATE_BOOT		0x5002
 
 #define NET_STATE_UNKNOWN  	0
 #define NET_STATE_INIT  	1

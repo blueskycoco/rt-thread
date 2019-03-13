@@ -787,6 +787,14 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[17] = (g_nbiot_update_len>>8)  & 0xff;
 		cmd[18] = (g_nbiot_update_len>>0)  & 0xff;
 		ofs = 19;
+	}else if (type == CMD_UPDATE_BOOT) {		
+		cmd[5] = (CMD_UPDATE_BOOT >> 8) & 0xff;//ask addr
+		cmd[6] = CMD_UPDATE_BOOT&0xff;
+		cmd[15] = (g_nbiot_update_len>>24) & 0xff;
+		cmd[16] = (g_nbiot_update_len>>16) & 0xff;
+		cmd[17] = (g_nbiot_update_len>>8)  & 0xff;
+		cmd[18] = (g_nbiot_update_len>>0)  & 0xff;
+		ofs = 19;
 	}
 	//rt_kprintf("ofs is %d\r\n", ofs);
 	if (ofs > 254) {

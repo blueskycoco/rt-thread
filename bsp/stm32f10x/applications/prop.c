@@ -338,7 +338,7 @@ void default_fqp()
 {
 	int i;
 	
-	fqp.delya_out=30;
+	fqp.delya_out=DEFAULT_DELAY_OUT;
 	fqp.delay_in=0;
 	fqp.alarm_voice_time=1;
 	fqp.is_alarm_voice =1;

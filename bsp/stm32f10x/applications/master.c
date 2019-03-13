@@ -94,7 +94,7 @@ void handle_led(int type)
 		} else if (v == 0x04 || v == 0x01 || v == 0x02) {
 			//GPIO_SetBits(GPIOB, GPIO_Pin_7);
 			if (v==0x04 && g_ac)
-			rt_hw_led_on(AUX_LED0);
+				rt_hw_led_on(AUX_LED0);
 		}
 
 	} else if (type == TYPE_PROTECT_OFF) {
@@ -106,7 +106,7 @@ void handle_led(int type)
 		} else if (v == 0x04) {
 			//GPIO_SetBits(GPIOB, GPIO_Pin_7);
 			if (g_ac)
-			rt_hw_led_on(AUX_LED1);
+				rt_hw_led_on(AUX_LED1);
 		}
 
 	} else {
@@ -117,14 +117,14 @@ void pgm_ctl(int type)
 	if (type != 2 && type != 4) {
 		if (fqp.PGM0 == type || fqp.PGM1 == type) {
 			if (fqp.PGM0==type)
-			rt_hw_led_on(PGM3_LED);
+				rt_hw_led_on(PGM3_LED);
 			if (fqp.PGM1==type)
-			rt_hw_led_on(PGM4_LED);
+				rt_hw_led_on(PGM4_LED);
 			rt_thread_delay(100);
 			if (fqp.PGM0==type)
-			rt_hw_led_off(PGM3_LED);
+				rt_hw_led_off(PGM3_LED);
 			if (fqp.PGM1==type)
-			rt_hw_led_off(PGM4_LED);
+				rt_hw_led_off(PGM4_LED);
 		} 
 	}else {
 		if (fqp.PGM0 == type) {
@@ -147,8 +147,8 @@ void info_user(void *param)
 		if (ev & INFO_EVENT_CODING) {
 			if (cur_status == 1) {
 				/*need protection off first
-				  *play audio here
-				  */
+				 *play audio here
+				 */
 				Wtn6_Play(VOICE_XIANCHEFANG,ONCE,1);
 				g_main_state = 0;
 			} else {
@@ -163,15 +163,15 @@ void info_user(void *param)
 			SetErrorCode(0x00);
 			rt_hw_led_off(0);
 			if (g_main_state == 1) {
-			Wtn6_Play(VOICE_TUICHUDM,ONCE,1);
-			g_main_state = 0;	
+				Wtn6_Play(VOICE_TUICHUDM,ONCE,1);
+				g_main_state = 0;	
 			}
 			/*
-			if (startup_flag == 0) {
-				startup_flag = 1;
-			} else
-				upload_server(CMD_ASK_SUB_ACK);
-			*/
+			   if (startup_flag == 0) {
+			   startup_flag = 1;
+			   } else
+			   upload_server(CMD_ASK_SUB_ACK);
+			   */
 		}
 		if (ev & INFO_EVENT_FACTORY_RESET) {
 			g_main_state = 2;
@@ -205,7 +205,7 @@ void info_user(void *param)
 				rt_thread_delay(100);
 				GPIO_ResetBits(GPIOE, GPIO_Pin_11);
 			}
-			
+
 			fqp.status=cur_status;
 			set_fq_on(fangqu_wire,WIRE_MAX);
 			set_fq_on(fangqu_wireless,WIRELESS_MAX);			
@@ -220,29 +220,29 @@ void info_user(void *param)
 			if (!g_yanshi) {
 				if (g_remote_protect != 1)
 				{	
-					 if (time_protect) {
-					 	
-				  	 memset(g_operater,0,6);
-	  			   	g_operater[0] =  0x10;
-				   	time_protect = 0;
-					if (duima_key) {
-						duima_key=0;
-						g_operate_platform = 0xfc;
-						g_operater[5] = 0x01;
-					}
-					else
-						g_operate_platform = 0xfd;
-					Wtn6_Play(VOICE_BUFANG,ONCE,1);
+					if (time_protect) {
+
+						memset(g_operater,0,6);
+						g_operater[0] =  0x10;
+						time_protect = 0;
+						if (duima_key) {
+							duima_key=0;
+							g_operate_platform = 0xfc;
+							g_operater[5] = 0x01;
+						}
+						else
+							g_operate_platform = 0xfd;
+						Wtn6_Play(VOICE_BUFANG,ONCE,1);
 					} else {
-					command_type = 0;
-					memset(g_operater,0,6);
-					g_operater[0] =  0x10;
-					g_operater[1] = fangqu_wireless[g_index_sub].index;
-					g_operate_platform = 0xff;
-					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
-					Wtn6_JoinPlay(voice,2,1);
-					rt_kprintf("play yaokong bufang voice\r\n");
-					 	}
+						command_type = 0;
+						memset(g_operater,0,6);
+						g_operater[0] =  0x10;
+						g_operater[1] = fangqu_wireless[g_index_sub].index;
+						g_operate_platform = 0xff;
+						rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
+						Wtn6_JoinPlay(voice,2,1);
+						rt_kprintf("play yaokong bufang voice\r\n");
+					}
 					upload_server(CMD_SUB_EVENT);
 					upload_sub_status();
 				} else {
@@ -252,14 +252,14 @@ void info_user(void *param)
 					else if (g_operate_platform==0x40)
 						voice[0] = VOICE_SHOUJI;
 					Wtn6_JoinPlay(voice,2,1);			   
-				   if (time_protect) {
-				   		g_operate_platform = 0xfd;
-				  	 memset(g_operater,0,6);
-	  			   	g_operater[0] =  0x10;
-				   	time_protect = 0;
-				   	upload_server(CMD_SUB_EVENT);
-					upload_sub_status();
-				   }
+					if (time_protect) {
+						g_operate_platform = 0xfd;
+						memset(g_operater,0,6);
+						g_operater[0] =  0x10;
+						time_protect = 0;
+						upload_server(CMD_SUB_EVENT);
+						upload_sub_status();
+					}
 				}
 			}
 			else 
@@ -276,8 +276,8 @@ void info_user(void *param)
 				} else {
 					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
 					Wtn6_JoinPlay(voice,2,1);
-				   }
-				
+				}
+
 			}
 			time_protect =0;
 			g_yanshi = 0;
@@ -297,12 +297,12 @@ void info_user(void *param)
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
 			if (g_remote_protect != 1)
-				{	
-					
-					if (time_protect) {
-						
-				  	 memset(g_operater,0,6);
-	  			   	g_operater[0] =  0x10;
+			{	
+
+				if (time_protect) {
+
+					memset(g_operater,0,6);
+					g_operater[0] =  0x10;
 					if (duima_key) {
 						duima_key=0;
 						g_operate_platform = 0xfc;
@@ -310,9 +310,9 @@ void info_user(void *param)
 					}
 					else
 						g_operate_platform = 0xfd;
-				   	//time_protect = 0;
-				   	Wtn6_Play(VOICE_BUFANG,ONCE,1);
-					} else {
+					//time_protect = 0;
+					Wtn6_Play(VOICE_BUFANG,ONCE,1);
+				} else {
 					command_type = 0;
 					memset(g_operater,0,6);
 					g_operater[0] =  0x10;
@@ -320,29 +320,29 @@ void info_user(void *param)
 					g_operate_platform = 0xff;
 					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 					Wtn6_JoinPlay(voice,2,1);
-					}
+				}
+				upload_server(CMD_SUB_EVENT);
+				upload_sub_status();
+			} else {
+
+				if (time_protect) {
+					Wtn6_Play(VOICE_BUFANG,ONCE,1);
+					g_operate_platform = 0xfd;
+					memset(g_operater,0,6);
+					g_operater[0] =  0x10;
+					//time_protect = 0;
 					upload_server(CMD_SUB_EVENT);
 					upload_sub_status();
-				} else {
-					
-				   if (time_protect) {
-				   	Wtn6_Play(VOICE_BUFANG,ONCE,1);
-				   		g_operate_platform = 0xfd;
-				  	 memset(g_operater,0,6);
-	  			   	g_operater[0] =  0x10;
-				   	//time_protect = 0;
-				   	upload_server(CMD_SUB_EVENT);
-					upload_sub_status();
-				   } else
-				   	{
-				   	rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };					
+				} else
+				{
+					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };					
 					if (g_operate_platform==0x20)
 						voice[0] = VOICE_SHOUJI;//weixin TDO
 					else if (g_operate_platform==0x40)
 						voice[0] = VOICE_SHOUJI;
 					Wtn6_JoinPlay(voice,2,1);			   
-				   	}
 				}
+			}
 			rt_thread_delay(200);
 			if (g_delay_out>10)
 				Wtn6_Play(VOICE_YANSHIBF,LOOP,0);
@@ -371,12 +371,12 @@ void info_user(void *param)
 			g_sub_event_code = 0x2001;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
-			
+
 			//g_operater[5] = 0x10;
 			if (g_remote_protect!=1)
 			{	
 				if (time_protect) {
-						memset(g_operater,0,6);
+					memset(g_operater,0,6);
 					g_operater[0] = 0x10;
 					if (duima_key) {
 						duima_key=0;
@@ -388,15 +388,15 @@ void info_user(void *param)
 					time_protect = 0;
 					Wtn6_Play(VOICE_CHEFANG,ONCE,1);
 					rt_kprintf("voice chefang\r\n");
-					}else{
-				command_type = 0;
-				memset(g_operater,0,6);
-				g_operater[0] = 0x10;
-				g_operater[1] = fangqu_wireless[g_index_sub].index;
-				g_operate_platform = 0xff;
-				rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
-				Wtn6_JoinPlay(voice,2,1);
-				rt_kprintf("VOICE_YAOKONG chefang\r\n");
+				}else{
+					command_type = 0;
+					memset(g_operater,0,6);
+					g_operater[0] = 0x10;
+					g_operater[1] = fangqu_wireless[g_index_sub].index;
+					g_operate_platform = 0xff;
+					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
+					Wtn6_JoinPlay(voice,2,1);
+					rt_kprintf("VOICE_YAOKONG chefang\r\n");
 				}
 				upload_server(CMD_SUB_EVENT);	
 			} else {
@@ -407,7 +407,7 @@ void info_user(void *param)
 					voice[0] = VOICE_SHOUJI;
 				Wtn6_JoinPlay(voice,2,1);
 				rt_kprintf("VOICE_SHOUJI chefang\r\n");
-				#if 0
+#if 0
 				if (time_protect) {
 					memset(g_operater,0,6);
 					g_operater[0] = 0x10;
@@ -415,7 +415,7 @@ void info_user(void *param)
 					time_protect = 0;
 					upload_server(CMD_SUB_EVENT);
 				}
-				#endif
+#endif
 			}
 			//entering_ftp_mode	=1;
 			g_num=0;
@@ -433,109 +433,109 @@ void info_user(void *param)
 			g_alarm_reason = 0x1001;
 			alarm_led =1;
 			//SetStateIco(2,1);
-			
+
 			rt_hw_led_on(ALARM_LED);
 			rt_kprintf("cur status %d , is_lamp %d, is_alarm_voice %d, delay_in %d, alarm_voice %d, voiceType %d\r\n",
-				cur_status,fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice_time,g_voiceType/*fangqu_wireless[g_index_sub].voiceType*/);
+					cur_status,fqp.is_lamp,fqp.is_alarm_voice,fqp.delay_in,fqp.alarm_voice_time,g_voiceType/*fangqu_wireless[g_index_sub].voiceType*/);
 			pgm_ctl(1);
 			pgm_ctl(2);
 			/*handle alarm voice*/
-				if (s1==1) {
-						g_alarm_reason = 0x1002;
-					if (fqp.is_alarm_voice) {
-						if (sub_cmd_type !=2 && sub_cmd_type !=3) {
-							bell_ctl(1);
-							rt_thread_delay(100);
-						}
-					}
-				} else {
-
-					if (/*fangqu_wireless[g_index_sub].voiceType*/g_voiceType == 0 && fqp.is_alarm_voice && fqp.alarm_voice_time>0)
-					{
-						if ( /*fangqu_wireless[g_index_sub].*/g_operationType==0 || g_alarmType == 2)
-							if (fqp.alarm_voice_time>0)
-								g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
-							else
-								g_alarm_voice = 0;
-						
-						if (/*fangqu_wireless[g_index_sub].*/g_operationType != 1)
-							bell_ctl(1);
+			if (s1==1) {
+				g_alarm_reason = 0x1002;
+				if (fqp.is_alarm_voice) {
+					if (sub_cmd_type !=2 && sub_cmd_type !=3) {
+						bell_ctl(1);
+						rt_thread_delay(100);
 					}
 				}
+			} else {
+
+				if (/*fangqu_wireless[g_index_sub].voiceType*/g_voiceType == 0 && fqp.is_alarm_voice && fqp.alarm_voice_time>0)
+				{
+					if ( /*fangqu_wireless[g_index_sub].*/g_operationType==0 || g_alarmType == 2)
+						if (fqp.alarm_voice_time>0)
+							g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
+						else
+							g_alarm_voice = 0;
+
+					if (/*fangqu_wireless[g_index_sub].*/g_operationType != 1)
+						bell_ctl(1);
+				}
+			}
 			/*handle audio*/
 			if (/*fangqu_wireless[g_index_sub].*/g_voiceType == 0) {
-					if (s1 == 0 && /*fangqu_wireless[g_index_sub].*/g_operationType !=2) { //non-emergency
-						rt_kprintf("non-emergency audio play\r\n");
-						if (/*fangqu_wireless[g_index_sub].*/g_operationType == 1 && fqp.delay_in > 0) { //delay mode
-							//g_alarm_voice = fqp.alarm_voice_time;
-							g_flag=0;
-							g_delay_in = fqp.delay_in;
-							rt_kprintf("non-emergency audio delay mode %d %d\r\n",fqp.delay_in,g_flag);
-							if (g_delay_out ==0)
-								Wtn6_Play(VOICE_ALARM2,LOOP,0);
-							else
-								Wtn6_Play(VOICE_ALARM1,LOOP,0);
-						} else {
-							rt_kprintf("non-emergency audio normal mode\r\n");
-							if (fqp.alarm_voice_time>0)
-								g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
-							else
-								g_alarm_voice = 0;
-							bell_ctl(1);
+				if (s1 == 0 && /*fangqu_wireless[g_index_sub].*/g_operationType !=2) { //non-emergency
+					rt_kprintf("non-emergency audio play\r\n");
+					if (/*fangqu_wireless[g_index_sub].*/g_operationType == 1 && fqp.delay_in > 0) { //delay mode
+						//g_alarm_voice = fqp.alarm_voice_time;
+						g_flag=0;
+						g_delay_in = fqp.delay_in;
+						rt_kprintf("non-emergency audio delay mode %d %d\r\n",fqp.delay_in,g_flag);
+						if (g_delay_out ==0)
+							Wtn6_Play(VOICE_ALARM2,LOOP,0);
+						else
 							Wtn6_Play(VOICE_ALARM1,LOOP,0);
-						}
 					} else {
-						rt_kprintf("emergency audio play\r\n");
-						g_alarm_reason = 0x1003;
-						if (s1 == 1) { //s1 switch							
-							if (sub_cmd_type == 3)
-								g_alarm_reason = 0x0016;
-							else
-								g_alarm_reason = 0x1002;
-							rt_kprintf("s1 audio\r\n");
-							//Wtn6_Play(VOICE_FCALARM,ONCE);
-						} else {
-							rt_kprintf("non-s1 audio \r\n");
-							if (fqp.alarm_voice_time>0)
-								g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
-							else
-								g_alarm_voice = 0;
-							rt_uint8_t action = ONCE;
-							if (g_alarm_voice >0)
-								action = LOOP;
-							else
-								action = ONCE;
-							if (g_alarmType == 0) {//normal		
-								rt_kprintf("normal\r\n");
-								Wtn6_Play(VOICE_ALARM1,action,1);
-							} else if (g_alarmType == 1) {//fire
-								rt_kprintf("fire\r\n");
-								Wtn6_Play(VOICE_YANSHIBF,action,1);
-							} else if (g_alarmType == 2) {//emergency
-								rt_kprintf("emergency\r\n");
-								Wtn6_Play(VOICE_JJALARM,action,1);
-							} else if (g_alarmType == 3) {//medical
-								rt_kprintf("medical\r\n");
-								Wtn6_Play(VOICE_YLALARM,action,1);
-							} else if (g_alarmType == 4) {
-								rt_kprintf("4 \r\n");
-								Wtn6_Play(VOICE_JIAOLIUDD,action,1);
-							}
+						rt_kprintf("non-emergency audio normal mode\r\n");
+						if (fqp.alarm_voice_time>0)
+							g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
+						else
+							g_alarm_voice = 0;
+						bell_ctl(1);
+						Wtn6_Play(VOICE_ALARM1,LOOP,0);
+					}
+				} else {
+					rt_kprintf("emergency audio play\r\n");
+					g_alarm_reason = 0x1003;
+					if (s1 == 1) { //s1 switch							
+						if (sub_cmd_type == 3)
+							g_alarm_reason = 0x0016;
+						else
+							g_alarm_reason = 0x1002;
+						rt_kprintf("s1 audio\r\n");
+						//Wtn6_Play(VOICE_FCALARM,ONCE);
+					} else {
+						rt_kprintf("non-s1 audio \r\n");
+						if (fqp.alarm_voice_time>0)
+							g_alarm_voice = fqp.alarm_voice_time*60-ADJUST_TIME;
+						else
+							g_alarm_voice = 0;
+						rt_uint8_t action = ONCE;
+						if (g_alarm_voice >0)
+							action = LOOP;
+						else
+							action = ONCE;
+						if (g_alarmType == 0) {//normal		
+							rt_kprintf("normal\r\n");
+							Wtn6_Play(VOICE_ALARM1,action,1);
+						} else if (g_alarmType == 1) {//fire
+							rt_kprintf("fire\r\n");
+							Wtn6_Play(VOICE_YANSHIBF,action,1);
+						} else if (g_alarmType == 2) {//emergency
+							rt_kprintf("emergency\r\n");
+							Wtn6_Play(VOICE_JJALARM,action,1);
+						} else if (g_alarmType == 3) {//medical
+							rt_kprintf("medical\r\n");
+							Wtn6_Play(VOICE_YLALARM,action,1);
+						} else if (g_alarmType == 4) {
+							rt_kprintf("4 \r\n");
+							Wtn6_Play(VOICE_JIAOLIUDD,action,1);
 						}
 					}
-			}
-				/*
-				if (s1 !=0 && g_alarmType !=2 && (fangqu_wireless[g_index_sub].operationType==1) && fqp.delay_in && g_delay_in == 0) {
-					g_alarm_voice = fqp.alarm_voice_time;
-					g_delay_in = fqp.delay_in;
-					Wtn6_Play(VOICE_ALARM2,LOOP);
-				}*/
-				g_alarm_fq = /*fangqu_wireless[g_index_sub].*/g_fq_index;
-				if (s1 || g_operationType != 1 || fqp.delay_in == 0) {
-						upload_server(CMD_ALARM);				
 				}
+			}
+			/*
+			   if (s1 !=0 && g_alarmType !=2 && (fangqu_wireless[g_index_sub].operationType==1) && fqp.delay_in && g_delay_in == 0) {
+			   g_alarm_voice = fqp.alarm_voice_time;
+			   g_delay_in = fqp.delay_in;
+			   Wtn6_Play(VOICE_ALARM2,LOOP);
+			   }*/
+			g_alarm_fq = /*fangqu_wireless[g_index_sub].*/g_fq_index;
+			if (s1 || g_operationType != 1 || fqp.delay_in == 0) {
+				upload_server(CMD_ALARM);				
+			}
 		}
-		
+
 		if (ev & INFO_EVENT_SHOW_NUM) {
 			SetErrorCode(g_num);
 		}
@@ -583,7 +583,7 @@ void handle_login_ack(rt_uint8_t *cmd)
 		g_net_state = NET_STATE_LOGED;
 	}
 	rt_kprintf("\r\n");
-	
+
 	if (cmd[0] != 0) {
 		g_num = cmd[0] + 0x10;		
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);	
@@ -603,66 +603,66 @@ void handle_login_ack(rt_uint8_t *cmd)
 }
 static int object_name_maxlen(struct rt_list_node *list)
 {
-    struct rt_list_node *node;
-    struct rt_object *object = NULL;
-    int max_length = 0, length;
+	struct rt_list_node *node;
+	struct rt_object *object = NULL;
+	int max_length = 0, length;
 
-    rt_enter_critical();
-    for (node = list->next; node != list; node = node->next)
-    {
-        object = rt_list_entry(node, struct rt_object, list);
+	rt_enter_critical();
+	for (node = list->next; node != list; node = node->next)
+	{
+		object = rt_list_entry(node, struct rt_object, list);
 
-        length = rt_strlen(object->name);
-        if (length > max_length) max_length = length;
-    }
-    rt_exit_critical();
+		length = rt_strlen(object->name);
+		if (length > max_length) max_length = length;
+	}
+	rt_exit_critical();
 
-    if (max_length > RT_NAME_MAX || max_length == 0) max_length = RT_NAME_MAX;
+	if (max_length > RT_NAME_MAX || max_length == 0) max_length = RT_NAME_MAX;
 
-    return max_length;
+	return max_length;
 }
 
 rt_inline void object_split(int len)
 {
-    while (len--) rt_kprintf("-");
+	while (len--) rt_kprintf("-");
 }
 
 long _list_thread(struct rt_list_node *list)
 {
-    int maxlen;
-    rt_uint8_t *ptr;
-    struct rt_thread *thread;
-    struct rt_list_node *node;
+	int maxlen;
+	rt_uint8_t *ptr;
+	struct rt_thread *thread;
+	struct rt_list_node *node;
 
-    maxlen = object_name_maxlen(list);
+	maxlen = object_name_maxlen(list);
 
-    rt_kprintf("%-*.s pri  status      sp     stack size max used left tick  error\n", maxlen, "thread"); object_split(maxlen);
-    rt_kprintf(     " ---  ------- ---------- ----------  ------  ---------- ---\n");
-    for (node = list->next; node != list; node = node->next)
-    {
-    	rt_uint8_t stat;
-        thread = rt_list_entry(node, struct rt_thread, list);
-        rt_kprintf("%-*.*s %3d ", maxlen, RT_NAME_MAX, thread->name, thread->current_priority);
+	rt_kprintf("%-*.s pri  status      sp     stack size max used left tick  error\n", maxlen, "thread"); object_split(maxlen);
+	rt_kprintf(     " ---  ------- ---------- ----------  ------  ---------- ---\n");
+	for (node = list->next; node != list; node = node->next)
+	{
+		rt_uint8_t stat;
+		thread = rt_list_entry(node, struct rt_thread, list);
+		rt_kprintf("%-*.*s %3d ", maxlen, RT_NAME_MAX, thread->name, thread->current_priority);
 
 		stat = (thread->stat & RT_THREAD_STAT_MASK);
-        if (stat == RT_THREAD_READY)        rt_kprintf(" ready  ");
-        else if (stat == RT_THREAD_SUSPEND) rt_kprintf(" suspend");
-        else if (stat == RT_THREAD_INIT)    rt_kprintf(" init   ");
-        else if (stat == RT_THREAD_CLOSE)   rt_kprintf(" close  ");
+		if (stat == RT_THREAD_READY)        rt_kprintf(" ready  ");
+		else if (stat == RT_THREAD_SUSPEND) rt_kprintf(" suspend");
+		else if (stat == RT_THREAD_INIT)    rt_kprintf(" init   ");
+		else if (stat == RT_THREAD_CLOSE)   rt_kprintf(" close  ");
 
-        ptr = (rt_uint8_t *)thread->stack_addr;
-        while (*ptr == '#')ptr ++;
+		ptr = (rt_uint8_t *)thread->stack_addr;
+		while (*ptr == '#')ptr ++;
 
-        rt_kprintf(" 0x%08x 0x%08x    %02d%%   0x%08x %03d\n",
-                   thread->stack_size + ((rt_uint32_t)thread->stack_addr - (rt_uint32_t)thread->sp),
-                   thread->stack_size,
-                   (thread->stack_size - ((rt_uint32_t) ptr - (rt_uint32_t) thread->stack_addr)) * 100
-                        / thread->stack_size,
-                   thread->remaining_tick,
-                   thread->error);
-    }
+		rt_kprintf(" 0x%08x 0x%08x    %02d%%   0x%08x %03d\n",
+				thread->stack_size + ((rt_uint32_t)thread->stack_addr - (rt_uint32_t)thread->sp),
+				thread->stack_size,
+				(thread->stack_size - ((rt_uint32_t) ptr - (rt_uint32_t) thread->stack_addr)) * 100
+				/ thread->stack_size,
+				thread->remaining_tick,
+				thread->error);
+	}
 
-    return 0;
+	return 0;
 }
 extern struct rt_object_information rt_object_container[];
 void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
@@ -676,7 +676,7 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 	rt_memset(g_ftp,0,cmd[9]+1);
 	memcpy(g_ftp,cmd+10,cmd[9]);
 	rt_kprintf("ftp addrss %s\r\n",g_ftp);
-					
+
 	if (!cur_status) {					
 		g_exit_reason = 0x01;
 		upload_server(CMD_EXIT);
@@ -686,12 +686,11 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 		HtbLcdClear();
 		if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
 					(g_index == 0 && g_type0 == PCIE_1_NBIOT))
-			)
+		   )
 		{
-	
-				entering_ftp_mode_nbiot=1;
-				g_nbiot_update_len = 0;
-				nbiot_module = 1;
+			entering_ftp_mode_nbiot=1;
+			g_nbiot_update_len = 0;
+			nbiot_module = 1;
 		}
 	}
 
@@ -745,11 +744,11 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 	_list_thread(&rt_object_container[RT_Object_Class_Thread].object_list);
 
 	/*if (!gdo_level()) 
-	{
-		rt_kprintf("poll release sem\r\n");
-		rt_sem_release(&(cc1101_rx_sem));
-	}*/
-		rt_kprintf("%s%s %s\r\n", APP_BUILD_TIME,__DATE__,__TIME__);
+	  {
+	  rt_kprintf("poll release sem\r\n");
+	  rt_sem_release(&(cc1101_rx_sem));
+	  }*/
+	rt_kprintf("%s%s %s\r\n", APP_BUILD_TIME,__DATE__,__TIME__);
 	if (g_all_fq_num != g_all_fq_num_bak) {
 		rt_kprintf("need upgrade fq list to server\r\n");
 		g_all_fq_num_bak = g_all_fq_num;
@@ -784,7 +783,7 @@ void handle_ask_sub(rt_uint8_t *cmd)
 	rt_kprintf("cmd_type \task sub\r\n");
 	rt_kprintf("operate platform \t%x\r\n", cmd[0]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
-		cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
+			cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
 	g_operate_platform = cmd[0];
 	memcpy(g_operater,cmd+1,6);
 	/*build sub infor*/
@@ -795,7 +794,7 @@ void handle_ask_main(rt_uint8_t *cmd)
 	rt_kprintf("cmd_type \task main\r\n");
 	rt_kprintf("operate platform \t%d\r\n", cmd[0]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
-		cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
+			cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6]);
 	g_operate_platform = cmd[0];
 	memcpy(g_operater,cmd+1,6);
 	/*build main infor*/
@@ -813,19 +812,19 @@ void handle_set_main(rt_uint8_t *cmd)
 	fqp.is_check_DC = (cmd[3]&0x40)>>6;
 	fqp.is_alarm_voice = (cmd[3]&0x20)>>5;
 	//if (((cmd[4]<<8)|cmd[5]) != 0xffff)
-		fqp.auto_bufang = ((cmd[4]<<8)|cmd[5])<<16;
+	fqp.auto_bufang = ((cmd[4]<<8)|cmd[5])<<16;
 	//if (((cmd[6]<<8)|cmd[7]) != 0xffff)
-		fqp.auto_bufang |= (cmd[6]<<8)|cmd[7];
+	fqp.auto_bufang |= (cmd[6]<<8)|cmd[7];
 	//if (((cmd[8]<<8)|cmd[9]) != 0xffff)
-		fqp.auto_chefang = ((cmd[8]<<8)|cmd[9])<<16;		
+	fqp.auto_chefang = ((cmd[8]<<8)|cmd[9])<<16;		
 	//if (((cmd[10]<<8)|cmd[11]) != 0xffff)
-		fqp.auto_chefang |= (cmd[10]<<8)|cmd[11];
+	fqp.auto_chefang |= (cmd[10]<<8)|cmd[11];
 	g_operate_platform = cmd[12];
 	memcpy(g_operater,cmd+13,6);
 	Wtn6_Set_Volumne(fqp.audio_vol|0xe0);
 	rt_kprintf("operate platform \t%x\r\n", cmd[12]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
-		cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);
+			cmd[13],cmd[14],cmd[15],cmd[16],cmd[17],cmd[18]);
 	set_alarm_now();
 	rt_kprintf("set main alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
@@ -840,9 +839,9 @@ void handle_set_sub(rt_uint8_t *cmd)
 	int i;
 	rt_kprintf("cmd_type \tset sub\r\n");
 	//if (cmd[0] != 0)
-		fqp.delya_out= cmd[0];
+	fqp.delya_out= cmd[0];
 	//if (cmd[1] != 0)
-		fqp.delay_in = cmd[1];
+	fqp.delay_in = cmd[1];
 	if (cmd[2] != 0) {
 		for (i=3; i<cmd[2]*14+3;i+=14) {
 			if (cmd[i+3] == 0xff) /*delete fq*/
@@ -854,17 +853,17 @@ void handle_set_sub(rt_uint8_t *cmd)
 						(cmd[i+4]<<24)|(cmd[i+5]<<16)|(cmd[i+6]<<8)|cmd[i+7],
 						(cmd[i+8]<<8)|cmd[i+9],
 						(cmd[i+10]<<24)|(cmd[i+11]<<16)|(cmd[i+12]<<8)|cmd[i+13]
-						);
+					   );
 			}
 		}
 	}
 	i=cmd[2]*14+3;
 	g_operate_platform = cmd[i];
 	memcpy(g_operater,cmd+i+1,6);
-	
+
 	rt_kprintf("operate platform \t%x\r\n", cmd[i]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
-		cmd[i+1],cmd[i+2],cmd[i+3],cmd[i+4],cmd[i+5],cmd[i+6]);
+			cmd[i+1],cmd[i+2],cmd[i+3],cmd[i+4],cmd[i+5],cmd[i+6]);
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 	rt_thread_delay(100);
 	if (mp.reload & 0x02) {
@@ -897,7 +896,7 @@ void handle_proc_main(rt_uint8_t *cmd)
 	}	
 	rt_kprintf("operate platform \t%d\r\n", cmd[1]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
-		cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
+			cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
 
 	g_operate_platform = cmd[1];
 	memcpy(g_operater,cmd+2,6);
@@ -938,13 +937,13 @@ void handle_proc_sub(rt_uint8_t *cmd)
 	} else {
 		memcpy(g_fq_event, cmd+2,10);
 		rt_kprintf("proc fq \t%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
-		g_fq_event[0],g_fq_event[1],g_fq_event[2],g_fq_event[3],g_fq_event[4],
-		g_fq_event[5],g_fq_event[6],g_fq_event[7],g_fq_event[8],g_fq_event[9]);
+				g_fq_event[0],g_fq_event[1],g_fq_event[2],g_fq_event[3],g_fq_event[4],
+				g_fq_event[5],g_fq_event[6],g_fq_event[7],g_fq_event[8],g_fq_event[9]);
 		ofs = 12;
 	}
 	rt_kprintf("operate platform \t%d\r\n", cmd[ofs]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
-		cmd[ofs+1],cmd[ofs+2],cmd[ofs+3],cmd[ofs+4],cmd[ofs+5],cmd[ofs+6]);
+			cmd[ofs+1],cmd[ofs+2],cmd[ofs+3],cmd[ofs+4],cmd[ofs+5],cmd[ofs+6]);
 	g_operate_platform = cmd[ofs];
 	memcpy(g_operater,cmd+ofs+1,6);
 	g_remote_protect = 1;	
@@ -973,14 +972,14 @@ void handle_proc_sub(rt_uint8_t *cmd)
 				{					
 					upload_server(CMD_SUB_EVENT);
 					if (g_main_state != 1) {
-					cur_status = 0;
-					g_alarmType =0;
-					g_delay_out = 0;
-					g_alarm_voice = 0;
-					g_delay_in = 0;
-					fqp.status=cur_status;
-					s1=0;
-					handle_protect_off();
+						cur_status = 0;
+						g_alarmType =0;
+						g_delay_out = 0;
+						g_alarm_voice = 0;
+						g_delay_in = 0;
+						fqp.status=cur_status;
+						s1=0;
+						handle_protect_off();
 					}
 				} else {
 					flag=1;
@@ -1000,9 +999,9 @@ void handle_proc_sub(rt_uint8_t *cmd)
 				}
 			} else if (cmd[0] == 0x07) {
 				for (int i=0; i<WIRE_MAX; i++) 
-				if (fangqu_wire[i].slave_batch != 0) {
-					set_sub_wire_led(i, 10);
-				}
+					if (fangqu_wire[i].slave_batch != 0) {
+						set_sub_wire_led(i, 10);
+					}
 			}
 		} else {
 			/*proc signle fq*/
@@ -1013,7 +1012,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 			if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
 				upload_server(CMD_SUB_EVENT);
 			if (cmd[0] == 5)
-			upload_server(CMD_ASK_SUB_ACK);
+				upload_server(CMD_ASK_SUB_ACK);
 			if (cmd[0] == 7)
 				set_sub_wire_led(cmd[2]-50, 10);
 		}
@@ -1025,7 +1024,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
 			upload_server(CMD_SUB_EVENT);
 		if (cmd[0] == 5)
-		upload_server(CMD_ASK_SUB_ACK);
+			upload_server(CMD_ASK_SUB_ACK);
 		if (cmd[0] == 7)
 			proc_wire_fq(cmd+2, 10, cmd[0]);
 	}
@@ -1045,7 +1044,10 @@ void handle_bc26_update(rt_uint8_t *data)
 	if (g_nbiot_update_len < all_len)
 	{
 		if (bc28_down_fd == -1) {
-			bc28_down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);	
+			if (upgrade_type)
+				bc28_down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);	
+			else
+				bc28_down_fd = open("/BootLoader.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);	
 		}
 		if (cur_len != write(bc28_down_fd, data+6, cur_len))
 		{
@@ -1054,7 +1056,10 @@ void handle_bc26_update(rt_uint8_t *data)
 			//break;
 		}
 		fsync(bc28_down_fd);
-		upload_server(CMD_UPDATE);
+		if (upgrade_type)
+			upload_server(CMD_UPDATE);
+		else
+			upload_server(CMD_UPDATE_BOOT);
 	}
 	else {
 		if (cur_len != write(bc28_down_fd, data+6, cur_len))
@@ -1066,26 +1071,36 @@ void handle_bc26_update(rt_uint8_t *data)
 		fsync(bc28_down_fd);
 		close(bc28_down_fd);
 		bc28_down_fd=-1;
-		mp.firmCRC = CRC_check_file("/stm32.bin");
-		//if (mp.firmCRC != g_crc)
-		//{
-		//	rt_kprintf("App download failed %x %x\r\n",mp.firmCRC,g_crc);
-		//}
-		//else {
-		rt_kprintf("App donwload ok\r\n");
-		if (g_app_v!=0)
-			mp.firmVersion = g_app_v;
-		mp.firmLength = all_len;
-		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
-		if (!cur_status) {
-			rt_thread_delay(500);
-			NVIC_SystemReset();
+		if (upgrade_type)
+			mp.firmCRC = CRC_check_file("/stm32.bin");
+		else
+			mp.firmCRC = CRC_check_file("/BootLoader.bin");
+		if (mp.firmCRC != g_crc)
+		{
+			rt_kprintf("App/Boot download failed %x %x\r\n",mp.firmCRC,g_crc);
+		} else {
+			if (upgrade_type) {
+				rt_kprintf("App donwload ok\r\n");
+				if (g_app_v!=0)
+					mp.firmVersion = g_app_v;
+				mp.firmLength = all_len;
+				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+				entering_ftp_mode = 0;
+				g_heart_cnt=0;
+				g_net_state = NET_STATE_UNKNOWN;
+				pcie_switch(g_module_type);
+			} else {
+				rt_kprintf("Boot donwload ok\r\n");
+				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
+				/* real update boot*/
+				rt_kprintf("going to upgrade Boot\r\n");
+				write_flash(0x08000000, "/BootLoader.bin", g_nbiot_update_len);
+			}
+			if (!cur_status) {
+				rt_thread_delay(500);
+				NVIC_SystemReset();
+			}
 		}
-		//}
-		entering_ftp_mode = 0;
-		g_heart_cnt=0;
-		g_net_state = NET_STATE_UNKNOWN;
-		pcie_switch(g_module_type);
 	}
 }
 rt_uint8_t handle_packet(rt_uint8_t *data)
@@ -1105,14 +1120,14 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 	rt_kprintf("pacet type \t%x\r\n", packet_type);
 	rt_kprintf("protol version \t%d\r\n", protocl_v);
 	rt_kprintf("sn \t\t%02x%02x%02x%02x%02x%02x\r\n",
-		stm32_id[0],stm32_id[1],stm32_id[2],
-		stm32_id[3],stm32_id[4],stm32_id[5]);
+			stm32_id[0],stm32_id[1],stm32_id[2],
+			stm32_id[3],stm32_id[4],stm32_id[5]);
 	if (memcmp(stm32_id,mp.roProperty.sn,6) != 0)
 	{
 		rt_kprintf("packet not for us \t%02x%02x%02x%02x%02x%02x\r\n",
-			mp.roProperty.sn[0],mp.roProperty.sn[1],
-			mp.roProperty.sn[2],mp.roProperty.sn[3],
-			mp.roProperty.sn[4],mp.roProperty.sn[5]);
+				mp.roProperty.sn[0],mp.roProperty.sn[1],
+				mp.roProperty.sn[2],mp.roProperty.sn[3],
+				mp.roProperty.sn[4],mp.roProperty.sn[5]);
 		return 0;
 	}
 	switch (packet_type)
@@ -1132,7 +1147,7 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 		case GET_ADDRESS_ACK:
 			handle_get_address_ack(data+11);
 			break;
-			
+
 		case CMD_PROC_SUB:
 			handle_proc_sub(data+11);
 			break;
@@ -1152,6 +1167,7 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 			handle_ask_main(data+11);
 			break;
 		case UPDATE_ACK:
+		case UPDATE_BOOT_ACK:
 			handle_bc26_update(data+11);
 			break;
 		case INFO_ACK:

@@ -39,6 +39,7 @@
 #define CMD_ASK_SUB		0x0711
 #define CMD_ASK_MAIN	0x0712
 #define UPDATE_ACK		0x5001
+#define UPDATE_BOOT_ACK		0x5003
 #define ADJUST_TIME	19
 
 void info_user(void *param);
