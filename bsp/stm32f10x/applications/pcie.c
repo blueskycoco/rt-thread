@@ -48,6 +48,7 @@ rt_mp_t server_mp = RT_NULL;
 rt_uint32_t g_nbiot_update_len = 0;
 extern rt_uint8_t nbiot_module;
 rt_uint8_t update_flag=0;
+extern rt_uint8_t upgrade_type; /* 0 for Boot, 1 for App*/
 static rt_err_t pcie0_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_kprintf("got data from 0\r\n");
@@ -830,7 +831,10 @@ void send_process(void* parameter)
 				if (update_flag) {
 				g_net_state = NET_STATE_LOGIN;
 				rt_kprintf("KKKKKKKKK\r\n");
-				upload_server(CMD_UPDATE);
+				if (upgrade_type)
+					upload_server(CMD_UPDATE);
+				else
+					upload_server(CMD_UPDATE_BOOT);
 				update_flag=0;
 				}
 			}
