@@ -18,6 +18,7 @@ wtn6.c
 prop.c
 listdir.c
 can.c
+traditional_alarm.c
 """)
 
 if GetDepend('RT_USING_CAN'):

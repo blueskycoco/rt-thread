@@ -42,6 +42,7 @@
 #include "wtn6.h"
 #include "prop.h"
 #include "can.h"
+#include "traditional_alarm.h"
 #define NO_ERROR				0x00000000
 #define ERROR_SPI_HW			0x00000001
 #define ERROR_SPI_MOUNT			0x00000002
@@ -288,6 +289,7 @@ static void led_thread_entry(void* parameter)
 	rt_uint8_t ac=0;
 	rt_uint8_t s1_main=0;
 	rt_hw_led_init();
+	int i;
 	//button_init();
 	//battery_init();
 	//GPIO_Lcd_Init();
@@ -637,6 +639,17 @@ static void led_thread_entry(void* parameter)
 			upload_server(CMD_UP_INFO);
 		}
 		should_upload_info++;
+		/* handle traditional alarm*/
+		for (i=0; i<4; i++) {
+			if (traditional_alarm(i)) {
+				//g_alarm_reason=0x1002;
+				//g_alarm_fq = 0x00;
+				Wtn6_Play(VOICE_ALARM1,ONCE,1);
+				//upload_server(CMD_ALARM);
+				rt_kprintf("traditional alarm %d\r\n", i);
+			}
+		}
+		/* handle traditional alarm*/
 	}
 }
 
@@ -932,7 +945,7 @@ void rt_init_thread_entry(void* parameter)
 	rt_thread_startup(rt_thread_create("alarm",alarm_thread, 0,512, 20, 10));
 	g_mute=0;
 	show_memory_info();
-
+	init_traditional();
 	while (1) {
 		wait_cc1101_sem();
 		int len = cc1101_receive_read(buf1,128);
