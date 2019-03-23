@@ -112,9 +112,11 @@ struct HwVersion
 };
 #define WIRELESS_MAX	50
 #define WIRE_MAX		30
+#define IO_MAX			4
 struct FangQuT	 fangqu_ts[50];
 struct FangQu    fangqu_wire[30];
 struct FangQu    fangqu_wireless[50];
+struct FangQu    fangqu_io[4];
 struct FangQuProperty fqp;
 struct MachineProperty mp;
 struct HwVersion	hwv;
@@ -163,7 +165,7 @@ struct HwVersion	hwv;
 #define DEFAULT_DOMAIN 	"kjfslkjflskdjfj"
 #define APP_BUILD_TIME "APP Build Time "
 void dump_mp(struct MachineProperty v);
-void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3);
+void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3, struct FangQu *v4);
 int load_param();
 void save_param(int type);
 void default_fqp();

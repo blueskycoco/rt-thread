@@ -56,6 +56,8 @@
 rt_uint32_t err_code = NO_ERROR;
 rt_uint8_t  pcie_status = 0x00; /*0x01 pcie1, 0x02 pcie2 0x03 pcie1 & pcie2*/
 extern struct rt_event g_info_event;
+extern rt_uint8_t g_num;
+extern rt_uint8_t  	g_voiceType;
 extern rt_uint8_t g_main_state;
 extern rt_uint32_t g_coding_cnt;
 extern rt_uint8_t cur_status;
@@ -282,6 +284,34 @@ static void yun_duo(void *parameter)
 void begin_yunduo()
 {	
 	rt_sem_release(&(yunduo_sem));
+}
+void handle_io_alarm(rt_uint8_t addr)
+{
+	g_num = addr+81;
+	g_alarmType = fangqu_io[addr].alarmType;
+	rt_kprintf("proc io alarm %d %d %d %d\r\n",addr,fangqu_io[addr].operationType,
+		cur_status,fangqu_io[addr].isBypass);
+	g_mute=0;
+	s1=0;
+	if (fangqu_io[addr].operationType==2 /*24 hour*/
+		) {
+		g_fq_index = fangqu_io[addr].index;
+		g_operationType = fangqu_io[addr].operationType;
+		g_voiceType = fangqu_io[addr].voiceType;
+		rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);				
+		rt_kprintf("io emergency alarm %d\r\n",g_operationType);
+	} else {
+		/*normal alarm*/
+		if (cur_status && !fangqu_io[addr].isBypass) {					
+			g_fq_index = fangqu_io[addr].index;
+			g_operationType = fangqu_io[addr].operationType;
+			g_voiceType = fangqu_io[addr].voiceType;
+			rt_event_send(&(g_info_event), INFO_EVENT_ALARM);
+			rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);										
+			rt_kprintf("io normal alarm %d\r\n",g_operationType);
+		}
+	}
 }
 static void led_thread_entry(void* parameter)
 {
@@ -640,13 +670,16 @@ static void led_thread_entry(void* parameter)
 		}
 		should_upload_info++;
 		/* handle traditional alarm*/
-		for (i=0; i<4; i++) {
-			if (traditional_alarm(i)) {
-				//g_alarm_reason=0x1002;
-				//g_alarm_fq = 0x00;
-				Wtn6_Play(VOICE_ALARM1,ONCE,1);
-				//upload_server(CMD_ALARM);
-				rt_kprintf("traditional alarm %d\r\n", i);
+		if (traditional_insert()) {
+			for (i=0; i<4; i++) {
+				if (traditional_alarm(i)) {
+					//g_alarm_reason=0x1002;
+					//g_alarm_fq = 0x00;
+					//Wtn6_Play(VOICE_ALARM1,ONCE,1);
+					//upload_server(CMD_ALARM);
+					rt_kprintf("traditional alarm %d\r\n", i);
+				handle_io_alarm(i);
+				}
 			}
 		}
 		/* handle traditional alarm*/

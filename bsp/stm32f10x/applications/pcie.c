@@ -737,6 +737,46 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				(cmd[17])++;
 			}
 		}		
+		for(i=0;i<IO_MAX;i++)
+		{
+				cmd[ofs++] = fangqu_io[i].index;
+				cmd[ofs] = 0x40;
+				if (fangqu_io[i].operationType==TYPE_24)
+					cmd[ofs]|=0x20;
+				else if (fangqu_io[i].operationType==TYPE_DELAY)
+					cmd[ofs]|=0x10;
+				cmd[ofs++]|=fangqu_io[i].alarmType;
+				cmd[ofs]=0;
+				if (fangqu_io[i].voiceType)
+					cmd[ofs]|=0x80;
+				if (fangqu_io[i].status == TYPE_PROTECT_ON)
+					cmd[ofs]|=0x20;
+				if (fangqu_io[i].slave_delay)
+					cmd[ofs]|=0x40;			
+				if (fangqu_io[i].isBypass)
+					cmd[ofs]|=0x10;				
+				//if (fangqu_offline(fangqu_wireless[i].index))
+				//	cmd[ofs]|= 0x08;
+				//if (fangqu_wireless[i].normal_info)
+				//	cmd[ofs]|=0x04;			
+				rt_kprintf("io parm [%d] %02x %02x %02x %02x\r\n",
+						i, fangqu_io[i].voiceType, fangqu_io[i].status,
+						fangqu_io[i].slave_delay, fangqu_io[i].isBypass);
+				rt_kprintf("io build %d cmd ofsbyte %02x\r\n", i, cmd[ofs]);
+				ofs++;
+				cmd[ofs++] = fangqu_io[i].slave_type;
+				cmd[ofs++] = (fangqu_io[i].slave_sn >> 24) & 0xff;
+				cmd[ofs++] = (fangqu_io[i].slave_sn >> 16) & 0xff;
+				cmd[ofs++] = (fangqu_io[i].slave_sn >> 8) & 0xff;
+				cmd[ofs++] = (fangqu_io[i].slave_sn >> 0) & 0xff;
+				cmd[ofs++] = (fangqu_io[i].slave_model >> 8) & 0xff;
+				cmd[ofs++] = (fangqu_io[i].slave_model >> 0) & 0xff;
+				cmd[ofs++] = (fangqu_io[i].slave_batch >> 24) & 0xff;
+				cmd[ofs++] = (fangqu_io[i].slave_batch >> 16) & 0xff;
+				cmd[ofs++] = (fangqu_io[i].slave_batch >> 8) & 0xff;
+				cmd[ofs++] = (fangqu_io[i].slave_batch >> 0) & 0xff;
+				(cmd[17])++;
+		}		
 		cmd[ofs++] = g_operate_platform;
 		memcpy(cmd+ofs,g_operater,6);
 		ofs += 6;

@@ -209,6 +209,7 @@ void info_user(void *param)
 			fqp.status=cur_status;
 			set_fq_on(fangqu_wire,WIRE_MAX);
 			set_fq_on(fangqu_wireless,WIRELESS_MAX);			
+			set_fq_on(fangqu_io,IO_MAX);			
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 			cur_time = time(RT_NULL);
 			rt_kprintf("\r\n\r\nnow stm32 is protect on %d, %s\r\n\r\n",g_remote_protect,ctime(&cur_time));

@@ -166,7 +166,7 @@ void get_infrar_normal_mode() {
 	}
 }
 void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1,
-		rt_uint8_t param2, rt_uint32_t param3,rt_uint16_t param4,rt_uint32_t param5)
+		rt_uint8_t param2, rt_uint32_t param3,rt_uint16_t param4,rt_uint32_t param5, rt_uint8_t io)
 {
 	//if (list[index].index !=0) {
 		if ((param0 & 0x20) == 0x20)
@@ -198,8 +198,12 @@ void edit_fq_detail(struct FangQu *list,rt_uint8_t index, rt_uint8_t param0,rt_u
 		list[index].slave_batch = param5;	
 		if (param0 & 0x80) 
 			list[index].index = index+2;
-		else
-			list[index].index = index+WIRELESS_MAX;
+		else {
+			if (io)
+				list[index].index = index+81;
+			else	
+				list[index].index = index+WIRELESS_MAX;
+		}
 		/*if ((param1 & 0x40))
 			list[index].slave_delay = 1;
 		else
@@ -227,13 +231,17 @@ void edit_fq(rt_uint8_t index, rt_uint8_t param0,rt_uint8_t param1,
 		if (index > 0 && index < 51) {
 			rt_kprintf("edit wireless fq %d\r\n", index-2);
 			edit_fq_detail(fangqu_wireless,index-2,param0,param1,param2,
-					param3,param4,param5);
+					param3,param4,param5,0);
 		}
 	} else {
 		if (index >= 51 && index < 80) {
 			rt_kprintf("edit wirele fq %d\r\n", index-WIRELESS_MAX);
 			edit_fq_detail(fangqu_wire,index-WIRELESS_MAX,param0,param1,
-					param2,param3,param4,param5);
+					param2,param3,param4,param5,0);
+		} else {
+			rt_kprintf("edit io fq %d\r\n", index-81);
+			edit_fq_detail(fangqu_io,index-81,param0,param1,
+					param2,param3,param4,param5,1);
 		}
 	}
 }
@@ -247,6 +255,9 @@ void proc_detail_fq(rt_uint8_t index, rt_uint8_t code)
 	else if (index >= 2 && index < 51) {
 		index -= 2;
 		ptr = fangqu_wireless;
+	} else if (index > 80 && index < 85) {
+		index -= 81;
+		ptr = fangqu_io;
 	} else
 		return ;
 
@@ -305,7 +316,7 @@ void proc_wire_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
 			tmp = tmp >> 1;
 		}
 	}
-	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
+	dump_fqp(fqp,fangqu_wire,fangqu_wireless, fangqu_io);
 }
 void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
 {
@@ -330,7 +341,7 @@ void proc_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code)
 			tmp = tmp >> 1;
 		}
 	}
-	dump_fqp(fqp,fangqu_wire,fangqu_wireless);
+	dump_fqp(fqp,fangqu_wire,fangqu_wireless, fangqu_io);
 }
 void save_fq(struct FangQu *list, int len)
 {

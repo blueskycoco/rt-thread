@@ -90,7 +90,8 @@ void dump_mp(struct MachineProperty v)
 		rt_kprintf("%02x", v.qccid[i]);
 	rt_kprintf("\r\n\r\n");
 }
-void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
+void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3,
+			  struct FangQu *v4)
 {	
 	int i;
 	rt_kprintf("\r\n\r\n<<FangQu Param>>\r\n");
@@ -155,6 +156,28 @@ void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3)
 			rt_kprintf("slave_sn \t%08x\r\n",v3[i].slave_sn);			
 			if (v3[i].alarmType == TYPE_24)
 				v3[i].status = TYPE_PROTECT_ON;
+		}
+	}
+	rt_kprintf("\r\nio fq\r\n");
+	for(i=0;i<IO_MAX;i++)
+	{
+		if(v4[i].index != 0) {
+			rt_kprintf("FangQu[%d]\r\n",
+				v4[i].index);
+			rt_kprintf("type \t%d\r\n",v4[i].type);
+			rt_kprintf("operationType \t%d\r\n",v4[i].operationType);
+			rt_kprintf("voiceType \t%d\r\n",v4[i].voiceType);
+			rt_kprintf("alarmType \t%d\r\n",v4[i].alarmType);
+			rt_kprintf("isBypass \t%d\r\n",v4[i].isBypass);			
+			rt_kprintf("isStay \t\t%d\r\n",v4[i].isStay);
+			rt_kprintf("status \t\t%d\r\n",v4[i].status);
+			rt_kprintf("slave_delay \t%d\r\n",v4[i].slave_delay);
+			rt_kprintf("slave_type \t%x\r\n",v4[i].slave_type);
+			rt_kprintf("slave_model \t%x\r\n",v4[i].slave_model);
+			rt_kprintf("slave_batch \t%x\r\n",v4[i].slave_batch);
+			rt_kprintf("slave_sn \t%08x\r\n",v4[i].slave_sn);			
+			if (v4[i].alarmType == TYPE_24)
+				v4[i].status = TYPE_PROTECT_ON;
 		}
 	}
 }
@@ -375,10 +398,25 @@ void default_fqp()
 			fangqu_wireless[i].isBypass= TYPE_BYPASS_N;
 		}
 	}
+	for(i=0;i<IO_MAX;i++)
+	{
+			fangqu_io[i].index = 81+i;
+			fangqu_io[i].voiceType =TYPE_VOICE_Y;
+			fangqu_io[i].operationType= TYPE_DELAY;
+			fangqu_io[i].alarmType= TYPE_ALARM_00;
+			fangqu_io[i].slave_delay = TYPE_SLAVE_MODE_DELAY;
+			fangqu_io[i].status= TYPE_PROTECT_OFF;
+			fangqu_io[i].isStay= TYPE_STAY_N;
+			fangqu_io[i].isBypass= TYPE_BYPASS_N;
+			fangqu_io[i].slave_sn = 0x0;
+			fangqu_io[i].slave_type = 0x20;
+			fangqu_io[i].slave_model = 0xd000;
+			fangqu_io[i].slave_batch = 0x0;
+	}
 }
 int load_param()
 {
-	int length;
+	int length,i;
 	rt_uint16_t crc;
 	rt_uint16_t tmp_crc;
 	struct MachineProperty tmp_mp;
@@ -520,6 +558,20 @@ int load_param()
 			return 0;
 		}
 		memcpy(fangqu_wire,tmp_fangquList,sizeof(struct FangQu)*WIRE_MAX);
+		
+		read(fd, &crc, sizeof(rt_uint16_t));
+		length = read(fd, tmp_fangquList, sizeof(struct FangQu)*IO_MAX);
+		tmp_crc = CRC_check((unsigned char *)tmp_fangquList, sizeof(struct FangQu)*IO_MAX);
+		rt_kprintf("io crc %x , tmp_crc %x\r\n", crc,tmp_crc);
+		if (length != sizeof(struct FangQu)*IO_MAX|| tmp_crc!=crc)
+		{
+			rt_kprintf("check: io crc not same, read failed\n");
+			close(fd);
+			rt_free(tmp_fangquList);
+			mp.reload |= 0x02;
+			return 0;
+		}
+		memcpy(fangqu_io,tmp_fangquList,sizeof(struct FangQu)*IO_MAX);
 
 		rt_free(tmp_fangquList);
 		close(fd);
@@ -555,7 +607,7 @@ int load_param()
 	mp.socketAddress[0].IP[1] = 180;
 	mp.socketAddress[0].IP[2] = 239;
 	mp.socketAddress[0].IP[3] = 212;
-	*/dump_fqp(fqp,fangqu_wire,fangqu_wireless);
+	*/dump_fqp(fqp,fangqu_wire,fangqu_wireless, fangqu_io);
 	default_fqp_t(fangqu_wire,fangqu_wireless);
 	return 1;
 }
@@ -647,7 +699,22 @@ void save_param(int type)
 			rt_mutex_release(&file_lock);
 			return ;
 		}
-		//dump_fqp(fqp,fangqu_wire,fangqu_wireless);		
+		crc = CRC_check((unsigned char *)fangqu_io, sizeof(struct FangQu)*IO_MAX);
+		rt_kprintf("io crc %x\r\n", crc);
+		level = rt_hw_interrupt_disable();
+		write(fd, &crc, sizeof(rt_uint16_t));
+		//fsync(fd);
+		length = write(fd, fangqu_io, sizeof(struct FangQu)*IO_MAX);
+		fsync(fd);
+		rt_hw_interrupt_enable(level);
+		if (length != sizeof(struct FangQu)*IO_MAX)
+		{
+			rt_kprintf("write io fq data failed %d\n",length);
+			close(fd);
+			rt_mutex_release(&file_lock);
+			return ;
+		}
+		dump_fqp(fqp,fangqu_wire,fangqu_wireless,fangqu_io);		
 	} else if (type == TYPE_HWV) {
 		fd = open(HWV_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0);
 		if (fd<0) {
