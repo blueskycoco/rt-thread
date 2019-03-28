@@ -20,6 +20,7 @@
 #define CMD_UP_INFO			0x0008
 #define CMD_ASK_SUB_ACK		0x8711
 #define CMD_ASK_MAIN_ACK	0x8712
+#define CMD_SET_PROT_ACK	0x8713
 #define CMD_UPDATE			0x5000
 #define CMD_UPDATE_BOOT		0x5002
 

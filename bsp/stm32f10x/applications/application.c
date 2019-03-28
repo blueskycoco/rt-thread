@@ -683,6 +683,27 @@ static void led_thread_entry(void* parameter)
 			}
 		}
 		/* handle traditional alarm*/
+
+		/* handle unprotect voice alarm*/
+		if (fqp.is_unprotect_voice && !cur_status && fqp.unprot_time != 0xffff) {
+			struct tm *to;
+			static rt_uint8_t unprot_flag = 1;
+			rt_time_t local_time;
+			time(&local_time);
+			to = localtime(&local_time);
+			rt_uint16_t now_time = (to->tm_hour << 16) | to->tm_min; 
+			rt_kprintf("check unprotect alarm warrning %d %d\r\n",fqp.unprot_time,now_time);	
+			if (now_time >= fqp.unprot_time) {
+				if (unprot_flag) {
+					/*voice alarm*/
+					rt_kprintf("play voice bftixing\r\n");
+					unprot_flag = 0;
+					Wtn6_Play(VOICE_BFTIXING,ONCE,1);
+				}
+			} else
+				unprot_flag = 1;
+		}
+		/* handle unprotect voice alarm*/
 	}
 }
 

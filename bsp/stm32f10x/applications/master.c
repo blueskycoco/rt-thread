@@ -180,6 +180,7 @@ void info_user(void *param)
 			g_exit_reason = 0x03;
 			upload_server(CMD_EXIT);
 			//dfs_mkfs("elm","sd0");
+			Wtn6_Play(VOICE_HFSUCCESS,ONCE,1);
 			mp.reload=1;
 			default_fqp();
 			save_param(1);
@@ -222,6 +223,7 @@ void info_user(void *param)
 				if (g_remote_protect != 1)
 				{	
 					if (time_protect) {
+						rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 
 						memset(g_operater,0,6);
 						g_operater[0] =  0x10;
@@ -233,7 +235,11 @@ void info_user(void *param)
 						}
 						else
 							g_operate_platform = 0xfd;
-						Wtn6_Play(VOICE_BUFANG,ONCE,1);
+						if (g_operate_platform == 0xfd)
+							voice[0] = VOICE_DINGSHI;
+						else if (g_operate_platform == 0xfc)
+							voice[0] = VOICE_ANJIAN;
+						Wtn6_JoinPlay(voice,2,1);
 					} else {
 						command_type = 0;
 						memset(g_operater,0,6);
@@ -249,7 +255,7 @@ void info_user(void *param)
 				} else {
 					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };
 					if (g_operate_platform==0x20)
-						voice[0] = VOICE_SHOUJI;//weixin TDO
+						voice[0] = VOICE_WEIXIN;//weixin TDO
 					else if (g_operate_platform==0x40)
 						voice[0] = VOICE_SHOUJI;
 					Wtn6_JoinPlay(voice,2,1);			   
@@ -267,11 +273,12 @@ void info_user(void *param)
 			{
 				if (g_remote_protect != 1)
 				{	
+					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 					if (!time_protect) {
-						rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 						Wtn6_JoinPlay(voice,2,1);
 					} else {
-						Wtn6_Play(VOICE_BUFANG,ONCE,1);
+						voice[0] = VOICE_ANJIAN;
+						Wtn6_JoinPlay(voice,2,1);
 						rt_kprintf("s button yanshi bufang\r\n");
 					}
 				} else {
@@ -302,6 +309,7 @@ void info_user(void *param)
 
 				if (time_protect) {
 
+					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_BUFANG };
 					memset(g_operater,0,6);
 					g_operater[0] =  0x10;
 					if (duima_key) {
@@ -311,8 +319,12 @@ void info_user(void *param)
 					}
 					else
 						g_operate_platform = 0xfd;
+					if (g_operate_platform == 0xfd)
+						voice[0] = VOICE_DINGSHI;
+					else if (g_operate_platform == 0xfc)
+						voice[0] = VOICE_ANJIAN;
+					Wtn6_JoinPlay(voice,2,1);
 					//time_protect = 0;
-					Wtn6_Play(VOICE_BUFANG,ONCE,1);
 				} else {
 					command_type = 0;
 					memset(g_operater,0,6);
@@ -338,7 +350,7 @@ void info_user(void *param)
 				{
 					rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_BUFANG };					
 					if (g_operate_platform==0x20)
-						voice[0] = VOICE_SHOUJI;//weixin TDO
+						voice[0] = VOICE_WEIXIN;//weixin TDO
 					else if (g_operate_platform==0x40)
 						voice[0] = VOICE_SHOUJI;
 					Wtn6_JoinPlay(voice,2,1);			   
@@ -377,6 +389,7 @@ void info_user(void *param)
 			if (g_remote_protect!=1)
 			{	
 				if (time_protect) {
+					rt_uint8_t voice[2] ={ VOICE_YAOKONG,VOICE_CHEFANG };
 					memset(g_operater,0,6);
 					g_operater[0] = 0x10;
 					if (duima_key) {
@@ -387,7 +400,11 @@ void info_user(void *param)
 					else
 						g_operate_platform = 0xfd;
 					time_protect = 0;
-					Wtn6_Play(VOICE_CHEFANG,ONCE,1);
+					if (g_operate_platform == 0xfd)
+						voice[0] = VOICE_DINGSHI;
+					else if (g_operate_platform == 0xfc)
+						voice[0] = VOICE_ANJIAN;
+					Wtn6_JoinPlay(voice,2,1);
 					rt_kprintf("voice chefang\r\n");
 				}else{
 					command_type = 0;
@@ -403,7 +420,7 @@ void info_user(void *param)
 			} else {
 				rt_uint8_t voice[2] ={ VOICE_ZHONGXIN,VOICE_CHEFANG };				
 				if (g_operate_platform==0x20)
-					voice[0] = VOICE_SHOUJI;//weixin TDO
+					voice[0] = VOICE_WEIXIN;//weixin TDO
 				else if (g_operate_platform==0x40)
 					voice[0] = VOICE_SHOUJI;
 				Wtn6_JoinPlay(voice,2,1);
@@ -521,6 +538,9 @@ void info_user(void *param)
 						} else if (g_alarmType == 4) {
 							rt_kprintf("4 \r\n");
 							Wtn6_Play(VOICE_JIAOLIUDD,action,1);
+						} else if (g_alarmType == 5) {
+							rt_kprintf("4 \r\n");
+							Wtn6_Play(VOICE_RQALARM,action,1);
 						}
 					}
 				}
@@ -685,6 +705,7 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 		entering_ftp_mode = 1;						
 		upgrade_type = type;
 		HtbLcdClear();
+		Wtn6_Play(VOICE_UPDATE,ONCE,1);
 		if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
 					(g_index == 0 && g_type0 == PCIE_1_NBIOT))
 		   )
@@ -812,6 +833,7 @@ void handle_set_main(rt_uint8_t *cmd)
 	fqp.is_check_AC = (cmd[3]&0x80)>>7;
 	fqp.is_check_DC = (cmd[3]&0x40)>>6;
 	fqp.is_alarm_voice = (cmd[3]&0x20)>>5;
+	fqp.is_unprotect_voice = (cmd[3]&0x10)>>5;
 	//if (((cmd[4]<<8)|cmd[5]) != 0xffff)
 	fqp.auto_bufang = ((cmd[4]<<8)|cmd[5])<<16;
 	//if (((cmd[6]<<8)|cmd[7]) != 0xffff)
@@ -834,6 +856,24 @@ void handle_set_main(rt_uint8_t *cmd)
 
 	/*execute cmd*/
 	upload_server(CMD_ASK_MAIN_ACK);
+}
+void handle_set_unprot(rt_uint8_t *cmd)
+{
+	rt_kprintf("cmd_type \tset unprotect\r\n");
+	fqp.unprot_time = ((cmd[0]<<8)|cmd[1])<<16;
+	g_operate_platform = cmd[2];
+	memcpy(g_operater,cmd+3,6);
+	rt_kprintf("operate platform \t%x\r\n", cmd[2]);
+	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
+			cmd[3],cmd[4],cmd[5],cmd[6],cmd[7],cmd[8]);
+	set_alarm_now();
+	rt_kprintf("set unprotect alarm %x %x\r\n",RTC_GetCounter(),RTC_GetAlarm());
+	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
+	rt_thread_delay(100);
+	/*build proc main ack*/
+
+	/*execute cmd*/
+	upload_server(CMD_SET_PROT_ACK);
 }
 void handle_set_sub(rt_uint8_t *cmd)
 {
@@ -1022,6 +1062,12 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		if (g_main_state != 1 && cmd[0] == 0x02)
 			handle_protect_on();
 		proc_fq(cmd+2, 10, cmd[0]);
+		if (g_operate_platform == 0x20 && (cmd[0] == 1 || cmd[0] == 2)) {
+			rt_uint8_t voice[2] ={ VOICE_FENQU,VOICE_BUFANG };
+			if (cmd[0] == 1)
+				voice[1] = VOICE_CHEFANG;
+			Wtn6_JoinPlay(voice,2,1);
+		}
 		if (!(fangqu_wireless[cmd[2]-2].slave_model == 0xd001 && cmd[0] == 0x03) && !flag)
 			upload_server(CMD_SUB_EVENT);
 		if (cmd[0] == 5)
@@ -1173,6 +1219,9 @@ rt_uint8_t handle_packet(rt_uint8_t *data)
 			break;
 		case INFO_ACK:
 			handle_info_ack(data+11);
+			break;
+		case CMD_SET_UNPROT:
+			handle_set_unprot(data+11);
 			break;
 		default:
 			rt_kprintf("unknown packet type\r\n");

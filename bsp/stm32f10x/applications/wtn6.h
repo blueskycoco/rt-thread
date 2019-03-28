@@ -52,6 +52,18 @@
 #define VOICE_ZHONGXIN        	0x1b        //中心(操作)
 #define VOICE_ZHUJIGZ        		0x1c        //主机故障	
 
+/*第二版 新增语音地址*/
+#define VOICE_UPDATE        		0x18        //准备升级
+#define VOICE_ANJIAN        		0x1d        //按键
+#define VOICE_DINGSHI        		0x1e        //定时
+#define VOICE_HYGLIN        	  0x1f        //欢迎光临
+#define VOICE_HFSUCCESS         0x20        //恢复成功
+#define VOICE_BFTIXING          0x21        //布防提醒
+#define VOICE_WEIXIN            0x22        //微信
+#define VOICE_FENQU             0x23        //分区
+#define VOICE_FANGQU            0x24        //防区
+#define VOICE_RQALARM           0x25        //燃气报警
+
 
 
 //typedef enum

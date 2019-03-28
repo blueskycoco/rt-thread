@@ -84,8 +84,10 @@ struct FangQuProperty
 	rt_uint8_t   	delya_out;
 	rt_uint32_t  	auto_bufang;
 	rt_uint32_t  	auto_chefang;
+	rt_uint16_t 	unprot_time;
 	rt_uint8_t	  	alarm_voice_time;	//play alarm time
 	rt_uint8_t	  	is_alarm_voice;	//open or not alarm voice
+	rt_uint8_t	  	is_unprotect_voice;	//open or not unprotect voice
 	rt_uint8_t 		audio_vol;
 	rt_uint8_t   	is_check_AC;
 	rt_uint8_t   	is_check_DC;

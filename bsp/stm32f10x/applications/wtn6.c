@@ -1,7 +1,9 @@
 #include "wtn6.h"
 #include <rtthread.h>
 //#include "delay.h"
+#include "prop.h"
 extern void speaker_ctl(int flag);
+//extern struct HwVersion	        hwv;
 uint8_t state_play = 0;
 uint8_t wtn6_mute = 0;
 /*
@@ -69,8 +71,11 @@ void Stop_Played(void)
 */
 void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag)
 {
-	if (wtn6_mute)
+	rt_kprintf("Wtn6_Play %d %d %d %d %d\r\n",
+			 wtn6_mute, hwv.isdVersion, voice, PlayType, flag);
+	if (wtn6_mute||(hwv.isdVersion<2&&(voice>0x1c||voice==0x18)))
 		return ;
+	rt_kprintf("going play\r\n");
 	speaker_ctl(1);
 	Send_Command(voice);
 	if(PlayType==LOOP)
@@ -111,9 +116,16 @@ void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag)
 void Wtn6_JoinPlay(u8 voices[],u8 size,u8 muteTimes)
 {
 	int i;
-	if (wtn6_mute)
+	if (wtn6_mute||size<=0)
 		return ;
-	if(size<=0) return;
+  
+  for(i=0;i<size;i++)
+	{
+    if(hwv.isdVersion<2&&(voices[i]>0x1c||voices[i]==0x18))
+    {
+      return;
+    }
+  }
 	speaker_ctl(1);
 	for(i=0;i<size;i++)
 	{
@@ -172,8 +184,18 @@ static void delay_us(unsigned long ms)
 static void Send_Command(u8 command)
 {
 	u8 index;
+#if 0
 	GPIO_ResetBits(wtn_CLK_PORT,wtn_CLK);
 	delay_us(400);
+#else
+	GPIO_SetBits(wtn_CLK_PORT, wtn_CLK);
+	delay_us(400);
+	GPIO_ResetBits(wtn_CLK_PORT, wtn_CLK);
+    for(rt_uint8_t i = 0; i < 5; i++)
+    {
+        delay_us(1000);
+    }
+#endif
 	for(index=0;index<8;index++)
 	{
 		GPIO_ResetBits(wtn_CLK_PORT,wtn_CLK);//À­µÍÊ±ÖÓ

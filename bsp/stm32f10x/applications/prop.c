@@ -365,9 +365,11 @@ void default_fqp()
 	fqp.delay_in=0;
 	fqp.alarm_voice_time=1;
 	fqp.is_alarm_voice =1;
+	fqp.is_unprotect_voice =1;
 	fqp.is_lamp = 0x01;
 	fqp.status=0;
 	fqp.auto_bufang=0xffffffff;
+	fqp.unprot_time=0xffff;
 	fqp.auto_chefang=0xffffffff;
 	fqp.PGM0=0;
 	fqp.PGM1=0;
@@ -409,7 +411,7 @@ void default_fqp()
 			fangqu_io[i].isStay= TYPE_STAY_N;
 			fangqu_io[i].isBypass= TYPE_BYPASS_N;
 			fangqu_io[i].slave_sn = 0x0;
-			fangqu_io[i].slave_type = 0x20;
+			fangqu_io[i].slave_type = 0xe0;
 			fangqu_io[i].slave_model = 0xd000;
 			fangqu_io[i].slave_batch = 0x0;
 	}
@@ -466,10 +468,11 @@ int load_param()
 	fqp.alarm_voice_time=1;
 	fqp.audio_vol = 8;
 	fqp.auto_bufang=0xffff;
-	fqp.auto_chefang=0xffff;
+	fqp.unprot_time=0xffff;
 	fqp.delay_in=DEFAULT_DELAY_IN;
 	fqp.delya_out=DEFAULT_DELAY_OUT;
 	fqp.is_alarm_voice=DEFAULT_ALARM_VOICE;
+	fqp.is_unprotect_voice=0;
 	fqp.is_check_AC=DEFAULT_CHECK_AC;
 	fqp.is_check_DC=DEFAULT_CHECK_DC;
 	fqp.is_lamp = 0x04;

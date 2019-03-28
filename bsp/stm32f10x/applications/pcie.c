@@ -795,6 +795,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[18]|=0x40;
 		if (fqp.is_alarm_voice)
 			cmd[18]|=0x20;
+		if (fqp.is_unprotect_voice)
+			cmd[18]|=0x10;
 		cmd[19]=(fqp.auto_bufang>>24)&0xff;
 		cmd[20]=(fqp.auto_bufang>>16)&0xff;
 		cmd[21]=(fqp.auto_bufang>>8)&0xff;
@@ -836,6 +838,15 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[17] = (g_nbiot_update_len>>8)  & 0xff;
 		cmd[18] = (g_nbiot_update_len>>0)  & 0xff;
 		ofs = 19;
+	} else if (type == CMD_SET_PROT_ACK) {
+		cmd[5] = (CMD_SET_PROT_ACK >> 8) & 0xff;//ask addr
+		cmd[6] = CMD_SET_PROT_ACK&0xff;
+		cmd[15] = (fqp.unprot_time >> 8)&0xff;
+		cmd[16] = (fqp.unprot_time)&0xff;
+		ofs=17;		
+		cmd[ofs++] = g_operate_platform;
+		memcpy(cmd+ofs,g_operater,6);
+		ofs += 6;
 	}
 	//rt_kprintf("ofs is %d\r\n", ofs);
 	if (ofs > 254) {
@@ -1017,7 +1028,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		else if (type0 == PCIE_1_M26 && type1 == PCIE_2_EC20)
 			g_index = 1;
 	}
-	rt_thread_startup(rt_thread_create("5serv",server_proc, 0,2048, 15, 10));
+	rt_thread_startup(rt_thread_create("5serv",server_proc, 0,3072, 15, 10));
 	rt_thread_startup(rt_thread_create("6gprs",send_process, 0,2048, 20, 10));
 	
 	return 1;
