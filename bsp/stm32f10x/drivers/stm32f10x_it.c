@@ -303,8 +303,8 @@ void EXTI9_5_IRQHandler(void)
 				rt_kprintf("S button relese %d\r\n", diff);
 				if (diff > 1000 && diff < 1500){
 					short_press=0;
-					rt_kprintf("factory reset");
-					rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
+					//rt_kprintf("factory reset");
+					//rt_event_send(&(g_info_event), INFO_EVENT_FACTORY_RESET);
 				} else if (diff > 50 && diff < 1000) {
 					short_press=0;
 					rt_kprintf("coding or not");

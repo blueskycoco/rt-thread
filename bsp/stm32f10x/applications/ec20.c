@@ -60,8 +60,10 @@
 #define STR_STAT_STATUS				"IP STATUS"
 #define STR_STAT_DEACT				"PDP DEACT"
 #define STR_QIMUX_0					"+QIMUX: 0"
+#define STR_QIACT					"+QIACT:"
 #define STR_OK						"OK"
 #define STR_QIRD					"+QIRD:"
+#define STR_QICSGP					"+QICSGP:"
 #define STR_QIURC					"+QIURC: \"recv"
 #define STR_TCP						"TCP,"
 #define STR_CLOSED					"CLOSED"
@@ -800,7 +802,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;		
 			case EC20_STATE_SET_QIACT:
-				if (have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_QFTPCLOSE) ) {
+				if (have_str(last_data_ptr, STR_OK)|| have_str(last_data_ptr, STR_QFTPCLOSE)) {
 					#if 0
 					g_ec20_state = EC20_STATE_CFG_FTP;
 					ftp_cfg_step = 0;
@@ -986,7 +988,15 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					//	rt_kprintf("sending %02x\r\n", ((rt_uint8_t *)send_data_ptr_ec20)[ii]);
 					
 					rt_device_write(g_pcie[g_index]->dev, 0, send_data_ptr_ec20, send_size_ec20);
-					rt_free(send_data_ptr_ec20);
+					//rt_free(send_data_ptr_ec20);
+				if (send_data_ptr_ec20) {
+					if (send_size_ec20 <= 64) {
+						rt_mp_free(send_data_ptr_ec20);
+					} else {
+						rt_free(send_data_ptr_ec20);
+					}
+					send_data_ptr_ec20 = RT_NULL;
+				}
 				}
 				else if(have_str(last_data_ptr, STR_ERROR))
 				{
