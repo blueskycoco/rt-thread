@@ -455,7 +455,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[30] |= 0x30;
 			rt_kprintf("interface\tnbiot\r\n");
 		}
-		//if (g_pcie[g_index]->lac_ci !=0 )
+		if (g_pcie[g_index]->lac_ci !=0 )
 		{
 			cmd[30] |= 0x08;
 			cmd[ofs++] = (g_pcie[g_index]->lac_ci>>24)&0xff;
@@ -650,8 +650,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[15]= fqp.delya_out;
 		cmd[16]= fqp.delay_in;
 		cmd[17]=0;		
-		cmd[18]=0;		
-		ofs=19;		
+		ofs=18;		
 		/*store fq list*/
 		for(i=0;i<WIRE_MAX;i++)
 		{
@@ -693,8 +692,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				cmd[ofs++] = (fangqu_wire[i].slave_batch >> 16) & 0xff;
 				cmd[ofs++] = (fangqu_wire[i].slave_batch >> 8) & 0xff;
 				cmd[ofs++] = (fangqu_wire[i].slave_batch >> 0) & 0xff;
-				//	(cmd[17])++;
-				fq_cnt += 14; 
+				(cmd[17])++;
 			}
 		}
 		for(i=0;i<WIRELESS_MAX;i++)
@@ -737,8 +735,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				cmd[ofs++] = (fangqu_wireless[i].slave_batch >> 16) & 0xff;
 				cmd[ofs++] = (fangqu_wireless[i].slave_batch >> 8) & 0xff;
 				cmd[ofs++] = (fangqu_wireless[i].slave_batch >> 0) & 0xff;
-				//(cmd[17])++;
-				fq_cnt += 14; 
+				(cmd[17])++;
 			}
 		}		
 		for(i=0;i<IO_MAX;i++)
@@ -779,11 +776,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 				cmd[ofs++] = (fangqu_io[i].slave_batch >> 16) & 0xff;
 				cmd[ofs++] = (fangqu_io[i].slave_batch >> 8) & 0xff;
 				cmd[ofs++] = (fangqu_io[i].slave_batch >> 0) & 0xff;
-				//(cmd[17])++;
-				fq_cnt += 14; 
+				(cmd[17])++;
 		}	
-		cmd[17] = fq_cnt & 0xff;
-		cmd[18] = (fq_cnt >> 8 ) & 0xff;
 		cmd[ofs++] = g_operate_platform;
 		memcpy(cmd+ofs,g_operater,6);
 		ofs += 6;

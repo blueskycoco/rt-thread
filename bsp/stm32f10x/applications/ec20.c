@@ -66,11 +66,12 @@
 #define STR_QICSGP					"+QICSGP:"
 #define STR_QIURC					"+QIURC: \"recv"
 #define STR_TCP						"TCP,"
-#define STR_CLOSED					"CLOSED"
+#define STR_CLOSED					"closed"
 #define STR_BEGIN_WRITE				">"
 #define STR_ERROR					"ERROR"
 #define STR_4600					"4600"
 #define STR_46000					"46000"
+#define STR_CFUN					"+CFUN:"
 #define STR_46001					"46001"
 #define STR_46002					"46002"
 #define STR_46003					"46003"
@@ -99,6 +100,7 @@
 rt_uint8_t ftp_addr[32] = {0};//"u.110lw.com";
 rt_uint8_t ftp_user[32] = {0};//"minfei";
 rt_uint8_t ftp_passwd[32] = {0};//"minfei123";
+extern rt_mp_t server_mp;
 
 rt_uint8_t ftp_cfg_step = 0;
 
@@ -219,7 +221,8 @@ void handle_ec20_server_in(const void *last_data_ptr,rt_size_t len)
 				}
 				//server_len_ec20 = get_len(pos+i,len-i);
 				//rt_kprintf("server len %d\r\n", server_len_ec20);
-				server_buf_ec20 = (uint8_t *)rt_malloc(server_len_ec20 * sizeof(uint8_t));
+		//		server_buf_ec20 = (uint8_t *)rt_malloc(server_len_ec20 * sizeof(uint8_t));
+				server_buf_ec20 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
 				if (server_buf_ec20 == RT_NULL)
 				{
 					show_memory_info();
@@ -394,6 +397,16 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 		 else
 		 	rt_kprintf("\r\n(EC20<= %d %d)\r\n",g_ec20_state, data_size);
 	if (data_size >= 2) {
+		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CLOSED))
+		{
+			g_ec20_state = EC20_STATE_INIT;
+			//if (have_str(last_data_ptr,STR_PDP_DEACT)) {
+			//	rt_kprintf("MODULE lost\r\n");
+			//	pcie_switch(g_module_type);
+			//}
+			g_heart_cnt=0;
+			g_net_state = NET_STATE_UNKNOWN;
+		}
 		switch (g_ec20_state) {
 			case EC20_STATE_INIT:
 				if (have_str(last_data_ptr,STR_RDY)) {
