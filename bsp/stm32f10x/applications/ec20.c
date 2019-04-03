@@ -636,7 +636,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					} else if (ftp_cfg_step == 2) {
 						gprs_at_cmd(g_dev_ec20,qicfgftp_timeout);					
 					} else if (ftp_cfg_step == 4) {
-						rt_sprintf(qiftp_ec20,"AT+QFTPOPEN=\"%s\",21\r\n", ftp_addr);
+						rt_sprintf(qiftp_ec20,"AT+QFTPOPEN=\"%s\",%d\r\n", ftp_addr,mp.updateDomainAddress.port);
 						gprs_at_cmd(g_dev_ec20,qiftp_ec20);
 						g_ec20_state = EC20_STATE_OPEN_FTP;
 						ftp_rty=0;
@@ -674,7 +674,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case EC20_STATE_GET_FILE:
 				if (have_str(last_data_ptr, STR_QFTPGET)) {
-					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET)+strlen(STR_QFTPGET),data_size-strlen(STR_QFTPGET));
+					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET_M26)+strlen(STR_QFTPGET_M26),data_size-strlen(STR_QFTPGET_M26));
 					rt_kprintf("get stm32 len %d\r\n", stm32_len);
 					gprs_at_cmd(g_dev_ec20,qiftp_open_file);
 					g_ec20_state = EC20_STATE_READ_FILE;
