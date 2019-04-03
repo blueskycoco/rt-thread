@@ -133,6 +133,7 @@ uint8_t 	  qisend_ec20[32] 			= {0};
 uint8_t 	  qiftp_ec20[64] = {0};
 uint8_t		  qiftp_read_file[32] = {0};//		"AT+QFREAD=\"RAM:stm32.bin\",0\r\n"
 uint8_t			qiftp_close_file[32] = {0};
+uint8_t		  qiftp_get_ec20[128]			= {0};
 #define qiregapp  "AT+QIREGAPP\r\n"
 #define qiact  "AT+QIACT=1\r\n"
 rt_bool_t g_data_in_ec20 = RT_FALSE;
@@ -151,6 +152,7 @@ int stm32_fd=0;
 int stm32_len=0;
 int cur_stm32_len=0;
 int down_fd=0;
+extern rt_uint8_t *g_ftp;
 rt_uint32_t g_server_addr;
 rt_uint32_t g_server_addr_bak;
 rt_uint16_t g_server_port;
@@ -648,7 +650,9 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				{
 					if (have_str(last_data_ptr, STR_FTP_OK)) {
 						rt_kprintf("login ftp ok\r\n");
-						gprs_at_cmd(g_dev_ec20,qiftp_get);
+						//gprs_at_cmd(g_dev_ec20,qiftp_get);
+						sprintf(qiftp_get_ec20, "AT+QFTPGET=\"%sstm32.bin\",\"RAM:stm32.bin\",0\r\n",g_ftp);
+						gprs_at_cmd(g_dev_ec20, qiftp_get_ec20);
 						g_ec20_state = EC20_STATE_GET_FILE;				
 						stm32_len=0;
 /*
