@@ -87,7 +87,10 @@
 #define STR_CONNECT_FAIL		"+QIOPEN: 0,"
 #define STR_CSQ						"+CSQ:"
 #define STR_CREG					"+CREG:"
+#define STR_CREG1					"+CREG: 1"
+#define STR_CREG5					"+CREG: 5"
 #define STR_QCCID				"+QCCID: "
+#define STR_PDP_DEACT	"pdpdeact"
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
 #define STR_NO_DATA					"+QIRD: 0"
@@ -399,16 +402,26 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 		 else
 		 	rt_kprintf("\r\n(EC20<= %d %d)\r\n",g_ec20_state, data_size);
 	if (data_size >= 2) {
-		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CLOSED))
+		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CLOSED)
+			|| have_str(last_data_ptr, STR_PDP_DEACT) || (have_str(last_data_ptr, STR_CREG) && 
+			!have_str(last_data_ptr, STR_CREG1) && !have_str(last_data_ptr, 
+															  STR_CREG5)
+			&& g_net_state != NET_STATE_UNKNOWN))
 		{
 			g_ec20_state = EC20_STATE_INIT;
-			//if (have_str(last_data_ptr,STR_PDP_DEACT)) {
-			//	rt_kprintf("MODULE lost\r\n");
-			//	pcie_switch(g_module_type);
-			//}
+			if (have_str(last_data_ptr,STR_PDP_DEACT)) {
+				rt_kprintf("MODULE lost1\r\n");
+				pcie_switch(g_module_type);
+			}
+			if (have_str(last_data_ptr, STR_CREG) && !have_str(last_data_ptr, STR_CREG1) && !have_str(last_data_ptr,
+						STR_CREG5)&& g_net_state != NET_STATE_UNKNOWN) {
+				rt_kprintf("MODULE lost2\r\n");
+				pcie_switch(g_module_type);
+			}
 			g_heart_cnt=0;
 			g_net_state = NET_STATE_UNKNOWN;
 		}
+		
 		switch (g_ec20_state) {
 			case EC20_STATE_INIT:
 				if (have_str(last_data_ptr,STR_RDY)) {
@@ -663,7 +676,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 	*/	
 						//gprs_at_cmd(g_dev_ec20,qflds);
 						
-					} else if (!have_str(last_data_ptr, STR_OK) || have_str(last_data_ptr, STR_FTP_FAILED)){
+					} else if (/*!have_str(last_data_ptr, STR_OK) || */have_str(last_data_ptr, STR_FTP_FAILED)){
 						rt_thread_delay(100);
 						gprs_at_cmd(g_dev_ec20,qiftp_ec20);
 						ftp_rty++;
@@ -677,12 +690,18 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;
 			case EC20_STATE_GET_FILE:
-				if (have_str(last_data_ptr, STR_QFTPGET)) {
-					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET_M26)+strlen(STR_QFTPGET_M26),data_size-strlen(STR_QFTPGET_M26));
+				if (have_str(last_data_ptr, STR_QFTPGET_M26)) {
+					if (have_str(last_data_ptr, STR_QFTPGET)) {
+					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET)+strlen(STR_QFTPGET),data_size-strlen(STR_QFTPGET));
 					rt_kprintf("get stm32 len %d\r\n", stm32_len);
 					gprs_at_cmd(g_dev_ec20,qiftp_open_file);
 					g_ec20_state = EC20_STATE_READ_FILE;
 					stm32_fd=0;
+					} else {
+						rt_kprintf("ftp download failed, exit\r\n");
+						g_ec20_state = EC20_STATE_LOGOUT_FTP;
+						gprs_at_cmd(g_dev_ec20, at_csq);
+					}
 				}
 				break;
 			case EC20_STATE_READ_FILE:
@@ -754,7 +773,9 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 							}
 							tmp_stm32_len=0;
 							rt_memset(tmp_stm32_bin,0,1500);			
-						}
+						} else
+								gprs_at_cmd(g_dev_ec20,qiftp_read_file);									
+
 					}				
 				break;
 			case EC20_STATE_LOGOUT_FTP:

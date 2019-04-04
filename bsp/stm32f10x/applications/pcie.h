@@ -50,6 +50,7 @@
 #define STR_QFTPGET_M26				"+QFTPGET:"
 #define STR_QFOPEN				"+QFOPEN: "
 #define STR_QFTPCLOSE			"+QFTPCLOSE: 0,0"
+#define STR_QFTPGET_606			"+QFTPGET: 606"
 #define SINGLE_FILE_LEN	1024
 
 struct rt_data_queue *g_data_queue;
