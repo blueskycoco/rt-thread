@@ -104,6 +104,7 @@ rt_uint8_t ftp_addr[32] = {0};//"u.110lw.com";
 rt_uint8_t ftp_user[32] = {0};//"minfei";
 rt_uint8_t ftp_passwd[32] = {0};//"minfei123";
 extern rt_mp_t server_mp;
+extern rt_uint8_t upgrade_type;
 
 rt_uint8_t ftp_cfg_step = 0;
 
@@ -141,6 +142,7 @@ uint8_t		  qiftp_get_ec20[128]			= {0};
 #define qiact  "AT+QIACT=1\r\n"
 rt_bool_t g_data_in_ec20 = RT_FALSE;
 extern int g_index;
+extern rt_uint8_t 	cur_status;
 rt_uint8_t ftp_rty=0;
 rt_uint8_t entering_ftp_mode=0;
 rt_device_t g_dev_ec20;
@@ -664,7 +666,10 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					if (have_str(last_data_ptr, STR_FTP_OK)) {
 						rt_kprintf("login ftp ok\r\n");
 						//gprs_at_cmd(g_dev_ec20,qiftp_get);
-						sprintf(qiftp_get_ec20, "AT+QFTPGET=\"%sstm32.bin\",\"RAM:stm32.bin\",0\r\n",g_ftp);
+						if (upgrade_type)
+							sprintf(qiftp_get_ec20, "AT+QFTPGET=\"%sstm32.bin\",\"RAM:stm32.bin\",0\r\n",g_ftp);
+						else
+							sprintf(qiftp_get_ec20, "AT+QFTPGET=\"%sBootLoader.bin\",\"RAM:BootLoader.bin\",0\r\n",g_ftp);
 						gprs_at_cmd(g_dev_ec20, qiftp_get_ec20);
 						g_ec20_state = EC20_STATE_GET_FILE;				
 						stm32_len=0;
@@ -694,9 +699,17 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					if (have_str(last_data_ptr, STR_QFTPGET)) {
 					stm32_len = get_len(strstr(last_data_ptr, STR_QFTPGET)+strlen(STR_QFTPGET),data_size-strlen(STR_QFTPGET));
 					rt_kprintf("get stm32 len %d\r\n", stm32_len);
+					if (stm32_len == 0) {
+						g_ec20_state = EC20_STATE_LOGOUT_FTP;
+						gprs_at_cmd(g_dev_ec20, at_csq);
+					} else {
+					if (upgrade_type)
 					gprs_at_cmd(g_dev_ec20,qiftp_open_file);
+					else
+					gprs_at_cmd(g_dev_ec20,qiftp_open_file_boot);
 					g_ec20_state = EC20_STATE_READ_FILE;
 					stm32_fd=0;
+					}
 					} else {
 						rt_kprintf("ftp download failed, exit\r\n");
 						g_ec20_state = EC20_STATE_LOGOUT_FTP;
@@ -717,7 +730,10 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 								//cur_stm32_len = SINGLE_FILE_LEN;
 							}
 							cur_stm32_len=0;
-							down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);
+							if (upgrade_type)
+								down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);
+							else
+								down_fd = open("/BootLoader.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);			
 							rt_kprintf("get stm32 fd %d\r\n", stm32_fd);
 							gprs_at_cmd(g_dev_ec20,qiftp_read_file);	
 							tmp_stm32_bin = (rt_uint8_t *)rt_malloc(1500*sizeof(rt_uint8_t));
@@ -765,11 +781,24 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 								sprintf(qiftp_close_file,"AT+QFCLOSE=%d\r\n",stm32_fd);
 								gprs_at_cmd(g_dev_ec20,qiftp_close_file);
 								g_ec20_state = EC20_STATE_LOGOUT_FTP;
+								if (upgrade_type) {
 								mp.firmCRC = CRC_check_file("/stm32.bin");
 								if (g_app_v!=0)
 									mp.firmVersion = g_app_v;
 								mp.firmLength = stm32_len;
+								} else {
+								mp.firmCRC = CRC_check_file("/BootLoader.bin");
+							rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
+							/* real update boot*/
+							rt_kprintf("going to upgrade Boot\r\n");
+							write_flash(0x08000000, "/BootLoader.bin", stm32_len);
+								}
 								rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+						if (!cur_status) {
+						rt_thread_delay(500);
+						rt_kprintf("programing app/boot done, reseting ...\r\n");
+						NVIC_SystemReset();
+						}
 							}
 							tmp_stm32_len=0;
 							rt_memset(tmp_stm32_bin,0,1500);			
