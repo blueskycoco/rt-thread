@@ -47,6 +47,7 @@
 #define EC20_STATE_READ_FILE	31
 #define EC20_STATE_LOGOUT_FTP	32
 #define EC20_STATE_V			33
+#define EC20_STATE_FTP_PATH		34
 #define STR_POWER_DOWN				"POWERED DOWN"
 #define STR_RDY						"RDY"
 #define STR_CPIN					"+CPIN:"
@@ -94,6 +95,7 @@
 #define DEFAULT_SERVER				"101.132.177.116"
 #define DEFAULT_PORT				"2011"
 #define STR_NO_DATA					"+QIRD: 0"
+#define STR_FTPPATH					"+QFTPCWD: 0,0"
 #define cregs "AT+CREG=2\r\n"
 #define cregr "AT+CREG?\r\n"
 #define at_csq "AT+CSQ\r\n"
@@ -131,6 +133,7 @@ rt_uint8_t ftp_cfg_step = 0;
 #define ati	"ATI\r\n"
 #define atdbg "AT+QURCCFG=\"urcport\",\"uart1\"\r\n"
 #define atdbg1 "AT+QCFG=\"DBGCTL\",0\r\n"
+uint8_t qftpcwd[64]	= {0};//"AT+QFTPCWD="
 uint8_t 	  qicsgp_ec20[32]			= {0};
 uint8_t 	  qiopen_ec20[64]			= {0};
 uint8_t 	  qisend_ec20[32] 			= {0};
@@ -665,22 +668,9 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 				{
 					if (have_str(last_data_ptr, STR_FTP_OK)) {
 						rt_kprintf("login ftp ok\r\n");
-						//gprs_at_cmd(g_dev_ec20,qiftp_get);
-						if (upgrade_type)
-							sprintf(qiftp_get_ec20, "AT+QFTPGET=\"%sstm32.bin\",\"RAM:stm32.bin\",0\r\n",g_ftp);
-						else
-							sprintf(qiftp_get_ec20, "AT+QFTPGET=\"%sBootLoader.bin\",\"RAM:BootLoader.bin\",0\r\n",g_ftp);
-						gprs_at_cmd(g_dev_ec20, qiftp_get_ec20);
-						g_ec20_state = EC20_STATE_GET_FILE;				
-						stm32_len=0;
-/*
-						stm32_len = 177580;
-						gprs_at_cmd(g_dev_ec20,qiftp_open_file);
-						g_ec20_state = EC20_STATE_READ_FILE;
-						stm32_fd=0;
-	*/	
-						//gprs_at_cmd(g_dev_ec20,qflds);
-						
+						g_ec20_state = EC20_STATE_FTP_PATH;
+						sprintf(qftpcwd, "AT+QFTPCWD=\"%s\"\r\n", g_ftp);
+						gprs_at_cmd(g_dev_ec20, qftpcwd);
 					} else if (/*!have_str(last_data_ptr, STR_OK) || */have_str(last_data_ptr, STR_FTP_FAILED)){
 						rt_thread_delay(100);
 						gprs_at_cmd(g_dev_ec20,qiftp_ec20);
@@ -691,6 +681,19 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 							g_ec20_state = EC20_STATE_CHECK_QISTAT;
 							gprs_at_cmd(g_dev_ec20,qistat);
 						}
+					}
+				}
+				break;
+			case EC20_STATE_FTP_PATH:
+				{
+					if (have_str(last_data_ptr, STR_FTPPATH)) {
+						if (upgrade_type)
+							sprintf(qiftp_get_ec20, "AT+QFTPGET=\"stm32.bin\",\"RAM:stm32.bin\",0\r\n");
+						else
+							sprintf(qiftp_get_ec20, "AT+QFTPGET=\"BootLoader.bin\",\"RAM:BootLoader.bin\",0\r\n");
+						gprs_at_cmd(g_dev_ec20, qiftp_get_ec20);
+						g_ec20_state = EC20_STATE_GET_FILE;				
+						stm32_len=0;
 					}
 				}
 				break;
