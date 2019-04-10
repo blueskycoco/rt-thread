@@ -113,7 +113,7 @@ void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag)
 * VOICE_ZHONGXIN |  VOICE_CHEFANG | ÖÐÐÄ³··À									*
 *-------------------------------------------------------------*
 */
-void Wtn6_JoinPlay(u8 voices[],u8 size,u8 muteTimes)
+void Wtn6_JoinPlay1(u8 voices[],u8 size,u8 muteTimes)
 {
 	int i;
 	if (wtn6_mute||size<=0)
@@ -140,6 +140,54 @@ void Wtn6_JoinPlay(u8 voices[],u8 size,u8 muteTimes)
 	rt_thread_delay(200);
 	Stop_Played();
 	state_play=1;
+}
+
+void Wtn6_JoinPlay(u8 voices[], u8 size, u8 muteTimes)
+{
+    int i;
+    if (wtn6_mute || size <= 0)
+        return ;
+    u8 tempvoices[size];
+    u8 len = 0;
+
+    for(i = 0; i < size; i++)
+    {
+        if(hwv.isdVersion < 2)
+        {
+            if(voices[i] < 0x1d && voices[i] != 0x18)
+            {
+                tempvoices[len] = voices[i];
+                len++;
+            }
+        }
+        else
+        {
+            tempvoices[i] = voices[i];
+            len++;
+        }
+    }
+    if(len == 0) return;
+    if(len > 1)
+    {
+        speaker_ctl(1);
+        for(i = 0; i < len; i++)
+        {
+            Send_Command(CMD_JOIN);
+            Send_Command(tempvoices[i]);
+            if(muteTimes > 0)
+            {
+                Send_Command(CMD_MUTE);
+                Send_Command(muteTimes);
+            }
+        }
+        rt_thread_delay(200);
+        Stop_Played();
+        state_play = 1;
+    }
+    else
+    {
+        Wtn6_Play(tempvoices[0], ONCE, 1);
+    }
 }
 
 /*
