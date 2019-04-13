@@ -34,6 +34,7 @@ rt_uint8_t g_fq_len;
 rt_uint8_t g_fq_event[10];
 rt_uint8_t g_addr_type;
 rt_uint8_t g_heart_cnt=0;
+extern rt_uint8_t g_low_power;
 extern rt_uint8_t heart_time;
 extern rt_uint8_t r_signal;
 extern rt_uint16_t battery;
@@ -875,6 +876,10 @@ void send_process(void* parameter)
 
 	while(1)	{
 		rt_kprintf("1120wait for event %d\r\n",g_index);
+		if (g_low_power) {
+			rt_thread_delay(100);
+			continue;
+		}
 		gprs_wait_event(RT_WAITING_FOREVER);
 		rt_kprintf("wait lock\r\n");		
 		if (entering_ftp_mode)
@@ -943,7 +948,8 @@ void upload_server(rt_uint16_t cmdType)
 	char buf[1024] = {0};
 	char *cmd = RT_NULL;
 	rt_kprintf("net state %d cmdType %x\r\n",g_net_state,cmdType);
-	if ((g_net_state != NET_STATE_LOGED || entering_ftp_mode) && !nbiot_module)
+	if ((g_net_state != NET_STATE_LOGED || entering_ftp_mode) && !nbiot_module ||
+			g_low_power)
 		return ;
 	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
 	int send_len = build_cmd(buf,cmdType);

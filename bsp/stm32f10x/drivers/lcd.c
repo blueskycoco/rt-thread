@@ -1,6 +1,7 @@
 #include "lcd.h"
 #include <rtdevice.h>
 extern rt_uint8_t g_ac;
+extern rt_uint8_t g_low_power;
 //#include "delay.h"
 struct rt_mutex g_lcd_lock;
 
@@ -42,6 +43,8 @@ void HtbLcdClear()
    */
 void HtbLcdShow()
 {
+	if (g_low_power)
+		return;
   HTB_Lcd_Show();
 }
 /**
@@ -51,7 +54,9 @@ void HtbLcdShow()
    */
 void SetErrorCode(u8 value)
 {
-  rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
+	if (g_low_power)
+		return;
+	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
   u8 height=value/10;
   u8 low=value%10;
   HTB_SetNumberValue(&htbRam.num_seg0_1,height);
@@ -79,6 +84,8 @@ void SetBatteryIco(u8 value)
 {
 	if (g_ac)
 		return ;
+	if (g_low_power)
+		return;
 	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
 
   u8 level=value%5;
@@ -99,6 +106,8 @@ void SetBatteryIco(u8 value)
    */
 void SetSignalIco(u8 value)
 {
+	if (g_low_power)
+		return;
 	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
 
   u8 level=value%6;
@@ -122,6 +131,8 @@ void SetSignalIco(u8 value)
    */
 void SetSimTypeIco(u8 value)
 {
+	if (g_low_power)
+		return;
 	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
 
   u8 level=value%5;
@@ -170,6 +181,8 @@ void SetSimTypeIco(u8 value)
    */
 void SetStateIco(u8 value,HTB_ICO_STATE ico_state)
 {
+	if (g_low_power)
+		return;
 	rt_mutex_take(&g_lcd_lock,RT_WAITING_FOREVER);
 
   u8 level=value%10;
@@ -260,6 +273,8 @@ void HTB_Lcd_Clr()
 }
 void HTB_Lcd_Show() 
 { 
+	if (g_low_power)
+		return;
   GPIO_Pin_ReSet(LCD_GPIOE,LCD_PIN_CS);
   HTB_Write_Mode(MODE_DATA);
   HTB_Write_Address(0);
@@ -269,6 +284,8 @@ void HTB_Lcd_Show()
 }
 void HTB_SetNumberValue(u8 *number,u8 value)
 {
+	if (g_low_power)
+		return;
   u8 p1=*number&0x08;
   switch(value)
   {
@@ -309,6 +326,8 @@ void HTB_SetNumberValue(u8 *number,u8 value)
 
 void HTB_SetStateIco(HTB_ICO ico,HTB_ICO_STATE value)
 {
+	if (g_low_power)
+		return;
   switch(ico)
   {
     case ICO_BUFANG:                                                            /*≤º∑¿Õº±Í*/
@@ -420,6 +439,8 @@ void HTB_SetStateIco(HTB_ICO ico,HTB_ICO_STATE value)
 }
 void HTB_SetSignalIco(HTB_LEVEL value)
 {
+	if (g_low_power)
+		return;
   u8 p1=htbRam.ico_seg7_8&0x08;
   switch(value)
   {
@@ -451,6 +472,8 @@ void HTB_SetSimTypeIco(HTB_SIM value)
 
 void HTB_SetBatteryIco(HTB_LEVEL value)
 {
+	if (g_low_power)
+		return;
   htbRam.ico_seg4_5&=0x0F;
   switch(value)
   {

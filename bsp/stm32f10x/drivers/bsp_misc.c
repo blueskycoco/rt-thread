@@ -275,15 +275,15 @@ void show_battery(int v)
 		return ;
 	}
 	GPIO_SetBits(GPIOB, GPIO_Pin_7);
-	if (v>1260) {
+	if (v>=1258) {
 		//GPIO_ResetBits(GPIOB, GPIO_Pin_7);
 		level=4;
 	}
-	else if (v>1175)
+	else if (v>1225)
 		level=3;
-	else if (v>1084)
+	else if (v>1208)
 		level=2;
-	else if (v>970)
+	else if (v>1169)
 		level=1;
 	else
 		level=5;
@@ -320,7 +320,7 @@ void Adc_Init(void)
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
 	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-	ADC_InitStructure.ADC_NbrOfChannel = ADC_Channel_14;
+	ADC_InitStructure.ADC_NbrOfChannel = 1;//ADC_Channel_14;
 	ADC_Init(ADC1, &ADC_InitStructure);
 
 
@@ -335,16 +335,26 @@ void Adc_Init(void)
 
 	while(ADC_GetCalibrationStatus(ADC1));
 }
-
+//uint16_t g_data1 = 0;
 rt_uint16_t Get_val(rt_uint8_t ch)
 {
-	rt_uint16_t DataValue;
-	ADC_RegularChannelConfig(ADC1, ch, 1, ADC_SampleTime_239Cycles5);
-
+	rt_uint16_t DataValue,Data1Value;
+#if 0
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_17, 1, ADC_SampleTime_1Cycles5);
 	ADC_SoftwareStartConvCmd(ADC1, ENABLE);
-
+	while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC));
+	Data1Value = ADC_GetConversionValue(ADC1); 
+	
+	//return DataValue; 
+#endif
+	ADC_RegularChannelConfig(ADC1, ch, 1, ADC_SampleTime_239Cycles5);
+	ADC_SoftwareStartConvCmd(ADC1, ENABLE);
 	while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC));
 	DataValue = ADC_GetConversionValue(ADC1); 
+
+	rt_kprintf("DataValue %d\r\n", DataValue);
+	//g_data1 += Data1Value;
+	//DataValue = (int)((float)DataValue/(float)Data1Value)*12;
 	return DataValue; 
 } 
 
@@ -359,7 +369,9 @@ rt_uint16_t ADC_Get_aveg(void)
 		ad_sum += Get_val(ADC_Channel_14);
 		rt_thread_delay(1); 
 	} 
-	//rt_kprintf("battery is %d \r\n", (int)(ad_sum/10));
+	rt_kprintf("battery is %d \r\n", (int)(ad_sum/10));
+	//rt_kprintf("verfintern is %d \r\n", (int)(g_data1/10));
+	//g_data1=0;
 	return (ad_sum / 10);
 }
 void led_blink(int times)

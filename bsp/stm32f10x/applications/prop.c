@@ -12,6 +12,7 @@
 #include "pcie.h"
 #include "master.h"
 rt_uint32_t 	g_fangqu_ts_cnt = 0;
+extern rt_uint16_t g_bat;
 extern rt_uint8_t g_alarm_fq;
 struct rt_mutex file_lock;
 extern rt_uint16_t g_alarm_reason;
@@ -622,9 +623,13 @@ void save_param(int type)
 	rt_base_t level;
 	rt_uint16_t crc;
 	rt_mutex_take(&file_lock,RT_WAITING_FOREVER);
-	rt_kprintf("save_param %d\r\n",type);
+	rt_kprintf("save_param %d, ac %d, bat %d\r\n",type,check_ac(), g_bat);
 	if (type == TYPE_MP)
 	{
+		if (!check_ac()&& g_bat < 1169) {
+			rt_mutex_release(&file_lock);
+			return;
+		}
 		fd = open(MP_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0);
 		if (fd<0) {
 			rt_mutex_release(&file_lock);
@@ -634,6 +639,12 @@ void save_param(int type)
 		crc = CRC_check((unsigned char *)&mp, sizeof(mp));
 		rt_kprintf("crc %x\r\n", crc);
 		level = rt_hw_interrupt_disable();
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		length = write(fd, &crc, sizeof(rt_uint16_t));
 		//fsync(fd);
 		//rt_hw_interrupt_enable(level);
@@ -642,6 +653,12 @@ void save_param(int type)
 			rt_kprintf("write mp crc data failed %d\n",length);
 		}
 		//level = rt_hw_interrupt_disable();
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		length = write(fd, &mp, sizeof(mp));
 		fsync(fd);
 		rt_hw_interrupt_enable(level);
@@ -656,12 +673,28 @@ void save_param(int type)
 	}
 	else if (type == TYPE_FQP)
 	{
+		if (!check_ac()&& g_bat < 1169) {
+			rt_mutex_release(&file_lock);
+			return;
+		}
 		fd = open(FQP_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0);
 		crc = CRC_check((unsigned char *)&fqp, sizeof(struct FangQuProperty));
 		rt_kprintf("fqp crc %x\r\n", crc);
 		level = rt_hw_interrupt_disable();
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		write(fd, &crc, sizeof(rt_uint16_t));
 		//fsync(fd);
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		length = write(fd, &fqp, sizeof(fqp));
 		fsync(fd);
 		rt_hw_interrupt_enable(level);
@@ -675,6 +708,12 @@ void save_param(int type)
 		crc = CRC_check((unsigned char *)fangqu_wireless, sizeof(struct FangQu)*WIRELESS_MAX);
 		rt_kprintf("wireless crc %x\r\n", crc);
 		level = rt_hw_interrupt_disable();
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		write(fd, &crc, sizeof(rt_uint16_t));
 		//fsync(fd);
 		length = write(fd, fangqu_wireless, sizeof(struct FangQu)*WIRELESS_MAX);
@@ -689,9 +728,21 @@ void save_param(int type)
 		}
 		crc = CRC_check((unsigned char *)fangqu_wire, sizeof(struct FangQu)*WIRE_MAX);
 		rt_kprintf("wire crc %x\r\n", crc);
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		level = rt_hw_interrupt_disable();
 		write(fd, &crc, sizeof(rt_uint16_t));
 		//fsync(fd);
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		length = write(fd, fangqu_wire, sizeof(struct FangQu)*WIRE_MAX);
 		fsync(fd);
 		rt_hw_interrupt_enable(level);
@@ -705,8 +756,20 @@ void save_param(int type)
 		crc = CRC_check((unsigned char *)fangqu_io, sizeof(struct FangQu)*IO_MAX);
 		rt_kprintf("io crc %x\r\n", crc);
 		level = rt_hw_interrupt_disable();
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		write(fd, &crc, sizeof(rt_uint16_t));
 		//fsync(fd);
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		length = write(fd, fangqu_io, sizeof(struct FangQu)*IO_MAX);
 		fsync(fd);
 		rt_hw_interrupt_enable(level);
@@ -719,6 +782,10 @@ void save_param(int type)
 		}
 		dump_fqp(fqp,fangqu_wire,fangqu_wireless,fangqu_io);		
 	} else if (type == TYPE_HWV) {
+		if (!check_ac()&& g_bat < 1169) {
+			rt_mutex_release(&file_lock);
+			return;
+		}
 		fd = open(HWV_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0);
 		if (fd<0) {
 			rt_mutex_release(&file_lock);
@@ -728,6 +795,12 @@ void save_param(int type)
 		crc = CRC_check((unsigned char *)&hwv, sizeof(hwv));
 		rt_kprintf("crc %x\r\n", crc);
 		level = rt_hw_interrupt_disable();
+		if (!check_ac() && g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		length = write(fd, &crc, sizeof(rt_uint16_t));
 		//fsync(fd);
 		//rt_hw_interrupt_enable(level);
@@ -736,6 +809,12 @@ void save_param(int type)
 			rt_kprintf("write hwv crc data failed %d\n",length);
 		}
 		//level = rt_hw_interrupt_disable();
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
 		length = write(fd, &hwv, sizeof(hwv));
 		fsync(fd);
 		rt_hw_interrupt_enable(level);

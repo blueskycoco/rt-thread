@@ -72,6 +72,8 @@ extern rt_uint16_t pgm0_cnt;
 extern rt_uint16_t pgm1_cnt;
 extern rt_uint8_t g_net_state;
 extern int g_index;
+rt_uint8_t g_low_power = 0;
+rt_uint8_t g_low_power_cnt = 0;
 rt_uint16_t g_bat = 0;
 rt_uint8_t g_ac=1;
 rt_uint8_t g_flag=1;
@@ -359,6 +361,7 @@ static void led_thread_entry(void* parameter)
 			upload_server(CMD_ALARM);
 		}
 		/*ac dc*/
+		if (fqp.is_check_AC) {
 		ac=check_ac();
 		if (ac && !g_ac)
 		{
@@ -379,6 +382,7 @@ static void led_thread_entry(void* parameter)
 			upload_server(CMD_ALARM);
 			rt_hw_led_off(AUX_LED1);
 			rt_hw_led_off(AUX_LED0);
+		}
 		}
 		/*2 mins exit coding mode*/
 		if (g_main_state==1) {
@@ -611,8 +615,24 @@ static void led_thread_entry(void* parameter)
 		}
 		//rt_kprintf("Battery is %d\r\n",ADC_Get_aveg());		
 		g_bat = ADC_Get_aveg();
+		if (!check_ac()&& g_bat < 1169 && !g_low_power) {
+			rt_kprintf("W2e are in LOW POWER!!! %d\r\n", g_low_power_cnt);
+			g_low_power_cnt++;
+			if (g_low_power_cnt == 10) {
+				rt_kprintf("power off system\r\n");
+				g_low_power = 1;
+				g_low_power_cnt = 0;
+				HtbLcdClear();
+			}
+		} else {
+			if (check_ac() || g_bat > 1169) {
+				rt_kprintf("restore high power\r\n");
+				g_low_power_cnt = 0;
+				g_low_power = 0;
+			}
+		}
 		show_battery(g_bat);
-		if (g_bat < 970 && (should_upload_bat > 3600 || should_upload_bat ==0)) {
+		if (g_bat < 1208 && (should_upload_bat > 3600 || should_upload_bat ==0)) {
 			g_alarm_reason = 0x0022;
 			g_alarm_fq = 0x00;
 			upload_server(CMD_ALARM);

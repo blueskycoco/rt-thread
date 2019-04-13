@@ -2,6 +2,7 @@
 #include <rtthread.h>
 //#include "delay.h"
 #include "prop.h"
+extern rt_uint8_t g_low_power;
 extern void speaker_ctl(int flag);
 //extern struct HwVersion	        hwv;
 uint8_t state_play = 0;
@@ -73,7 +74,7 @@ void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag)
 {
 	rt_kprintf("Wtn6_Play %d %d %d %d %d\r\n",
 			 wtn6_mute, hwv.isdVersion, voice, PlayType, flag);
-	if (wtn6_mute||(hwv.isdVersion<2&&(voice>0x1c||voice==0x18)))
+	if (g_low_power || wtn6_mute||(hwv.isdVersion<2&&(voice>0x1c||voice==0x18)))
 		return ;
 	rt_kprintf("going play\r\n");
 	speaker_ctl(1);
@@ -145,7 +146,7 @@ void Wtn6_JoinPlay1(u8 voices[],u8 size,u8 muteTimes)
 void Wtn6_JoinPlay(u8 voices[], u8 size, u8 muteTimes)
 {
     int i;
-    if (wtn6_mute || size <= 0)
+    if (wtn6_mute || size <= 0 || g_low_power)
         return ;
     u8 tempvoices[size];
     u8 len = 0;
