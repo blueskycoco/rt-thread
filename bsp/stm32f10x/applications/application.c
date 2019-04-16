@@ -72,6 +72,7 @@ extern rt_uint16_t pgm0_cnt;
 extern rt_uint16_t pgm1_cnt;
 extern rt_uint8_t g_net_state;
 extern int g_index;
+rt_uint8_t g_bat_low_cnt = 0;
 rt_uint8_t g_low_power = 0;
 rt_uint8_t g_low_power_cnt = 0;
 rt_uint16_t g_bat = 0;
@@ -361,28 +362,30 @@ static void led_thread_entry(void* parameter)
 			upload_server(CMD_ALARM);
 		}
 		/*ac dc*/
-		if (fqp.is_check_AC) {
 		ac=check_ac();
 		if (ac && !g_ac)
 		{
 			g_ac = 1;
-			Wtn6_Play(VOICE_JIAOLIUHF,ONCE,1);
 			SetStateIco(4,1);
+			if (fqp.is_check_AC) {
+			Wtn6_Play(VOICE_JIAOLIUHF,ONCE,1);
 			if (should_upload_bat!=0) {
 				g_alarm_reason=0x0020;
 				g_alarm_fq = 0x00;			
 				upload_server(CMD_ALARM);
 			}
+			}
 		} else if (!ac && g_ac){
 			g_ac = 0;
-			Wtn6_Play(VOICE_JIAOLIUDD,ONCE,1);
 			SetStateIco(4,0);
+			if (fqp.is_check_AC) {
 			g_alarm_reason=0x0021;
 			g_alarm_fq = 0x00;
+			Wtn6_Play(VOICE_JIAOLIUDD,ONCE,1);
 			upload_server(CMD_ALARM);
 			rt_hw_led_off(AUX_LED1);
 			rt_hw_led_off(AUX_LED0);
-		}
+			}
 		}
 		/*2 mins exit coding mode*/
 		if (g_main_state==1) {
@@ -629,15 +632,64 @@ static void led_thread_entry(void* parameter)
 				rt_kprintf("restore high power\r\n");
 				g_low_power_cnt = 0;
 				g_low_power = 0;
+				SetStateIco(4,1);
+				if (cur_status) {
+					SetStateIco(1,0);
+					SetStateIco(0,1);
+				} else {
+					SetStateIco(0,0);
+					SetStateIco(2,0);
+					SetStateIco(1,1);
+				}
+				SetErrorCode(0x00);
+				switch (g_module_type) {
+					case PCIE_1_IP:
+					case PCIE_2_IP:
+						{
+							SetSimTypeIco(0);		
+							SetStateIco(5,1);
+							SetStateIco(6,0);
+						}
+						break;
+					case PCIE_1_M26:
+					case PCIE_2_M26:
+						{
+							SetSimTypeIco(1);
+							SetStateIco(6,1);
+							SetStateIco(5,0);
+						}
+						break;
+					case PCIE_1_EC20:
+					case PCIE_2_EC20:
+						{
+							SetSimTypeIco(3);
+							SetStateIco(6,1);
+							SetStateIco(5,0);		
+						}
+						break;
+					case PCIE_1_NBIOT:
+					case PCIE_2_NBIOT:
+						{
+							SetSimTypeIco(2);
+							SetStateIco(6,1);
+							SetStateIco(5,0);
+						}
+						break;
+				}
 			}
 		}
 		show_battery(g_bat);
-		if (g_bat < 1208 && (should_upload_bat > 3600 || should_upload_bat ==0)) {
+		if (g_bat < 1169 && (should_upload_bat > 3600 || should_upload_bat ==0)) {
+			g_bat_low_cnt++;
+			if (g_bat_low_cnt > 10) {
 			g_alarm_reason = 0x0022;
 			g_alarm_fq = 0x00;
 			upload_server(CMD_ALARM);
 			should_upload_bat = 1;
-		}
+			g_bat_low_cnt = 0;
+			}
+		} else
+			g_bat_low_cnt = 0;
 		should_upload_bat++;
 #if 0
 		if (should_notify_infrar_normal_mode > 3600/*21600*/) {

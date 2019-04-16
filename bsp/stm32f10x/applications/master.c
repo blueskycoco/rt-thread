@@ -137,6 +137,28 @@ void pgm_ctl(int type)
 		}
 	}
 }
+void pgm_ctl2(int type)
+{
+	if (0x01 == type) {
+		if (fqp.PGM0 == 3) {
+			rt_hw_led_on(PGM3_LED);
+			rt_thread_delay(100);
+			rt_hw_led_off(PGM3_LED);
+		} else if (fqp.PGM0 == 4) {
+			rt_hw_led_on(PGM3_LED);
+			pgm0_cnt = 300;
+		}
+	} else if (0x02 == type) {
+		if (fqp.PGM1 == 3) {
+			rt_hw_led_on(PGM4_LED);
+			rt_thread_delay(100);
+			rt_hw_led_off(PGM4_LED);
+		} else if (fqp.PGM1 == 4) {
+			rt_hw_led_on(PGM4_LED);
+			pgm1_cnt = 300;
+		}
+	}
+}
 void info_user(void *param)
 {
 	rt_uint32_t ev;
@@ -934,13 +956,17 @@ void handle_proc_main(rt_uint8_t *cmd)
 			rt_kprintf("mute alarm\r\n");
 			g_main_event_code = 0x200c;
 			break;
+		case 4:
+			rt_kprintf("pgm ctl %d\r\n",cmd[1]);
+			g_main_event_code = 0x200d;
+			break;
 	}	
-	rt_kprintf("operate platform \t%d\r\n", cmd[1]);
+	rt_kprintf("operate platform \t%d\r\n", cmd[2]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
-			cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
+			cmd[3],cmd[4],cmd[5],cmd[6],cmd[7],cmd[8]);
 
-	g_operate_platform = cmd[1];
-	memcpy(g_operater,cmd+2,6);
+	g_operate_platform = cmd[2];
+	memcpy(g_operater,cmd+3,6);
 	/*build proc main ack*/
 	upload_server(CMD_MAIN_EVENT);
 	rt_thread_delay(300);
@@ -960,6 +986,10 @@ void handle_proc_main(rt_uint8_t *cmd)
 		rt_hw_led_off(AUX_LED0);
 		rt_hw_led_off(AUX_LED1);
 		bell_ctl(0);
+	}
+
+	if (cmd[1] !=0 && cmd[0] == 4) {
+		pgm_ctl2(cmd[1]);
 	}
 }
 
