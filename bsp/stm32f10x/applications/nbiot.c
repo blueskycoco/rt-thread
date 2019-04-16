@@ -13,6 +13,8 @@
 #include "prop.h"
 #include "lcd.h"
 
+#define HUAWEI_PLATFORM 1
+
 #define BC28_EVENT_0 					(1<<0)
 #define BC28_STATE_INIT					0
 #define BC28_STATE_CHECK_CPIN			1
@@ -76,7 +78,12 @@
 #define M5311_STATE_OPEN_CSCON			59
 #define M5311_STATE_OPEN_CEREG			60
 #define M5311_STATE_OPEN_LED			61
-
+#if HUAWEI_PLATFORM
+/******************support HUAWEI Platform****/
+#define BC28_STATE_NCDP_IP					62
+#define BC28_STATE_QREGSWT					63
+/******************support HUAWEI Platform****/
+#endif
 
 #define STR_M5311_RDY					"*ATREADY:"
 #define STR_MCEREG1						"+CEREG: 1,1"
@@ -84,7 +91,7 @@
 #define STR_MCSCON						"+CSCON:1"
 #define STR_MCGACT						"+CGACT:1,1"
 #define STR_ICCID						"+ICCID:"
-
+#define STR_NNMI						"+NNMI"
 #define mcereg							"AT+CEREG?\r\n"
 #define mcgact							"AT+CGACT?\r\n"
 #define mgsn 							"AT+GSN\r\n"
@@ -190,6 +197,15 @@
 #define cfun1							"AT+CFUN=1\r\n"
 #define qregswt_ask						"AT+QREGSWT?\r\n"
 #define qregswt_set						"AT+QREGSWT=2\r\n"
+
+#if HUAWEI_PLATFORM
+#define STR_HUAWEI_SEND_OK				"+QLWULDATASTATUS:4"
+#define STR_QREGSWT0					"+QREGSWT:0"
+#define STR_HUAWEI_LOGIN				"+QLWEVTIND:3"
+#define qregswt_set0						"AT+QREGSWT=0\r\n"
+#define qlws							"AT+QLWSREGIND=0\r\n"
+uint8_t 	  							ncdp_bc28[32]			= {0};
+#endif
 uint8_t 	  qicsgp_bc28[32]			= {0};
 uint8_t 	  open_nbiot[64]			= {0};
 uint8_t 	  qisend_bc28[32] 			= {0};
@@ -419,13 +435,21 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;
 			case BC28_QREG_ASK:
+#if HUAWEI_PLATFORM
+				if (have_str(last_data_ptr, STR_QREG_0)) {
+#else
 				if (have_str(last_data_ptr, STR_QREG_2)) {
+#endif
 					g_nbiot_state = BC28_STATE_BAND;
 					gprs_at_cmd(g_dev_nbiot,at_band);
 				} else if (have_str(last_data_ptr, STR_QREG_1) ||
 						have_str(last_data_ptr, STR_QREG_0)) {
 					g_nbiot_state = BC28_QREG_SET;
+#if HUAWEI_PLATFORM
+					gprs_at_cmd(g_dev_nbiot,qregswt_set0);
+#else
 					gprs_at_cmd(g_dev_nbiot,qregswt_set);
+#endif
 				}
 				break;
 			case BC28_QREG_SET:
@@ -597,8 +621,17 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 
 						i+=2;						
 					}					
+#if HUAWEI_PLATFORM
+					rt_sprintf(ncdp_bc28, "AT+NCDP=%d.%d.%d.%d,%d\r\n",
+								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+								mp.socketAddress[g_ip_index].port);
+					gprs_at_cmd(g_dev_nbiot, ncdp_bc28);
+					g_nbiot_state = BC28_STATE_NCDP_IP;
+#else
 					g_nbiot_state = BC28_CREATE_SOCKET;
 					gprs_at_cmd(g_dev_nbiot,nsocr);
+#endif
 				}
 				break;
 			case BC28_STATE_SET_QICLOSE:
@@ -629,7 +662,12 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;
 			case BC28_STATE_SET_QIOPEN:
-				if (have_str(last_data_ptr, STR_OK)) {
+#if HUAWEI_PLATFORM
+				if (have_str(last_data_ptr, STR_HUAWEI_LOGIN))
+#else
+				if (have_str(last_data_ptr, STR_OK)) 
+#endif
+				{
 					g_nbiot_state = BC28_STATE_DATA_PROCESSING;
 					/*send data here */
 					g_server_addr = (mp.socketAddress[g_ip_index].IP[0] << 24)|
@@ -664,6 +702,13 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 				}
 				break;
 			case BC28_STATE_DATA_PROCESSING:
+#if HUAWEI_PLATFORM
+				if (have_str(last_data_ptr, STR_NNMI)) {
+					int len = 0;
+					if (parse_at_resp(last_data_ptr, "%*[^:]:%d", &len)>0) {
+						rt_kprintf("get %d bytes\r\n", len);
+					}
+#else
 				if (have_str(last_data_ptr, STR_QIRDI)) {
 					/*server data in */					
 					//rt_mutex_take(&(g_pcie[g_index]->lock), RT_WAITING_FOREVER);
@@ -679,6 +724,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					gprs_at_cmd(g_dev_nbiot,qird);
 					server_len_bc28 = 0;
 					g_data_in_bc28 = RT_TRUE;
+#endif
 				} else if (have_str(last_data_ptr,STR_CSQ)) {
 					if (tmp[9] == 0x2c) {
 						if (tmp[7] == ':')
@@ -722,10 +768,17 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_uint8_t *hex_string = (rt_uint8_t *)rt_malloc((send_size_bc28*2+1)*sizeof(rt_uint8_t));
 						rt_memset(hex_string,0,send_size_bc28*2+1);
 						toHex(send_data_ptr_bc28, send_size_bc28, hex_string);
+#if HUAWEI_PLATFORM
+						rt_sprintf(qisend_bc28, "AT+QLWULDATAEX=%d,", send_size_bc28);
+						gprs_at_cmd(g_dev_nbiot,qisend_bc28);
+						gprs_at_cmd(g_dev_nbiot,hex_string);
+						gprs_at_cmd(g_dev_nbiot,",0X0100\r\n");
+#else
 						rt_sprintf(qisend_bc28, "AT+NSOSD=%c,%d,", g_socket_no,send_size_bc28);
 						gprs_at_cmd(g_dev_nbiot,qisend_bc28);
 						gprs_at_cmd(g_dev_nbiot,hex_string);
 						gprs_at_cmd(g_dev_nbiot,"\r\n");
+#endif
 						rt_free(hex_string);
 						if (send_data_ptr_bc28) {
 							if (send_size_bc28 <= 64) {
@@ -790,7 +843,11 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 				handle_bc28_server_in(last_data_ptr,data_size);
 				break;
 			case BC28_STATE_DATA_WRITE:
+#if HUAWEI_PLATFORM
+				if (have_str(last_data_ptr, STR_HUAWEI_SEND_OK)) {
+#else
 				if (have_str(last_data_ptr, STR_OK)) {
+#endif
 					g_nbiot_state = BC28_STATE_DATA_PROCESSING;
 					gprs_at_cmd(g_dev_nbiot,at_csq);
 					rt_time_t cur_time = time(RT_NULL);
@@ -804,12 +861,15 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					  gprs_at_cmd(g_dev_nbiot,qistat);
 					  }*/
 				}
+#if HUAWEI_PLATFORM
+#else
 				if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_bc28)
 				{
 					g_nbiot_state = BC28_STATE_DATA_READ;
 					gprs_at_cmd(g_dev_nbiot,qird);
 					server_len_bc28 = 0;
 				}
+#endif
 				break;
 			case BC28_STATE_DATA_ACK:
 				if (have_str(last_data_ptr, STR_QISACK)) {
@@ -827,7 +887,19 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					g_nbiot_state = BC28_STATE_CHECK_QISTAT;
 					gprs_at_cmd(g_dev_nbiot,qistat);
 				}
-				break;	
+				break;
+			case BC28_STATE_NCDP_IP:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_nbiot_state = BC28_STATE_QREGSWT;
+					gprs_at_cmd(g_dev_nbiot, qregswt_set0);
+				}
+				break;
+			case BC28_STATE_QREGSWT:
+				if (have_str(last_data_ptr, STR_OK)) {
+					g_nbiot_state = BC28_STATE_SET_QIOPEN;
+					gprs_at_cmd(g_dev_nbiot, qlws);
+				}
+				break;
 /********************Support for M5311******************************************************************************/
 			case M5311_STATE_INIT:
 				g_nbiot_state = M5311_STATE_OPEN_LED;
