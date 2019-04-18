@@ -623,16 +623,20 @@ static void led_thread_entry(void* parameter)
 			g_low_power_cnt++;
 			if (g_low_power_cnt == 10) {
 				rt_kprintf("power off system\r\n");
-				g_low_power = 1;
+				/*g_low_power = 1;
 				g_low_power_cnt = 0;
-				HtbLcdClear();
+				HtbLcdClear();*/
+				rt_kprintf("low power , goto sleep\r\n");
+				rt_thread_delay(10);
+				NVIC_SystemReset();
 			}
 		} else {
 			if (check_ac() || g_bat > 1169) {
 				rt_kprintf("restore high power\r\n");
 				g_low_power_cnt = 0;
 				g_low_power = 0;
-				SetStateIco(4,1);
+				if (check_ac())
+					SetStateIco(4,1);
 				if (cur_status) {
 					SetStateIco(1,0);
 					SetStateIco(0,1);
