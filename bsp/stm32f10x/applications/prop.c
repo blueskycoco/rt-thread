@@ -516,6 +516,31 @@ int load_param()
 	}
 	close(fd);
 	dump_mp(mp);
+	fd = open(HWV_FILE, O_RDONLY, 0);
+	if (fd > 0)
+	{
+		rt_kprintf("read hwv data\r\n");
+		read(fd, &crc, sizeof(rt_uint16_t));
+		length = read(fd, &tmp_hwv, sizeof(tmp_hwv));
+		tmp_crc = CRC_check((unsigned char *)&tmp_hwv, sizeof(tmp_hwv));
+		rt_kprintf("hwv crc %x , tmp_crc %x\r\n", crc,tmp_crc);
+		if (length != sizeof(hwv)|| tmp_crc!=crc)
+		{
+			rt_kprintf("check: hwv crc not same, read hwv data failed\n");
+			//close(fd);
+			//return 0;
+		} else
+			memcpy(&hwv,&tmp_hwv,sizeof(hwv));
+		close(fd);
+	} 
+	else
+	{		
+		hwv.hdVersion=30;
+		hwv.lcdVersion=1;
+		hwv.isdVersion=1;
+		hwv.bootversion0=0;
+		hwv.bootversion1=0;
+	}
 	
 	fd = open(FQP_FILE, O_RDONLY, 0);
 	if (fd > 0)
@@ -579,31 +604,6 @@ int load_param()
 
 		rt_free(tmp_fangquList);
 		close(fd);
-	}
-	fd = open(HWV_FILE, O_RDONLY, 0);
-	if (fd > 0)
-	{
-		rt_kprintf("read hwv data\r\n");
-		read(fd, &crc, sizeof(rt_uint16_t));
-		length = read(fd, &tmp_hwv, sizeof(tmp_hwv));
-		tmp_crc = CRC_check((unsigned char *)&tmp_hwv, sizeof(tmp_hwv));
-		rt_kprintf("hwv crc %x , tmp_crc %x\r\n", crc,tmp_crc);
-		if (length != sizeof(hwv)|| tmp_crc!=crc)
-		{
-			rt_kprintf("check: hwv crc not same, read hwv data failed\n");
-			//close(fd);
-			//return 0;
-		} else
-			memcpy(&hwv,&tmp_hwv,sizeof(hwv));
-		close(fd);
-	} 
-	else
-	{		
-		hwv.hdVersion=30;
-		hwv.lcdVersion=1;
-		hwv.isdVersion=1;
-		hwv.bootversion0=0;
-		hwv.bootversion1=0;
 	}
 	/*mp.socketAddress[0].port = 8434;
 	
