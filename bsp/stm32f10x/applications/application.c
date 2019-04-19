@@ -631,6 +631,7 @@ static void led_thread_entry(void* parameter)
 				NVIC_SystemReset();
 			}
 		} else {
+#if 0
 			if (check_ac() || g_bat > 1169) {
 				rt_kprintf("restore high power\r\n");
 				g_low_power_cnt = 0;
@@ -681,6 +682,7 @@ static void led_thread_entry(void* parameter)
 						break;
 				}
 			}
+#endif
 		}
 		show_battery(g_bat);
 		if (g_bat < 1169 && (should_upload_bat > 3600 || should_upload_bat ==0)) {
