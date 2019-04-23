@@ -53,6 +53,7 @@
 #define M26_STATE_CLOSE_FILE	36
 #define M26_STATE_SWITCH_IP		37
 #define M26_STATE_SWITCH_DOMAIN	38
+#define M26_STATE_FTP_PATH		39
 #define STR_PDP_DEACT	"+PDP DEACT"
 #define STR_CFUN					"+CFUN:"
 #define STR_RDY						"RDY"
@@ -100,6 +101,7 @@
 #define DEFAULT_PORT				"2011"
 #define STR_GPRSACT					"IP GPRSACT"
 #define STR_FTP_RESULT				"QFTPOPEN"
+#define STR_QFTP_PATHOK				"+QFTPPATH:0"
 #define qistat 				"AT+QISTAT\r\n"
 #define qiclose "AT+QICLOSE\r\n"
 #define qilocip "AT+QILOCIP\r\n"
@@ -766,15 +768,28 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case M26_STATE_SET_LOCATION:
 				if (have_str(last_data_ptr, STR_QFTPCFG)) {					
+					//gprs_at_cmd(g_dev_m26,qiftp_clean_ram);
+					//g_m26_state = M26_STATE_CLEAN_RAM;
+				//if (upgrade_type)
+				//	sprintf(qiftp_get_m26, "AT+QFTPPATH=\"%s\"\r\n",g_ftp);
+				//else
+					sprintf(qiftp_get_m26, "AT+QFTPPATH=\"%s\"\r\n",g_ftp);
+				//}
+				gprs_at_cmd(g_dev_m26, qiftp_get_m26);
+				g_m26_state = M26_STATE_FTP_PATH;
+		}
+				break;
+			case M26_STATE_FTP_PATH:
+				if (have_str(last_data_ptr, STR_QFTP_PATHOK)) {
 					gprs_at_cmd(g_dev_m26,qiftp_clean_ram);
 					g_m26_state = M26_STATE_CLEAN_RAM;
 				}
 				break;
 			case M26_STATE_CLEAN_RAM:
 				if (upgrade_type)
-					sprintf(qiftp_get_m26, "AT+QFTPGET=\"%sstm32_%d.bin\"\r\n",g_ftp,m26_cnt);
+					sprintf(qiftp_get_m26, "AT+QFTPGET=\"stm32_%d.bin\"\r\n",m26_cnt);
 				else
-					sprintf(qiftp_get_m26, "AT+QFTPGET=\"%sBootLoader.bin\"\r\n",g_ftp);
+					sprintf(qiftp_get_m26, "%s", "AT+QFTPGET=\"BootLoader.bin\"\r\n");
 				gprs_at_cmd(g_dev_m26, qiftp_get_m26);
 				g_m26_state = M26_STATE_GET_FILE;
 				break;
@@ -784,7 +799,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 					if (upgrade_type)
 						sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/stm32_%d.bin\"\r\n",m26_cnt);
 					else
-						sprintf(qiftp_m26_ram, "AT+QFTPCFG=4,\"/RAM/BootLoader.bin\"\r\n");
+						sprintf(qiftp_m26_ram, "%s", "AT+QFTPCFG=4,\"/RAM/BootLoader.bin\"\r\n");
 					gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
 					g_m26_state = M26_STATE_SET_LOCATION;
 				}
@@ -803,7 +818,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						if (upgrade_type)
 							sprintf(qiftp_m26_ram,"AT+QFOPEN=\"RAM:stm32_%d.bin\",0\r\n",m26_cnt);
 						else
-							sprintf(qiftp_m26_ram,"AT+QFOPEN=\"RAM:BootLoader.bin\",0\r\n");
+							sprintf(qiftp_m26_ram,"%s", "AT+QFOPEN=\"RAM:BootLoader.bin\",0\r\n");
 						gprs_at_cmd(g_dev_m26,qiftp_m26_ram);
 						g_m26_state = M26_STATE_READ_FILE;
 						stm32_fd=0;	

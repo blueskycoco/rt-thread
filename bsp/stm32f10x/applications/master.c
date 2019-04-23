@@ -977,7 +977,7 @@ void handle_proc_main(rt_uint8_t *cmd)
 		default_fqp();
 		save_param(1);
 		save_param(0);
-		Wtn6_Play(VOICE_AGAIN,ONCE,1);
+		Wtn6_Play(VOICE_HFSUCCESS,ONCE,1);
 	}
 	if (cmd[0] == 2 || cmd[0] == 1)
 		NVIC_SystemReset();
