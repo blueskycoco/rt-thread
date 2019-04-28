@@ -16,4 +16,6 @@ void handle_protect_off();
 void get_infrar_normal_mode();
 char get_addr(rt_uint32_t subId, struct FangQu *list, int len);
 void proc_wire_fq(rt_uint8_t *fq, rt_uint8_t len, rt_uint8_t code);
+void set_fq_on81(struct FangQu *list, int len);
+void set_fq_off81(struct FangQu *list, int len);
 #endif

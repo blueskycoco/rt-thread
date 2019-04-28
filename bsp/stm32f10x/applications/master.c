@@ -14,6 +14,7 @@
 #include "can.h"
 struct rt_event g_info_event;
 extern rt_uint8_t cur_status;
+extern rt_uint8_t 	g_mute;
 rt_uint8_t g_num=0;
 rt_uint32_t g_coding_cnt=0;
 rt_uint8_t g_delay_in=0;
@@ -232,7 +233,7 @@ void info_user(void *param)
 			fqp.status=cur_status;
 			set_fq_on(fangqu_wire,WIRE_MAX);
 			set_fq_on(fangqu_wireless,WIRELESS_MAX);			
-			set_fq_on(fangqu_io,IO_MAX);			
+			set_fq_on81(fangqu_io,IO_MAX);			
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 			cur_time = time(RT_NULL);
 			rt_kprintf("\r\n\r\nnow stm32 is protect on %d, %s\r\n\r\n",g_remote_protect,ctime(&cur_time));
@@ -406,6 +407,7 @@ void info_user(void *param)
 			g_sub_event_code = 0x2001;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
+	set_fq_off81(fangqu_io,IO_MAX);
 
 			//g_operater[5] = 0x10;
 			if (g_remote_protect!=1)
@@ -626,7 +628,39 @@ void handle_login_ack(rt_uint8_t *cmd)
 		g_net_state = NET_STATE_LOGED;
 	}
 	rt_kprintf("\r\n");
-
+	if (cmd[cmd[5]+6] == 1) {
+						if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
+						{
+							cur_status = 0;
+							g_alarmType =0;
+							g_delay_out = 0;
+							g_alarm_voice = 0;
+							g_delay_in = 0;
+							fqp.status=cur_status;
+							s1=0;
+							//time_protect = 1;
+							//duima_key=1;
+							g_mute=0;
+							g_remote_protect=0;
+							rt_kprintf("switch protect off\r\n");
+							handle_protect_off();
+							//s_cnt=e_cnt=rt_tick_get();
+						}
+		
+	} else if (cmd[cmd[5]+6] == 2){
+						if (!cur_status && g_delay_out==0)
+						{
+							rt_kprintf("switch protect on\r\n");
+							g_remote_protect=0;
+							g_sub_event_code = 0x2002;
+							//time_protect = 1;
+							//duima_key=1;
+							//s_bufang=1;
+							handle_protect_on();
+							//s_cnt=e_cnt=rt_tick_get();
+						}
+	
+	}
 	if (cmd[0] != 0) {
 		g_num = cmd[0] + 0x10;		
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);	

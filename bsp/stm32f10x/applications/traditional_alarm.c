@@ -11,7 +11,30 @@ void init_traditional(void)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOE, &GPIO_InitStructure);
 }
-
+uint8_t traditional_alarm1(uint8_t type)
+{
+	switch (type) {
+		case 0:
+			if (GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_7) == SET) 
+				return 1;
+			break;
+		case 1:
+			if (GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_8) == SET) 
+				return 1;
+			break;
+		case 2:
+			if (GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_9) == SET) 
+				return 1;
+			break;
+		case 3:
+			if (GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_10) == SET) 
+				return 1;
+			break;
+		default:
+			break;
+			}
+		return 0;
+}
 uint8_t traditional_alarm(uint8_t type)
 {
 	static uint8_t alarm[4] = {0};

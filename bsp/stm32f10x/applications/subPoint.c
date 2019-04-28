@@ -526,6 +526,79 @@ rt_uint8_t check_delay_fq(struct FangQu *list, int len)
 		}
 		return 0;
 }
+#if 0
+void set_fq_on81(struct FangQu *list, int len)
+{		
+	int i;
+	if (!traditional_insert())
+		return;
+	for (i=0; i<len; i++)
+	{
+		if (!traditional_alarm(i)/* && list[i].isStay == TYPE_STAY_N*/)
+		{
+			list[i].status = TYPE_PROTECT_ON;
+			if (list[i].isBypass == TYPE_BYPASS_Y) {
+				g_alarm_fq = list[i].index;
+				g_alarm_reason = 0x2004;
+				upload_server(CMD_ALARM);	
+			}
+		}
+	}
+	return ;
+}
+#endif
+void set_fq_on81(struct FangQu *list, int len)
+{
+    int i;
+    if (!traditional_insert())
+        return;
+    for (i = 0; i < len; i++)
+    {
+        if (traditional_alarm1(i)/* && list[i].isStay == TYPE_STAY_N*/)
+        {
+            list[i].isBypass = TYPE_BYPASS_Y;
+            g_alarm_fq = list[i].index;
+            g_alarm_reason = 0x2004;
+            upload_server(CMD_ALARM);
+        }
+        else
+        {
+            if(list[i].isBypass == TYPE_BYPASS_Y)
+            {
+                g_alarm_fq = list[i].index;
+                g_alarm_reason = 0x2004;
+                upload_server(CMD_ALARM);
+            }
+            else
+            {
+                list[i].status = TYPE_PROTECT_ON;
+            }
+        }
+    }
+    return ;
+}
+void set_fq_off81(struct FangQu *list, int len)
+{
+    int i;
+    if (!traditional_insert())
+        return;
+    for (i = 0; i < len; i++)
+    {
+        if(list[i].isBypass == TYPE_BYPASS_Y)
+        {
+          list[i].isBypass = TYPE_BYPASS_N;
+            g_alarm_fq = list[i].index;
+            g_alarm_reason = 0x2005;
+            upload_server(CMD_ALARM);
+        }
+        else
+        {
+            list[i].status = TYPE_PROTECT_OFF;
+        }
+    }
+    return ;
+}
+
 void set_fq_on(struct FangQu *list, int len)
 {		
 	int i;

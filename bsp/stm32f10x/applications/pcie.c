@@ -299,7 +299,7 @@ void pcie0_sm(void* parameter)
 /*ADAE0003000102ADAE0400010203ADAE050001020304ADAE*/
 rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 {
-	int i=0;
+	int i=0,j;
 	int cnt=0;
 	rt_uint16_t packet_len[20];
 	rt_uint8_t index[20];
@@ -331,6 +331,8 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 			if (crc[cnt] == CRC_check(data+i+2,packet_len[cnt]-4))
 			{
 				//rt_kprintf("packet %d, CRC is match\r\n",index[cnt]);
+				for (j=0; j<packet_len[cnt]; j++)
+					rt_kprintf("%02x ", data[index[cnt]+j]);
 				handle_packet(data+index[cnt]);
 			} else {
 				rt_kprintf("packet %d, CRC not match %x %x\r\n", index[cnt],crc[cnt],CRC_check(data+i+2,packet_len[cnt]-4));
