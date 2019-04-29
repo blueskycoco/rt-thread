@@ -31,7 +31,7 @@ rt_uint8_t g_operate_platform=0x0;
 rt_uint8_t g_operater[6]={0x00};
 rt_uint16_t g_sub_event_code;
 rt_uint8_t g_fq_len;
-rt_uint8_t g_fq_event[10];
+rt_uint8_t g_fq_event[11];
 rt_uint8_t g_addr_type;
 rt_uint8_t g_heart_cnt=0;
 extern rt_uint8_t g_low_power;
@@ -331,8 +331,8 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 			if (crc[cnt] == CRC_check(data+i+2,packet_len[cnt]-4))
 			{
 				//rt_kprintf("packet %d, CRC is match\r\n",index[cnt]);
-				for (j=0; j<packet_len[cnt]; j++)
-					rt_kprintf("%02x ", data[index[cnt]+j]);
+				for (j=0; j<packet_len[cnt]-2; j++)
+					rt_kprintf("%02x ", data[i+2+j]);
 				handle_packet(data+index[cnt]);
 			} else {
 				rt_kprintf("packet %d, CRC not match %x %x\r\n", index[cnt],crc[cnt],CRC_check(data+i+2,packet_len[cnt]-4));
@@ -619,10 +619,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		{
 			cmd[ofs++] = g_fq_event[0];
 		} else {
-			memcpy(cmd+ofs,g_fq_event,10);
+			memcpy(cmd+ofs,g_fq_event,11);
 			//for (i=0;i<8;i++)
 			//rt_kprintf("cmd %02x , event %02x\r\n",cmd[i+22],g_fq_event[i]);
-			ofs+=10;
+			ofs+=11;
 		}
 		cmd[ofs++] = g_operate_platform;
 		memcpy(cmd+ofs,g_operater,6);

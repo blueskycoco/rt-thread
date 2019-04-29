@@ -751,8 +751,10 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 					} else {
 						rt_uint8_t *ptr = (rt_uint8_t *)last_data_ptr;					
 						rt_uint16_t cnt=0;
-						
-						rt_memcpy(tmp_stm32_bin+tmp_stm32_len, (rt_uint8_t *)last_data_ptr, data_size);
+						if (tmp_stm32_len+data_size>1500) 
+							tmp_stm32_len = 0;
+						else
+							rt_memcpy(tmp_stm32_bin+tmp_stm32_len, (rt_uint8_t *)last_data_ptr, data_size);
 						tmp_stm32_len += data_size;						
 						rt_hw_led_off(NET_LED);
 						rt_kprintf("tmp stm32 len %d \r\n",tmp_stm32_len);

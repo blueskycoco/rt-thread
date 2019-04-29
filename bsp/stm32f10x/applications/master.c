@@ -38,7 +38,7 @@ extern rt_uint8_t g_operate_platform;
 extern rt_uint8_t g_operater[6];
 extern rt_uint16_t g_sub_event_code;
 extern rt_uint8_t g_fq_len;
-extern rt_uint8_t g_fq_event[10];
+extern rt_uint8_t g_fq_event[11];
 extern rt_uint8_t g_addr_type;
 extern rt_uint16_t command_type;
 extern rt_uint8_t g_ac;
@@ -1043,8 +1043,9 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		memcpy(g_fq_event, cmd+2,10);
 		rt_kprintf("proc fq \t%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
 				g_fq_event[0],g_fq_event[1],g_fq_event[2],g_fq_event[3],g_fq_event[4],
-				g_fq_event[5],g_fq_event[6],g_fq_event[7],g_fq_event[8],g_fq_event[9]);
-		ofs = 12;
+				g_fq_event[5],g_fq_event[6],g_fq_event[7],g_fq_event[8],g_fq_event[9],
+				g_fq_event[10]);
+		ofs = 13;
 	}
 	rt_kprintf("operate platform \t%d\r\n", cmd[ofs]);
 	rt_kprintf("operater \t%x%x%x%x%x%x\r\n",
@@ -1125,7 +1126,7 @@ void handle_proc_sub(rt_uint8_t *cmd)
 		/*proc multi fq*/
 		if (g_main_state != 1 && cmd[0] == 0x02)
 			handle_protect_on();
-		proc_fq(cmd+2, 10, cmd[0]);
+		proc_fq(cmd+2, 11, cmd[0]);
 		if (g_operate_platform == 0x20 && (cmd[0] == 1 || cmd[0] == 2)) {
 			rt_uint8_t voice[2] ={ VOICE_FENQU,VOICE_BUFANG };
 			if (cmd[0] == 1)
