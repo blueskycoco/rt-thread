@@ -407,6 +407,8 @@ void info_user(void *param)
 			g_sub_event_code = 0x2001;
 			g_fq_len = 1;
 			g_fq_event[0] = 0xff;
+			set_fq_off(fangqu_wire,WIRE_MAX);
+			set_fq_off(fangqu_wireless,WIRELESS_MAX);
 	set_fq_off81(fangqu_io,IO_MAX);
 
 			//g_operater[5] = 0x10;

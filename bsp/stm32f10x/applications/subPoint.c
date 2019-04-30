@@ -654,8 +654,6 @@ void handle_protect_on()
 }
 void handle_protect_off()
 {	
-	set_fq_off(fangqu_wire,WIRE_MAX);
-	set_fq_off(fangqu_wireless,WIRELESS_MAX);
 	rt_event_send(&(g_info_event), INFO_EVENT_PROTECT_OFF);
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_FANGQU);
 }
