@@ -163,7 +163,7 @@ void SysTick_Handler(void)
     rt_interrupt_enter();
 
     rt_tick_increase();
-
+    IWDG_ReloadCounter();
     /* leave interrupt */
     rt_interrupt_leave();
 }

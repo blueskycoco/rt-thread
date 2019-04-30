@@ -784,7 +784,21 @@ static void led_thread_entry(void* parameter)
 		/* handle unprotect voice alarm*/
 	}
 }
-
+rt_uint8_t watchdog_init(void)
+{
+	rt_uint8_t reason = 0;
+	if (RCC_GetFlagStatus(RCC_FLAG_IWDGRST) != RESET)
+    {
+	    RCC_ClearFlag();
+    	reason = 1;
+    }
+    IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+    IWDG_SetPrescaler(IWDG_Prescaler_32);
+    IWDG_SetReload(349);
+    IWDG_ReloadCounter();
+    IWDG_Enable();
+    return reason;
+}
 #define cc1101_hex_printf1(buf, count) \
 {\
 	int i;\
@@ -804,13 +818,14 @@ static void led_thread_entry(void* parameter)
 }
 void rt_init_thread_entry(void* parameter)
 {
+	rt_uint8_t reason = 0;
 	rt_kprintf("==========================================\r\n\r\n");
 #ifdef RT_USING_COMPONENTS_INIT
 	/* initialization RT-Thread Components */
 	rt_components_init();
 #endif
 	g_mute=1;
-
+	reason = watchdog_init();
 	rt_kprintf("\t\tUPGRADE Version\r\n");
 	rt_kprintf("%s%s %s\r\n", APP_BUILD_TIME,__DATE__,__TIME__);
 	rt_event_init(&(g_info_event),	"info_event",	RT_IPC_FLAG_FIFO );
@@ -972,8 +987,9 @@ void rt_init_thread_entry(void* parameter)
 	rt_hw_led_off(WIRELESS_LED);
 	rt_hw_led_off(FAIL_LED);
 	rt_hw_led_off(NET_LED);
-	//rt_thread_delay( RT_TICK_PER_SECOND );			
-	Wtn6_Play(VOICE_WELCOME,ONCE,1);
+	//rt_thread_delay( RT_TICK_PER_SECOND );		
+	if (!reason)
+		Wtn6_Play(VOICE_WELCOME,ONCE,1);
 	rt_thread_delay( RT_TICK_PER_SECOND );	
 	SetErrorCode(err_code);
 	rt_thread_delay(200);
