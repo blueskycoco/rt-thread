@@ -707,7 +707,8 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					int len = 0;
 					if (parse_at_resp(last_data_ptr, "%*[^:]:%d", &len)>0) {
 						rt_kprintf("get %d bytes\r\n", len);
-					}
+						handle_bc28_server_in(last_data_ptr, data_size);
+					}					
 #else
 				if (have_str(last_data_ptr, STR_QIRDI)) {
 					/*server data in */					
