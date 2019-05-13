@@ -883,7 +883,7 @@ void send_process(void* parameter)
 			continue;
 		}
 		gprs_wait_event(RT_WAITING_FOREVER);
-		rt_kprintf("wait lock\r\n");		
+		rt_kprintf("wait lock %d %d %d %d\r\n", entering_ftp_mode,nbiot_module,g_net_state,update_flag);		
 		if (entering_ftp_mode)
 		{
 			if (nbiot_module && g_net_state == NET_STATE_INIT) {

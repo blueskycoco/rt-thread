@@ -678,6 +678,10 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					g_server_addr_bak = g_server_addr;
 					g_server_port_bak = g_server_port;					
 					rt_kprintf("connect to server ok\r\n");
+
+					if (entering_ftp_mode) 
+						update_flag=1;
+
 					g_heart_cnt=0;
 					g_net_state = NET_STATE_INIT;
 					rt_event_send(&(g_pcie[g_index]->event), BC28_EVENT_0);
