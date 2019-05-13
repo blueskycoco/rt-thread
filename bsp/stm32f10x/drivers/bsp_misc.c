@@ -352,7 +352,7 @@ rt_uint16_t Get_val(rt_uint8_t ch)
 	while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC));
 	DataValue = ADC_GetConversionValue(ADC1); 
 
-	rt_kprintf("DataValue %d\r\n", DataValue);
+	//rt_kprintf("DataValue %d\r\n", DataValue);
 	//g_data1 += Data1Value;
 	//DataValue = (int)((float)DataValue/(float)Data1Value)*12;
 	return DataValue; 
@@ -369,7 +369,7 @@ rt_uint16_t ADC_Get_aveg(void)
 		ad_sum += Get_val(ADC_Channel_14);
 		rt_thread_delay(1); 
 	} 
-	rt_kprintf("battery is %d \r\n", (int)(ad_sum/10));
+	//rt_kprintf("battery is %d \r\n", (int)(ad_sum/10));
 	//rt_kprintf("verfintern is %d \r\n", (int)(g_data1/10));
 	//g_data1=0;
 	return (ad_sum / 10);

@@ -663,7 +663,7 @@ void handle_login_ack(rt_uint8_t *cmd)
 						}
 	
 	}
-	if (cmd[0] != 0) {
+	if (cmd[0] != 0 && !(g_index == 1 && g_type1 == PCIE_2_IP)) {
 		g_num = cmd[0] + 0x10;		
 		rt_event_send(&(g_info_event), INFO_EVENT_SHOW_NUM);	
 		SetStateIco(3,1);

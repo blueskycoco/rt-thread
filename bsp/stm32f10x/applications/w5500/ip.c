@@ -19,6 +19,7 @@
 #include <ctype.h>
 extern uint8_t ip_assigned;
 extern int g_index;
+extern rt_uint8_t g_type1;
 extern rt_uint8_t g_net_state;
 extern rt_uint32_t g_server_addr;
 extern rt_uint32_t g_server_addr_bak;
@@ -69,6 +70,23 @@ wiz_NetInfo gWIZNETINFO = {
 #define DATA_BUF_SIZE   2048
 uint8_t gDATABUF[DATA_BUF_SIZE];
 uint8_t cmd[] = {0xad,0xac,0x00,0x26,0x01,0x00,0x01,0x00,0x00,0xa1,0x18,0x08,0x10,0x00,0x09,0x13,0x51,0x56,0x42,0x48,0x42,0x4c,0x08,0x66,0x85,0x60,0x31,0x97,0x56,0x81,0x28,0x37,0x41,0x33,0x19,0x01,0xed,0x60};
+void EXTI2_IRQHandler(void)
+{
+    intr_kind source;
+    uint8_t sn_intr;
+	rt_interrupt_enter();
+    if(EXTI_GetITStatus(EXTI_Line2))
+    {
+        ctlwizchip(CW_GET_INTERRUPT,&source);
+        ctlwizchip(CW_CLR_INTERRUPT,&source);
+        rt_kprintf("w5500 intr %x\r\n", source);
+        ctlsocket(SOCK_DHCP, CS_GET_INTERRUPT, &sn_intr);
+        //ctlsocket(SOCK_DHCP, CS_CLR_INTERRUPT, &sn_intr);
+        rt_kprintf("dhcp ir %x\r\n", sn_intr);
+        EXTI_ClearITPendingBit(EXTI_Line2);
+    }
+	rt_interrupt_leave();
+}
 
 void ip_spi_init(void)
 {
@@ -235,6 +253,7 @@ int32_t loopback_tcpc(uint8_t sn)//, uint8_t* buf, uint8_t* destip, uint16_t des
 					rt_kprintf("%02x ",buf[i]);
 				rt_kprintf("\r\n");
 				rt_uint8_t *server_buf_ip = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
+				rt_memcpy(server_buf_ip, buf, ret);
 				rt_data_queue_push(&g_data_queue[3], server_buf_ip, ret, RT_WAITING_FOREVER);
 #if 0
 				// Data sentsize control
@@ -290,6 +309,8 @@ int32_t loopback_tcpc(uint8_t sn)//, uint8_t* buf, uint8_t* destip, uint16_t des
 		case SOCK_CLOSED:
 			rt_kprintf("%d:Sock Closed\r\n", sn);
 			ip_close(sn);
+			g_heart_cnt=0;
+			g_net_state = NET_STATE_UNKNOWN;
 			if((ret=socket(sn, Sn_MR_TCP, any_port++, 0x00)) != sn){
 				if(any_port == 0xffff) 
 					any_port = 50000;
@@ -386,7 +407,8 @@ void task()
 void ip_thread(void* param)
 {
 	rt_kprintf("ip_thread 1 \r\n");
-	//pcie_switch(PCIE_2_IP);
+	g_type1 = PCIE_2_IP;
+	pcie_switch(PCIE_2_IP);
 	rt_kprintf("ip_thread 2 \r\n");
 	ip_spi_init();
 	rt_kprintf("ip_thread 3 \r\n");

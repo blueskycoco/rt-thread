@@ -56,6 +56,7 @@
 rt_uint32_t err_code = NO_ERROR;
 rt_uint8_t  pcie_status = 0x00; /*0x01 pcie1, 0x02 pcie2 0x03 pcie1 & pcie2*/
 extern struct rt_event g_info_event;
+extern rt_uint8_t g_type1;
 extern rt_uint8_t g_num;
 extern rt_uint8_t  	g_voiceType;
 extern rt_uint8_t g_main_state;
@@ -521,7 +522,7 @@ static void led_thread_entry(void* parameter)
 		}
 		/*delay protect on*/
 		if (!g_mute) {
-				rt_kprintf("delay protect %d\r\n", g_delay_out);
+				//rt_kprintf("delay protect %d\r\n", g_delay_out);
 				if (g_delay_out > 10)
 					g_delay_out -= 1;
 				else if (g_delay_out >0 && g_delay_out <= 10){
@@ -704,14 +705,14 @@ static void led_thread_entry(void* parameter)
 		}
 		should_notify_infrar_normal_mode++;
 #endif
-		rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
+		//rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
 		if (cc1101_crash_cnt > 40) {
 			cc1101_crash_cnt=0;
 			rt_kprintf("cc1101 crash 20192, reseting\r\n");
 			radio_intit2();
 			//NVIC_SystemReset();
 		}
-		rt_kprintf("test 1\r\n");
+		//rt_kprintf("test 1\r\n");
 		if (m26_restart_flag) {
 			rt_kprintf("restart m26 ...\r\n");
 			in_qiact=0;
@@ -731,7 +732,7 @@ static void led_thread_entry(void* parameter)
 					m26_restart_flag = 1;
 			}
 		}
-		rt_kprintf("test 22 %d\r\n",cc1101_cal_time);
+		//rt_kprintf("test 22 %d\r\n",cc1101_cal_time);
 
 		if (cc1101_cal_time == 300) {
 			//cc1101_cal();
@@ -741,7 +742,7 @@ static void led_thread_entry(void* parameter)
 			list_dir("/");
 		} else 
 			cc1101_cal_time++;
-		rt_kprintf("test 3\r\n");
+		//rt_kprintf("test 3\r\n");
 		if (should_upload_info > 30*60*12) {
 			should_upload_info = 0;
 			upload_server(CMD_UP_INFO);
@@ -1064,7 +1065,6 @@ void rt_init_thread_entry(void* parameter)
 		SetStateIco(5,1);
 		SetStateIco(6,0);
 		pcie_init(0,0);
-		pcie_switch(PCIE_2_IP);
 	} else {
 		/*play audio here*/
 		buzzer_ctl(1);

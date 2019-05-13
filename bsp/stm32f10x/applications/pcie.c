@@ -439,7 +439,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		memcpy(cmd+22,g_pcie[g_index]->imei,8);
 		cmd[30] = 0;
 		ofs = 31;
-		//rt_kprintf("login %d %d %d\r\n", g_index,g_type1,g_type0);
+		rt_kprintf("login %d %d %d\r\n", g_index,g_type1,g_type0);
 		if ((g_index == 1 && g_type1 == PCIE_2_M26) ||
 				(g_index == 0 && g_type0 == PCIE_1_M26))
 		{	
@@ -457,6 +457,11 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		{
 			cmd[30] |= 0x30;
 			rt_kprintf("interface\tnbiot\r\n");
+		}
+		if (g_index == 1 && g_type1 == PCIE_2_IP)
+		{
+			cmd[30] |= 0x00;
+			rt_kprintf("interface\tIP\r\n");
 		}
 		if (g_pcie[g_index]->lac_ci !=0 )
 		{
@@ -1030,7 +1035,12 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	}
 	if (!type0 && !type1) {
 		rt_kprintf("start IP hw\n");
-		//rt_thread_startup(rt_thread_create("IP", ip_thread,  0,2048, 20, 10));
+		g_pcie[1] = (ppcie_param)rt_malloc(sizeof(pcie_param));
+		rt_memset(g_pcie[1],0,sizeof(pcie_param));
+		rt_event_init(&(g_pcie[1]->event), 	"pcie1_event", 	RT_IPC_FLAG_FIFO );
+		rt_mutex_init(&(g_pcie[1]->lock), 	"pcie1_lock", 	RT_IPC_FLAG_FIFO);
+		rt_sem_init(&(g_pcie[1]->sem), 		"pcie1_sem", 	0, 0);
+		rt_thread_startup(rt_thread_create("IP", ip_thread,  0,2048, 20, 10));
 	}
 	if (type0 && (!type1))
 		g_index = 0;
