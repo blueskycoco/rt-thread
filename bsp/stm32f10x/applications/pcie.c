@@ -980,6 +980,7 @@ void upload_server(rt_uint16_t cmdType)
 	}
 	rt_mutex_release(&(g_pcie[g_index]->lock));
 }
+extern void ip_thread(void* param);
 rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 {
 	rt_uint8_t index;
@@ -1027,6 +1028,10 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		rt_thread_startup(rt_thread_create("3pcie1",pcie1_rcv, 0,1524, 20, 10));
 		rt_thread_startup(rt_thread_create("4pcie1", pcie1_sm,  0,2048, 20, 10));
 	}
+	if (!type0 && !type1) {
+		rt_kprintf("start IP hw\n");
+		//rt_thread_startup(rt_thread_create("IP", ip_thread,  0,2048, 20, 10));
+	}
 	if (type0 && (!type1))
 		g_index = 0;
 	else if ((!type0) && type1)
@@ -1035,6 +1040,8 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		if (type0 == PCIE_1_EC20 && type1 == PCIE_2_M26)
 			g_index = 0;
 		else if (type0 == PCIE_1_M26 && type1 == PCIE_2_EC20)
+			g_index = 1;
+		else if (type0 == 0 && type1 == 0)
 			g_index = 1;
 	}
 	rt_thread_startup(rt_thread_create("5serv",server_proc, 0,3072, 15, 10));
@@ -1045,13 +1052,16 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 void switch_pcie_power(rt_uint8_t type)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
+	rt_kprintf("switch_pcie_power 1\n");
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_7|GPIO_Pin_5;
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_7|GPIO_Pin_6;
 	GPIO_Init(GPIOD, &GPIO_InitStructure);
-	GPIO_WriteBit(GPIOD,GPIO_Pin_5,Bit_SET);
+	GPIO_WriteBit(GPIOD,GPIO_Pin_7,Bit_SET);
 	GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_SET);
+	rt_kprintf("switch_pcie_power 2\n");
 	rt_thread_delay(100);
+	rt_kprintf("switch_pcie_power 3\n");
 	if (type == 0) {
 		GPIO_WriteBit(GPIOD,GPIO_Pin_7,Bit_RESET);
 		GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_SET);
@@ -1059,6 +1069,7 @@ void switch_pcie_power(rt_uint8_t type)
 		GPIO_WriteBit(GPIOD,GPIO_Pin_7,Bit_SET);
 		GPIO_WriteBit(GPIOD,GPIO_Pin_6,Bit_RESET);
 	}
+	rt_kprintf("switch_pcie_power 4\n");
 }
 rt_uint8_t pcie_switch(rt_uint8_t type)
 {
@@ -1068,7 +1079,7 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 	switch (type) 
 	{
 		case PCIE_1_IP:
-			//ip_module_start(0);
+			switch_pcie_power(0);
 			break;
 		case PCIE_1_M26:
 			switch_pcie_power(0);
@@ -1086,7 +1097,7 @@ rt_uint8_t pcie_switch(rt_uint8_t type)
 			nbiot_start(0);
 			break;
 		case PCIE_2_IP:
-			//ip_module_start(1);
+			switch_pcie_power(1);
 			break;
 		case PCIE_2_M26:
 			switch_pcie_power(1);

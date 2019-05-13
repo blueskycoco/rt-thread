@@ -19,13 +19,19 @@ prop.c
 listdir.c
 can.c
 traditional_alarm.c
+w5500/w5500.c
+w5500/socket.c
+w5500/ftpc.c
+w5500/dhcp.c
+w5500/wizchip_conf.c
+w5500/ip.c
 """)
 
 if GetDepend('RT_USING_CAN'):
     src += ['canapp.c']
 
 CPPPATH = [cwd, str(Dir('#'))]
-
+CPPPATH += [cwd + '/w5500']
 group = DefineGroup('Applications', src, depend = [''], CPPPATH = CPPPATH)
 
 Return('group')
