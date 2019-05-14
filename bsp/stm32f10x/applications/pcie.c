@@ -552,6 +552,10 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		{
 			cmd[ofs++] = 3; 
 		}
+		if (g_index == 1 && g_type1 == PCIE_2_IP)
+		{
+			cmd[ofs++] = 0; 
+		}
 		need_read = 1;
 		rt_kprintf("status\t\t%s\r\n", (cur_status==0)?"chefang":"bufang");
 		rt_kprintf("power\t\t%s\r\n", (g_ac==1)?"ext power":"battery");
