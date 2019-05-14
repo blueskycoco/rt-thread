@@ -329,13 +329,57 @@ int32_t loopback_tcpc(uint8_t sn)//, uint8_t* buf, uint8_t* destip, uint16_t des
 	}
 	return 1;
 }
+/*定义STM32 MCU的类型*/
+typedef enum {
+  STM32F0,
+  STM32F1,
+  STM32F2,
+  STM32F3,
+  STM32F4,
+  STM32F7,
+  STM32L0,
+  STM32L1,
+  STM32L4,
+  STM32H7,
+}MCUTypedef;
+
+ 
+uint32_t idAddr[]={0x1FFFF7AC,  /*STM32F0唯一ID起始地址*/
+                0x1FFFF7E8,  /*STM32F1唯一ID起始地址*/
+                0x1FFF7A10,  /*STM32F2唯一ID起始地址*/
+                0x1FFFF7AC,  /*STM32F3唯一ID起始地址*/
+                0x1FFF7A10,  /*STM32F4唯一ID起始地址*/
+                0x1FF0F420,  /*STM32F7唯一ID起始地址*/
+                0x1FF80050,  /*STM32L0唯一ID起始地址*/
+                0x1FF80050,  /*STM32L1唯一ID起始地址*/
+                0x1FFF7590,  /*STM32L4唯一ID起始地址*/
+                0x1FF0F420}; /*STM32H7唯一ID起始地址*/
+ 
+/*获取MCU的唯一ID*/
+void GetSTM32MCUID(uint32_t *id,MCUTypedef type)
+{
+  if(id!=NULL)
+  {
+    id[0]=*(uint32_t*)(idAddr[type]);
+    id[1]=*(uint32_t*)(idAddr[type]+4);
+    id[2]=*(uint32_t*)(idAddr[type]+8);
+  }
+}
 
 void w5500_init()
 {
 	uint8_t memsize[2][8] = { { 2, 2, 2, 2, 2, 2, 2, 2 }, { 2, 2, 2, 2, 2, 2, 2, 2 } };
 	uint8_t tmpstr[6] = {0};
+	uint32_t stm32_id[3] = {0};
 	intr_kind intr_source = 0;
 	uint8_t sn_intr = 0;
+	GetSTM32MCUID(stm32_id, STM32F1);
+	gWIZNETINFO.mac[0] = (stm32_id[0] & 0xff);
+	gWIZNETINFO.mac[1] = (stm32_id[1] & 0xff);
+	gWIZNETINFO.mac[2] = (stm32_id[2] & 0xff);
+	gWIZNETINFO.mac[3] = ((stm32_id[0] >> 8) & 0xff);
+	gWIZNETINFO.mac[4] = ((stm32_id[1] >> 8) & 0xff);
+	gWIZNETINFO.mac[5] = ((stm32_id[2] >> 8) & 0xff);
 	rt_kprintf("w5500 1\r\n");
 	wizchip_reset();
 	rt_kprintf("w5500 2\r\n");
@@ -353,7 +397,10 @@ void w5500_init()
 	ctlwizchip(CW_GET_ID,(void*)tmpstr);
 	rt_kprintf("w5500 7\r\n");
 	rt_kprintf("WIZnet %s EVB - DHCP client \r\n", tmpstr);
-
+	rt_kprintf("IP Module Mac %02x %02x %02x %02x %02x %02x\n",
+			gWIZNETINFO.mac[0],gWIZNETINFO.mac[1],
+			gWIZNETINFO.mac[2],gWIZNETINFO.mac[3],
+			gWIZNETINFO.mac[4],gWIZNETINFO.mac[5]);
 	DHCP_init(SOCK_DHCP, gDATABUF);
 	rt_kprintf("w5500 8\r\n");
 	reg_dhcp_cbfunc(my_ip_assign, my_ip_assign, my_ip_conflict);
