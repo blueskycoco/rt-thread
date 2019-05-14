@@ -374,10 +374,10 @@ void w5500_init()
 	intr_kind intr_source = 0;
 	uint8_t sn_intr = 0;
 	GetSTM32MCUID(stm32_id, STM32F1);
-	gWIZNETINFO.mac[0] = (stm32_id[0] & 0xff);
-	gWIZNETINFO.mac[1] = (stm32_id[1] & 0xff);
-	gWIZNETINFO.mac[2] = (stm32_id[2] & 0xff);
-	gWIZNETINFO.mac[3] = ((stm32_id[0] >> 8) & 0xff);
+//	gWIZNETINFO.mac[0] = (stm32_id[0] & 0xff);
+//	gWIZNETINFO.mac[1] = (stm32_id[1] & 0xff);
+//	gWIZNETINFO.mac[2] = (stm32_id[2] & 0xff);
+//	gWIZNETINFO.mac[3] = ((stm32_id[0] >> 8) & 0xff);
 	gWIZNETINFO.mac[4] = ((stm32_id[1] >> 8) & 0xff);
 	gWIZNETINFO.mac[5] = ((stm32_id[2] >> 8) & 0xff);
 	rt_kprintf("w5500 1\r\n");
