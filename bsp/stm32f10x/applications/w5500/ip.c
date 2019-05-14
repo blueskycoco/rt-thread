@@ -8,6 +8,7 @@
 #include <string.h>
 #include "wizchip_conf.h"
 #include "dhcp.h"
+#include "dns.h"
 #include "socket.h"
 #include "led.h"
 #include <string.h>
@@ -56,35 +57,36 @@ extern rt_uint8_t upgrade_type;
 uint8_t 	  *server_buf_ip 			= RT_NULL;
 void 		  *send_data_ptr_ip 		= RT_NULL;
 rt_size_t 	  send_size_ip;
-
+uint8_t DNS_2nd[4]    = {208, 67, 222, 222};
 wiz_NetInfo gWIZNETINFO = {
 	.mac = {0x00, 0x08, 0xdc, 0xab, 0xcd, 0xef},
 	.ip = {192, 168, 1, 2},
 	.sn = {255, 255, 255, 0},
 	.gw = {192, 168, 1, 1},
-	.dns = {0, 0, 0, 0},
+	.dns = {8, 8, 8, 8},
 	.dhcp = NETINFO_DHCP 
 };
 #define SOCK_DHCP       	6
+#define SOCK_DNS       		7
 #define SOCK_TASK			1
 #define DATA_BUF_SIZE   2048
 uint8_t gDATABUF[DATA_BUF_SIZE];
 uint8_t cmd[] = {0xad,0xac,0x00,0x26,0x01,0x00,0x01,0x00,0x00,0xa1,0x18,0x08,0x10,0x00,0x09,0x13,0x51,0x56,0x42,0x48,0x42,0x4c,0x08,0x66,0x85,0x60,0x31,0x97,0x56,0x81,0x28,0x37,0x41,0x33,0x19,0x01,0xed,0x60};
 void EXTI2_IRQHandler(void)
 {
-    intr_kind source;
-    uint8_t sn_intr;
+	intr_kind source;
+	uint8_t sn_intr;
 	rt_interrupt_enter();
-    if(EXTI_GetITStatus(EXTI_Line2))
-    {
-        ctlwizchip(CW_GET_INTERRUPT,&source);
-        ctlwizchip(CW_CLR_INTERRUPT,&source);
-        rt_kprintf("w5500 intr %x\r\n", source);
-        ctlsocket(SOCK_DHCP, CS_GET_INTERRUPT, &sn_intr);
-        //ctlsocket(SOCK_DHCP, CS_CLR_INTERRUPT, &sn_intr);
-        rt_kprintf("dhcp ir %x\r\n", sn_intr);
-        EXTI_ClearITPendingBit(EXTI_Line2);
-    }
+	if(EXTI_GetITStatus(EXTI_Line2))
+	{
+		ctlwizchip(CW_GET_INTERRUPT,&source);
+		ctlwizchip(CW_CLR_INTERRUPT,&source);
+		rt_kprintf("w5500 intr %x\r\n", source);
+		ctlsocket(SOCK_DHCP, CS_GET_INTERRUPT, &sn_intr);
+		//ctlsocket(SOCK_DHCP, CS_CLR_INTERRUPT, &sn_intr);
+		rt_kprintf("dhcp ir %x\r\n", sn_intr);
+		EXTI_ClearITPendingBit(EXTI_Line2);
+	}
 	rt_interrupt_leave();
 }
 
@@ -356,6 +358,7 @@ void w5500_init()
 	rt_kprintf("w5500 8\r\n");
 	reg_dhcp_cbfunc(my_ip_assign, my_ip_assign, my_ip_conflict);
 	rt_kprintf("w5500 9\r\n");
+	DNS_init(SOCK_DNS, gDATABUF);
 #if 1
 	ctlwizchip(CW_GET_INTRMASK,&intr_source);
 	rt_kprintf("intr %x\r\n", intr_source);
@@ -392,6 +395,44 @@ void task()
 		dhcp_handler();
 		if (ip_assigned) {
 			loopback_tcpc(SOCK_TASK);//, gDATABUF, task_ip, task_port);
+			if (entering_ftp_mode) {
+				uint8_t ftp_path[128] = {0};
+				uint8_t Domain_IP[4]  = {0, };
+				int32_t ret;
+				if (upgrade_type)
+					rt_sprintf(ftp_path,"%s/stm32.bin", g_ftp);
+				else
+					rt_sprintf(ftp_path,"%s/BootLoader.bin", g_ftp);
+				if ((ret = DNS_run(gWIZNETINFO.dns, mp.updateDomainAddress.domain, Domain_IP)) > 0) // try to 1st DNS
+				{
+					rt_kprintf("> 1st DNS Respond\r\n");
+				}
+				else if ((ret != -1) && ((ret = DNS_run(DNS_2nd, mp.updateDomainAddress.domain, Domain_IP))>0))     // retry to 2nd DNS
+				{
+					rt_kprintf("> 2nd DNS Respond\r\n");
+				}
+				else if(ret == -1)
+				{
+					rt_kprintf("> MAX_DOMAIN_NAME is too small. Should be redefined it.\r\n");
+				}
+				else
+				{
+					rt_kprintf("> DNS Failed\r\n");
+				}
+
+				if(ret > 0)
+				{
+					printf("> Translated %s to [%d.%d.%d.%d]\r\n",mp.updateDomainAddress.domain,Domain_IP[0],Domain_IP[1],Domain_IP[2],Domain_IP[3]);
+					//
+					// TODO: To be executed User's code after a successful DNS process
+					//
+				rt_kprintf("ftp %s %d %s",
+						mp.updateDomainAddress.domain,mp.updateDomainAddress.port,
+						ftp_path);
+				rt_kprintf("ftp result %d\r\n", ftpc_run(gDATABUF, Domain_IP, mp.updateDomainAddress.port, ftp_path));
+				}
+				entering_ftp_mode = 0;
+			}
 #if 0
 			rt_thread_delay(5000);
 			if (ftpstart == 0) {
