@@ -430,6 +430,7 @@ void task()
 	uint16_t dest_port = 1721;
 	uint8_t *path = "/A1/21/stm32.bin";
 	uint8_t ftpstart = 0;
+	uint32_t phy_cnt = 0;
 	rt_kprintf("task 0 \r\n");
 	w5500_init();
 	rt_kprintf("task 1 \r\n");
@@ -437,8 +438,14 @@ void task()
 		if (!PHYStatus_Check()) {
 			rt_kprintf("Link is lost .. \r\n");
 			rt_thread_delay(100);
+			phy_cnt++;
+			if ((phy_cnt % 60) ==0 && phy_cnt !=0) {
+				ctlwizchip(CW_RESET_PHY, RT_NULL);
+				phy_cnt = 0;
+			}
 			continue;
 		}
+		phy_cnt = 0;
 		dhcp_handler();
 		if (ip_assigned) {
 			loopback_tcpc(SOCK_TASK);//, gDATABUF, task_ip, task_port);
