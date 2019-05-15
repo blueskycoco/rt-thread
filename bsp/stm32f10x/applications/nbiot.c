@@ -307,13 +307,18 @@ void handle_bc28_server_in(const void *last_data_ptr,rt_size_t len)
 	static rt_bool_t flag = RT_FALSE;	
 	int i;
 	int ofs;
-	rt_kprintf("server in 1\r\n");
-	if (have_str(last_data_ptr, "ADAC")) {
-		uint8_t *pos = (uint8_t *)strstr(last_data_ptr, "ADAC");
+	rt_kprintf("server in 111 %d\r\n", len);
+	if (have_str(last_data_ptr, ",ADAC") || have_str(last_data_ptr, ",FFFE")) {
+		uint8_t *pos = (uint8_t *)strstr(last_data_ptr, ",ADAC");
+		if (pos == RT_NULL)
+			pos = (uint8_t *)strstr(last_data_ptr, ",FFFE");
+		pos++;
 		uint32_t len_ofs = 0;
-		rt_kprintf("server in 2\r\n");
-		while (pos[len_ofs] != ',' && len_ofs < len)
+		rt_kprintf("pos %c %c\n", pos[len_ofs], pos[len_ofs+1]);
+		while (pos[len_ofs] != '\r' && len_ofs < len)
 			len_ofs++;
+		//len_ofs--;
+		rt_kprintf("server in 422 %d\r\n",len_ofs);
 		rt_uint8_t *server_buf_bc28_1 = rt_mp_alloc(server_mp, RT_WAITING_FOREVER);
 		fromHex(pos, len_ofs,server_buf_bc28_1);
 		rt_data_queue_push(&g_data_queue[3], server_buf_bc28_1, len_ofs/2, RT_WAITING_FOREVER);

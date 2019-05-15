@@ -338,7 +338,16 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 				rt_kprintf("packet %d, CRC not match %x %x\r\n", index[cnt],crc[cnt],CRC_check(data+i+2,packet_len[cnt]-4));
 			}
 			cnt++;
+		}/*handle 0xfffe china telecom upgrade*/
+		else if (data[i] == 0xFF && data[i+1] == 0xFE) {
+			rt_kprintf("we got FFFE %d\r\n", i);
+			if (i+2 > len) {
+				rt_kprintf("partial packet ,return\r\n", i+2, len);
+				return 0;
+			}
+
 		}
+
 	}
 
 }
