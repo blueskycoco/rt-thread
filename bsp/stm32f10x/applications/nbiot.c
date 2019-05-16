@@ -12,7 +12,9 @@
 #include "master.h"
 #include "prop.h"
 #include "lcd.h"
-
+uint8_t g_data_v[16];
+extern rt_mp_t cmd_mp;
+extern rt_uint8_t upgrade_type; /* 0 for Boot, 1 for App*/
 #define HUAWEI_PLATFORM 1
 
 #define BC28_EVENT_0 					(1<<0)
@@ -1125,4 +1127,162 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 /********************Support for M5311******************************************************************************/
 		}
 	}
+}
+rt_uint8_t handle_nb_packet(rt_uint8_t *data, uint32_t len)
+{
+	uint8_t cmd = data[3];
+	uint8_t zero[12] = {0x30};
+	uint8_t *resp;
+	uint16_t crc = 0;
+	uint32_t resp_len,request_len;
+	uint8_t need_send = 1;
+	rt_uint16_t v = (hwv.bootversion0<<8)|hwv.bootversion1;
+	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
+	rt_kprintf("\r\n %02x %02x $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\r\n",
+			data[0],data[1]);
+	resp = rt_mp_alloc(cmd_mp, RT_WAITING_FOREVER);
+	resp[0] = 0xff;resp[1] = 0xfe;
+	resp[2] = 0x01;resp[3] = cmd;
+	resp[4] = 0x00;resp[5] = 0x00;
+	switch (cmd)
+	{
+		case 19:
+			if (len != 8) {
+				rt_kprintf("unknown require fw version\n");
+				return 0;
+			}
+			rt_kprintf("Require fw version\n");
+			resp[6] = 0x00;
+			resp[7] = 17;
+			resp[8] = 0x00;
+			if (upgrade_type == 0) {
+				resp[9] = v/1000+'0';
+				resp[10] = (v/100)%10+'0';
+				resp[11] = ((v/10)%100)%10+'0';
+				resp[12] = (v%100)%10+'0';
+			} else {
+				resp[9] = g_app_v/1000+'0';
+				resp[10] = (g_app_v/100)%10+'0';
+				resp[11] = ((g_app_v/10)%100)%10+'0';
+				resp[12] = (g_app_v%100)%10+'0';
+			}
+			rt_memset(resp+13, 0x30, 12);
+			resp_len = 25;
+			crc = CRC16_check(resp, resp_len);
+			resp[4] = (crc>>8)&0xff;
+			resp[5] = crc&0xff;
+			break;
+		case 20:
+			if (len != 30) {
+				rt_kprintf("unknown new fw version\n");
+				return 0;
+			}
+			rt_kprintf("New 111 fw version download\n");
+			rt_uint16_t fw_v = (data[8]-0x30)*10 + (data[9]-0x30);
+			rt_uint16_t pices = (data[24]<<8)|data[25];
+			rt_uint16_t pices_cnt = (data[26]<<8)|data[27];
+			rt_uint16_t fw_crc = (data[28]<<8)|data[29];
+			rt_kprintf("new fw version %d\n", fw_v);
+			rt_kprintf("fw pices %d\n", pices);
+			rt_kprintf("fw pices cnt %d\n", pices_cnt);
+			rt_kprintf("fw crc %x\n", fw_crc);
+			nb_fw.pices 	= pices;
+			nb_fw.pices_cnt = pices_cnt;
+			nb_fw.cur_cnt 	= 0;
+			nb_fw.fw_crc 	= fw_crc;
+			nb_fw.fw_v 		= fw_v;
+			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
+
+			resp[6] = 0x00;
+			resp[7] = 0x01;
+			resp[8] = 0x00;
+			resp_len = 9;
+			if (upgrade_type == 0) {
+				if (fw_v <= v)
+					resp[8] = 0x03;
+			} else {
+				if (fw_v <= g_app_v)
+					resp[8] = 0x03;
+			}
+			crc = CRC16_check(resp, resp_len);
+			resp[4] = (crc>>8)&0xff;
+			resp[5] = crc&0xff;
+			if (resp[8] == 0x00) {
+				rt_memcpy(g_data_v, data+8, 16);
+				rt_event_send(&(g_info_event), INFO_EVENT_SENT_NB_1);
+			}
+			break;
+		case 21:
+			rt_kprintf("New packet in\n");
+			nb_fw.cur_cnt++;			
+			if (nb_fw.cur_cnt <= nb_fw.pices_cnt) {
+				//rt_mp_free(resp);
+				rt_mutex_release(&(g_pcie[g_index]->lock));
+				send_nb(1);
+				need_send = 0;
+				rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
+			} else {
+				rt_kprintf("download finishied\n");
+				resp[3] = 22;
+				resp[6] = 0x00; resp[7] = 0x01;
+				resp[8] = 0x00;
+				resp_len = 9;
+				crc = CRC16_check(resp, resp_len);
+				resp[4] = (crc>>8)&0xff;
+				resp[5] = crc&0xff;
+			}
+			break;
+		case 23:
+				rt_kprintf("Execute Upgrade\n");
+				resp[6] = 0x00; resp[7] = 0x01;
+				resp[8] = 0x00;
+				resp_len = 9;
+				crc = CRC16_check(resp, resp_len);
+				resp[4] = (crc>>8)&0xff;
+				resp[5] = crc&0xff;
+				rt_event_send(&(g_info_event), INFO_EVENT_SENT_NB_2);
+			break;
+		case 24:
+			rt_kprintf("Exceute response\n");
+			break;
+		default:
+			rt_kprintf("Unknown %d cmd\r\n", cmd);
+			need_send = 0;
+			break;
+	}
+	if (need_send == 1)
+		rt_data_queue_push(&g_data_queue[2], resp, resp_len, RT_WAITING_FOREVER);
+	else
+		rt_mp_free(resp);
+	rt_kprintf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\r\n");
+	rt_mutex_release(&(g_pcie[g_index]->lock));
+	return 1;
+}
+void send_nb(int type)
+{
+	uint8_t *request;
+	uint16_t crc = 0;
+	uint32_t request_len;
+	rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);
+	request = rt_mp_alloc(cmd_mp, RT_WAITING_FOREVER);
+	request[0] = 0xff; request[1] = 0xfe;
+	request[2] = 0x01; request[3] = 21;
+	request[4] = 0x00; request[5] = 0x00;
+	request[6] = 0x00; request[7] = 18;
+	rt_memcpy(request+8, g_data_v, 16);
+	request[24] = (nb_fw.cur_cnt >> 8) & 0xff;
+	request[25] = (nb_fw.cur_cnt) & 0xff;
+	request_len = 26;
+	if (type == 2) {
+		request[3] = 24;
+		request[7] = 17;
+		request[8] = 0x00;
+		rt_memcpy(request+9, g_data_v, 16);
+		request_len = 25;
+	}
+	crc = CRC16_check(request, request_len);
+	request[4] = (crc>>8)&0xff;
+	request[5] = crc&0xff;
+	rt_data_queue_push(&g_data_queue[2], request, request_len, RT_WAITING_FOREVER);
+	rt_mutex_release(&(g_pcie[g_index]->lock));
 }

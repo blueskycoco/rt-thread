@@ -91,6 +91,14 @@ void dump_mp(struct MachineProperty v)
 		rt_kprintf("%02x", v.qccid[i]);
 	rt_kprintf("\r\n\r\n");
 }
+void dump_nb(void)
+{
+	rt_kprintf("nb.pices 		%d\r\n",nb_fw.pices); 
+	rt_kprintf("nb.pices_cnt 	%d\r\n",nb_fw.pices_cnt); 
+	rt_kprintf("nb.cur_cnt 		%d\r\n",nb_fw.cur_cnt); 
+	rt_kprintf("nb.fw_crc 		%d\r\n",nb_fw.fw_crc); 
+	rt_kprintf("nb.fw_v 		%d\r\n",nb_fw.fw_v); 
+}
 void dump_fqp(struct FangQuProperty v1, struct FangQu *v2,struct FangQu *v3,
 			  struct FangQu *v4)
 {	
@@ -425,6 +433,7 @@ int load_param()
 	struct MachineProperty tmp_mp;
 	struct FangQuProperty tmp_fqp;
 	struct HwVersion	tmp_hwv;
+	struct NbIotFw		tmp_nb;
 	struct FangQu *tmp_fangquList;
 	rt_mutex_init(&file_lock,	"file_lock",	RT_IPC_FLAG_FIFO);
 
@@ -613,6 +622,27 @@ int load_param()
 	mp.socketAddress[0].IP[3] = 212;
 	*/dump_fqp(fqp,fangqu_wire,fangqu_wireless, fangqu_io);
 	default_fqp_t(fangqu_wire,fangqu_wireless);
+
+	nb_fw.pices 	= 0;
+	nb_fw.pices_cnt = 0;
+	nb_fw.cur_cnt 	= 0;
+	nb_fw.fw_crc 	= 0;
+	nb_fw.fw_v 		= 0;
+	fd = open(NB_FILE, O_RDONLY, 0);
+	if (fd > 0) {
+		rt_kprintf("read nbiot fw data\r\n");
+		read(fd, &crc, sizeof(rt_uint16_t));
+		length = read(fd, &tmp_nb, sizeof(tmp_nb));
+		tmp_crc = CRC_check((unsigned char *)&tmp_nb, sizeof(tmp_nb));
+		rt_kprintf("nb crc %x, tmp_crc %x\r\n", crc, tmp_crc);
+		if (length != sizeof(tmp_nb) ||tmp_crc != crc) {
+			rt_kprintf("check: nb crc not same\n");
+			close(fd);
+			return 0;
+		}
+		memcpy(&nb_fw,&tmp_nb, sizeof(struct NbIotFw));
+		dump_nb();
+	}
 	return 1;
 }
 
@@ -819,6 +849,50 @@ void save_param(int type)
 		fsync(fd);
 		rt_hw_interrupt_enable(level);
 		if (length != sizeof(hwv))
+		{
+			rt_kprintf("write hwv data failed %d\n",length);
+			close(fd);
+			rt_mutex_release(&file_lock);
+			return ;
+		}
+	} else if (type == TYPE_NBFW) {
+		if (!check_ac()&& g_bat < 1169) {
+			rt_mutex_release(&file_lock);
+			return;
+		}
+		fd = open(NB_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0);
+		if (fd<0) {
+			rt_mutex_release(&file_lock);
+			rt_kprintf("save open failed 0\r\n");
+			return ;
+		}
+		crc = CRC_check((unsigned char *)&nb_fw, sizeof(nb_fw));
+		rt_kprintf("crc %x\r\n", crc);
+		level = rt_hw_interrupt_disable();
+		if (!check_ac() && g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
+		length = write(fd, &crc, sizeof(rt_uint16_t));
+		//fsync(fd);
+		//rt_hw_interrupt_enable(level);
+		if (length != sizeof(rt_uint16_t))
+		{
+			rt_kprintf("write hwv crc data failed %d\n",length);
+		}
+		//level = rt_hw_interrupt_disable();
+		if (!check_ac()&& g_bat < 1169) {
+			rt_hw_interrupt_enable(level);
+			rt_mutex_release(&file_lock);
+			close(fd);
+			return;
+		}
+		length = write(fd, &nb_fw, sizeof(nb_fw));
+		fsync(fd);
+		rt_hw_interrupt_enable(level);
+		if (length != sizeof(nb_fw))
 		{
 			rt_kprintf("write hwv data failed %d\n",length);
 			close(fd);

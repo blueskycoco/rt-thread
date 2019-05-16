@@ -23,6 +23,9 @@
 #define INFO_EVENT_DELAY_PROTECT_ON 		(1<<19)
 #define INFO_EVENT_SAVE_HWV					(1<<20)
 #define INFO_EVENT_ASYNC_EVENT				(1<<21)
+#define INFO_EVENT_SAVE_NB					(1<<22)
+#define INFO_EVENT_SENT_NB_1				(1<<23)
+#define INFO_EVENT_SENT_NB_2				(1<<24)
 
 #define LOGIN_ACK 		0x8001
 #define HEART_BEAT_ACK	0x8002

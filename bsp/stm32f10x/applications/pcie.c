@@ -338,14 +338,29 @@ rt_uint8_t handle_server(rt_uint8_t *data, rt_size_t len)
 				rt_kprintf("packet %d, CRC not match %x %x\r\n", index[cnt],crc[cnt],CRC_check(data+i+2,packet_len[cnt]-4));
 			}
 			cnt++;
-		}/*handle 0xfffe china telecom upgrade*/
-		else if (data[i] == 0xFF && data[i+1] == 0xFE) {
-			rt_kprintf("we got FFFE %d\r\n", i);
+		}/*handle 0xfffe china telecom upgrade FF FE 01 13 4C 9A 00 00*/
+		else if (data[i] == 0xFF && data[i+1] == 0xFE && len >= 8) {
+			rt_kprintf("we got FFFE %d len %d\r\n", i,len);
 			if (i+2 > len) {
 				rt_kprintf("partial packet ,return\r\n", i+2, len);
 				return 0;
 			}
-
+			packet_len[cnt] = (data[i+6]<<8)|data[i+7]+8;
+			index[cnt] = i;
+			crc[cnt] = (data[i+4]<<8)|data[i+5];
+			data[i+4] = 0x00;
+			data[i+5] = 0x00;
+			rt_kprintf("Found 0xFF 0xFE at %d, len %d, crc %04x\r\n",
+					index[cnt],packet_len[cnt], crc[cnt]);
+			if (crc[cnt] == CRC16_check(data+i, packet_len[cnt])) {
+				for (j=0; j<packet_len[cnt]; j++)
+					rt_kprintf("%02x ", data[i+j]);
+				handle_nb_packet(data+index[cnt], packet_len[cnt]);
+			} else {
+				rt_kprintf("packet %d, CRC not match %x %x\r\n", index[cnt],crc[cnt],CRC16_check(data+i,packet_len[cnt]));
+			}
+			cnt++;
+			break;
 		}
 
 	}

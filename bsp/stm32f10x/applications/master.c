@@ -599,6 +599,9 @@ void info_user(void *param)
 		if (ev & INFO_EVENT_SAVE_HWV) {
 			save_param(2);
 		}
+		if (ev & INFO_EVENT_SAVE_NB) {
+			save_param(3);
+		}
 		if (ev & INFO_EVENT_MUTE) {
 			rt_kprintf("do mute\r\n");
 			Stop_Playing();
@@ -607,6 +610,12 @@ void info_user(void *param)
 		if (ev & INFO_EVENT_ASYNC_EVENT) {
 			g_alarm_reason = g_async_alarm;/*0x0017;*/
 			upload_server(g_async_event/*0x0004*/); 	
+		}
+		if (ev & INFO_EVENT_SENT_NB_1) {
+			send_nb(1);
+		}
+		if (ev & INFO_EVENT_SENT_NB_2) {
+			send_nb(2);
 		}
 		//rt_mutex_release(&g_stm32_lock);
 	}
@@ -994,7 +1003,7 @@ void handle_proc_main(rt_uint8_t *cmd)
 			break;
 		case 4:
 			rt_kprintf("pgm ctl %d\r\n",cmd[1]);
-			g_main_event_code = 0x200d;
+			g_main_event_code = 0x200f;
 			break;
 	}	
 	rt_kprintf("operate platform \t%d\r\n", cmd[2]);
