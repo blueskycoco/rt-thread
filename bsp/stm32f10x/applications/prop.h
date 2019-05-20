@@ -112,6 +112,14 @@ struct HwVersion
 	  rt_uint8_t	undefine9;	
 	
 };
+struct NbIotFw
+{
+	rt_uint16_t app_cnt;
+	rt_uint16_t boot_cnt;
+	rt_uint16_t app_crc;
+	rt_uint16_t boot_crc;
+	rt_uint8_t upgrade_boot;
+};
 #define WIRELESS_MAX	50
 #define WIRE_MAX		30
 #define IO_MAX			4
@@ -122,9 +130,11 @@ struct FangQu    fangqu_io[4];
 struct FangQuProperty fqp;
 struct MachineProperty mp;
 struct HwVersion	hwv;
+struct NbIotFw		nb_fw;
 #define TYPE_MP 		0
 #define TYPE_FQP 		1
 #define TYPE_HWV		2
+#define TYPE_NBFW		3
 #define TYPE_WIRE				0x00
 #define TYPE_WIRELESS			0x01
 #define TYPE_NOW				0x00
@@ -164,6 +174,7 @@ struct HwVersion	hwv;
 #define HWV_FILE		"/mpext.dat"
 #define FQP_FILE		"/fqp.dat"
 #define MP_FILE			"/mp.dat"
+#define NB_FILE			"/nb.dat"
 #define DEFAULT_DOMAIN 	"kjfslkjflskdjfj"
 #define APP_BUILD_TIME "APP Build Time "
 void dump_mp(struct MachineProperty v);

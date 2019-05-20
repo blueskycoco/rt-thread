@@ -53,8 +53,10 @@
 #define ERROR_FILE_RW			0x00000040
 #define ERROR_FILESYSTEM_FORMAT 0x00000080
 #define ERROR_LOAD_PARAM		0x00000100
+rt_uint8_t nb_upgrade_count = 0;
 rt_uint32_t err_code = NO_ERROR;
 rt_uint8_t  pcie_status = 0x00; /*0x01 pcie1, 0x02 pcie2 0x03 pcie1 & pcie2*/
+extern rt_uint8_t nbiot_module;
 extern rt_uint8_t 			entering_ftp_mode_nbiot;
 extern rt_uint8_t upgrade_type; /* 0 for Boot, 1 for App*/
 extern rt_uint8_t entering_ftp_mode;
@@ -787,7 +789,7 @@ static void led_thread_entry(void* parameter)
 				unprot_flag = 1;
 		}
 		/* handle unprotect voice alarm*/
-		if (entering_ftp_mode_nbiot && entering_ftp_mode) {
+		if (entering_ftp_mode_nbiot && entering_ftp_mode && !cur_status) {
 			rt_kprintf("goto update\r\n");
 			entering_ftp_mode_nbiot=0;
 			//if (update_flag) {
@@ -801,6 +803,16 @@ static void led_thread_entry(void* parameter)
 			//g_net_state = NET_STATE_UNKNOWN;
 			//pcie_switch(g_module_type);
 			//break;
+		} else if (entering_ftp_mode && nbiot_module && !cur_status) {
+			nb_upgrade_count++;
+			if (nb_upgrade_count > 15) {
+				rt_kprintf("resend cmd update\n");
+			if (upgrade_type)
+				upload_server(CMD_UPDATE);
+			else
+				upload_server(CMD_UPDATE_BOOT);
+			nb_upgrade_count = 0;
+			}
 		}
 	}
 }

@@ -1002,8 +1002,8 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 	g_type0 = type0;
 	g_type1 = type1;
 	cmd_mp = rt_mp_create("mp_cmd", 100,64);
-	pci_mp = rt_mp_create("pci_cmd", 4,1200);
-	server_mp = rt_mp_create("server_cmd", 10,540);
+	pci_mp = rt_mp_create("pci_cmd", 2,1200);
+	server_mp = rt_mp_create("server_cmd", 5,540);
 	//g_pcie = (ppcie_param *)rt_malloc(sizeof(ppcie_param) * 2);
 	if (type0) {
 		g_pcie[0] = (ppcie_param)rt_malloc(sizeof(pcie_param));
