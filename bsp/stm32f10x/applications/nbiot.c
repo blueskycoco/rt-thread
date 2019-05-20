@@ -376,6 +376,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
 	//if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
+	if (!have_str(last_data_ptr, STR_CSQ)) {
 	rt_kprintf("\r\n<== (BC28 %d %d)\r\n",g_nbiot_state, data_size);
 	for (i=0; i<data_size; i++)
 		if (isascii(tmp[i]) && (g_nbiot_state != BC28_STATE_READ_FILE))
@@ -383,6 +384,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 		else
 			//rt_kprintf("%02x", tmp[i]);
 			break;
+	}
 	if (have_str(last_data_ptr, STR_QIRDI)) {
 		rt_time_t cur_time = time(RT_NULL);
 		rt_kprintf("get server message %s\r\n",ctime(&cur_time));
@@ -443,7 +445,8 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					g_nbiot_state = BC28_STATE_BAND;
 					gprs_at_cmd(g_dev_nbiot,at_band);
 				} else if (have_str(last_data_ptr, STR_QREG_1) ||
-						have_str(last_data_ptr, STR_QREG_0)) {
+						have_str(last_data_ptr, STR_QREG_0)||
+						have_str(last_data_ptr, STR_QREG_2)) {
 					g_nbiot_state = BC28_QREG_SET;
 #if HUAWEI_PLATFORM
 					gprs_at_cmd(g_dev_nbiot,qregswt_set0);
@@ -739,7 +742,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					}
 					else if (tmp[8] == 0x2c)
 						g_pcie[g_index]->csq = tmp[7]-0x30;
-					rt_kprintf("csq is %x %x %x %d\r\n",tmp[7],tmp[8],tmp[9],g_pcie[g_index]->csq);
+					//rt_kprintf("csq is %x %x %x %d\r\n",tmp[7],tmp[8],tmp[9],g_pcie[g_index]->csq);
 					show_signal(g_pcie[g_index]->csq);
 
 
