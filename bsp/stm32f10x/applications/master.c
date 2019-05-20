@@ -766,20 +766,22 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 	rt_kprintf("ftp addrss %s\r\n",g_ftp);
 
 	if (!cur_status) {					
-		g_exit_reason = 0x01;
-		upload_server(CMD_EXIT);
-		rt_thread_delay(200);
-		entering_ftp_mode = 1;						
-		upgrade_type = type;
-		HtbLcdClear();
-		Wtn6_Play(VOICE_UPDATE,ONCE,1);
 		if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
 					(g_index == 0 && g_type0 == PCIE_1_NBIOT))
 		   )
 		{
-			entering_ftp_mode_nbiot=1;
+			//entering_ftp_mode_nbiot=1;
+			entering_ftp_mode = 0;
 			g_nbiot_update_len = 0;
-			nbiot_module = 1;
+			//nbiot_module = 1;
+		} else {
+		g_exit_reason = 0x01;
+		rt_thread_delay(200);
+		upgrade_type = type;
+		HtbLcdClear();
+		Wtn6_Play(VOICE_UPDATE,ONCE,1);
+			upload_server(CMD_EXIT);
+			entering_ftp_mode = 1;						
 		}
 	}
 

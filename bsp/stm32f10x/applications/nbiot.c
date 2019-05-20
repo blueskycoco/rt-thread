@@ -208,6 +208,8 @@ extern rt_uint8_t upgrade_type; /* 0 for Boot, 1 for App*/
 #define qlws							"AT+QLWSREGIND=0\r\n"
 uint8_t 	  							ncdp_bc28[32]			= {0};
 #endif
+rt_uint16_t g_crc;
+extern rt_uint8_t cur_status;
 uint8_t 	  qicsgp_bc28[32]			= {0};
 uint8_t 	  open_nbiot[64]			= {0};
 uint8_t 	  qisend_bc28[32] 			= {0};
@@ -395,7 +397,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 		rt_kprintf("get server message %s\r\n",ctime(&cur_time));
 
 	}
-	//}
+	//}//
 	if (data_size >= 2) {
 		if (have_str(last_data_ptr,STR_RDY)) {
 			rt_kprintf("got bc28 rdy\r\n");
@@ -1151,6 +1153,7 @@ rt_uint8_t handle_nb_packet(rt_uint8_t *data, uint32_t len)
 				rt_kprintf("unknown require fw version\n");
 				return 0;
 			}
+			//entering_ftp_mode = 1;
 			rt_kprintf("Require fw version\n");
 			resp[6] = 0x00;
 			resp[7] = 17;
@@ -1161,10 +1164,10 @@ rt_uint8_t handle_nb_packet(rt_uint8_t *data, uint32_t len)
 				resp[11] = ((v/10)%100)%10+'0';
 				resp[12] = (v%100)%10+'0';
 			} else {
-				resp[9] = g_app_v/1000+'0';
-				resp[10] = (g_app_v/100)%10+'0';
-				resp[11] = ((g_app_v/10)%100)%10+'0';
-				resp[12] = (g_app_v%100)%10+'0';
+				resp[9] = mp.firmVersion/1000+'0';
+				resp[10] = (mp.firmVersion/100)%10+'0';
+				resp[11] = ((mp.firmVersion/10)%100)%10+'0';
+				resp[12] = (mp.firmVersion%100)%10+'0';
 			}
 			rt_memset(resp+13, 0x30, 12);
 			resp_len = 25;
@@ -1177,6 +1180,8 @@ rt_uint8_t handle_nb_packet(rt_uint8_t *data, uint32_t len)
 				rt_kprintf("unknown new fw version\n");
 				return 0;
 			}
+			//entering_ftp_mode = 1;
+			//nbiot_module = 1;
 			rt_kprintf("New 111 fw version download\n");
 			rt_uint16_t fw_v = (data[8]-0x30)*10 + (data[9]-0x30);
 			rt_uint16_t pices = (data[24]<<8)|data[25];
@@ -1186,13 +1191,21 @@ rt_uint8_t handle_nb_packet(rt_uint8_t *data, uint32_t len)
 			rt_kprintf("fw pices %d\n", pices);
 			rt_kprintf("fw pices cnt %d\n", pices_cnt);
 			rt_kprintf("fw crc %x\n", fw_crc);
-			nb_fw.pices 	= pices;
-			nb_fw.pices_cnt = pices_cnt;
-			nb_fw.cur_cnt 	= 0;
-			nb_fw.fw_crc 	= fw_crc;
-			nb_fw.fw_v 		= fw_v;
-			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
-
+			if (fw_crc == nb_fw.fw_crc && nb_fw.cur_cnt < nb_fw.pices_cnt) {
+				rt_kprintf("upgrade same fw\n");
+			} else {
+				rt_kprintf("upgrade new fw\n");
+				nb_fw.pices 	= pices;
+				nb_fw.pices_cnt = pices_cnt;
+				nb_fw.cur_cnt 	= 0;
+				nb_fw.fw_crc 	= fw_crc;
+				nb_fw.fw_v 		= fw_v;
+				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
+				if (upgrade_type ==0)
+					remove("/stm32.bin");
+				else
+					remove("/BootLoader.bin");
+			}
 			resp[6] = 0x00;
 			resp[7] = 0x01;
 			resp[8] = 0x00;
@@ -1201,7 +1214,7 @@ rt_uint8_t handle_nb_packet(rt_uint8_t *data, uint32_t len)
 				if (fw_v <= v)
 					resp[8] = 0x03;
 			} else {
-				if (fw_v <= g_app_v)
+				if (fw_v <= mp.firmVersion)
 					resp[8] = 0x03;
 			}
 			crc = CRC16_check(resp, resp_len);
@@ -1215,8 +1228,19 @@ rt_uint8_t handle_nb_packet(rt_uint8_t *data, uint32_t len)
 		case 21:
 			rt_kprintf("New packet in\n");
 			nb_fw.cur_cnt++;			
-			if (nb_fw.cur_cnt <= nb_fw.pices_cnt) {
+			if (data[8] == 0x00) {
+				rt_kprintf("write fw data offset %d %dbytes\n",
+						nb_fw.cur_cnt*nb_fw.pices, nb_fw.pices);
+				if (upgrade_type == 0) {
+					nb_fw_burn("/BootLoader.bin", data+11, len);
+				} else {
+					nb_fw_burn("/stm32.bin", data+11, len);
+				}
+				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
+			}
+			if (nb_fw.cur_cnt < nb_fw.pices_cnt) {
 				//rt_mp_free(resp);
+				int len = ((data[6]<<8)|data[7])-3;
 				rt_mutex_release(&(g_pcie[g_index]->lock));
 				send_nb(1);
 				need_send = 0;
@@ -1232,6 +1256,10 @@ rt_uint8_t handle_nb_packet(rt_uint8_t *data, uint32_t len)
 				resp[5] = crc&0xff;
 			}
 			break;
+		case 22:
+			rt_kprintf("ack upload status\n");
+			need_send = 0;
+			break;
 		case 23:
 				rt_kprintf("Execute Upgrade\n");
 				resp[6] = 0x00; resp[7] = 0x01;
@@ -1244,6 +1272,40 @@ rt_uint8_t handle_nb_packet(rt_uint8_t *data, uint32_t len)
 			break;
 		case 24:
 			rt_kprintf("Exceute response\n");
+			need_send = 0;
+		if (upgrade_type)
+			mp.firmCRC = CRC_check_file("/stm32.bin");
+		else
+			mp.firmCRC = CRC_check_file("/BootLoader.bin");
+		if (mp.firmCRC != g_crc)
+		{
+			rt_kprintf("App/Boot download failed %x %x\r\n",mp.firmCRC,g_crc);
+		} else {
+			if (upgrade_type) {
+				rt_kprintf("App donwload ok\r\n");
+				//iif (g_app_v!=0)
+					mp.firmVersion = nb_fw.fw_v;
+				mp.firmLength = (nb_fw.pices_cnt-1)*nb_fw.pices;
+				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+				entering_ftp_mode = 0;
+				g_heart_cnt=0;
+				g_net_state = NET_STATE_UNKNOWN;
+				pcie_switch(g_module_type);
+			} else {
+				hwv.bootversion0 = (nb_fw.fw_v>>8)&0xff;
+				hwv.bootversion1 = nb_fw.fw_v&0xff;
+				rt_kprintf("Boot donwload ok\r\n");
+				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
+				/* real update boot*/
+				rt_kprintf("going to upgrade Boot\r\n");
+				write_flash(0x08000000, "/BootLoader.bin", (nb_fw.pices_cnt-1)*
+						nb_fw.pices);
+			}
+			if (!cur_status) {
+				rt_thread_delay(500);
+				NVIC_SystemReset();
+			}
+		}
 			break;
 		default:
 			rt_kprintf("Unknown %d cmd\r\n", cmd);

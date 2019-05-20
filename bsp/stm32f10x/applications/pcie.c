@@ -914,10 +914,10 @@ void send_process(void* parameter)
 				if (update_flag) {
 				g_net_state = NET_STATE_LOGIN;
 				rt_kprintf("KKKKKKKKK\r\n");
-				if (upgrade_type)
+				/*if (upgrade_type)
 					upload_server(CMD_UPDATE);
 				else
-					upload_server(CMD_UPDATE_BOOT);
+					upload_server(CMD_UPDATE_BOOT);*/
 				update_flag=0;
 				}
 			}

@@ -704,14 +704,14 @@ static void led_thread_entry(void* parameter)
 		}
 		should_notify_infrar_normal_mode++;
 #endif
-		rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
+		//rt_kprintf("cc1101 cnt %d\r\n",cc1101_crash_cnt);
 		if (cc1101_crash_cnt > 40) {
 			cc1101_crash_cnt=0;
 			rt_kprintf("cc1101 crash 20192, reseting\r\n");
 			radio_intit2();
 			//NVIC_SystemReset();
 		}
-		rt_kprintf("test 1\r\n");
+		//rt_kprintf("test 1\r\n");
 		if (m26_restart_flag) {
 			rt_kprintf("restart m26 ...\r\n");
 			in_qiact=0;
@@ -731,7 +731,7 @@ static void led_thread_entry(void* parameter)
 					m26_restart_flag = 1;
 			}
 		}
-		rt_kprintf("test 22 %d\r\n",cc1101_cal_time);
+		//rt_kprintf("test 22 %d\r\n",cc1101_cal_time);
 
 		if (cc1101_cal_time == 300) {
 			//cc1101_cal();
@@ -741,7 +741,7 @@ static void led_thread_entry(void* parameter)
 			list_dir("/");
 		} else 
 			cc1101_cal_time++;
-		rt_kprintf("test 3\r\n");
+		//rt_kprintf("test 3\r\n");
 		if (should_upload_info > 30*60*12) {
 			should_upload_info = 0;
 			upload_server(CMD_UP_INFO);

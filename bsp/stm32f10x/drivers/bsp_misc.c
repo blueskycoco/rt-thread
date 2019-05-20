@@ -352,7 +352,7 @@ rt_uint16_t Get_val(rt_uint8_t ch)
 	while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC));
 	DataValue = ADC_GetConversionValue(ADC1); 
 
-	rt_kprintf("DataValue %d\r\n", DataValue);
+	//rt_kprintf("DataValue %d\r\n", DataValue);
 	//g_data1 += Data1Value;
 	//DataValue = (int)((float)DataValue/(float)Data1Value)*12;
 	return DataValue; 
@@ -369,7 +369,7 @@ rt_uint16_t ADC_Get_aveg(void)
 		ad_sum += Get_val(ADC_Channel_14);
 		rt_thread_delay(1); 
 	} 
-	rt_kprintf("battery is %d \r\n", (int)(ad_sum/10));
+	//rt_kprintf("battery is %d \r\n", (int)(ad_sum/10));
 	//rt_kprintf("verfintern is %d \r\n", (int)(g_data1/10));
 	//g_data1=0;
 	return (ad_sum / 10);
@@ -646,4 +646,29 @@ uint16_t CRC16_check(const char *buf, int len) {
     for (counter = 0; counter < len; counter++)
 		crc = (crc >> 8) ^ crc16tab[(crc ^ *(buf++)) & 0xFF];
     return crc;
+}
+uint8_t nb_fw_burn(const char *file , const char *buf , uint32_t len)
+{
+	int fd = open(file, O_RDONLY, 0);
+	if (fd < 0) {
+		fd = open(file,  O_WRONLY | O_CREAT | O_TRUNC, 0);
+		if (fd < 0) {
+			rt_kprintf("nb fw burn , create %s file failed\r\n", file);
+			return 0;
+		}
+	} else {
+		close(fd);
+		fd = open(file, O_WRONLY | O_APPEND, 0);
+		if (fd < 0) {
+			rt_kprintf("nb fw burn , open %s file failed\r\n", file);
+			return 0;
+		}
+	}
+	uint32_t wlen = write(fd, buf, len);
+	if (wlen != len) {
+		close(fd);
+		return 0;
+	}
+	close(fd);
+	return 1;
 }
