@@ -753,6 +753,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						gprs_at_cmd(g_dev_nbiot,qiclose);
 						break;
 					}
+#if 0
 					if (entering_ftp_mode_nbiot && entering_ftp_mode) {
 						rt_kprintf("goto update\r\n");
 						entering_ftp_mode_nbiot=0;
@@ -761,6 +762,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						pcie_switch(g_module_type);
 						break;
 					}
+#endif
 					if (g_heart_cnt > 5) {
 						rt_kprintf("hehehe 1\r\n");
 						g_heart_cnt=0;

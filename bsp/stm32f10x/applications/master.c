@@ -758,8 +758,6 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 
 	if (!cur_status) {					
 		g_exit_reason = 0x01;
-		upload_server(CMD_EXIT);
-		rt_thread_delay(200);
 		entering_ftp_mode = 1;						
 		upgrade_type = type;
 		HtbLcdClear();
@@ -771,6 +769,9 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 			entering_ftp_mode_nbiot=1;
 			g_nbiot_update_len = 0;
 			nbiot_module = 1;
+		} else {
+		upload_server(CMD_EXIT);
+		rt_thread_delay(200);
 		}
 	}
 
@@ -1199,10 +1200,10 @@ void handle_bc26_update(rt_uint8_t *data)
 					mp.firmVersion = g_app_v;
 				mp.firmLength = all_len;
 				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
-				entering_ftp_mode = 0;
-				g_heart_cnt=0;
-				g_net_state = NET_STATE_UNKNOWN;
-				pcie_switch(g_module_type);
+				//entering_ftp_mode = 0;
+				//g_heart_cnt=0;
+				//g_net_state = NET_STATE_UNKNOWN;
+				//pcie_switch(g_module_type);
 			} else {
 				rt_kprintf("Boot donwload ok\r\n");
 				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);

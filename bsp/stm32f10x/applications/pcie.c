@@ -898,6 +898,7 @@ void send_process(void* parameter)
 		if (entering_ftp_mode)
 		{
 			if (nbiot_module && g_net_state == NET_STATE_INIT) {
+#if 0
 				if (update_flag) {
 				g_net_state = NET_STATE_LOGIN;
 				rt_kprintf("KKKKKKKKK\r\n");
@@ -907,15 +908,18 @@ void send_process(void* parameter)
 					upload_server(CMD_UPDATE_BOOT);
 				update_flag=0;
 				}
-			}
-			continue;
+#endif
+			} else if (nbiot_module) {
+				;
+			} else
+				continue;
 		}
 		
 		rt_mutex_take(&(g_pcie[g_index]->lock),RT_WAITING_FOREVER);		
 		//cmd = (char *)rt_malloc(50);
-		rt_kprintf("1begin alloc buffer\r\n");
+		//rt_kprintf("1begin alloc buffer\r\n");
 		cmd = rt_mp_alloc(cmd_mp, RT_WAITING_FOREVER);
-		rt_kprintf("1alloc buffer ok\r\n");
+		//rt_kprintf("1alloc buffer ok\r\n");
 		if (cmd == RT_NULL){
 			rt_kprintf("build cmd failed %d %d\r\n",g_net_state,heart_time);
 			show_memory_info();
@@ -968,9 +972,9 @@ void upload_server(rt_uint16_t cmdType)
 	int send_len = build_cmd(buf,cmdType);
 	rt_kprintf("send len %d\r\n", send_len);
 	if (send_len <= 64) {
-		rt_kprintf("2begin alloc buffer\r\n");
+		//rt_kprintf("2begin alloc buffer\r\n");
 		cmd = rt_mp_alloc(cmd_mp, RT_WAITING_FOREVER);
-		rt_kprintf("2alloc buffer ok\r\n");
+		//rt_kprintf("2alloc buffer ok\r\n");
 	} else {
 		cmd = (char *)rt_malloc(send_len);
 	}

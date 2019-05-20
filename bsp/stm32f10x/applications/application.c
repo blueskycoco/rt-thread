@@ -55,6 +55,10 @@
 #define ERROR_LOAD_PARAM		0x00000100
 rt_uint32_t err_code = NO_ERROR;
 rt_uint8_t  pcie_status = 0x00; /*0x01 pcie1, 0x02 pcie2 0x03 pcie1 & pcie2*/
+extern rt_uint8_t 			entering_ftp_mode_nbiot;
+extern rt_uint8_t upgrade_type; /* 0 for Boot, 1 for App*/
+extern rt_uint8_t entering_ftp_mode;
+extern rt_uint8_t 	update_flag;
 extern struct rt_event g_info_event;
 extern rt_uint8_t g_type1;
 extern rt_uint8_t g_num;
@@ -783,6 +787,21 @@ static void led_thread_entry(void* parameter)
 				unprot_flag = 1;
 		}
 		/* handle unprotect voice alarm*/
+		if (entering_ftp_mode_nbiot && entering_ftp_mode) {
+			rt_kprintf("goto update\r\n");
+			entering_ftp_mode_nbiot=0;
+			//if (update_flag) {
+			if (upgrade_type)
+				upload_server(CMD_UPDATE);
+			else
+				upload_server(CMD_UPDATE_BOOT);
+			update_flag=0;
+			//}
+			//g_heart_cnt=0;
+			//g_net_state = NET_STATE_UNKNOWN;
+			//pcie_switch(g_module_type);
+			//break;
+		}
 	}
 }
 rt_uint8_t watchdog_init(void)
