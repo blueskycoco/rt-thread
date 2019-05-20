@@ -70,7 +70,8 @@ wiz_NetInfo gWIZNETINFO = {
 #define SOCK_DNS       		7
 #define SOCK_TASK			1
 #define DATA_BUF_SIZE   2048
-uint8_t gDATABUF[DATA_BUF_SIZE];
+//uint8_t gDATABUF[DATA_BUF_SIZE];
+uint8_t *gDATABUF;//[DATA_BUF_SIZE];
 uint8_t cmd[] = {0xad,0xac,0x00,0x26,0x01,0x00,0x01,0x00,0x00,0xa1,0x18,0x08,0x10,0x00,0x09,0x13,0x51,0x56,0x42,0x48,0x42,0x4c,0x08,0x66,0x85,0x60,0x31,0x97,0x56,0x81,0x28,0x37,0x41,0x33,0x19,0x01,0xed,0x60};
 void EXTI2_IRQHandler(void)
 {
@@ -401,6 +402,7 @@ void w5500_init()
 			gWIZNETINFO.mac[0],gWIZNETINFO.mac[1],
 			gWIZNETINFO.mac[2],gWIZNETINFO.mac[3],
 			gWIZNETINFO.mac[4],gWIZNETINFO.mac[5]);
+	gDATABUF = (uint8_t *)rt_malloc(2048*sizeof(rt_uint8_t));
 	DHCP_init(SOCK_DHCP, gDATABUF);
 	rt_kprintf("w5500 8\r\n");
 	reg_dhcp_cbfunc(my_ip_assign, my_ip_assign, my_ip_conflict);
