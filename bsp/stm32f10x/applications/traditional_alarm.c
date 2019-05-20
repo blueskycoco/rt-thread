@@ -49,7 +49,7 @@ uint8_t traditional_alarm(uint8_t type)
 					rt_kprintf("gpioe7 int\r\n");
 				}
 			} else {
-					rt_kprintf("gpioe7 clear\r\n");
+					//rt_kprintf("gpioe7 clear\r\n");
 				alarm[0] = 0;
 			}
 			break;
@@ -61,7 +61,7 @@ uint8_t traditional_alarm(uint8_t type)
 					rt_kprintf("gpioe8 int\r\n");
 				}
 			} else {
-					rt_kprintf("gpioe8 clear\r\n");
+					//rt_kprintf("gpioe8 clear\r\n");
 				alarm[1] = 0;
 			}
 			break;
@@ -73,7 +73,7 @@ uint8_t traditional_alarm(uint8_t type)
 					rt_kprintf("gpioe9 int\r\n");
 				}
 			} else {
-					rt_kprintf("gpioe9 clear\r\n");
+					//rt_kprintf("gpioe9 clear\r\n");
 				alarm[2] = 0;
 			}
 			break;
@@ -85,7 +85,7 @@ uint8_t traditional_alarm(uint8_t type)
 					rt_kprintf("gpioe10 int\r\n");
 				}
 			} else {
-					rt_kprintf("gpioe10 clear\r\n");
+					//rt_kprintf("gpioe10 clear\r\n");
 				alarm[3] = 0;
 			}
 			break;
