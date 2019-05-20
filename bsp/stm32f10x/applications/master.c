@@ -1222,6 +1222,8 @@ void handle_bc26_update(rt_uint8_t *data)
 	}
 	else {
 		nb_fw.boot_cnt = 0;
+		nb_fw.boot_crc = 0;
+		nb_fw.app_crc = 0;
 		nb_fw.app_cnt = 0;
 		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 		if (cur_len != write(bc28_down_fd, data+6, cur_len))
@@ -1259,8 +1261,8 @@ void handle_bc26_update(rt_uint8_t *data)
 				write_flash(0x08000000, "/BootLoader.bin", g_nbiot_update_len);
 			}
 			if (!cur_status) {
-				//need open rt_thread_delay(500);
-				//need open NVIC_SystemReset();
+				rt_thread_delay(500);
+				NVIC_SystemReset();
 			}
 		}
 	}

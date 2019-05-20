@@ -625,10 +625,11 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						i+=2;						
 					}					
 #if HUAWEI_PLATFORM
-					rt_sprintf(ncdp_bc28, "AT+NCDP=%d.%d.%d.%d,%d\r\n",
-								mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
-								mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
-								mp.socketAddress[g_ip_index].port);
+					strcpy(ncdp_bc28, "AT+NCDP=180.101.147.115,5683\r\n");
+					//rt_sprintf(ncdp_bc28, "AT+NCDP=%d.%d.%d.%d,%d\r\n",
+					//			mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
+					//			mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],
+					//			mp.socketAddress[g_ip_index].port);
 					gprs_at_cmd(g_dev_nbiot, ncdp_bc28);
 					g_nbiot_state = BC28_STATE_NCDP_IP;
 #else
