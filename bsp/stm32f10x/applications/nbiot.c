@@ -369,12 +369,14 @@ void nbiot_start(int index)
 	//strcpy(ftp_addr,"47.93.48.167");
 	strcpy(ftp_user,"minfei");
 	strcpy(ftp_passwd,"minfei123");
+	reset_at_timeout();
 }
 
 void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 {
 	int i=0;
 	rt_uint8_t *tmp = (rt_uint8_t *)last_data_ptr;
+	reset_at_timeout();
 	//if (!have_str(last_data_ptr,STR_CSQ)&&(data_size>6)) {
 	if (!have_str(last_data_ptr, STR_CSQ)) {
 	rt_kprintf("\r\n<== (BC28 %d %d)\r\n",g_nbiot_state, data_size);

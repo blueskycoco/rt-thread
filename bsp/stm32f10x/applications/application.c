@@ -805,7 +805,7 @@ static void led_thread_entry(void* parameter)
 			//break;
 		} else if (entering_ftp_mode && nbiot_module && !cur_status) {
 			nb_upgrade_count++;
-			if (nb_upgrade_count > 15) {
+			if (nb_upgrade_count > 200) {
 				rt_kprintf("resend cmd update\n");
 			if (upgrade_type)
 				upload_server(CMD_UPDATE);
