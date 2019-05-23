@@ -769,7 +769,7 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 		entering_ftp_mode = 1;						
 		upgrade_type = type;
 		HtbLcdClear();
-		Wtn6_Play(VOICE_UPDATE,ONCE,1);
+	//	Wtn6_Play(VOICE_UPDATE,ONCE,1);
 		if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
 					(g_index == 0 && g_type0 == PCIE_1_NBIOT))
 		   )
@@ -1260,6 +1260,7 @@ void handle_bc26_update(rt_uint8_t *data)
 				rt_kprintf("going to upgrade Boot\r\n");
 				write_flash(0x08000000, "/BootLoader.bin", g_nbiot_update_len);
 			}
+		Wtn6_Play(VOICE_UPDATE,ONCE,1);
 			if (!cur_status) {
 				rt_thread_delay(500);
 				NVIC_SystemReset();
