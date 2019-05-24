@@ -150,7 +150,7 @@ void pgm_ctl2(int type)
 			rt_hw_led_on(PGM3_LED);
 			pgm0_cnt = 300;
 		}
-	} else if (0x02 == type) {
+	} else if (0x03 == type) {
 		if (fqp.PGM1 == 3) {
 			rt_hw_led_on(PGM4_LED);
 			rt_thread_delay(100);
@@ -1235,6 +1235,7 @@ void handle_bc26_update(rt_uint8_t *data)
 		fsync(bc28_down_fd);
 		close(bc28_down_fd);
 		bc28_down_fd=-1;
+		entering_ftp_mode = 0;
 		if (upgrade_type)
 			mp.firmCRC = CRC_check_file("/stm32.bin");
 		else
@@ -1258,12 +1259,12 @@ void handle_bc26_update(rt_uint8_t *data)
 				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
 				/* real update boot*/
 				rt_kprintf("going to upgrade Boot\r\n");
-				write_flash(0x08000000, "/BootLoader.bin", g_nbiot_update_len);
+			//1	write_flash(0x08000000, "/BootLoader.bin", g_nbiot_update_len);
 			}
 		Wtn6_Play(VOICE_UPDATE,ONCE,1);
 			if (!cur_status) {
-				rt_thread_delay(500);
-				NVIC_SystemReset();
+			//1	rt_thread_delay(500);
+			//1	NVIC_SystemReset();
 			}
 		}
 	}

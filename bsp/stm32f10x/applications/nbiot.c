@@ -222,6 +222,7 @@ uint8_t 	  *server_buf_bc28 			= RT_NULL;
 void 		  *send_data_ptr_bc28 		= RT_NULL;
 rt_size_t 	  send_size_bc28;
 rt_uint8_t 	  bc28_cnt 					= 0;
+extern rt_uint32_t g_register_cnt;
 extern rt_uint8_t 	g_net_state;
 extern rt_uint32_t 	g_server_addr;
 extern rt_uint32_t 	g_server_addr_bak;
@@ -429,6 +430,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr,STR_OK)) {
 					g_pcie[g_index]->cpin_cnt=0;
 					g_nbiot_state = BC28_STATE_CGATT;
+					g_register_cnt = 0;
 					gprs_at_cmd(g_dev_nbiot,cgatt);
 				}
 				break;
@@ -492,6 +494,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					rt_thread_delay(RT_TICK_PER_SECOND);
 					//gprs_at_cmd(g_dev_nbiot,at_csq);
 					gprs_at_cmd(g_dev_nbiot,cgatt);
+					g_register_cnt++;
 				}
 				break;	
 			case BC28_STATE_CSQ:

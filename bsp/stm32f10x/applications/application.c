@@ -53,6 +53,7 @@
 #define ERROR_FILE_RW			0x00000040
 #define ERROR_FILESYSTEM_FORMAT 0x00000080
 #define ERROR_LOAD_PARAM		0x00000100
+rt_uint32_t g_register_cnt = 0;
 rt_uint8_t nb_upgrade_count = 0;
 rt_uint32_t err_code = NO_ERROR;
 rt_uint8_t  pcie_status = 0x00; /*0x01 pcie1, 0x02 pcie2 0x03 pcie1 & pcie2*/
@@ -734,7 +735,7 @@ static void led_thread_entry(void* parameter)
 			if (in_qiact) {
 				rt_kprintf("qi act times %d\r\n", qiact_times);
 				qiact_times++;
-				if (qiact_times > 180/*20*//*180*/)
+				if (qiact_times > 150/*20*//*180*/)
 					m26_restart_flag = 1;
 			}
 		}
@@ -813,6 +814,17 @@ static void led_thread_entry(void* parameter)
 				upload_server(CMD_UPDATE_BOOT);
 			nb_upgrade_count = 0;
 			}
+		}
+
+		if (g_register_cnt > 180) {
+			rt_kprintf("restart nbiot %d\n", g_register_cnt);
+			g_register_cnt = 0;
+			in_qiact=0;
+			qiact_times=0;
+			m26_restart_flag = 0;
+			g_heart_cnt=0;
+			g_net_state = NET_STATE_UNKNOWN;
+			pcie_switch(g_module_type);
 		}
 	}
 }
