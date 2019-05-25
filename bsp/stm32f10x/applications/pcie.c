@@ -17,6 +17,7 @@ rt_uint8_t g_type0 = 0;
 rt_uint8_t g_type1 = 0;
 int g_index = 0;
 rt_uint8_t flow_cnt = 0;
+extern rt_uint16_t g_nb_index, g_nb_bak_index;
 extern struct rt_event g_info_event;
 extern rt_uint16_t g_bat;
 extern rt_uint8_t g_ac;
@@ -840,19 +841,23 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 	}else if (type == CMD_UPDATE) {		
 		cmd[5] = (CMD_UPDATE >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_UPDATE&0xff;
-		cmd[15] = (g_nbiot_update_len>>24) & 0xff;
-		cmd[16] = (g_nbiot_update_len>>16) & 0xff;
-		cmd[17] = (g_nbiot_update_len>>8)  & 0xff;
-		cmd[18] = (g_nbiot_update_len>>0)  & 0xff;
-		ofs = 19;
+		cmd[15] = (g_nb_index>>8) & 0xff;
+		cmd[16] = (g_nb_index>>0) & 0xff;
+		cmd[17] = (g_nbiot_update_len>>24) & 0xff;
+		cmd[18] = (g_nbiot_update_len>>16) & 0xff;
+		cmd[19] = (g_nbiot_update_len>>8)  & 0xff;
+		cmd[20] = (g_nbiot_update_len>>0)  & 0xff;
+		ofs = 21;
 	}else if (type == CMD_UPDATE_BOOT) {		
 		cmd[5] = (CMD_UPDATE_BOOT >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_UPDATE_BOOT&0xff;
-		cmd[15] = (g_nbiot_update_len>>24) & 0xff;
-		cmd[16] = (g_nbiot_update_len>>16) & 0xff;
-		cmd[17] = (g_nbiot_update_len>>8)  & 0xff;
-		cmd[18] = (g_nbiot_update_len>>0)  & 0xff;
-		ofs = 19;
+		cmd[15] = (g_nb_index>>8) & 0xff;
+		cmd[16] = (g_nb_index>>0) & 0xff;
+		cmd[17] = (g_nbiot_update_len>>24) & 0xff;
+		cmd[18] = (g_nbiot_update_len>>16) & 0xff;
+		cmd[19] = (g_nbiot_update_len>>8)  & 0xff;
+		cmd[20] = (g_nbiot_update_len>>0)  & 0xff;
+		ofs = 21;
 	} else if (type == CMD_SET_PROT_ACK) {
 		cmd[5] = (CMD_SET_PROT_ACK >> 8) & 0xff;//ask addr
 		cmd[6] = CMD_SET_PROT_ACK&0xff;

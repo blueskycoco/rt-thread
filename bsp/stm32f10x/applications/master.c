@@ -13,6 +13,7 @@
 #include "pcie.h"
 #include "can.h"
 struct rt_event g_info_event;
+rt_uint16_t g_nb_index=0, g_nb_bak_index=1;
 extern rt_uint8_t nb_upgrade_count;
 extern rt_uint8_t cur_status;
 extern rt_uint8_t 	g_mute;
@@ -1176,11 +1177,13 @@ void handle_proc_sub(rt_uint8_t *cmd)
 }
 void handle_bc26_update(rt_uint8_t *data)
 {
-	rt_uint32_t all_len = (data[0]<<24)|(data[1]<<16)|(data[2]<<8)|(data[3]<<0);
-	rt_uint32_t cur_len = (data[4]<<8)|(data[5]<<0);
+	rt_uint16_t index = (data[0]<<8)|data[1];
+	rt_uint32_t all_len = (data[2]<<24)|(data[3]<<16)|(data[4]<<8)|(data[5]<<0);
+	rt_uint32_t cur_len = (data[6]<<8)|(data[7]<<0);
 	rt_kprintf("cmd_type \tbc26 update\r\n");
 	rt_kprintf("all len \t%d\r\n", all_len);
 	rt_kprintf("cur len \t%d\r\n", cur_len);
+	rt_kprintf("update len \t %d\r\n", g_nbiot_update_len);
 	g_nbiot_update_len += cur_len;
 	nb_upgrade_count = 0;
 	if (g_nbiot_update_len < all_len)
@@ -1192,6 +1195,8 @@ void handle_bc26_update(rt_uint8_t *data)
 	}
 	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 		if (bc28_down_fd == -1) {
+			g_nb_bak_index = 1;
+			g_nb_index = 0;
 			if (g_nbiot_update_len == cur_len) {
 				rt_kprintf("new download\n");
 			if (upgrade_type)
@@ -1206,7 +1211,12 @@ void handle_bc26_update(rt_uint8_t *data)
 				bc28_down_fd = open("/BootLoader.bin",  O_WRONLY | O_APPEND, 0);	
 			}
 		}
-		if (cur_len != write(bc28_down_fd, data+6, cur_len))
+		if ((index == g_nb_index) && (g_nb_index != g_nb_bak_index)) {
+			g_nb_bak_index = g_nb_index;
+			g_nb_index++;
+		//lseek(bc28_down_fd, g_nbiot_update_len - cur_len, SEEK_SET);
+		rt_kprintf("NBIOT write offset %d\n", g_nbiot_update_len - cur_len);
+		if (cur_len != write(bc28_down_fd, data+8, cur_len))
 		{
 			rt_kprintf("write bc28 data failed\n");
 			//close(bc28_down_fd);
@@ -1219,6 +1229,7 @@ void handle_bc26_update(rt_uint8_t *data)
 		else
 			upload_server(CMD_UPDATE_BOOT);
 		}
+		}
 	}
 	else {
 		nb_fw.boot_cnt = 0;
@@ -1226,7 +1237,12 @@ void handle_bc26_update(rt_uint8_t *data)
 		nb_fw.app_crc = 0;
 		nb_fw.app_cnt = 0;
 		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
-		if (cur_len != write(bc28_down_fd, data+6, cur_len))
+		if ((index == g_nb_index) && (g_nb_index != g_nb_bak_index)) {
+			g_nb_bak_index = g_nb_index;
+			g_nb_index++;
+		rt_kprintf("NBIOT End write offset %d\n", g_nbiot_update_len - cur_len);
+		//lseek(bc28_down_fd, g_nbiot_update_len - cur_len, SEEK_SET);
+		if (cur_len != write(bc28_down_fd, data+8, cur_len))
 		{
 			rt_kprintf("write bc28 data failed2\n");
 			//close(bc28_down_fd);
@@ -1234,6 +1250,7 @@ void handle_bc26_update(rt_uint8_t *data)
 		}
 		fsync(bc28_down_fd);
 		close(bc28_down_fd);
+		list_dir("/");
 		bc28_down_fd=-1;
 		entering_ftp_mode = 0;
 		if (upgrade_type)
@@ -1267,6 +1284,7 @@ void handle_bc26_update(rt_uint8_t *data)
 			//1	NVIC_SystemReset();
 			}
 		}
+	}
 	}
 }
 rt_uint8_t handle_packet(rt_uint8_t *data)
