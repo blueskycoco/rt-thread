@@ -190,7 +190,7 @@ extern void begin_yunduo();
 extern rt_uint8_t upgrade_type;
 void reset_at_timeout()
 {
-	rt_kprintf("reset m26 timer\r\n");
+	//rt_kprintf("reset m26 timer\r\n");
 	in_qiact=1;
 	m26_restart_flag=0;
 	qiact_times=0;

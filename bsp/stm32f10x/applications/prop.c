@@ -881,7 +881,7 @@ void save_param(int type)
 		//rt_hw_interrupt_enable(level);
 		if (length != sizeof(rt_uint16_t))
 		{
-			rt_kprintf("write hwv crc data failed %d\n",length);
+			rt_kprintf("write nbfw crc data failed %d\n",length);
 		}
 		//level = rt_hw_interrupt_disable();
 		if (!check_ac()&& g_bat < 1169) {
@@ -895,7 +895,7 @@ void save_param(int type)
 		rt_hw_interrupt_enable(level);
 		if (length != sizeof(nb_fw))
 		{
-			rt_kprintf("write hwv data failed %d\n",length);
+			rt_kprintf("write nbfw data failed %d\n",length);
 			close(fd);
 			rt_mutex_release(&file_lock);
 			return ;

@@ -411,7 +411,7 @@ void info_user(void *param)
 			g_fq_event[0] = 0xff;
 			set_fq_off(fangqu_wire,WIRE_MAX);
 			set_fq_off(fangqu_wireless,WIRELESS_MAX);
-	set_fq_off81(fangqu_io,IO_MAX);
+			set_fq_off81(fangqu_io,IO_MAX);
 
 			//g_operater[5] = 0x10;
 			if (g_remote_protect!=1)
@@ -636,37 +636,37 @@ void handle_login_ack(rt_uint8_t *cmd)
 	}
 	rt_kprintf("\r\n");
 	if (cmd[cmd[5]+6] == 1) {
-						if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
-						{
-							cur_status = 0;
-							g_alarmType =0;
-							g_delay_out = 0;
-							g_alarm_voice = 0;
-							g_delay_in = 0;
-							fqp.status=cur_status;
-							s1=0;
-							//time_protect = 1;
-							//duima_key=1;
-							g_mute=0;
-							g_remote_protect=0;
-							rt_kprintf("switch protect off\r\n");
-							handle_protect_off();
-							//s_cnt=e_cnt=rt_tick_get();
-						}
-		
+		if((cur_status || (!cur_status && g_delay_out!=0) || g_alarm_voice))
+		{
+			cur_status = 0;
+			g_alarmType =0;
+			g_delay_out = 0;
+			g_alarm_voice = 0;
+			g_delay_in = 0;
+			fqp.status=cur_status;
+			s1=0;
+			//time_protect = 1;
+			//duima_key=1;
+			g_mute=0;
+			g_remote_protect=0;
+			rt_kprintf("switch protect off\r\n");
+			handle_protect_off();
+			//s_cnt=e_cnt=rt_tick_get();
+		}
+
 	} else if (cmd[cmd[5]+6] == 2){
-						if (!cur_status && g_delay_out==0)
-						{
-							rt_kprintf("switch protect on\r\n");
-							g_remote_protect=0;
-							g_sub_event_code = 0x2002;
-							//time_protect = 1;
-							//duima_key=1;
-							//s_bufang=1;
-							handle_protect_on();
-							//s_cnt=e_cnt=rt_tick_get();
-						}
-	
+		if (!cur_status && g_delay_out==0)
+		{
+			rt_kprintf("switch protect on\r\n");
+			g_remote_protect=0;
+			g_sub_event_code = 0x2002;
+			//time_protect = 1;
+			//duima_key=1;
+			//s_bufang=1;
+			handle_protect_on();
+			//s_cnt=e_cnt=rt_tick_get();
+		}
+
 	}
 	if (cmd[0] != 0 && !(g_index == 1 && g_type1 == PCIE_2_IP)) {
 		g_num = cmd[0] + 0x10;		
@@ -770,35 +770,35 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 		entering_ftp_mode = 1;						
 		upgrade_type = type;
 		HtbLcdClear();
-	//	Wtn6_Play(VOICE_UPDATE,ONCE,1);
+		//	Wtn6_Play(VOICE_UPDATE,ONCE,1);
 		if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
 					(g_index == 0 && g_type0 == PCIE_1_NBIOT))
 		   )
 		{
 			if (type) { 
 				if (nb_fw.app_crc != g_crc) {
-				nb_fw.app_crc 	= g_crc;
-				nb_fw.app_cnt 	= 0;
-				nb_fw.upgrade_boot 		= 0;
+					nb_fw.app_crc 	= g_crc;
+					nb_fw.app_cnt 	= 0;
+					nb_fw.upgrade_boot 		= 0;
 				}
 			} else {
 				if (nb_fw.boot_crc != g_crc) {
-				nb_fw.boot_cnt = 0;
-				nb_fw.boot_crc 	= g_crc;
-				nb_fw.upgrade_boot 		= 1;
+					nb_fw.boot_cnt = 0;
+					nb_fw.boot_crc 	= g_crc;
+					nb_fw.upgrade_boot 		= 1;
 				}
 			}
 			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 
 			entering_ftp_mode_nbiot=1;
 			if (type)
-			g_nbiot_update_len = nb_fw.app_cnt;
+				g_nbiot_update_len = nb_fw.app_cnt;
 			else
-			g_nbiot_update_len = nb_fw.boot_cnt;
+				g_nbiot_update_len = nb_fw.boot_cnt;
 			nbiot_module = 1;
 		} else {
-		upload_server(CMD_EXIT);
-		rt_thread_delay(200);
+			upload_server(CMD_EXIT);
+			rt_thread_delay(200);
 		}
 	}
 
@@ -1183,52 +1183,70 @@ void handle_bc26_update(rt_uint8_t *data)
 	rt_kprintf("cmd_type \tbc26 update\r\n");
 	rt_kprintf("all len \t%d\r\n", all_len);
 	rt_kprintf("cur len \t%d\r\n", cur_len);
-	rt_kprintf("update len \t %d\r\n", g_nbiot_update_len);
+	rt_kprintf("index \t%d %d %d %d\r\n", index,g_nb_index,g_nb_bak_index,g_nbiot_update_len);
+	//rt_kprintf("update len \t %d\r\n", g_nbiot_update_len);
 	g_nbiot_update_len += cur_len;
 	nb_upgrade_count = 0;
 	if (g_nbiot_update_len < all_len)
 	{
-	if (nb_fw.upgrade_boot) {
-		nb_fw.boot_cnt += cur_len;
-	} else {
-		nb_fw.app_cnt += cur_len;
-	}
-	rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
+		if (nb_fw.upgrade_boot) {
+			nb_fw.boot_cnt += cur_len;
+		} else {
+			nb_fw.app_cnt += cur_len;
+		}
+		//rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 		if (bc28_down_fd == -1) {
 			g_nb_bak_index = 1;
 			g_nb_index = 0;
 			if (g_nbiot_update_len == cur_len) {
 				rt_kprintf("new download\n");
-			if (upgrade_type)
-				bc28_down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);	
-			else
-				bc28_down_fd = open("/BootLoader.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);	
+				if (upgrade_type)
+					bc28_down_fd = open("/stm32.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);	
+				else
+					bc28_down_fd = open("/BootLoader.bin",  O_WRONLY | O_CREAT | O_TRUNC, 0);	
 			} else {
 				rt_kprintf("duan dian\n");
-			if (upgrade_type)
-				bc28_down_fd = open("/stm32.bin",  O_WRONLY | O_APPEND, 0);	
-			else
-				bc28_down_fd = open("/BootLoader.bin",  O_WRONLY | O_APPEND, 0);	
+				if (upgrade_type)
+					bc28_down_fd = open("/stm32.bin",  O_WRONLY | O_APPEND, 0);	
+				else
+					bc28_down_fd = open("/BootLoader.bin",  O_WRONLY | O_APPEND, 0);	
 			}
 		}
 		if ((index == g_nb_index) && (g_nb_index != g_nb_bak_index)) {
+			//lseek(bc28_down_fd, g_nbiot_update_len - cur_len, SEEK_SET);
+			rt_kprintf("NBIOT write offset %d\n", g_nbiot_update_len - cur_len);
 			g_nb_bak_index = g_nb_index;
 			g_nb_index++;
-		//lseek(bc28_down_fd, g_nbiot_update_len - cur_len, SEEK_SET);
-		rt_kprintf("NBIOT write offset %d\n", g_nbiot_update_len - cur_len);
-		if (cur_len != write(bc28_down_fd, data+8, cur_len))
-		{
-			rt_kprintf("write bc28 data failed\n");
-			//close(bc28_down_fd);
-			//break;
-		}
-		fsync(bc28_down_fd);
-		if (!cur_status) {
-		if (upgrade_type)
-			upload_server(CMD_UPDATE);
-		else
-			upload_server(CMD_UPDATE_BOOT);
-		}
+			if (cur_len != write(bc28_down_fd, data+8, cur_len))
+			{
+				rt_kprintf("write bc28 data failed\n");
+				g_nb_index--;
+				g_nb_bak_index--;
+				g_nbiot_update_len -= cur_len;
+				if (nb_fw.upgrade_boot) {
+					nb_fw.boot_cnt -= cur_len;
+				} else {
+					nb_fw.app_cnt -= cur_len;
+				}
+				//close(bc28_down_fd);
+				//break;
+			} else {
+				fsync(bc28_down_fd);
+			}
+			show_memory_info();
+			if (!cur_status) {
+				if (upgrade_type)
+					upload_server(CMD_UPDATE);
+				else
+					upload_server(CMD_UPDATE_BOOT);
+			}
+		} else {
+			g_nbiot_update_len -= cur_len;
+			if (nb_fw.upgrade_boot) {
+				nb_fw.boot_cnt -= cur_len;
+			} else {
+				nb_fw.app_cnt -= cur_len;
+			}
 		}
 	}
 	else {
@@ -1238,53 +1256,69 @@ void handle_bc26_update(rt_uint8_t *data)
 		nb_fw.app_cnt = 0;
 		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 		if ((index == g_nb_index) && (g_nb_index != g_nb_bak_index)) {
+			rt_kprintf("NBIOT End write offset %d\n", g_nbiot_update_len - cur_len);
 			g_nb_bak_index = g_nb_index;
 			g_nb_index++;
-		rt_kprintf("NBIOT End write offset %d\n", g_nbiot_update_len - cur_len);
-		//lseek(bc28_down_fd, g_nbiot_update_len - cur_len, SEEK_SET);
-		if (cur_len != write(bc28_down_fd, data+8, cur_len))
-		{
-			rt_kprintf("write bc28 data failed2\n");
-			//close(bc28_down_fd);
-			//break;
-		}
-		fsync(bc28_down_fd);
-		close(bc28_down_fd);
-		list_dir("/");
-		bc28_down_fd=-1;
-		entering_ftp_mode = 0;
-		if (upgrade_type)
-			mp.firmCRC = CRC_check_file("/stm32.bin");
-		else
-			mp.firmCRC = CRC_check_file("/BootLoader.bin");
-		if (mp.firmCRC != g_crc)
-		{
-			rt_kprintf("App/Boot download failed %x %x\r\n",mp.firmCRC,g_crc);
-		} else {
-			if (upgrade_type) {
-				rt_kprintf("App donwload ok\r\n");
-				if (g_app_v!=0)
-					mp.firmVersion = g_app_v;
-				mp.firmLength = all_len;
-				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
-				//entering_ftp_mode = 0;
-				//g_heart_cnt=0;
-				//g_net_state = NET_STATE_UNKNOWN;
-				//pcie_switch(g_module_type);
+			//lseek(bc28_down_fd, g_nbiot_update_len - cur_len, SEEK_SET);
+			if (cur_len != write(bc28_down_fd, data+8, cur_len))
+			{
+				rt_kprintf("write bc28 data failed2\n");
+				g_nb_index--;
+				g_nb_bak_index--;
+				g_nbiot_update_len -= cur_len;
+				if (nb_fw.upgrade_boot) {
+					nb_fw.boot_cnt -= cur_len;
+				} else {
+					nb_fw.app_cnt -= cur_len;
+				}
+				//close(bc28_down_fd);
+				//break;
 			} else {
-				rt_kprintf("Boot donwload ok\r\n");
-				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
-				/* real update boot*/
-				rt_kprintf("going to upgrade Boot\r\n");
-			//1	write_flash(0x08000000, "/BootLoader.bin", g_nbiot_update_len);
+				fsync(bc28_down_fd);
 			}
-		Wtn6_Play(VOICE_UPDATE,ONCE,1);
-			if (!cur_status) {
-			//1	rt_thread_delay(500);
-			//1	NVIC_SystemReset();
+			close(bc28_down_fd);
+			list_dir("/");
+			bc28_down_fd=-1;
+			entering_ftp_mode = 0;
+			if (upgrade_type)
+				mp.firmCRC = CRC_check_file("/stm32.bin");
+			else
+				mp.firmCRC = CRC_check_file("/BootLoader.bin");
+			if (mp.firmCRC != g_crc)
+			{
+				rt_kprintf("App/Boot download failed %x %x\r\n",mp.firmCRC,g_crc);
+			} else {
+				if (upgrade_type) {
+					rt_kprintf("App donwload ok\r\n");
+					if (g_app_v!=0)
+						mp.firmVersion = g_app_v;
+					mp.firmLength = all_len;
+					rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+					//entering_ftp_mode = 0;
+					//g_heart_cnt=0;
+					//g_net_state = NET_STATE_UNKNOWN;
+					//pcie_switch(g_module_type);
+				} else {
+					rt_kprintf("Boot donwload ok\r\n");
+					rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
+					/* real update boot*/
+					rt_kprintf("going to upgrade Boot\r\n");
+					write_flash(0x08000000, "/BootLoader.bin", g_nbiot_update_len);
+				}
+				Wtn6_Play(VOICE_UPDATE,ONCE,1);
+				if (!cur_status) {
+					rt_thread_delay(500);
+					NVIC_SystemReset();
+				}
+			}
+		} else {
+			g_nbiot_update_len -= cur_len;
+			if (nb_fw.upgrade_boot) {
+				nb_fw.boot_cnt -= cur_len;
+			} else {
+				nb_fw.app_cnt -= cur_len;
 			}
 		}
-	}
 	}
 }
 rt_uint8_t handle_packet(rt_uint8_t *data)
