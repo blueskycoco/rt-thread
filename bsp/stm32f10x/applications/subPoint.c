@@ -347,7 +347,7 @@ void save_fq(struct FangQu *list, int len)
 {
 	int i;	
 	g_coding_cnt =0;
-	for (i=0;i<len;i++)
+	for (i=0;i<len-1;i++)
 	{
 		rt_kprintf("slave sn %x, sub id %x\r\n",
 			list[i].slave_sn,sub_id);

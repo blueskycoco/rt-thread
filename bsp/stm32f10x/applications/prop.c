@@ -25,8 +25,10 @@ void dump_nb(void)
 {
 	rt_kprintf("nb.boot_cnt 		%d\r\n",nb_fw.boot_cnt); 
 	rt_kprintf("nb.app_cnt 	%d\r\n",nb_fw.app_cnt); 
-	rt_kprintf("nb.boot_crc 		%d\r\n",nb_fw.boot_crc); 
-	rt_kprintf("nb.app_crc 		%d\r\n",nb_fw.app_crc); 
+	rt_kprintf("nb.boot_crc 		%x\r\n",nb_fw.boot_crc); 
+	rt_kprintf("nb.app_crc 		%x\r\n",nb_fw.app_crc); 
+	rt_kprintf("nb.app_index	%d\r\n", nb_fw.app_index);
+	rt_kprintf("nb.boot_index	%d\r\n", nb_fw.boot_index);
 	rt_kprintf("nb.upgrade_boot 		%d\r\n",nb_fw.upgrade_boot); 
 }
 void dump_mp(struct MachineProperty v)
@@ -619,6 +621,8 @@ int load_param()
 		nb_fw.boot_cnt = 0;
 		nb_fw.app_cnt 	= 0;
 		nb_fw.boot_crc 	= 0;
+		nb_fw.app_index = 0;
+		nb_fw.boot_index = 0;
 		nb_fw.upgrade_boot 		= 0;
 		fd = open(NB_FILE, O_RDONLY, 0);
 		if (fd > 0) {
@@ -630,6 +634,7 @@ int load_param()
 			if (length != sizeof(tmp_nb) ||tmp_crc != crc) {
 				rt_kprintf("check: nb crc not same\n");
 				close(fd);
+				remove(NB_FILE);
 				return 0;
 			}
 			close(fd);
@@ -646,7 +651,6 @@ int load_param()
 	default_fqp_t(fangqu_wire,fangqu_wireless);
 	return 1;
 }
-
 void save_param(int type)
 {
 	int fd;

@@ -118,6 +118,8 @@ struct NbIotFw
 	rt_uint16_t boot_cnt;
 	rt_uint16_t app_crc;
 	rt_uint16_t boot_crc;
+	rt_uint16_t	app_index;
+	rt_uint16_t boot_index;
 	rt_uint8_t upgrade_boot;
 };
 #define WIRELESS_MAX	50

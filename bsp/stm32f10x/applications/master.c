@@ -788,13 +788,21 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 					nb_fw.upgrade_boot 		= 1;
 				}
 			}
-			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 
 			entering_ftp_mode_nbiot=1;
-			if (type)
+			if (type) {
 				g_nbiot_update_len = nb_fw.app_cnt;
-			else
+				g_nb_index = nb_fw.app_index;
+			}
+			else {
 				g_nbiot_update_len = nb_fw.boot_cnt;
+				g_nb_index = nb_fw.boot_index;
+			}
+			if (g_nb_index == 0)
+				g_nb_bak_index = 1;
+			else
+				g_nb_bak_index = g_nb_index-1;
+			rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 			nbiot_module = 1;
 		} else {
 			upload_server(CMD_EXIT);
@@ -1194,10 +1202,8 @@ void handle_bc26_update(rt_uint8_t *data)
 		} else {
 			nb_fw.app_cnt += cur_len;
 		}
-		//rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 		if (bc28_down_fd == -1) {
-			g_nb_bak_index = 1;
-			g_nb_index = 0;
+			//g_nb_bak_index = 1;
 			if (g_nbiot_update_len == cur_len) {
 				rt_kprintf("new download\n");
 				if (upgrade_type)
@@ -1232,6 +1238,11 @@ void handle_bc26_update(rt_uint8_t *data)
 				//break;
 			} else {
 				fsync(bc28_down_fd);
+				if (nb_fw.upgrade_boot)
+					nb_fw.boot_index = g_nb_index;
+				else
+					nb_fw.app_index = g_nb_index;
+				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 			}
 			show_memory_info();
 			if (!cur_status) {
@@ -1254,7 +1265,7 @@ void handle_bc26_update(rt_uint8_t *data)
 		nb_fw.boot_crc = 0;
 		nb_fw.app_crc = 0;
 		nb_fw.app_cnt = 0;
-		rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
+		//rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 		if ((index == g_nb_index) && (g_nb_index != g_nb_bak_index)) {
 			rt_kprintf("NBIOT End write offset %d\n", g_nbiot_update_len - cur_len);
 			g_nb_bak_index = g_nb_index;
@@ -1275,6 +1286,11 @@ void handle_bc26_update(rt_uint8_t *data)
 				//break;
 			} else {
 				fsync(bc28_down_fd);
+				if (nb_fw.upgrade_boot)
+					nb_fw.boot_index = g_nb_index;
+				else
+					nb_fw.app_index = g_nb_index;
+				rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 			}
 			close(bc28_down_fd);
 			list_dir("/");

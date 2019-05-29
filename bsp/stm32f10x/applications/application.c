@@ -746,7 +746,7 @@ static void led_thread_entry(void* parameter)
 			//cc1101_gdo0_rx_it();  
 			_list_thread(&rt_object_container[RT_Object_Class_Thread].object_list);
 			cc1101_cal_time = 0;
-			list_dir("/");
+			//list_dir("/");
 		} else 
 			cc1101_cal_time++;
 		//rt_kprintf("test 3\r\n");
