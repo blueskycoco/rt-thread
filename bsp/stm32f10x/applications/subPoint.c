@@ -364,7 +364,7 @@ void save_fq(struct FangQu *list, int len)
 			return;
 		}
 	}
-	for (i=0;i<len;i++)
+	for (i=0;i<len-1;i++)
 	{
 		if (list[i].index == 0)
 		{
