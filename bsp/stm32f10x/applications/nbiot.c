@@ -630,7 +630,8 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 						i+=2;						
 					}					
 #if HUAWEI_PLATFORM
-					strcpy(ncdp_bc28, "AT+NCDP=180.101.147.115,5683\r\n");
+					//strcpy(ncdp_bc28, "AT+NCDP=180.101.147.115,5683\r\n");
+					strcpy(ncdp_bc28, "AT+NCDP=117.60.157.137,5683\r\n");
 					//rt_sprintf(ncdp_bc28, "AT+NCDP=%d.%d.%d.%d,%d\r\n",
 					//			mp.socketAddress[g_ip_index].IP[0],mp.socketAddress[g_ip_index].IP[1],
 					//			mp.socketAddress[g_ip_index].IP[2],mp.socketAddress[g_ip_index].IP[3],

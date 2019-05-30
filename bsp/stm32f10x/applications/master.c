@@ -1261,10 +1261,6 @@ void handle_bc26_update(rt_uint8_t *data)
 		}
 	}
 	else {
-		nb_fw.boot_cnt = 0;
-		nb_fw.boot_crc = 0;
-		nb_fw.app_crc = 0;
-		nb_fw.app_cnt = 0;
 		//rt_event_send(&(g_info_event), INFO_EVENT_SAVE_NB);
 		if ((index == g_nb_index) && (g_nb_index != g_nb_bak_index)) {
 			rt_kprintf("NBIOT End write offset %d\n", g_nbiot_update_len - cur_len);
@@ -1282,10 +1278,15 @@ void handle_bc26_update(rt_uint8_t *data)
 				} else {
 					nb_fw.app_cnt -= cur_len;
 				}
+				return;
 				//close(bc28_down_fd);
 				//break;
 			} else {
 				fsync(bc28_down_fd);
+		nb_fw.boot_cnt = 0;
+		nb_fw.boot_crc = 0;
+		nb_fw.app_crc = 0;
+		nb_fw.app_cnt = 0;
 				if (nb_fw.upgrade_boot)
 					nb_fw.boot_index = g_nb_index;
 				else
