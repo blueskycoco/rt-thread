@@ -511,7 +511,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[17] = g_bat % 256;
 		if (heart_type == 0) {
 			cmd[18] = 0x01;
-			//mp.firmVersion = 3;
+			mp.firmVersion = 30;
 			cmd[19] = mp.firmVersion >> 8;
 			cmd[20] = mp.firmVersion & 0xff;
 			heart_type = 1;
@@ -530,8 +530,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			rt_kprintf("addr_type\tUpgradeIP %d\r\n",mp.updateAddressVersion);
 		} else if (heart_type == 3) {
 			cmd[18] = 0x04;
-			//hwv.bootversion0 = 0x00;
-			//hwv.bootversion1 = 0x01;
+			hwv.bootversion0 = 0x00;
+			hwv.bootversion1 = 0x01;
 			cmd[19] = hwv.bootversion0;
 			cmd[20] = hwv.bootversion1;
 			heart_type = 0;

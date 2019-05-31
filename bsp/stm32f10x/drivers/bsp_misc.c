@@ -542,6 +542,7 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 	rt_uint8_t *Data = NULL;
 	rt_uint32_t NbrOfPage = 0x00;
 	volatile FLASH_Status FLASHStatus = FLASH_COMPLETE;
+	rt_kprintf("burn boot step 1\r\n");
 	int fd = open(file, O_RDONLY, 0);
 	if (fd < 0)
 	{
@@ -549,17 +550,20 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 		return 0;
 	}
 
+	rt_kprintf("burn boot step 2\r\n");
 	NbrOfPage = len / FLASH_PAGE_SIZE;
 	if ((len % FLASH_PAGE_SIZE) !=0)
 		NbrOfPage += 1;
 
 	rt_base_t level = rt_hw_interrupt_disable();
+	rt_kprintf("burn boot step 3\r\n");
 	FLASH_Unlock();	
 	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);
 	for(EraseCounter = 0; (EraseCounter < NbrOfPage) && (FLASHStatus == FLASH_COMPLETE); EraseCounter++)
 	{
 		FLASHStatus = FLASH_ErasePage(start_addr + (FLASH_PAGE_SIZE * EraseCounter));
 	}
+	rt_kprintf("burn boot step 4\r\n");
 	if (EraseCounter != NbrOfPage)
 		rt_kprintf("erase boot area failed\r\n");
 	else {

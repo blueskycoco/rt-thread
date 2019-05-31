@@ -9,7 +9,7 @@
 #define PCIE_1_NBIOT	0x08
 #define PCIE_2_NBIOT	0x80
 
-#define PROTL_V				0x0003
+#define PROTL_V				0x0004
 #define CMD_LOGIN			0x0001
 #define CMD_HEART			0x0002
 #define CMD_EXIT			0x0003
