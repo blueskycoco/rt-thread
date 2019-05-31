@@ -586,7 +586,13 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			cmd[22] = (battery>>8) & 0xff;
 			cmd[23] = (battery) & 0xff;
 			cmd[24] = con_rssi(r_signal);
-			ofs= 25;
+			if (g_alarm_fq <= 50 && g_alarm_fq >=2) 
+				cmd[25] = fangqu_wireless[g_alarm_fq-2].slave_type;
+			else if (g_alarm_fq <= 80)
+				cmd[25] = fangqu_wire[g_alarm_fq-50].slave_type;
+			else
+				cmd[25] = fangqu_io[g_alarm_fq-80].slave_type;
+			ofs= 26;
 		}
 		need_read = 1;
 		rt_kprintf("alarm\t\t%02x%02x\r\n", cmd[15],cmd[16]);

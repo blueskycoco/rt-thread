@@ -824,7 +824,9 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 		switch (cmd[4]) {
 			case 0x01:			
 				rt_kprintf("new APP version: \t%d",v);
-				g_app_v = v;
+				if (!(entering_ftp_mode && nbiot_module)) {
+					g_app_v = v;
+				}
 				prepare_upgrade(cmd,1);
 				break;
 			case 0x02:			
@@ -837,9 +839,11 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 				break;
 			case 0x04:
 				rt_kprintf("new BOOT version: \t%d", v);
-				hwv.bootversion0 = (v>>8)&0xff;
-				hwv.bootversion1 = v&0xff;
-				g_app_v = v;
+				if (!(entering_ftp_mode && nbiot_module)) {
+					hwv.bootversion0 = (v>>8)&0xff;
+					hwv.bootversion1 = v&0xff;
+					g_app_v = v;
+				}
 				prepare_upgrade(cmd,0);
 				break;
 		}
