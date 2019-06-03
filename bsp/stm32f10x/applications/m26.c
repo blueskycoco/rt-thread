@@ -471,7 +471,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 	//}
 #endif
 	if (data_size >= 2) {
-		if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT))
+		if ((have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)||have_str(last_data_ptr,STR_PDP_DEACT)) && !entering_ftp_mode)
 		{
 			g_m26_state = M26_STATE_INIT;
 			if (have_str(last_data_ptr,STR_PDP_DEACT)) {
@@ -492,6 +492,7 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case M26_STATE_ATE0:
 				if (have_str(last_data_ptr,STR_OK)) {
+					ftp_cfg_step=0;
 					g_m26_state = M26_STATE_V;
 					gprs_at_cmd(g_dev_m26,ati);
 				} else {

@@ -1054,7 +1054,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		rt_thread_startup(rt_thread_create("3pcie1",pcie1_rcv, 0,1524, 20, 10));
 		rt_thread_startup(rt_thread_create("4pcie1", pcie1_sm,  0,2048, 20, 10));
 	}
-#if 0
+#if 1
 	if (!type0 && !type1) {
 		rt_kprintf("start IP hw\n");
 		g_pcie[1] = (ppcie_param)rt_malloc(sizeof(pcie_param));

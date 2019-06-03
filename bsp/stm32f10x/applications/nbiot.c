@@ -222,6 +222,7 @@ uint8_t 	  *server_buf_bc28 			= RT_NULL;
 void 		  *send_data_ptr_bc28 		= RT_NULL;
 rt_size_t 	  send_size_bc28;
 rt_uint8_t 	  bc28_cnt 					= 0;
+extern void begin_yunduo();
 extern rt_uint32_t g_register_cnt;
 extern rt_uint8_t 	g_net_state;
 extern rt_uint32_t 	g_server_addr;
@@ -894,6 +895,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					server_len_bc28 = 0;
 				}
 #endif
+			begin_yunduo();
 				break;
 			case BC28_STATE_DATA_ACK:
 				if (have_str(last_data_ptr, STR_QISACK)) {
