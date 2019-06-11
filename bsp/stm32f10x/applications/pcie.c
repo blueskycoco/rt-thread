@@ -511,7 +511,7 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 		cmd[17] = g_bat % 256;
 		if (heart_type == 0) {
 			cmd[18] = 0x01;
-			mp.firmVersion = 30;
+			//mp.firmVersion = 30;
 			cmd[19] = mp.firmVersion >> 8;
 			cmd[20] = mp.firmVersion & 0xff;
 			heart_type = 1;
@@ -530,8 +530,8 @@ int build_cmd(rt_uint8_t *cmd,rt_uint16_t type)
 			rt_kprintf("addr_type\tUpgradeIP %d\r\n",mp.updateAddressVersion);
 		} else if (heart_type == 3) {
 			cmd[18] = 0x04;
-			hwv.bootversion0 = 0x00;
-			hwv.bootversion1 = 0x01;
+			//hwv.bootversion0 = 0x00;
+			//hwv.bootversion1 = 0x01;
 			cmd[19] = hwv.bootversion0;
 			cmd[20] = hwv.bootversion1;
 			heart_type = 0;
@@ -1062,7 +1062,7 @@ rt_uint8_t pcie_init(rt_uint8_t type0, rt_uint8_t type1)
 		rt_event_init(&(g_pcie[1]->event), 	"pcie1_event", 	RT_IPC_FLAG_FIFO );
 		rt_mutex_init(&(g_pcie[1]->lock), 	"pcie1_lock", 	RT_IPC_FLAG_FIFO);
 		rt_sem_init(&(g_pcie[1]->sem), 		"pcie1_sem", 	0, 0);
-		rt_thread_startup(rt_thread_create("IP", ip_thread,  0,2048, 20, 10));
+		rt_thread_startup(rt_thread_create("IP", ip_thread,  0,2048+1024, 20, 10));
 	}
 #endif
 	if (type0 && (!type1))
