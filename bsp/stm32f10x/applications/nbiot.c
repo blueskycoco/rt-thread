@@ -222,6 +222,7 @@ uint8_t 	  *server_buf_bc28 			= RT_NULL;
 void 		  *send_data_ptr_bc28 		= RT_NULL;
 rt_size_t 	  send_size_bc28;
 rt_uint8_t 	  bc28_cnt 					= 0;
+extern void begin_yunduo();
 extern rt_uint32_t g_register_cnt;
 extern rt_uint8_t 	g_net_state;
 extern rt_uint32_t 	g_server_addr;
@@ -915,9 +916,9 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 				if (have_str(last_data_ptr, STR_NNMI)) {
 					int len = 0;
 					if (parse_at_resp(last_data_ptr, "%*[^:]:%d", &len)>0) {
-						rt_kprintf("g2et %d bytes\r\n", len);
+						rt_kprintf("get %d bytes\r\n", len);
 						handle_bc28_server_in(last_data_ptr, data_size);
-					}					
+					}
 				}
 #else
 				if (have_str(last_data_ptr, STR_QIRDI) || g_data_in_bc28)
@@ -927,6 +928,7 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 					server_len_bc28 = 0;
 				}
 #endif
+			begin_yunduo();
 				break;
 			case BC28_STATE_DATA_ACK:
 				if (have_str(last_data_ptr, STR_QISACK)) {

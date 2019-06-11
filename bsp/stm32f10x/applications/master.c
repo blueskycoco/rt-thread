@@ -770,7 +770,6 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 		entering_ftp_mode = 1;						
 		upgrade_type = type;
 		HtbLcdClear();
-		//	Wtn6_Play(VOICE_UPDATE,ONCE,1);
 		if (((g_index == 1 && g_type1 == PCIE_2_NBIOT) ||
 					(g_index == 0 && g_type0 == PCIE_1_NBIOT))
 		   )
@@ -807,6 +806,7 @@ void prepare_upgrade(rt_uint8_t *cmd, rt_uint8_t type)
 		} else {
 			upload_server(CMD_EXIT);
 			rt_thread_delay(200);
+			Wtn6_Play(VOICE_UPDATE,ONCE,1);
 		}
 	}
 
