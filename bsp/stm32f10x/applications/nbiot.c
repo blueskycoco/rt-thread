@@ -436,8 +436,41 @@ void nbiot_proc(void *last_data_ptr, rt_size_t data_size)
 				break;
 			case BC28_STATE_V:
 				if (have_str(last_data_ptr, STR_OK)) {
+					g_pcie[g_index]->cpin_cnt=0;
+					g_nbiot_state = BC28_STATE_CHECK_CPIN;
+					gprs_at_cmd(g_dev_nbiot,cpin);
+					
+				}
+				break;
+			case BC28_STATE_CHECK_CPIN:
+				if (have_str(last_data_ptr,STR_CPIN_READY)) {
 					g_nbiot_state = BC28_QREG_ASK;
 					gprs_at_cmd(g_dev_nbiot,qregswt_ask);
+					g_pcie[g_index]->cpin_cnt=0;
+					
+					//g_m26_state = M26_STATE_CHECK_CGREG;
+					//cgreg_cnt = 0;
+					SetStateIco(6,1);
+					//gprs_at_cmd(g_dev_m26,cgreg);
+				} 
+				else/* if (have_str(last_data_ptr, STR_CPIN))*/
+				{
+					g_pcie[g_index]->cpin_cnt++;
+					if (g_pcie[g_index]->cpin_cnt>10)
+					{/*power off this module , power on another module*/
+						SetStateIco(3,1);
+						SetStateIco(6,0);
+						if (g_index==0)
+							SetErrorCode(0x08);
+						else
+							SetErrorCode(0x09);
+						rt_kprintf("restart nbiot ...\r\n");
+						g_heart_cnt=0;
+						g_net_state = NET_STATE_UNKNOWN;
+						pcie_switch(g_module_type);
+					}
+					rt_thread_delay(100);
+					gprs_at_cmd(g_dev_nbiot,cpin);
 				}
 				break;
 			case BC28_QREG_ASK:

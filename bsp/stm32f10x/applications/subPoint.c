@@ -852,7 +852,7 @@ void handleSub(rt_uint8_t *data)
 			//	(command_type == 0x0004 && !cur_status))
 			//	Wtn6_Play(VOICE_ERRORTIP,ONCE);			
 		}
-		if (dev_type == 0x01 && battery < 840) {
+		if (dev_type == 0x01 && battery < 590) {
 			g_alarm_reason = 0x0023;
 			g_alarm_fq = fangqu_wireless[g_index_sub].index;
 			upload_server(CMD_ALARM);
