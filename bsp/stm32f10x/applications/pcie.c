@@ -949,7 +949,7 @@ void send_process(void* parameter)
 			send_len = build_cmd(cmd,CMD_HEART);
 			rt_kprintf("heart cnt %d\r\n",g_heart_cnt);
 			g_heart_cnt++;
-			if (g_heart_cnt > 3/*6*/) {
+			if (g_heart_cnt > 3 && g_type1 != PCIE_2_IP/*6*/) {
 				g_heart_cnt=0;
 				g_net_state = NET_STATE_UNKNOWN;
 				pcie_switch(g_module_type);

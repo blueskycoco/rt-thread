@@ -556,12 +556,19 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 		NbrOfPage += 1;
 
 	rt_base_t level = rt_hw_interrupt_disable();
+	rt_hw_led_off(ALARM_LED);
+	rt_hw_led_off(AUX_LED0);
+	rt_hw_led_off(AUX_LED1);
+	bell_ctl(0);
 	rt_kprintf("burn boot step 3\r\n");
 	FLASH_Unlock();	
+	rt_kprintf("burn boot step 3.1\r\n");
 	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);
+	rt_kprintf("burn boot step 3.2\r\n");
 	for(EraseCounter = 0; (EraseCounter < NbrOfPage) && (FLASHStatus == FLASH_COMPLETE); EraseCounter++)
 	{
 		FLASHStatus = FLASH_ErasePage(start_addr + (FLASH_PAGE_SIZE * EraseCounter));
+	rt_kprintf("burn boot step 3.3\r\n");
 	}
 	rt_kprintf("burn boot step 4\r\n");
 	if (EraseCounter != NbrOfPage)
@@ -589,9 +596,15 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 				break;
 		}
 	}
+	rt_kprintf("burn boot step 5\r\n");
+	FLASH_Lock();	
+	rt_kprintf("burn boot step 6\r\n");
 	close(fd);
+	rt_kprintf("burn boot step 7\r\n");
 	free(Data);
+	rt_kprintf("burn boot step 8\r\n");
 	rt_hw_interrupt_enable(level);
+	rt_kprintf("burn boot step 9\r\n");
 	return 1;
 }
 
