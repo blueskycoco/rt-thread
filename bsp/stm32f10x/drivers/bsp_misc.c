@@ -549,6 +549,11 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 	rt_uint32_t NbrOfPage = 0x00;
 	volatile FLASH_Status FLASHStatus = FLASH_COMPLETE;
 	rt_kprintf("burn boot step 1\r\n");
+	Data = (rt_uint8_t *)rt_malloc(2048*sizeof(rt_uint8_t));
+	if (Data == RT_NULL) {
+		rt_kprintf("no memory to flash BOOT\n");
+		return 0;
+	}
 	int fd = open(file, O_RDONLY, 0);
 	if (fd < 0)
 	{
@@ -582,7 +587,6 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 		rt_kprintf("erase boot area failed\r\n");
 	else {
 		rt_kprintf("erase boot area ok\r\n");
-		Data = (rt_uint8_t *)rt_malloc(2048*sizeof(rt_uint8_t));
 		EraseCounter = 0;
 		while (1) {
 			rt_uint32_t length = read(fd, Data, 2048);
