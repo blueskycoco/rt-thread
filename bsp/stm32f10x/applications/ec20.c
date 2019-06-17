@@ -429,7 +429,8 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 		
 		switch (g_ec20_state) {
 			case EC20_STATE_INIT:
-				if (have_str(last_data_ptr,STR_RDY)) {
+				if (have_str(last_data_ptr,STR_RDY)||have_str(last_data_ptr,STR_CFUN)||have_str(last_data_ptr,STR_CLOSED)
+						||have_str(last_data_ptr,STR_PDP_DEACT)) {
 				g_ec20_state = EC20_STATE_ATE0;
 				gprs_at_cmd(g_dev_ec20,e0);			
 				}/* else if (have_str(last_data_ptr, STR_POWER_DOWN)){						

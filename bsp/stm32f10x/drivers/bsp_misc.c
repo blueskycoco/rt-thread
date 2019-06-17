@@ -536,6 +536,12 @@ void print_ts(rt_uint8_t *ptr)
 	rt_time_t cur_time = time(RT_NULL);
 	rt_kprintf(" %s %s\r\n",ptr,ctime(&cur_time));
 }
+void little_delay(int n)
+{
+	volatile long d = 0;
+	while (d<n*100)
+		d++;
+}
 rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len)
 {
 	rt_uint32_t EraseCounter = 0x00, Address = 0x00;
@@ -568,6 +574,7 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 	for(EraseCounter = 0; (EraseCounter < NbrOfPage) && (FLASHStatus == FLASH_COMPLETE); EraseCounter++)
 	{
 		FLASHStatus = FLASH_ErasePage(start_addr + (FLASH_PAGE_SIZE * EraseCounter));
+    	IWDG_ReloadCounter();
 	rt_kprintf("burn boot step 3.3\r\n");
 	}
 	rt_kprintf("burn boot step 4\r\n");
@@ -576,13 +583,18 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 	else {
 		rt_kprintf("erase boot area ok\r\n");
 		Data = (rt_uint8_t *)rt_malloc(2048*sizeof(rt_uint8_t));
+		EraseCounter = 0;
 		while (1) {
 			rt_uint32_t length = read(fd, Data, 2048);
 			rt_uint32_t i =0;
 			rt_kprintf("begin to prog %08x\r\n", start_addr+Address);
 			if (length > 0) {
+				//FLASHStatus = FLASH_ErasePage(start_addr + (FLASH_PAGE_SIZE * EraseCounter));
+				//if (FLASHStatus == FLASH_COMPLETE)
+				//	rt_kprintf("erase %d succ\n", EraseCounter*FLASH_PAGE_SIZE);
 				while((Address < len) && (FLASHStatus == FLASH_COMPLETE))
 				{
+    				IWDG_ReloadCounter();
 					rt_uint32_t tmp_dat = (Data[i+3]<<24)|(Data[i+2]<<16)|(Data[i+1]<<8)|Data[i+0];
 					FLASHStatus = FLASH_ProgramWord(start_addr+Address, tmp_dat);
 					Address = Address + 4;
@@ -590,6 +602,7 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 					if (i>=length)
 						break;
 				}	
+				//EraseCounter++;
 				if (i>=length && length != 2048)
 					break;
 			} else

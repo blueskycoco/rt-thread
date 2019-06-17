@@ -953,6 +953,9 @@ void rt_init_thread_entry(void* parameter)
 	rt_kprintf("spi flash init done , err 0x%08x\r\n",err_code);
 	list_dir("/");
 #endif  /* RT_USING_DFS */
+	
+	//write_flash(0x08000000, "/BootLoader.bin", 29128);
+	//NVIC_SystemReset();
 
 	unsigned int count=0,count1=256;
 	rt_uint8_t buf1[256]={0};	
