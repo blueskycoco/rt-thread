@@ -54,6 +54,7 @@ extern "C" {
 #define R_227	227		/* Entering passive mode (h1,h2,h3,h4,p1,p2) */
 #define R_230	230		/* User logged in, proceed */
 #define R_331	331		/* User name okay, need password. */
+#define R_425	425
 
 #define TransferAscii		'A'
 #define TransferBinary		'I'

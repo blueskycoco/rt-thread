@@ -917,8 +917,11 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 							/* real update boot*/
 							rt_kprintf("going to upgrade Boot\r\n");
 							ret = write_flash(0x08000000, "/BootLoader.bin", stm32_len);
-							if (ret)
+							if (ret) {
+							hwv.bootversion0 = (g_app_v>>8)&0xff;
+							hwv.bootversion1 = g_app_v&0xff;
 								rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
+							}
 						}
 						if (!cur_status && ret) {
 						rt_thread_delay(500);

@@ -840,8 +840,8 @@ void handle_heart_beat_ack(rt_uint8_t *cmd)
 			case 0x04:
 				rt_kprintf("new BOOT version: \t%d", v);
 				if (!(entering_ftp_mode && nbiot_module)) {
-					hwv.bootversion0 = (v>>8)&0xff;
-					hwv.bootversion1 = v&0xff;
+					//hwv.bootversion0 = (v>>8)&0xff;
+					//hwv.bootversion1 = v&0xff;
 					g_app_v = v;
 				}
 				prepare_upgrade(cmd,0);
@@ -1321,6 +1321,8 @@ void handle_bc26_update(rt_uint8_t *data)
 					//pcie_switch(g_module_type);
 				} else {
 					rt_kprintf("Boot donwload ok\r\n");
+							hwv.bootversion0 = (g_app_v>>8)&0xff;
+							hwv.bootversion1 = g_app_v&0xff;
 					rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
 					/* real update boot*/
 					rt_kprintf("going to upgrade Boot\r\n");

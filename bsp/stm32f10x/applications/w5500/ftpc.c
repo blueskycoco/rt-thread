@@ -204,7 +204,10 @@ uint8_t ftpc_run(uint8_t * dbuf, uint8_t *dest_ip, uint16_t dest_port, uint8_t *
 											}/*else
 												rt_kprintf("write succ %d %d\n", cur_len,remain_datasize);*/
 
-											if(remain_datasize <= 0)	break;
+											if(remain_datasize <= 0)	{
+												rt_kprintf("remain_datasize %d\n", remain_datasize);
+												break;
+											}
 										}
 										//if(ftpc.fr != FR_OK){
 										if (cur_len != ret) {
@@ -216,6 +219,7 @@ uint8_t ftpc_run(uint8_t * dbuf, uint8_t *dest_ip, uint16_t dest_port, uint8_t *
 									else{
 										if(getSn_SR(DATA_SOCK) != SOCK_ESTABLISHED)	{
 											gSend_quit = 1;
+											rt_kprintf("link lost DATA_SOCK\n");
 											break;
 										}
 									}
@@ -241,6 +245,8 @@ uint8_t ftpc_run(uint8_t * dbuf, uint8_t *dest_ip, uint16_t dest_port, uint8_t *
 						mp.firmLength = stm32_len;
 						rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 						} else {
+							hwv.bootversion0 = (g_app_v>>8)&0xff;
+							hwv.bootversion1 = g_app_v&0xff;
 							rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
 							/* real update boot*/
 							rt_kprintf("going to upgrade Boot\r\n");
@@ -419,6 +425,13 @@ char proc_ftpc(char * buf)
 				ftpc.dsock_mode = PASSIVE_MODE;
 				ftpc.dsock_state = DATASOCK_READY;
 			}
+			break;
+		case R_425:
+			
+						ip_close(DATA_SOCK);
+						sprintf(dat,"QUIT\r\n");
+						rt_kprintf("send fjfquit to ftp server\r\n");
+						send(CTRL_SOCK, (uint8_t *)dat, strlen(dat));
 			break;
 		default:
 			rt_kprintf("\r\nDefault Status = %d\r\n",(uint16_t)Responses);

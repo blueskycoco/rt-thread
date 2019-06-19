@@ -795,6 +795,8 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 								rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 								} else {
 								mp.firmCRC = CRC_check_file("/BootLoader.bin");
+							hwv.bootversion0 = (g_app_v>>8)&0xff;
+							hwv.bootversion1 = g_app_v&0xff;
 							rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
 							/* real update boot*/
 							rt_kprintf("going to upgrade Boot\r\n");
