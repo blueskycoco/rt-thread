@@ -228,6 +228,7 @@ uint8_t ftpc_run(uint8_t * dbuf, uint8_t *dest_ip, uint16_t dest_port, uint8_t *
 					mp.firmCRC = CRC_check_file("/stm32.bin");
 					else
 					mp.firmCRC = CRC_check_file("/BootLoader.bin");
+					crc_ori = mp.firmCRC;
 					if (mp.firmCRC != g_crc)
 					{
 						rt_kprintf("App or Boot download failed %x %x\r\n",mp.firmCRC,g_crc);

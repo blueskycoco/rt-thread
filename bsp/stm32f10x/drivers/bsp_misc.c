@@ -567,14 +567,21 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 		NbrOfPage += 1;
 
 	rt_base_t level = rt_hw_interrupt_disable();
+    	IWDG_ReloadCounter();
 	rt_hw_led_off(ALARM_LED);
+    	IWDG_ReloadCounter();
 	rt_hw_led_off(AUX_LED0);
+    	IWDG_ReloadCounter();
 	rt_hw_led_off(AUX_LED1);
+    	IWDG_ReloadCounter();
 	bell_ctl(0);
+    	IWDG_ReloadCounter();
 	rt_kprintf("burn boot step 3\r\n");
 	FLASH_Unlock();	
+    	IWDG_ReloadCounter();
 	rt_kprintf("burn boot step 3.1\r\n");
 	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);
+    	IWDG_ReloadCounter();
 	rt_kprintf("burn boot step 3.2\r\n");
 	for(EraseCounter = 0; (EraseCounter < NbrOfPage) && (FLASHStatus == FLASH_COMPLETE); EraseCounter++)
 	{
@@ -593,6 +600,7 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 			rt_uint32_t i =0;
 			rt_kprintf("begin to prog %08x\r\n", start_addr+Address);
 			if (length > 0) {
+    	IWDG_ReloadCounter();
 				//FLASHStatus = FLASH_ErasePage(start_addr + (FLASH_PAGE_SIZE * EraseCounter));
 				//if (FLASHStatus == FLASH_COMPLETE)
 				//	rt_kprintf("erase %d succ\n", EraseCounter*FLASH_PAGE_SIZE);
@@ -615,10 +623,13 @@ rt_uint8_t write_flash(rt_uint32_t start_addr, rt_uint8_t *file, rt_uint32_t len
 	}
 	rt_kprintf("burn boot step 5\r\n");
 	FLASH_Lock();	
+    	IWDG_ReloadCounter();
 	rt_kprintf("burn boot step 6\r\n");
 	close(fd);
+    	IWDG_ReloadCounter();
 	rt_kprintf("burn boot step 7\r\n");
 	free(Data);
+    	IWDG_ReloadCounter();
 	rt_kprintf("burn boot step 8\r\n");
 	rt_hw_interrupt_enable(level);
 	rt_kprintf("burn boot step 9\r\n");

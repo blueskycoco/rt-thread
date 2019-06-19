@@ -905,19 +905,22 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 						rt_kprintf("App or Boot download failed %x %x\r\n",mp.firmCRC,g_crc);
 					}
 					else {
+						int ret = 0;
 						rt_kprintf("App donwload ok\r\n");
 						if (upgrade_type) {
 						if (g_app_v!=0)
 							mp.firmVersion = g_app_v;
 						mp.firmLength = stm32_len;
 						rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
+						ret = 1;
 						} else {
-							rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
 							/* real update boot*/
 							rt_kprintf("going to upgrade Boot\r\n");
-							write_flash(0x08000000, "/BootLoader.bin", stm32_len);
+							ret = write_flash(0x08000000, "/BootLoader.bin", stm32_len);
+							if (ret)
+								rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
 						}
-						if (!cur_status) {
+						if (!cur_status && ret) {
 						rt_thread_delay(500);
 						rt_kprintf("programing boot done, reseting ...\r\n");
 						NVIC_SystemReset();

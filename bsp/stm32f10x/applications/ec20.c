@@ -792,6 +792,7 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 								if (g_app_v!=0)
 									mp.firmVersion = g_app_v;
 								mp.firmLength = stm32_len;
+								rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 								} else {
 								mp.firmCRC = CRC_check_file("/BootLoader.bin");
 							rt_event_send(&(g_info_event), INFO_EVENT_SAVE_HWV);
@@ -799,7 +800,6 @@ void ec20_proc(void *last_data_ptr, rt_size_t data_size)
 							rt_kprintf("going to upgrade Boot\r\n");
 							write_flash(0x08000000, "/BootLoader.bin", stm32_len);
 								}
-								rt_event_send(&(g_info_event), INFO_EVENT_SAVE_MAIN);
 						if (!cur_status) {
 						rt_thread_delay(500);
 						rt_kprintf("programing app/boot done, reseting ...\r\n");
