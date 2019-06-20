@@ -232,7 +232,7 @@ uint8_t ftpc_run(uint8_t * dbuf, uint8_t *dest_ip, uint16_t dest_port, uint8_t *
 					mp.firmCRC = CRC_check_file("/stm32.bin");
 					else
 					mp.firmCRC = CRC_check_file("/BootLoader.bin");
-					crc_ori = mp.firmCRC;
+					//crc_ori = mp.firmCRC;
 					if (mp.firmCRC != g_crc)
 					{
 						rt_kprintf("App or Boot download failed %x %x\r\n",mp.firmCRC,g_crc);
@@ -429,6 +429,7 @@ char proc_ftpc(char * buf)
 		case R_425:
 			
 						ip_close(DATA_SOCK);
+						gDataSockReady = 0;
 						sprintf(dat,"QUIT\r\n");
 						rt_kprintf("send fjfquit to ftp server\r\n");
 						send(CTRL_SOCK, (uint8_t *)dat, strlen(dat));
