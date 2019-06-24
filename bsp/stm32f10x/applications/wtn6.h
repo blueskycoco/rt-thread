@@ -64,6 +64,8 @@
 #define VOICE_FANGQU            0x24        //防区
 #define VOICE_RQALARM           0x25        //燃气报警
 
+#define VOICE_JIAOFEI        		0x26        //服务到期，请缴费
+#define VOICE_ALARM3        		0x27        //警笛
 
 
 //typedef enum

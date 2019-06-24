@@ -57,13 +57,15 @@ extern rt_uint8_t upgrade_type;
 uint8_t 	  *server_buf_ip 			= RT_NULL;
 void 		  *send_data_ptr_ip 		= RT_NULL;
 rt_size_t 	  send_size_ip;
-uint8_t DNS_2nd[4]    = {208, 67, 222, 222};
+//uint8_t DNS_2nd[4]    = {208, 67, 222, 222};
+uint8_t DNS_2nd[4]    = {223, 6, 6, 6};
 wiz_NetInfo gWIZNETINFO = {
 	.mac = {0x00, 0x08, 0xdc, 0xab, 0xcd, 0xef},
 	.ip = {192, 168, 1, 2},
 	.sn = {255, 255, 255, 0},
 	.gw = {192, 168, 1, 1},
-	.dns = {8, 8, 8, 8},
+	//.dns = {8, 8, 8, 8},
+	.dns = {223, 5, 5, 5},
 	.dhcp = NETINFO_DHCP 
 };
 #define SOCK_DHCP       	6

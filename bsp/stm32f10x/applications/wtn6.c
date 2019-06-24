@@ -61,9 +61,49 @@ void Wtn6_Set_Volumne(Wtn6_VolumeDef volumne)
 }
 void Stop_Played(void)
 {
-  while(Is_Playing())
-  	rt_thread_delay(10);
-  speaker_ctl(0);
+    while(Is_Playing())
+        rt_thread_delay(10);
+    speaker_ctl(0);
+}
+
+static uint8_t Wtn6_Check(u8 voice)
+{
+  rt_uint8_t result;
+    switch(hwv.isdVersion)
+    {
+    case 0:
+    case 1:
+        if(voice > 0x1c || voice == 0x18)
+        {
+            result= 0xFF;
+        }
+        else
+        {
+            result= voice;
+        }
+        break;
+    case 2:
+        if(voice > 25)
+        {
+            result= 0xFF;
+        }
+        else
+        {
+            result= voice;
+        }
+        break;
+    case 3:
+        if(voice > 0x27 || voice == 0x06 || voice == 0x13 || voice == 0x1a || voice == 0x1c || voice == 0x24)
+        {
+            result= 0xFF;
+        }
+        else
+        {
+            result= voice;
+        }
+        break;
+    }
+    return result;
 }
 /*
 *外部接口，播放一条语音
@@ -74,8 +114,10 @@ void Wtn6_Play(u8 voice,Wtn6_PlayTypeDef PlayType, u8 flag)
 {
 	rt_kprintf("Wtn6_Play %d %d %d %d %d\r\n",
 			 wtn6_mute, hwv.isdVersion, voice, PlayType, flag);
-	if (g_low_power || wtn6_mute||(hwv.isdVersion<2&&(voice>0x1c||voice==0x18)))
-		return ;
+	//if (g_low_power || wtn6_mute||(hwv.isdVersion<2&&(voice>0x1c||voice==0x18)))
+	//	return ;
+    if (g_low_power || wtn6_mute || Wtn6_Check(voice) == 0xFF)
+        return ;
 	rt_kprintf("going play\r\n");
 	speaker_ctl(1);
 	Send_Command(voice);
@@ -153,7 +195,7 @@ void Wtn6_JoinPlay(u8 voices[], u8 size, u8 muteTimes)
 
     for(i = 0; i < size; i++)
     {
-        if(hwv.isdVersion < 2)
+       /* if(hwv.isdVersion < 2)
         {
             if(voices[i] < 0x1d && voices[i] != 0x18)
             {
@@ -164,6 +206,11 @@ void Wtn6_JoinPlay(u8 voices[], u8 size, u8 muteTimes)
         else
         {
             tempvoices[i] = voices[i];
+            len++;
+        }*/
+        if(Wtn6_Check(voices[i]) != 0xFF)
+        {
+            tempvoices[len] = voices[i];
             len++;
         }
     }
