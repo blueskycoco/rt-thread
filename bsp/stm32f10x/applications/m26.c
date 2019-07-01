@@ -865,6 +865,8 @@ void m26_proc(void *last_data_ptr, rt_size_t data_size)
 							rt_kprintf("write data failed\n");
 							fsync(down_fd);
 							close(down_fd);
+							g_m26_state = M26_STATE_LOGOUT_FTP;
+							gprs_at_cmd(g_dev_m26,qiftp_close_file);
 							break;
 						}
 						fsync(down_fd);
