@@ -42,6 +42,55 @@ unsigned char chip_at88sc3216c[10]={0x3b,0xb3,0x11,0x00,0x00,0x00,0x00,0x32,0x32
 unsigned char chip_at88sc6416c[10]={0x3b,0xb3,0x11,0x00,0x00,0x00,0x00,0x64,0x64,0x40};
 unsigned char chip_at88sc12816c[10]={0x3b,0xb3,0x11,0x00,0x00,0x00,0x01,0x28,0x28,0x60};
 unsigned char chip_at88sc25616c[10]={0x3b,0xb3,0x11,0x00,0x00,0x00,0x02,0x56,0x58,0x60};
+/*ssd1306打开显示的命令*/
+static uint8_t draw_reg[] ={
+	0x00,
+	0x10,
+	0x40
+};
+/*ssd1306初始化序列*/
+static uint8_t init_reg[] = { 
+	0xae,
+	0xd5,
+	0x80,
+	0xa8,
+	0x3f,
+	0xd3,
+	0x00,
+	0x40,
+	0x8d,
+	0x14,
+	0x20,
+	0x00,
+	0xa1,
+	0xc8,
+	0xda,
+	0x12,
+	0x81,
+	0xcf,
+	0xd9,
+	0xf1,
+	0xdb,
+	0x40,
+	0xa4,
+	0xa6,
+	0xaf
+};
+void lm096_init()
+{
+    int i;
+    GPIO_ResetBits(GPIOA, GPIO_Pin_1);
+    rt_thread_delay(100);
+    GPIO_SetBits(GPIOA, GPIO_Pin_1);
+    rt_thread_delay(100);
+	register rt_base_t level = rt_hw_interrupt_disable();
+	for (i=0; i<sizeof(init_reg); i++)
+	i2c_write(0x3c, init_reg+i, 1);
+	for (i=0; i<sizeof(draw_reg); i++)
+	i2c_write(0x3c, draw_reg+i, 1);
+	rt_hw_interrupt_enable(level);
+
+}
 BOOL Virtual_Alloc()
 {
 	//memset(chip_info,0xff,24);
@@ -115,12 +164,12 @@ BOOL Virtual_Alloc()
 			rt_kprintf("\r\nUnKnown at88sc chip\r\n");
 			return FALSE;
 		}
-		
+
 	}
 	else
 	{
 		rt_kprintf("\r\nat88sc bus error\r\n");
-	
+
 		return FALSE;
 	}
 	return TRUE;
@@ -160,7 +209,7 @@ BOOL WriteReg(at88* value)
 			param.len=local_size;
 		else
 			param.len=one_userzone_max-param.addr;
-			
+
 		//memcpy(param.user_zone,value->data+index,param.len);
 		param.user_zone=value->data+index;
 		userzone_proc(&param,0);
@@ -193,18 +242,18 @@ BOOL ReadReg(at88* value)
 			param.len=local_size;
 		else
 			param.len=one_userzone_max-param.addr;
-			
+
 		//memcpy(param.user_zone,value->data+index,param.len);
 		param.user_zone=value->data+index;
 		/*rt_kprintf("user_zone %x\r\ng %x %x %x %x %x %x %x %x\r\npw %x %x %x\r\npage_size %x\r\nzone_index %x\r\n",
-			param.user_zone,param.g[0],param.g[1],param.g[2],param.g[3],param.g[4],param.g[5],param.g[6],param.g[7],
-			param.pw[0],param.pw[1],param.pw[2],param.page_size,param.zone_index);*/
+		  param.user_zone,param.g[0],param.g[1],param.g[2],param.g[3],param.g[4],param.g[5],param.g[6],param.g[7],
+		  param.pw[0],param.pw[1],param.pw[2],param.page_size,param.zone_index);*/
 		userzone_proc(&param,1);
 		local_size=local_size-param.len;		
 		local_addr=local_addr+param.len;
 		index=index+param.len;
 	}
-return TRUE;
+	return TRUE;
 }
 
 
@@ -231,7 +280,7 @@ void b(unsigned char fuse)
 		if(i!=3)
 			p.pw[i]=i;
 	}
-	
+
 	for(i=0;i<8;i++)
 	{
 		p.g[i]=i;
@@ -241,7 +290,7 @@ void b(unsigned char fuse)
 		p.id[i]=0xee;//assign id
 	}
 	p.fuse=fuse;
-	
+
 	burn(p);
 }
 #endif
@@ -252,21 +301,22 @@ static void rt_init_thread_entry(void* parameter)
 	rt_uint8_t buf[256],aic12k[10]={0x04,0x8a,0x04,0x01,0x05,0x30,0x70,0x06,0x02};
 	int i;
 	long count=0;
-	
-	
-	cmx865a_init();
+
+
+	//cmx865a_init();
 	//ST7585_Init();
 	rt_hw_led_init();
+	lm096_init();
 	//i2c_read(0x40,0x02,buf,1);
 	//rt_kprintf("0x02 = %x\n",buf[0]);
-	i2c_write(0x40,&aic12k[0],2);	
-	i2c_write(0x40,&aic12k[2],2);
-	i2c_write(0x40,&aic12k[4],3);
-	i2c_write(0x40,&aic12k[7],2);
+	//i2c_write(0x40,&aic12k[0],2);	
+	//i2c_write(0x40,&aic12k[2],2);
+	//i2c_write(0x40,&aic12k[4],3);
+	//i2c_write(0x40,&aic12k[7],2);
 	//i2c_write(0x40,&aic12k[2],2);
 	//rt_memset(buf,'\0',256);
 	//rt_sprintf(buf,"%s","- RT -    Thread Operating System");
-		
+
 	//ST7585_Write_String(0,7,"- RT -    ");
 	//ST7585_Write_String(0,6,"Thread Operating System");
 	//Draw_bat(3);
@@ -274,7 +324,7 @@ static void rt_init_thread_entry(void* parameter)
 	{		
 		/* led1 on */
 		//rt_kprintf("led on , count : %d\r\n",count);	
-		
+
 		//rt_sprintf(buf,"led on , count : %d",count);
 		//ST7585_Write_String(0,3,buf);
 
@@ -296,11 +346,11 @@ static void rt_init_thread_entry(void* parameter)
 		rt_thread_delay( RT_TICK_PER_SECOND/2 );
 	}
 
-	
 
-//	rt_kprintf("led on, count : %d\r\n",count);
+
+	//	rt_kprintf("led on, count : %d\r\n",count);
 	//rt_sprintf(buf,"%s","- RT -    Thread Operating System");
-		
+
 	//	ST7585_Write_String(0,5,"- RT -    ");
 	//ST7585_Write_String(0,4,"Thread Operating System");
 	//	Draw_bat(3);
@@ -321,12 +371,12 @@ static void rt_init_thread_entry(void* parameter)
 	{
 		at88.g[i]=i;
 	}
-	#if READ
-	
+#if READ
+
 	at88.addr=0;
 	at88.size=128;
 	ReadReg(&at88);
-	
+
 	AT88DBG("\nRead user zone data again:\n");
 	for(i=0;i<at88.size;i++)
 	{
@@ -335,26 +385,26 @@ static void rt_init_thread_entry(void* parameter)
 		AT88DBG("%4X ",at88.data[i]); 	
 	}
 
-	#else
+#else
 	at88.addr=0;
 	at88.size=128;
 	WriteReg(&at88);
-	#endif
+#endif
 #endif
 	while (1)
 	{
-		
+
 		/* led1 on */
 #ifdef RT_USING_FINSH
 		rt_kprintf("led on , count : %d\r\n",count);
 #endif
-	
-		
-	//	rt_sprintf(buf,"led on , count : %d",count);
-	//	ST7585_Write_String(0,5,buf);
+
+
+		//	rt_sprintf(buf,"led on , count : %d",count);
+		//	ST7585_Write_String(0,5,buf);
 
 		//test_cmx865a();
-	//	count++;
+		//	count++;
 		rt_hw_led1_off();
 		rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 
@@ -362,8 +412,8 @@ static void rt_init_thread_entry(void* parameter)
 #ifdef RT_USING_FINSH
 		rt_kprintf("led off\r\n");
 #endif
-	//	rt_sprintf(buf,"led off, count : %d",count);
-	//	ST7585_Write_String(0,5,buf);
+		//	rt_sprintf(buf,"led off, count : %d",count);
+		//	ST7585_Write_String(0,5,buf);
 
 		rt_hw_led1_on();
 		rt_thread_delay( RT_TICK_PER_SECOND/2 );
@@ -373,21 +423,21 @@ static void rt_init_thread_entry(void* parameter)
 
 int rt_application_init()
 {
-  rt_thread_t init_thread;
+	rt_thread_t init_thread;
 
 #if (RT_THREAD_PRIORITY_MAX == 32)
-  init_thread = rt_thread_create("init",
-	  rt_init_thread_entry, RT_NULL,
-	  2048, 8, 20);
+	init_thread = rt_thread_create("init",
+			rt_init_thread_entry, RT_NULL,
+			2048, 8, 20);
 #else
-  init_thread = rt_thread_create("init",
-	  rt_init_thread_entry, RT_NULL,
-	  512, 80, 20);
+	init_thread = rt_thread_create("init",
+			rt_init_thread_entry, RT_NULL,
+			512, 80, 20);
 #endif
-  if(init_thread != RT_NULL)
-	rt_thread_startup(init_thread);
+	if(init_thread != RT_NULL)
+		rt_thread_startup(init_thread);
 
-  return 0;
+	return 0;
 }
 
 

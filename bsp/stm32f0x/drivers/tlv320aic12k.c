@@ -6,7 +6,7 @@ GPIO_InitTypeDef  GPIO_InitStructure;
 void delay()
 {
 	volatile int i=0,j;
-	for(i=0;i<500;i++)
+	for(i=0;i<1500;i++)
 		j=3;
 	//rt_thread_delay(1);
 }
@@ -131,7 +131,10 @@ GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 i2c_start();
 i2c_write_byte(addr<<1);  
 for (i=0; i<len; i++)  
-i2c_write_byte(buf[i]);  
+{
+	i2c_write_byte(0x00);
+	i2c_write_byte(buf[i]);
+}
 i2c_stop();
 }  
 

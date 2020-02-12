@@ -3,7 +3,7 @@ Import('rtconfig')
 from building import *
 
 cwd     = os.path.join(str(Dir('#')), 'drivers')
-src	= ['board.c','led.c','usart.c','tlv320aic12k.c','cmx865a.c','stm32f0xx_it.c']
+src	= ['board.c','led.c','usart.c','tlv320aic12k.c','stm32f0xx_it.c']
 CPPPATH = [cwd]
 
 group = DefineGroup('Drivers', src, depend = [''], CPPPATH = CPPPATH)

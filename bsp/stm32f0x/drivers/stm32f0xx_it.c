@@ -75,7 +75,7 @@ void EXTI0_1_IRQHandler(void)
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line1))
 	{	 
-		cmx865a_isr();	
+//		cmx865a_isr();	
 		EXTI_ClearITPendingBit(EXTI_Line1);
 	}
 	/* leave interrupt */
@@ -88,7 +88,7 @@ void EXTI4_15_IRQHandler(void)
 	rt_interrupt_enter();
 	if(EXTI_GetITStatus(EXTI_Line10))
 	{	 
-		button_isr();	
+//		button_isr();	
 		EXTI_ClearITPendingBit(EXTI_Line10);
 	}
 	/* leave interrupt */
