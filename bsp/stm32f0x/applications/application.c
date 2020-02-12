@@ -78,17 +78,19 @@ static uint8_t init_reg[] = {
 };
 void lm096_init()
 {
-    int i;
-    GPIO_ResetBits(GPIOA, GPIO_Pin_1);
-    rt_thread_delay(100);
-    GPIO_SetBits(GPIOA, GPIO_Pin_1);
-    rt_thread_delay(100);
-	register rt_base_t level = rt_hw_interrupt_disable();
+	int i;
+	GPIO_ResetBits(GPIOA, GPIO_Pin_1);
+	rt_thread_delay(100);
+	GPIO_SetBits(GPIOA, GPIO_Pin_1);
+	rt_thread_delay(100);
+	//register rt_base_t level = rt_hw_interrupt_disable();
 	for (i=0; i<sizeof(init_reg); i++)
-	i2c_write(0x3c, init_reg+i, 1);
+		i2c_write(0x3c, init_reg+i, 1);
 	for (i=0; i<sizeof(draw_reg); i++)
-	i2c_write(0x3c, draw_reg+i, 1);
-	rt_hw_interrupt_enable(level);
+		i2c_write(0x3c, draw_reg+i, 1);
+	draw(30,60,"12345.9");
+	display(0x3c);
+	//rt_hw_interrupt_enable(level);
 
 }
 BOOL Virtual_Alloc()
@@ -428,7 +430,7 @@ int rt_application_init()
 #if (RT_THREAD_PRIORITY_MAX == 32)
 	init_thread = rt_thread_create("init",
 			rt_init_thread_entry, RT_NULL,
-			2048, 8, 20);
+			512, 8, 20);
 #else
 	init_thread = rt_thread_create("init",
 			rt_init_thread_entry, RT_NULL,
