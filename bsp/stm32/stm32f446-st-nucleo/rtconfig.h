@@ -172,6 +172,7 @@
 #define BSP_USING_UART
 #define BSP_USING_UART2
 
+#define BSP_USING_LCD_DPI
 /* Board extended module Drivers */
 
 
