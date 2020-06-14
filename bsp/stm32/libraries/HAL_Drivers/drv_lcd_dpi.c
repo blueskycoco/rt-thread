@@ -96,8 +96,10 @@ void dpi_w(rt_uint16_t cmd, rt_uint16_t data)
 }
 rt_uint16_t dpi_r(rt_uint16_t cmd)
 {
-	rt_uint16_t color;
+	rt_uint16_t color_dummy, color_r, color_g;
+	rt_uint16_t color_b, color;
 	rt_uint32_t mode = GPIOB->MODER;
+	rt_uint8_t a,b,c,d;
 
 	rt_pin_write(RS_PIN, PIN_LOW);
 	rt_pin_write(RD_PIN, PIN_HIGH);
@@ -105,47 +107,38 @@ rt_uint16_t dpi_r(rt_uint16_t cmd)
 	rt_pin_write(WR_PIN, PIN_LOW);
 	rt_pin_write(WR_PIN, PIN_HIGH);
 	rt_pin_write(RS_PIN, PIN_HIGH);
-
-	/*rt_pin_mode(FB_0, PIN_MODE_INPUT);
-	rt_pin_mode(FB_1, PIN_MODE_INPUT);
-	rt_pin_mode(FB_2, PIN_MODE_INPUT);
-	rt_pin_mode(FB_3, PIN_MODE_INPUT);
-	rt_pin_mode(FB_4, PIN_MODE_INPUT);
-	rt_pin_mode(FB_5, PIN_MODE_INPUT);
-	rt_pin_mode(FB_6, PIN_MODE_INPUT);
-	rt_pin_mode(FB_7, PIN_MODE_INPUT);
-	rt_pin_mode(FB_8, PIN_MODE_INPUT);
-	rt_pin_mode(FB_9, PIN_MODE_INPUT);
-	rt_pin_mode(FB_10, PIN_MODE_INPUT);
-	rt_pin_mode(FB_11, PIN_MODE_INPUT);
-	rt_pin_mode(FB_12, PIN_MODE_INPUT);
-	rt_pin_mode(FB_13, PIN_MODE_INPUT);
-	rt_pin_mode(FB_14, PIN_MODE_INPUT);
-	rt_pin_mode(FB_15, PIN_MODE_INPUT);
-	*/
-	GPIOB->MODER = 0x00;
-
-	rt_pin_write(RD_PIN, PIN_LOW);
-	color = GPIOB->IDR & 0xffff;
-	rt_pin_write(RD_PIN, PIN_HIGH);
 	
+	GPIOB->MODER = 0x00000000;
+	
+	rt_pin_write(RD_PIN, PIN_LOW);
+	color_dummy = GPIOB->IDR;
+	rt_pin_write(RD_PIN, PIN_HIGH);
+	rt_pin_write(RD_PIN, PIN_LOW);
+	color_r = GPIOB->IDR;
+	rt_pin_write(RD_PIN, PIN_HIGH);
+	//rt_pin_write(RD_PIN, PIN_LOW);
+	//color_b = GPIOB->IDR;
+	//rt_pin_write(RD_PIN, PIN_HIGH);
+	//rt_kprintf("color_dummy 0x%04x, r 0x%04x, b 0x%04x\n",
+	//		color_dummy, color_r, color_b);
+	//color_g = color_r & 0xff;
+	//color_g <<= 8;
+	//color = (((color_r >> 11) << 11) | ((color_g >> 10) << 5) | (color_b >> 11));
+	rt_kprintf("color_r 0x%04x\n", color_r);
+	//color = color_r & 0xf7fe;
+	a = (color_r >> 1) & 0x0f;
+	b = (color_r >> 8) & 0x0f;
+	c = ((color_r >> 12) << 1) & 0x0f;
+	d = (color_r >> 15) & 0x0f;
+	color = (d << 4) | (c) | (a << 12) | (b << 8);
+	rt_kprintf("a 0x%02x, b 0x%02x, c 0x%02x, d 0x%02x\n",
+			a,b,c,d);
+	//color = ((color_r >> 1) << 4) & 0xff00 | 
+	//	         (color_r >> 16) & 0xff |
+	//	         		 ((color_r >> 24) << 15);
 	GPIOB->MODER = mode;
-	/*rt_pin_mode(FB_0, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_1, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_2, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_3, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_4, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_5, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_6, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_7, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_8, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_9, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_10, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_11, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_12, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_13, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_14, PIN_MODE_OUTPUT);
-	rt_pin_mode(FB_15, PIN_MODE_OUTPUT);*/
+	
+	return color;
 }
 rt_err_t stm32_lcd_init(struct drv_lcd_device *lcd)
 {
@@ -218,14 +211,17 @@ rt_err_t stm32_lcd_init(struct drv_lcd_device *lcd)
 	dpi_w(0x0093,0x0003);	  /* Panel Interface control 3 */
 	dpi_w(0x0095,0x0110);	  /* Frame Cycle Control */
 	dpi_w(0x0007,0x0173); 						
+	rt_pin_write(CS_PIN, PIN_HIGH);
 	rt_thread_mdelay(50);   /* delay 50 ms */
 }
 
 static void set_pixel(const char *pixel, int x, int y)
 {
+	rt_pin_write(CS_PIN, PIN_LOW);
 	dpi_w(0x0020, x); 						
 	dpi_w(0x0021, y); 						
 	dpi_w(0x0022, *(rt_uint16_t *)pixel); 						
+	rt_pin_write(CS_PIN, PIN_HIGH);
 }
 
 static void draw_hline(const char *pixel, int x1, int x2, int y)
@@ -246,15 +242,19 @@ static void get_pixel(char *pixel, int x, int y)
 {
 	rt_uint16_t *color = (rt_uint16_t *)pixel;
 
+	rt_pin_write(CS_PIN, PIN_LOW);
 	dpi_w(0x0020, x); 						
 	dpi_w(0x0021, y); 						
 	*color = dpi_r(0x0022);
+	rt_pin_write(CS_PIN, PIN_HIGH);
+	rt_kprintf("color is 0x%04x\n", *color);
 }
 
 void fb_clr(uint16_t color)
 {
 	rt_uint32_t i;
 
+	rt_pin_write(CS_PIN, PIN_LOW);
 	rt_pin_write(RS_PIN, PIN_LOW);
 	rt_pin_write(RD_PIN, PIN_HIGH);
 	GPIOB->ODR = 0x0022;
@@ -269,6 +269,7 @@ void fb_clr(uint16_t color)
 		rt_pin_write(WR_PIN, PIN_LOW);
 		rt_pin_write(WR_PIN, PIN_HIGH);
 	}
+	rt_pin_write(CS_PIN, PIN_HIGH);
 }
 
 #if defined(LCD_BACKLIGHT_USING_PWM)
@@ -359,10 +360,12 @@ int drv_lcd_hw_init(void)
 		draw_hline(ch, 78, 220, 99);
 		ch[0] = 0x67; ch[1] = 0x32;
 		draw_vline(ch, 78, 0, 320);
-		ch[0] = 0x09; ch[1] = 0xAB;
-		set_pixel(ch, 99, 300);
-		get_pixel(ch2, 99, 300);
+		ch[0] = 0xac; ch[1] = 0xde;
+		set_pixel(ch, 10, 20);
+		get_pixel(ch2, 10, 20);
 		rt_kprintf("ch2 is 0x%x, 0x%x\n", ch2[0], ch2[1]);
+		ch2[0] = 0x05; ch2[1] = 0x50;
+		draw_hline(ch2, 0, 186, 160);
 		turn_on_lcd_backlight();
 	}
 
