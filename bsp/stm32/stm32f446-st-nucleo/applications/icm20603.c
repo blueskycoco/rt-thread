@@ -5,6 +5,17 @@
 #include "drv_spi.h"
 #include "icm20603.h"
 #if defined(BSP_USING_ICM_20603)
+/*
+	nucleo-stm32f446ze      icm-20603
+	
+	PA4                     /CS
+	PA5                     SCL_SCLK
+	PA6                     AD0_SDO
+	PA7                     SDA_SDI
+	PB4                     INT
+	3P3V                    VIN
+	GND                     GND
+ */
 
 #ifndef RT_ICM20603_SPI_MAX_HZ
 #define RT_ICM20603_SPI_MAX_HZ 8000000
@@ -131,6 +142,12 @@ static rt_err_t icm20603_sensor_init(icm20603_device_t dev)
         goto __exit;
     }
 
+    result = icm20603_set_param(dev, ICM20603_INT_ENABLE, 7);
+    if (result != RT_EOK)
+    {
+        LOG_E("This sensor initializes failure6");
+        goto __exit;
+    }
 __exit:
     if (result != RT_EOK)
     {
