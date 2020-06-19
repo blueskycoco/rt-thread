@@ -173,6 +173,12 @@
 #define BSP_USING_UART1
 #define BSP_USING_UART3
 
+#define RT_USING_SPI
+#define BSP_USING_SPI
+#define BSP_USING_SPI1
+#define BSP_USING_ICM_20603
+#define BSP_SPI1_TX_USING_DMA
+#define BSP_SPI1_RX_USING_DMA
 /* Board extended module Drivers */
 
 
