@@ -99,6 +99,9 @@ msh >
 
 - 默认终端输出设备是 UART1
 
+burn flash:
+openocd -f board/st_nucleo_f4.cfg -c "program rtthread.bin exit 0x08000000 reset"
+
 ## 联系人信息
 
 维护人:
