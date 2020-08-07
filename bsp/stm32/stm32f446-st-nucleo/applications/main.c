@@ -66,12 +66,7 @@ static rt_err_t event_hid_in(rt_device_t dev, void *buffer)
 static rt_uint32_t read_ts()
 {
     rt_hwtimerval_t val,val1;
-    rt_device_control(ts_device, HWTIMER_CTRL_STOP, RT_NULL);
     rt_device_read(ts_device, 0, &val, sizeof(val));
-    val1.sec = 10;
-    val1.usec = 0;
-    if (rt_device_write(ts_device, 0, &val1, sizeof(val1)) != sizeof(val1))
-    	    rt_kprintf("set timer failed\n");
     return (val.sec*1000000+val.usec);
 }
 static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
@@ -246,7 +241,7 @@ static int generic_hid_init(void)
     }
     mode = HWTIMER_MODE_PERIOD;
     err = rt_device_control(ts_device, HWTIMER_CTRL_MODE_SET, &mode);
-    val.sec = 10;
+    val.sec = 5*60*60;
     val.usec = 0;
     rt_kprintf("SetTime: Sec %d, Usec %d\n", val.sec, val.usec);
     if (rt_device_write(ts_device, 0, &val, sizeof(val)) != sizeof(val))
