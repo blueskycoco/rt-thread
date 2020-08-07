@@ -38,7 +38,7 @@
 #define RT_USING_DEVICE
 #define RT_USING_CONSOLE
 #define RT_CONSOLEBUF_SIZE 128
-#define RT_CONSOLE_DEVICE_NAME "uart3"
+#define RT_CONSOLE_DEVICE_NAME "uart1"
 #define RT_VER_NUM 0x40003
 #define ARCH_ARM
 #define RT_USING_CPU_FFS
@@ -155,7 +155,7 @@
 
 /* Hardware Drivers Config */
 
-#define SOC_STM32F413ZH
+#define SOC_STM32F413MG
 
 /* Onboard Peripheral Drivers */
 
@@ -165,8 +165,24 @@
 
 #define BSP_USING_GPIO
 #define BSP_USING_UART
-#define BSP_USING_UART3
+#define BSP_USING_UART1
 
+#define RT_USING_USB_DEVICE
+#define RT_USBD_THREAD_STACK_SZ 4096
+#define USB_VENDOR_ID 0x0486
+#define USB_PRODUCT_ID 0x573c
+#define RT_USB_DEVICE_HID
+#define RT_USB_DEVICE_HID_GENERAL
+#define RT_USB_DEVICE_HID_GENERAL_OUT_REPORT_LENGTH 64
+#define RT_USB_DEVICE_HID_GENERAL_IN_REPORT_LENGTH 64
+#define BSP_USING_USBD
+
+#define RT_USING_HWTIMER
+#define BSP_USING_TIM3
+#define BSP_USING_TIM
+
+#define RT_USING_SPI
+#define BSP_USING_SPI1
 /* Board extended module Drivers */
 
 
