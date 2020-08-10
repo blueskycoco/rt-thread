@@ -182,7 +182,9 @@
 #define BSP_USING_TIM
 
 #define RT_USING_SPI
+#define BSP_USING_SPI
 #define BSP_USING_SPI1
+#define BSP_USING_OLED
 /* Board extended module Drivers */
 
 
