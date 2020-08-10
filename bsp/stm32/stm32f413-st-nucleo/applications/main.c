@@ -24,6 +24,7 @@ rt_uint32_t g_vsync_count = 0;
 rt_uint32_t g_vsync_t3 = 0;
 rt_uint32_t g_heart_t2 = 0;
 rt_sem_t        isr_sem;
+rt_sem_t        heart_sem;
 rt_mutex_t lock;
 /* defined the LED1 pin: PB0 */
 #define LED1_PIN    GET_PIN(B, 0)
@@ -49,6 +50,12 @@ static void vsync_isr(void *parameter)
 	g_vsync_t3 = read_ts();
 	rt_sem_release(isr_sem);
 }
+static rt_err_t event_hid_in(rt_device_t dev, void *buffer)
+{
+    rt_sem_release(&tx_sem_complete);
+    return RT_EOK;
+}
+
 static void vsync_entry(void *parameter)
 {
 	rt_device_t device = (rt_device_t)parameter;
@@ -72,10 +79,10 @@ static void vsync_entry(void *parameter)
 }
 static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 {
+	rt_err_t result = rt_mutex_take(lock, RT_WAITING_FOREVER);
 	rt_uint8_t tx[64] = {0};
 	rt_uint32_t t2 = 0, t3 = 0;
 	rt_uint8_t ts2_ascii[8], ts3_ascii[8], crc_ascii[8], count_ascii[8];
-	rt_err_t result = rt_mutex_take(lock, RT_WAITING_FOREVER);
 	if (result != RT_EOK)
 	{
 		rt_kprintf("Can not get lock");
@@ -119,7 +126,8 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 		if (rt_device_write(device, /*HID_REPORT_ID_GENERAL*/0x02, tx+1, 33)
 				== 33)
 		{
-			rt_kprintf("vsync out ok, t3 %d\n", g_vsync_t3);
+			//rt_kprintf("vsync out ok, t3 %d\n", g_vsync_t3);
+			rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
 		}
 		else
 			rt_kprintf("vsync out failed\n");
@@ -169,8 +177,8 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 			if (rt_device_write(device, /*HID_REPORT_ID_GENERAL*/0x02, tx+1, 50)
 					== 50)
 			{
-				//rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
-				rt_kprintf("heart out ok, t2 %d, t3 %d\n", g_heart_t2, t3);
+				rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
+				//rt_kprintf("heart out ok, t2 %d, t3 %d\n", g_heart_t2, t3);
 			}
 			else
 				rt_kprintf("heart out failed\n");
@@ -182,22 +190,11 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 }
 static void usb_thread_entry(void *parameter)
 {
-	int8_t i8MouseTable[] = { -16, -16, -16, 0, 16, 16, 16, 0};
-	uint8_t u8MouseIdx = 0;
-	uint8_t u8MoveLen=0, u8MouseMode = 1;
-	uint8_t pu8Buf[4];
-
 	rt_device_t device = (rt_device_t)parameter;
-
-	rt_sem_init(&tx_sem_complete, "tx_complete_sem_hid", 1, RT_IPC_FLAG_FIFO);
-
-	//rt_device_set_tx_complete(device, event_hid_in);
-
-	rt_kprintf("Ready.\n");
 
 	while (1)
 	{
-		rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
+		rt_sem_take(heart_sem, RT_WAITING_FOREVER);
 		handle_heart(device, hid_rcv, g_hid_size);
 	} // while(1)
 }
@@ -205,11 +202,11 @@ static void dump_data(rt_uint8_t *data, rt_size_t size)
 {
 	rt_size_t i;
 	rt_uint8_t *ptr = data;
-	for (i = 0; i < size; i++)
+	/*for (i = 0; i < size; i++)
 	{
 		rt_kprintf("%c", *ptr++);
 	}
-	rt_kprintf("\n");
+	rt_kprintf("\n");*/
 
 	if (data[0] == ':' &&
 			data[1] == '@' &&
@@ -218,7 +215,8 @@ static void dump_data(rt_uint8_t *data, rt_size_t size)
 		rt_memset(hid_rcv, 0, 64);
 		rt_memcpy(hid_rcv, data, size);
 		g_hid_size = size;
-		rt_sem_release(&tx_sem_complete);
+		rt_sem_release(heart_sem);
+		//rt_sem_release(&tx_sem_complete);
 	}
 }
 static void dump_report(struct hid_report * report)
@@ -266,6 +264,10 @@ static int generic_hid_init(void)
 	rt_kprintf("SetTime: Sec %d, Usec %d\n", val.sec, val.usec);
 	if (rt_device_write(ts_device, 0, &val, sizeof(val)) != sizeof(val))
 		rt_kprintf("set timer failed\n");
+	heart_sem = rt_sem_create("heart", 0, RT_IPC_FLAG_FIFO);
+	rt_sem_init(&tx_sem_complete, "tx_complete_sem_hid", 1, RT_IPC_FLAG_FIFO);
+
+	rt_device_set_tx_complete(hid_device, event_hid_in);
 	rt_thread_init(&usb_thread,
 			"hidd_app",
 			usb_thread_entry, hid_device,
@@ -274,7 +276,7 @@ static int generic_hid_init(void)
 
 	rt_thread_startup(&usb_thread);
 	rt_thread_t tid = rt_thread_create("vsync", vsync_entry, hid_device,
-			2048, 28, 20);
+			2048, 28, 19);
 	rt_thread_startup(tid);
 
 	return 0;
