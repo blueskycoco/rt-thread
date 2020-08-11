@@ -23,9 +23,12 @@ rt_size_t g_hid_size = 0;
 rt_uint32_t g_vsync_count = 0;
 rt_uint32_t g_vsync_t3 = 0;
 rt_uint32_t g_heart_t2 = 0;
+rt_uint8_t g_event_type = 0; //0 for heart, 1 for vsync
 rt_sem_t        isr_sem;
 rt_sem_t        heart_sem;
+static struct rt_event light_event;
 rt_mutex_t lock;
+rt_mutex_t lock_ts;
 /* defined the LED1 pin: PB0 */
 #define LED1_PIN    GET_PIN(B, 0)
 /* defined the LED2 pin: PB7 */
@@ -35,7 +38,8 @@ rt_mutex_t lock;
 /* defined the USER KEY pin: PC13 */
 #define KEY_PIN    GET_PIN(C, 13)
 #define SPI_CS_PIN    GET_PIN(A, 4)
-
+#define EVENT_VSYNC 0x01
+#define EVENT_HEART 0x02
 static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size);
 #define VSYNC_INT_PIN GET_PIN(D, 2)
 
@@ -47,19 +51,22 @@ static rt_uint32_t read_ts()
 }
 static void vsync_isr(void *parameter)
 {
-	g_vsync_t3 = read_ts();
-	rt_sem_release(isr_sem);
+	if (g_hid_size != 0) {
+		g_vsync_t3 = read_ts();
+		g_vsync_count++;
+		//rt_sem_release(isr_sem);
+		rt_event_send(&light_event, EVENT_VSYNC);
+	}
 }
 static rt_err_t event_hid_in(rt_device_t dev, void *buffer)
 {
-    rt_sem_release(&tx_sem_complete);
-    return RT_EOK;
+	rt_sem_release(&tx_sem_complete);
+	return RT_EOK;
 }
 
 static void vsync_entry(void *parameter)
 {
 	rt_device_t device = (rt_device_t)parameter;
-
 	isr_sem = rt_sem_create("vsync", 0, RT_IPC_FLAG_FIFO);
 	rt_pin_mode(VSYNC_INT_PIN, PIN_MODE_INPUT_PULLUP);
 	rt_pin_attach_irq(VSYNC_INT_PIN, PIN_IRQ_MODE_FALLING, vsync_isr, RT_NULL);
@@ -73,7 +80,6 @@ static void vsync_entry(void *parameter)
 		{
 			continue;
 		}
-		g_vsync_count++;
 		handle_heart(device, RT_NULL, 0);
 	}
 }
@@ -82,7 +88,7 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 	rt_err_t result = rt_mutex_take(lock, RT_WAITING_FOREVER);
 	rt_uint8_t tx[64] = {0};
 	rt_uint32_t t2 = 0, t3 = 0;
-	rt_uint8_t ts2_ascii[8], ts3_ascii[8], crc_ascii[8], count_ascii[8];
+	rt_uint8_t ts2_ascii[9], ts3_heart_ascii[9], ts3_vsync_ascii[9], crc_ascii[9], count_ascii[9];
 	if (result != RT_EOK)
 	{
 		rt_kprintf("Can not get lock");
@@ -96,94 +102,73 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 		tx[3] = 0x3a;
 		tx[4] = 'S';
 		tx[5] = 0x3a;
-		ByteToHexStr(g_vsync_count,count_ascii);
+		rt_sprintf(count_ascii, "%08x", g_vsync_count);
 		rt_memcpy(tx+6, count_ascii, 8);
 		tx[14] = 0x3a;
-		ByteToHexStr(g_vsync_t3, ts3_ascii);
-		rt_memcpy(tx+15, ts3_ascii, 8);
+		rt_sprintf(ts3_vsync_ascii, "%08x", g_vsync_t3);
+		rt_memcpy(tx+15, ts3_vsync_ascii, 8);
 		tx[23] = 0x3a;
 		uint32_t crc = heart_cmd_crc(tx, 24);
-#if 0
-		ByteToHexStr(crc,crc_ascii);
-		if (crc_ascii[0] == '0' &&
-				crc_ascii[1] == '0' &&
-				crc_ascii[2] == '0') {
-			crc_ascii[0] = ' ';
-			crc_ascii[1] = ' ';
-			crc_ascii[2] = ' ';
-		} else if (crc_ascii[0] == '0' &&
-				crc_ascii[1] == '0'	) {
-			crc_ascii[0] = ' ';
-			crc_ascii[1] = ' ';
-		} else if (crc_ascii[0] == '0')
-			crc_ascii[0] = ' ';
-#else
 		rt_sprintf(crc_ascii, "%8x", crc);
-#endif
 		rt_memcpy(tx+24, crc_ascii, 8);
 		tx[32] = 0x3a;
 		tx[33] = 0x03;
-		if (rt_device_write(device, /*HID_REPORT_ID_GENERAL*/0x02, tx+1, 33)
-				== 33)
+		//rt_uint32_t ts = read_ts();
+		if (rt_device_write(device, 0x02, tx+1, 33) == 33)
 		{
-			//rt_kprintf("vsync out ok, t3 %d\n", g_vsync_t3);
-			rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
+			//while ((read_ts() - ts) < 60)
+			//	rt_thread_mdelay(1);
+			//result = rt_sem_take(&tx_sem_complete, rt_tick_from_millisecond(10));
+			//result = rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
+			//if (result == -RT_ETIMEOUT)
+			//	rt_kprintf("vsync send timeout %d\n", g_vsync_t3);
+			//	g_hid_size = 0;
+			//rt_uint32_t ts_end = read_ts() - ts;
+			//rt_thread_delay(rt_tick_from_millisecond(70)/1000);
+			rt_kprintf("vsync out ok, t3 %d\n", g_vsync_t3);
 		}
 		else
 			rt_kprintf("vsync out failed\n");
-	} else {
-		//rt_kprintf("=> %d\n", t2);
-		if (data[0] == ':' &&
-				data[1] == '@' &&
-				data[2] == ':' &&
-				data[3] == 'K') {
-			/* heart T1, T2, T3, T4 */
-			tx[0] = 0x02;
-			tx[1] = 0x3a;
-			tx[2] = 0x41;
-			tx[3] = 0x3a;
-			tx[4] = 0x4b;
-			tx[5] = 0x3a;
-			rt_memcpy(tx+6, data+5, 16);
-			tx[22] = 0x26;
-			ByteToHexStr(g_heart_t2, ts2_ascii);
-			rt_memcpy(tx+23, ts2_ascii, 8);
-			tx[31] = 0x3a;
-			t3 = read_ts();
-			ByteToHexStr(t3, ts3_ascii);
-			rt_memcpy(tx+32, ts3_ascii, 8);
-			tx[40] = 0x3a;
-			uint32_t crc = heart_cmd_crc(tx, 41);
-#if 0
-			ByteToHexStr(crc,crc_ascii);
-			if (crc_ascii[0] == '0' &&
-					crc_ascii[1] == '0' &&
-					crc_ascii[2] == '0') {
-				crc_ascii[0] = ' ';
-				crc_ascii[1] = ' ';
-				crc_ascii[2] = ' ';
-			} else if (crc_ascii[0] == '0' &&
-					crc_ascii[1] == '0'	) {
-				crc_ascii[0] = ' ';
-				crc_ascii[1] = ' ';
-			} else if (crc_ascii[0] == '0')
-				crc_ascii[0] = ' ';
-#else
+	} else if (data[0] == ':' &&
+			data[1] == '@' &&
+			data[2] == ':' &&
+			data[3] == 'K') {
+		/* heart T1, T2, T3, T4 */
+		tx[0] = 0x02;
+		tx[1] = 0x3a;
+		tx[2] = 0x41;
+		tx[3] = 0x3a;
+		tx[4] = 0x4b;
+		tx[5] = 0x3a;
+		rt_memcpy(tx+6, data+5, 16);
+		tx[22] = 0x26;
+		rt_sprintf(ts2_ascii, "%08x", g_heart_t2);
+		rt_memcpy(tx+23, ts2_ascii, 8);
+		tx[31] = 0x3a;
+		t3 = read_ts();
+		rt_sprintf(ts3_heart_ascii, "%08x", t3);
+		rt_memcpy(tx+32, ts3_heart_ascii, 8);
+		tx[40] = 0x3a;
+		uint32_t crc = heart_cmd_crc(tx, 41);
 		rt_sprintf(crc_ascii, "%8x", crc);
-#endif
-			rt_memcpy(tx+41, crc_ascii, 8);
-			tx[49] = 0x3a;
-			tx[50] = 0x03;
-			if (rt_device_write(device, /*HID_REPORT_ID_GENERAL*/0x02, tx+1, 50)
-					== 50)
-			{
-				rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
-				//rt_kprintf("heart out ok, t2 %d, t3 %d\n", g_heart_t2, t3);
-			}
-			else
-				rt_kprintf("heart out failed\n");
-
+		rt_memcpy(tx+41, crc_ascii, 8);
+		tx[49] = 0x3a;
+		tx[50] = 0x03;
+		//rt_uint32_t ts = read_ts();
+		if (rt_device_write(device, 0x02, tx+1, 50) == 50)
+		{
+			//while ((read_ts() - ts) < 60)
+			//	rt_thread_mdelay(1);
+			//result = rt_sem_take(&tx_sem_complete, rt_tick_from_millisecond(10));
+			//result = rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
+			//if (result == -RT_ETIMEOUT)
+			//	rt_kprintf("heart send timeout %d\n", g_heart_t2);
+			rt_kprintf("heart out ok, t2 %d, t3 %d\n", g_heart_t2, t3);
+			//rt_thread_delay(rt_tick_from_millisecond(70)/1000);
 		}
+		else
+			rt_kprintf("heart out failed\n");
+
 	}
 	rt_mutex_release(lock);
 
@@ -191,22 +176,34 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 static void usb_thread_entry(void *parameter)
 {
 	rt_device_t device = (rt_device_t)parameter;
+	rt_uint32_t e;
 
 	while (1)
 	{
-		rt_sem_take(heart_sem, RT_WAITING_FOREVER);
-		handle_heart(device, hid_rcv, g_hid_size);
-	} // while(1)
+		if (rt_event_recv(&light_event, EVENT_VSYNC | EVENT_HEART,
+                          RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR,
+                          RT_WAITING_FOREVER, &e) != RT_EOK)
+	        {
+        	    continue;
+        	}
+			
+		if (e & EVENT_VSYNC)
+			handle_heart(device, RT_NULL, 0);
+		if (e & EVENT_HEART)
+			handle_heart(device, hid_rcv, g_hid_size);
+
+
+	}
 }
 static void dump_data(rt_uint8_t *data, rt_size_t size)
 {
 	rt_size_t i;
 	rt_uint8_t *ptr = data;
 	/*for (i = 0; i < size; i++)
-	{
-		rt_kprintf("%c", *ptr++);
-	}
-	rt_kprintf("\n");*/
+	  {
+	  rt_kprintf("%c", *ptr++);
+	  }
+	  rt_kprintf("\n");*/
 
 	if (data[0] == ':' &&
 			data[1] == '@' &&
@@ -215,8 +212,8 @@ static void dump_data(rt_uint8_t *data, rt_size_t size)
 		rt_memset(hid_rcv, 0, 64);
 		rt_memcpy(hid_rcv, data, size);
 		g_hid_size = size;
-		rt_sem_release(heart_sem);
-		//rt_sem_release(&tx_sem_complete);
+		//rt_sem_release(heart_sem);
+		rt_event_send(&light_event, EVENT_HEART);
 	}
 }
 static void dump_report(struct hid_report * report)
@@ -264,10 +261,15 @@ static int generic_hid_init(void)
 	rt_kprintf("SetTime: Sec %d, Usec %d\n", val.sec, val.usec);
 	if (rt_device_write(ts_device, 0, &val, sizeof(val)) != sizeof(val))
 		rt_kprintf("set timer failed\n");
-	heart_sem = rt_sem_create("heart", 0, RT_IPC_FLAG_FIFO);
+	//heart_sem = rt_sem_create("heart", 0, RT_IPC_FLAG_FIFO);
+	rt_event_init(&light_event, "event", RT_IPC_FLAG_FIFO);
 	rt_sem_init(&tx_sem_complete, "tx_complete_sem_hid", 1, RT_IPC_FLAG_FIFO);
 
+	rt_pin_mode(VSYNC_INT_PIN, PIN_MODE_INPUT_PULLUP);
+	rt_pin_attach_irq(VSYNC_INT_PIN, PIN_IRQ_MODE_RISING, vsync_isr, RT_NULL);
+	rt_pin_irq_enable(VSYNC_INT_PIN, RT_TRUE);
 	rt_device_set_tx_complete(hid_device, event_hid_in);
+	
 	rt_thread_init(&usb_thread,
 			"hidd_app",
 			usb_thread_entry, hid_device,
@@ -275,9 +277,9 @@ static int generic_hid_init(void)
 			10, 20);
 
 	rt_thread_startup(&usb_thread);
-	rt_thread_t tid = rt_thread_create("vsync", vsync_entry, hid_device,
-			2048, 28, 19);
-	rt_thread_startup(tid);
+	//rt_thread_t tid = rt_thread_create("vsync", vsync_entry, hid_device,
+	//		2048, 28, 19);
+	//rt_thread_startup(tid);
 
 	return 0;
 }
