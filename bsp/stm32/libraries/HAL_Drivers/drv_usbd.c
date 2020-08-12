@@ -16,7 +16,7 @@
 #include "board.h"
 #include <string.h>
 #include <drv_config.h>
-
+static rt_uint8_t ep_int_state = 0;
 static PCD_HandleTypeDef _stm_pcd;
 static struct udcd _stm_udc;
 static struct ep_id _ep_pool[] =
@@ -62,6 +62,8 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
     }
     else
     {
+	if (epnum == 0x02)
+		ep_int_state = 0;
         rt_usbd_ep_in_handler(&_stm_udc, 0x80 | epnum, hpcd->IN_ep[epnum].xfer_count);
     }
 }
@@ -166,8 +168,18 @@ static rt_size_t _ep_read_prepare(rt_uint8_t address, void *buffer, rt_size_t si
 
 static rt_size_t _ep_write(rt_uint8_t address, void *buffer, rt_size_t size)
 {
-    HAL_PCD_EP_Transmit(&_stm_pcd, address, buffer, size);
-    return size;
+	if (address == 130) {
+		if (ep_int_state == 0) {
+			ep_int_state = 1;
+			HAL_PCD_EP_Transmit(&_stm_pcd, address, buffer, size);
+			return size;
+		}
+	} else {
+		HAL_PCD_EP_Transmit(&_stm_pcd, address, buffer, size);
+		return size;
+	}
+
+	return 0;
 }
 
 static rt_err_t _ep0_send_status(void)
