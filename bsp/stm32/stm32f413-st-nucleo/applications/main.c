@@ -118,14 +118,14 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 		{
 			//while ((read_ts() - ts) < 60)
 			//	rt_thread_mdelay(1);
-			//result = rt_sem_take(&tx_sem_complete, rt_tick_from_millisecond(10));
+			//result = rt_sem_take(&tx_sem_complete, rt_tick_from_millisecond(70)/1000);
 			//result = rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
 			//if (result == -RT_ETIMEOUT)
 			//	rt_kprintf("vsync send timeout %d\n", g_vsync_t3);
 			//	g_hid_size = 0;
 			//rt_uint32_t ts_end = read_ts() - ts;
-			//rt_thread_delay(rt_tick_from_millisecond(70)/1000);
-			rt_kprintf("vsync out ok, t3 %d\n", g_vsync_t3);
+			rt_thread_delay(rt_tick_from_millisecond(70)/1000);
+			//rt_kprintf("vsync out ok, t3 %d\n", g_vsync_t3);
 		}
 		else
 			rt_kprintf("vsync out failed\n");
@@ -159,12 +159,12 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 		{
 			//while ((read_ts() - ts) < 60)
 			//	rt_thread_mdelay(1);
-			//result = rt_sem_take(&tx_sem_complete, rt_tick_from_millisecond(10));
+			//result = rt_sem_take(&tx_sem_complete, rt_tick_from_millisecond(70)/1000);
 			//result = rt_sem_take(&tx_sem_complete, RT_WAITING_FOREVER);
 			//if (result == -RT_ETIMEOUT)
 			//	rt_kprintf("heart send timeout %d\n", g_heart_t2);
-			rt_kprintf("heart out ok, t2 %d, t3 %d\n", g_heart_t2, t3);
-			//rt_thread_delay(rt_tick_from_millisecond(70)/1000);
+			//rt_kprintf("heart out ok, t2 %d, t3 %d\n", g_heart_t2, t3);
+			rt_thread_delay(rt_tick_from_millisecond(70)/1000);
 		}
 		else
 			rt_kprintf("heart out failed\n");
