@@ -6,6 +6,7 @@ CPPPATH = [cwd, str(Dir('#'))]
 src     = Split("""
 main.c
 ads7843.c
+ili9325.c
 """)
 
 group = DefineGroup('Applications', src, depend = [''], CPPPATH = CPPPATH)

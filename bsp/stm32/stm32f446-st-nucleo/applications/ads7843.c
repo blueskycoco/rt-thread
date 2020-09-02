@@ -1,6 +1,10 @@
 #include <rtthread.h>
 #include <rtdevice.h>
 #include <board.h>
+#include "ili9325.h"
+
+#define KEY1_PIN    GET_PIN(C, 5)
+#define KEY2_PIN    GET_PIN(D, 2)
 
 #define PEN_PIN    GET_PIN(C, 1)
 #define CS_PIN    GET_PIN(C, 13)
@@ -114,8 +118,12 @@ static void touch_isr(void *parameter)
 static void ads7843_handler()
 {
 	uint32_t x, y;
+	uint8_t flag = 0;
+	uint8_t j = 0;
 
 	touch_sem = rt_sem_create("touch", 0, RT_IPC_FLAG_FIFO);
+	rt_pin_mode(KEY1_PIN, PIN_MODE_INPUT);
+	rt_pin_mode(KEY2_PIN, PIN_MODE_INPUT);
 	rt_pin_mode(PEN_PIN, PIN_MODE_INPUT);
 	rt_pin_mode(MISO_PIN, PIN_MODE_INPUT);
 	rt_pin_mode(MOSI_PIN, PIN_MODE_OUTPUT);
@@ -128,17 +136,70 @@ static void ads7843_handler()
 	rt_pin_write(SCLK_PIN, PIN_HIGH);
 
 	rt_pin_attach_irq(PEN_PIN, PIN_IRQ_MODE_FALLING, touch_isr, RT_NULL);
+	rt_pin_attach_irq(KEY1_PIN, PIN_IRQ_MODE_FALLING, touch_isr, RT_NULL);
+	rt_pin_attach_irq(KEY2_PIN, PIN_IRQ_MODE_FALLING, touch_isr, RT_NULL);
 	rt_pin_irq_enable(PEN_PIN, RT_TRUE);
+	rt_pin_irq_enable(KEY1_PIN, RT_TRUE);
+	rt_pin_irq_enable(KEY2_PIN, RT_TRUE);
 	rt_kprintf("touch inited\r\n");
 
 	while (1) {
 		rt_sem_take(touch_sem, RT_WAITING_FOREVER);
+		
+		if (rt_pin_read(KEY1_PIN) == PIN_LOW)
+			rt_kprintf("Key 1 pressed\r\n");
+		
+		if (rt_pin_read(KEY2_PIN) == PIN_LOW)
+			rt_kprintf("Key 2 pressed\r\n");
+		j = 0;
 		while (rt_pin_read(PEN_PIN) == PIN_LOW) {
 			y = spi_gpio_rw_ext(0x90);
 			x = spi_gpio_rw_ext(0xd0);
 			rt_kprintf("touch %03x, %03x %d\r\n",
 					(x<<1)>>4, (y<<1)>>4,
 					rt_pin_read(PEN_PIN));
+			j = 1;
+		}
+
+		if (j == 1) {
+		rt_kprintf("AAA\r\n");
+		if (flag == 0) {
+			put_cross(50, 50);
+			clr_cross(240 - 50, 50);
+			clr_cross(240 - 50, 320 - 50);
+			clr_cross(50,  320 - 50);
+			clr_cross(240 / 2, 320 / 2);
+			flag++;
+		} else	if (flag == 1) {
+			clr_cross(50, 50);
+			put_cross(240 - 50, 50);
+			clr_cross(240 - 50, 320 - 50);
+			clr_cross(50,  320 - 50);
+			clr_cross(240 / 2, 320 / 2);
+			flag++;
+		} else	if (flag == 2) {
+			clr_cross(50, 50);
+			clr_cross(240 - 50, 50);
+			put_cross(240 - 50, 320 - 50);
+			clr_cross(50,  320 - 50);
+			clr_cross(240 / 2, 320 / 2);
+			flag++;
+		} else	if (flag == 3) {
+			clr_cross(50, 50);
+			clr_cross(240 - 50, 50);
+			clr_cross(240 - 50, 320 - 50);
+			put_cross(50,  320 - 50);
+			clr_cross(240 / 2, 320 / 2);
+			flag++;
+		} else	if (flag == 4) {
+			clr_cross(50, 50);
+			clr_cross(240 - 50, 50);
+			clr_cross(240 - 50, 320 - 50);
+			clr_cross(50,  320 - 50);
+			put_cross(240 / 2, 320 / 2);
+			flag = 0;
+		}
+		rt_kprintf("BBB\r\n");
 		}
 	}
 }
