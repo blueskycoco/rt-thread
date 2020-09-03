@@ -2,6 +2,7 @@
 #include <rtdevice.h>
 #include <board.h>
 #include "ili9325.h"
+#include "tslib.h"
 
 #define KEY1_PIN    GET_PIN(C, 5)
 #define KEY2_PIN    GET_PIN(D, 2)
@@ -11,8 +12,10 @@
 #define MOSI_PIN    GET_PIN(C, 3)
 #define MISO_PIN    GET_PIN(C, 2)
 #define SCLK_PIN    GET_PIN(C, 0)
-
+static uint16_t point[2][1024] = {0x00};
 static rt_sem_t touch_sem = RT_NULL;
+static rt_sem_t tslib_sem = RT_NULL;
+uint8_t j = 0;
 
 static void stm32_udelay(rt_uint32_t us)
 {
@@ -109,7 +112,21 @@ static uint16_t spi_gpio_rw(uint8_t cmd)
 
 	return rdata;
 }
+int dev_touchscreen_read(struct ts_sample *samp, int nr)
+{
+	int i;
+    	g_need_bytes = nr;
+	j = 0;
+	rt_sem_take(tslib_sem, RT_WAITING_FOREVER);
 
+	for (i=0; i<nr; i++) {
+		samp->x = point[0][i];
+		samp->y = point[1][i];
+		samp->pressure = 200;
+	}
+
+	return nr;
+}
 static void touch_isr(void *parameter)
 {
 	rt_sem_release(touch_sem);
@@ -119,9 +136,9 @@ static void ads7843_handler()
 {
 	uint32_t x, y;
 	uint8_t flag = 0;
-	uint8_t j = 0;
 
 	touch_sem = rt_sem_create("touch", 0, RT_IPC_FLAG_FIFO);
+	tslib_sem = rt_sem_create("tslib", 0, RT_IPC_FLAG_FIFO);
 	rt_pin_mode(KEY1_PIN, PIN_MODE_INPUT);
 	rt_pin_mode(KEY2_PIN, PIN_MODE_INPUT);
 	rt_pin_mode(PEN_PIN, PIN_MODE_INPUT);
@@ -151,16 +168,22 @@ static void ads7843_handler()
 		
 		if (rt_pin_read(KEY2_PIN) == PIN_LOW)
 			rt_kprintf("Key 2 pressed\r\n");
-		j = 0;
+
 		while (rt_pin_read(PEN_PIN) == PIN_LOW) {
 			y = spi_gpio_rw_ext(0x90);
 			x = spi_gpio_rw_ext(0xd0);
-			rt_kprintf("touch %03x, %03x %d\r\n",
-					(x<<1)>>4, (y<<1)>>4,
-					rt_pin_read(PEN_PIN));
-			j = 1;
+			if (j<1024) {
+				point[0][j] = x;
+				point[1][j] = y;
+			}
+			//rt_kprintf("touch %03x, %03x %d\r\n",
+			//		(x<<1)>>4, (y<<1)>>4,
+			//		rt_pin_read(PEN_PIN));
+			j++;
+			if (j > g_need_bytes)
+				rt_sem_release(tslib_sem);
 		}
-
+#if 0
 		if (j == 1) {
 		rt_kprintf("AAA\r\n");
 		if (flag == 0) {
@@ -200,6 +223,7 @@ static void ads7843_handler()
 			flag = 0;
 		}
 		rt_kprintf("BBB\r\n");
+#endif
 		}
 	}
 }
