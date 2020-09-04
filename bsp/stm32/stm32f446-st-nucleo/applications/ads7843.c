@@ -17,6 +17,34 @@ static rt_sem_t touch_sem = RT_NULL;
 static rt_sem_t tslib_sem = RT_NULL;
 uint8_t j = 0;
 
+void put_char(int x, int y, int c, int colidx)
+{
+	int i,j,bits;
+	u8* p;
+	
+
+	p = (u8*)font_vga_8x8.path;//need fix
+	for (i = 0; i < font_vga_8x8.height; i++) 
+	{
+		bits =	p[font_vga_8x8.height * c + i];
+		for (j = 0; j < font_vga_8x8.width; j++, bits <<= 1)
+		{
+			if (bits & 0x80)
+			{
+				drv_ILI9341_drawpoint(x + j, y + i, colidx);
+			}
+		}
+	}
+}
+
+void put_string(int x, int y, char *s, unsigned colidx)
+{
+	int i;
+	
+	for (i = 0; *s; i++, x += font_vga_8x8.width, s++)
+		put_char(x, y, *s, colidx);
+}
+
 static void stm32_udelay(rt_uint32_t us)
 {
 	rt_uint32_t ticks;
