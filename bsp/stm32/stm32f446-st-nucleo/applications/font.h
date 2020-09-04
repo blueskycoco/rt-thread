@@ -11,15 +11,15 @@
 #ifndef _VIDEO_FONT_H
 #define _VIDEO_FONT_H
 
-
+#include <stdint.h>
 
 struct fbcon_font_desc 
 {
 
     char *name;
-	char *path;
-    u16 width, height;
-	u16 size;//每个字符字节数
+    char *path;
+    uint16_t width, height;
+    uint16_t size;//每个字符字节数
 };
 
 

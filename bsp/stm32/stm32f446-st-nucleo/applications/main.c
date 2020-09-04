@@ -18,6 +18,8 @@
 #define LED1_PIN    GET_PIN(A, 11)
 #define LED3_PIN    GET_PIN(A, 12)
 extern void ads7843_init();
+extern uint8_t cal_finished;
+struct tsdev *ts;
 int main(void)
 {
 	int count = 1;
@@ -27,14 +29,14 @@ int main(void)
 	rt_pin_mode(LED2_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED3_PIN, PIN_MODE_OUTPUT);
-	ads7843_init();
 	stm32_lcd_init();
 	fb_clr(BLACK);
-	put_cross(  50, 50);
-	put_cross(  xres - 50, 50);
-	put_cross(  xres - 50, yres - 50);
-	put_cross(50,  yres - 50);
-	put_cross(xres / 2, yres / 2);
+	ads7843_init();
+	rt_thread_delay(200);
+	ts_calibrate();
+	cal_finished = 1;
+
+	ts = ts_open_module();
 	while (count++)
 	{
 		rt_pin_write(LED2_PIN, PIN_HIGH);

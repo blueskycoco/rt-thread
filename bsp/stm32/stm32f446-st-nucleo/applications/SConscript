@@ -7,8 +7,13 @@ src     = Split("""
 main.c
 ads7843.c
 ili9325.c
+font_8x8.c
+./tslib/testutils.c
+./tslib/ts_calibrate.c
+./tslib/tslib.c
 """)
 
+CPPPATH += [cwd + '/tslib']
 group = DefineGroup('Applications', src, depend = [''], CPPPATH = CPPPATH)
 
 Return('group')

@@ -18,12 +18,10 @@
 #include <stdio.h>
 #include "tslib.h"
 #include <stdarg.h>
-
-#include "stm32f10x.h"
-#include "dev_ILI9341.h"
+#include "ili9325.h"
 #include "tslib.h"
 
-extern void put_cross(int x, int y, unsigned colidx);
+extern void put_cross(int x, int y);
 
 extern int getxy(struct tsdev *ts, int *x, int *y);
 /*
@@ -176,31 +174,54 @@ int ts_calibrate(void)
 	int xres = 240;
 	int yres = 320;
 
-	put_string( 20, yres / 4,
+	put_string(8, yres / 4,
 			   "TSLIB calibration utility", RED);
-	put_string(  20, yres / 4 + 20,
+	put_string(8, yres / 4 + 20,
 			   "Touch crosshair to calibrate", RED);
 
 	rt_kprintf("xres = %d, yres = %d\n", xres, yres);
 	
 	//----校准过程，获取5个点的数据-------
-	put_cross(  50, 50, RED);
+	put_cross(  50, 50);
+	clr_cross(  xres - 50, 50);
+	clr_cross(  xres - 50, yres - 50);
+	clr_cross(50,  yres - 50);
+	clr_cross(xres / 2, yres / 2);
 	get_sample (ts, &cal, 0, 50,        50,        "Top left");
 	rt_kprintf("-----------------------Top left finish\r\n");
 
-	put_cross(  xres - 50, 50, RED);
+	rt_kprintf("%s %d\r\n", __func__, __LINE__);
+	put_cross(  xres - 50, 50);
+	clr_cross(  50, 50);
+	clr_cross(  xres - 50, yres - 50);
+	clr_cross(50,  yres - 50);
+	clr_cross(xres / 2, yres / 2);
+	rt_kprintf("%s %d\r\n", __func__, __LINE__);
 	get_sample (ts, &cal, 1, xres - 50, 50,        "Top right");
+	rt_kprintf("%s %d\r\n", __func__, __LINE__);
 	rt_kprintf("-----------------------Top right finish\r\n");
 
-	put_cross(  xres - 50, yres - 50, RED);
+	put_cross(  xres - 50, yres - 50);
+	clr_cross(  50, 50);
+	clr_cross(  xres - 50, 50);
+	clr_cross(50,  yres - 50);
+	clr_cross(xres / 2, yres / 2);
 	get_sample (ts, &cal, 2, xres - 50, yres - 50, "Bot right");
 	rt_kprintf("-----------------------Bot right finish\r\n");
 
-	put_cross(50,  yres - 50, RED);
+	put_cross(50,  yres - 50);
+	clr_cross(  50, 50);
+	clr_cross(  xres - 50, 50);
+	clr_cross(  xres - 50, yres - 50);
+	clr_cross(xres / 2, yres / 2);
 	get_sample (ts, &cal, 3, 50,        yres - 50, "Bot left");
 	rt_kprintf("-----------------------Bot left finish\r\n");
 
-	put_cross(xres / 2, yres / 2, RED);
+	put_cross(xres / 2, yres / 2);
+	clr_cross(  50, 50);
+	clr_cross(  xres - 50, 50);
+	clr_cross(  xres - 50, yres - 50);
+	clr_cross(50,  yres - 50);
 	get_sample (ts, &cal, 4, xres / 2,  yres / 2,  "Center");
 	rt_kprintf("-----------------------Center\r\n");
 
@@ -211,21 +232,26 @@ int ts_calibrate(void)
 		for (i = 0; i < 7; i++) 
 			rt_kprintf("%d ", cal.a [i]);
 		rt_kprintf("\n");
+		clr_cross(xres / 2, yres / 2);
+		put_string(60, yres / 4 + 80,
+			"Calibration Success", GREEN);
 
 	} 
 	else 
 	{
 		rt_kprintf("Calibration failed.\n");
 		i = -1;
+		put_string(60, yres / 4 + 80,
+			"Calibration Failed", RED);
 	}
 
 	return i;
 }
 
 
-extern s32 dev_lcd_drawpoint(u16 x, u16 y, u16 color);
+extern signed int dev_lcd_drawpoint(uint16_t x, uint16_t y, uint16_t color);
 
-s32 ts_calibrate_test(void)
+signed int ts_calibrate_test(void)
 {
 	struct tsdev *ts;
 
@@ -243,7 +269,7 @@ s32 ts_calibrate_test(void)
 			if(samp.pressure !=0 )
 			{
 				//uart_rt_kprintf("pre:%d, x:%d, y:%d\r\n", samp.pressure, samp.x, samp.y);
-				drv_ILI9341_drawpoint(samp.x, samp.y, 0xF800);	
+				set_pixel(0xf800, samp.x, samp.y);	
 			}
 		}
 		

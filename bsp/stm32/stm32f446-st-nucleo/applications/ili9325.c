@@ -1,5 +1,6 @@
 #include <board.h>
 #include "ili9325.h"
+#include "font.h"
 #define CS_PIN    GET_PIN(C, 9)
 #define RS_PIN    GET_PIN(C, 8)
 #define WR_PIN    GET_PIN(C, 7)
@@ -37,7 +38,7 @@ void dpi_w(rt_uint16_t cmd, rt_uint16_t data)
 	rt_pin_write(WR_PIN, PIN_HIGH);
 }
 
-rt_err_t stm32_lcd_init()
+void stm32_lcd_init()
 {
 	rt_pin_mode(CS_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(RS_PIN, PIN_MODE_OUTPUT);
@@ -111,7 +112,7 @@ rt_err_t stm32_lcd_init()
 	rt_thread_mdelay(50);
 }
 
-static void set_pixel(const rt_uint16_t pixel, int x, int y)
+void set_pixel(const rt_uint16_t pixel, int x, int y)
 {
 	rt_pin_write(CS_PIN, PIN_LOW);
 	dpi_w(0x0020, x); 						
@@ -187,4 +188,31 @@ void put_cross(int x, int y)
 	draw_vline(WHITE, x + 9, y + 6, y + 8);
 	draw_vline(WHITE, x + 9, y - 9, y - 6);
 	draw_hline(WHITE, x + 6, x + 8, y - 9);
+}
+void put_char(int x, int y, int c, int colidx)
+{
+	int i,j,bits;
+	uint8_t* p;
+	
+
+	p = (uint8_t *)font_vga_8x8.path;//need fix
+	for (i = 0; i < font_vga_8x8.height; i++) 
+	{
+		bits =	p[font_vga_8x8.height * c + i];
+		for (j = 0; j < font_vga_8x8.width; j++, bits <<= 1)
+		{
+			if (bits & 0x80)
+			{
+				set_pixel(colidx, x + j, y + i);
+			}
+		}
+	}
+}
+
+void put_string(int x, int y, char *s, unsigned colidx)
+{
+	int i;
+	
+	for (i = 0; *s; i++, x += font_vga_8x8.width, s++)
+		put_char(x, y, *s, colidx);
 }

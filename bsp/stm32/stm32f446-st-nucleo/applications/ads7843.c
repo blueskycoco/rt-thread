@@ -3,6 +3,7 @@
 #include <board.h>
 #include "ili9325.h"
 #include "tslib.h"
+#include "font.h"
 
 #define KEY1_PIN    GET_PIN(C, 5)
 #define KEY2_PIN    GET_PIN(D, 2)
@@ -12,39 +13,13 @@
 #define MOSI_PIN    GET_PIN(C, 3)
 #define MISO_PIN    GET_PIN(C, 2)
 #define SCLK_PIN    GET_PIN(C, 0)
-static uint16_t point[2][1024] = {0x00};
+static uint16_t point[3][1024] = {0x00};
 static rt_sem_t touch_sem = RT_NULL;
 static rt_sem_t tslib_sem = RT_NULL;
 uint8_t j = 0;
-
-void put_char(int x, int y, int c, int colidx)
-{
-	int i,j,bits;
-	u8* p;
-	
-
-	p = (u8*)font_vga_8x8.path;//need fix
-	for (i = 0; i < font_vga_8x8.height; i++) 
-	{
-		bits =	p[font_vga_8x8.height * c + i];
-		for (j = 0; j < font_vga_8x8.width; j++, bits <<= 1)
-		{
-			if (bits & 0x80)
-			{
-				drv_ILI9341_drawpoint(x + j, y + i, colidx);
-			}
-		}
-	}
-}
-
-void put_string(int x, int y, char *s, unsigned colidx)
-{
-	int i;
-	
-	for (i = 0; *s; i++, x += font_vga_8x8.width, s++)
-		put_char(x, y, *s, colidx);
-}
-
+int g_need_bytes = 0;
+uint8_t cal_finished = 0;
+extern struct tsdev *ts;
 static void stm32_udelay(rt_uint32_t us)
 {
 	rt_uint32_t ticks;
@@ -143,16 +118,19 @@ static uint16_t spi_gpio_rw(uint8_t cmd)
 int dev_touchscreen_read(struct ts_sample *samp, int nr)
 {
 	int i;
+	static int x,y,pressure;
     	g_need_bytes = nr;
 	j = 0;
-	rt_sem_take(tslib_sem, RT_WAITING_FOREVER);
-
-	for (i=0; i<nr; i++) {
-		samp->x = point[0][i];
-		samp->y = point[1][i];
-		samp->pressure = 200;
-	}
-
+	if (rt_pin_read(PEN_PIN) == PIN_LOW) {
+		x = spi_gpio_rw_ext(0x90);
+		y = spi_gpio_rw_ext(0xd0);
+		pressure = 200;
+	} else
+	    pressure = 0;
+	samp->x = x;
+	samp->y = y;
+	samp->pressure = pressure;
+	g_need_bytes = 0;
 	return nr;
 }
 static void touch_isr(void *parameter)
@@ -160,10 +138,13 @@ static void touch_isr(void *parameter)
 	rt_sem_release(touch_sem);
 }
 
+extern int ts_calibrate(void);
 static void ads7843_handler()
 {
 	uint32_t x, y;
 	uint8_t flag = 0;
+	struct ts_sample samp;
+	int ret;
 
 	touch_sem = rt_sem_create("touch", 0, RT_IPC_FLAG_FIFO);
 	tslib_sem = rt_sem_create("tslib", 0, RT_IPC_FLAG_FIFO);
@@ -191,26 +172,42 @@ static void ads7843_handler()
 	while (1) {
 		rt_sem_take(touch_sem, RT_WAITING_FOREVER);
 		
-		if (rt_pin_read(KEY1_PIN) == PIN_LOW)
+		if (rt_pin_read(KEY1_PIN) == PIN_LOW) {
 			rt_kprintf("Key 1 pressed\r\n");
+			fb_clr(BLACK);
+		}
 		
 		if (rt_pin_read(KEY2_PIN) == PIN_LOW)
 			rt_kprintf("Key 2 pressed\r\n");
-
+		
+		while (rt_pin_read(PEN_PIN) == PIN_LOW && cal_finished) {
+		ts_read(ts, &samp, 1);
+		set_pixel(0xf800, samp.x, samp.y);	
+		}
+		if (cal_finished) {
+		ts_read(ts, &samp, 1);
+		set_pixel(0xf800, samp.x, samp.y);	
+		}
+#if 0
 		while (rt_pin_read(PEN_PIN) == PIN_LOW) {
 			y = spi_gpio_rw_ext(0x90);
 			x = spi_gpio_rw_ext(0xd0);
-			if (j<1024) {
-				point[0][j] = x;
-				point[1][j] = y;
-			}
-			//rt_kprintf("touch %03x, %03x %d\r\n",
-			//		(x<<1)>>4, (y<<1)>>4,
-			//		rt_pin_read(PEN_PIN));
-			j++;
-			if (j > g_need_bytes)
-				rt_sem_release(tslib_sem);
+			point[0][0] = x;
+			point[1][0] = y;
+			point[2][0] = rt_pin_read(PEN_PIN) ? 0 : 200;
+			rt_kprintf("j %d, need %d, touch %03x, %03x %d\r\n",
+					j, g_need_bytes,
+					(x<<1)>>4, (y<<1)>>4,
+					rt_pin_read(PEN_PIN));
+			rt_sem_release(tslib_sem);
 		}
+
+		point[0][0] = x;
+		point[1][0] = y;
+		point[2][0] = 0;
+#endif		
+		rt_sem_release(tslib_sem);
+	//	rt_sem_release(tslib_sem);
 #if 0
 		if (j == 1) {
 		rt_kprintf("AAA\r\n");
@@ -252,7 +249,6 @@ static void ads7843_handler()
 		}
 		rt_kprintf("BBB\r\n");
 #endif
-		}
 	}
 }
 
