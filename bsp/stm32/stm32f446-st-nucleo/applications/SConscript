@@ -8,6 +8,7 @@ main.c
 ads7843.c
 ili9325.c
 font_8x8.c
+wifi232.c
 ./tslib/testutils.c
 ./tslib/ts_calibrate.c
 ./tslib/tslib.c

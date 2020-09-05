@@ -22,6 +22,7 @@ extern void ads7843_init();
 extern uint8_t cal_finished;
 struct tsdev *ts;
 extern calibration cal;
+extern int wifi_init();
 int main(void)
 {
 	int count = 1;
@@ -34,6 +35,7 @@ int main(void)
 	stm32_lcd_init();
 	fb_clr(BLACK);
 	ads7843_init();
+	wifi_init();
 	//rt_thread_delay(200);
 	//ts_calibrate();
 	cal_finished = 1;
