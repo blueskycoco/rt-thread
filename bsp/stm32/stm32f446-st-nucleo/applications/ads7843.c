@@ -187,6 +187,8 @@ static void ads7843_handler()
 			else if (color == WHITE)
 			    color = GREEN;
 			else if (color == GREEN)
+			    color = BLACK;
+			else if (color == BLACK)
 			    color = RED;
 			put_string(200, 300, "Hello", color);
 		}
