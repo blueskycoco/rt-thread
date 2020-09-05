@@ -13,6 +13,7 @@
 #define MOSI_PIN    GET_PIN(C, 3)
 #define MISO_PIN    GET_PIN(C, 2)
 #define SCLK_PIN    GET_PIN(C, 0)
+unsigned int color = RED;
 static uint16_t point[3][1024] = {0x00};
 static rt_sem_t touch_sem = RT_NULL;
 static rt_sem_t tslib_sem = RT_NULL;
@@ -177,16 +178,26 @@ static void ads7843_handler()
 			fb_clr(BLACK);
 		}
 		
-		if (rt_pin_read(KEY2_PIN) == PIN_LOW)
+		if (rt_pin_read(KEY2_PIN) == PIN_LOW) {
 			rt_kprintf("Key 2 pressed\r\n");
+			if (color == RED)
+			    color = BLUE;
+			else if (color == BLUE)
+			    color = WHITE;
+			else if (color == WHITE)
+			    color = GREEN;
+			else if (color == GREEN)
+			    color = RED;
+			put_string(200, 300, "Hello", color);
+		}
 		
 		while (rt_pin_read(PEN_PIN) == PIN_LOW && cal_finished) {
 		ts_read(ts, &samp, 1);
-		set_pixel(0xf800, samp.x, samp.y);	
+		set_pixel(color, samp.x, samp.y);	
 		}
 		if (cal_finished) {
 		ts_read(ts, &samp, 1);
-		set_pixel(0xf800, samp.x, samp.y);	
+		set_pixel(color, samp.x, samp.y);	
 		}
 #if 0
 		while (rt_pin_read(PEN_PIN) == PIN_LOW) {

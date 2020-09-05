@@ -20,7 +20,7 @@
 #include <stdarg.h>
 #include "ili9325.h"
 #include "tslib.h"
-
+/* -1 538 -1026664 716 -6 -1157373 65536 */
 extern void put_cross(int x, int y);
 
 extern int getxy(struct tsdev *ts, int *x, int *y);

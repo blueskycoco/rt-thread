@@ -12,6 +12,7 @@
 #include <rtdevice.h>
 #include <board.h>
 #include "ili9325.h"
+#include "tslib.h"
 
 /* defined the LED2 pin: PB7 */
 #define LED2_PIN    GET_PIN(A, 5)
@@ -20,6 +21,7 @@
 extern void ads7843_init();
 extern uint8_t cal_finished;
 struct tsdev *ts;
+extern calibration cal;
 int main(void)
 {
 	int count = 1;
@@ -32,10 +34,16 @@ int main(void)
 	stm32_lcd_init();
 	fb_clr(BLACK);
 	ads7843_init();
-	rt_thread_delay(200);
-	ts_calibrate();
+	//rt_thread_delay(200);
+	//ts_calibrate();
 	cal_finished = 1;
-
+	cal.a[0] = -1;
+	cal.a[1] = 538;
+	cal.a[2] = -1026664;
+	cal.a[3] = 716;
+	cal.a[4] = -6;
+	cal.a[5] = -1157373;
+	cal.a[6] = 65536;
 	ts = ts_open_module();
 	while (count++)
 	{

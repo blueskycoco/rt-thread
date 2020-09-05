@@ -216,3 +216,4 @@ void put_string(int x, int y, char *s, unsigned colidx)
 	for (i = 0; *s; i++, x += font_vga_8x8.width, s++)
 		put_char(x, y, *s, colidx);
 }
+
