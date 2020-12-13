@@ -38,7 +38,7 @@
 #define RT_USING_DEVICE
 #define RT_USING_CONSOLE
 #define RT_CONSOLEBUF_SIZE 128
-#define RT_CONSOLE_DEVICE_NAME "uart3"
+#define RT_CONSOLE_DEVICE_NAME "uart2"
 #define RT_VER_NUM 0x40003
 #define ARCH_ARM
 #define RT_USING_CPU_FFS
@@ -79,10 +79,10 @@
 #define RT_USING_DEVICE_IPC
 #define RT_PIPE_BUFSZ 512
 #define RT_USING_SERIAL
-#define RT_SERIAL_USING_DMA
+//#define RT_SERIAL_USING_DMA
 #define RT_SERIAL_RB_BUFSZ 64
 #define RT_USING_PIN
-#define RT_USING_WDT
+//#define RT_USING_WDT
 
 /* Using USB */
 
@@ -151,11 +151,11 @@
 /* samples: kernel and components samples */
 
 #define SOC_FAMILY_STM32
-#define SOC_SERIES_STM32F4
+#define SOC_SERIES_STM32F3
 
 /* Hardware Drivers Config */
 
-#define SOC_STM32F413ZH
+#define SOC_STM32F302R8
 
 /* Onboard Peripheral Drivers */
 
@@ -165,7 +165,7 @@
 
 #define BSP_USING_GPIO
 #define BSP_USING_UART
-#define BSP_USING_UART3
+#define BSP_USING_UART2
 
 /* Board extended module Drivers */
 
