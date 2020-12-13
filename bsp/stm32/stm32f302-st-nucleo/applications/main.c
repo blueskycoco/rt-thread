@@ -32,13 +32,13 @@ int main(void)
     while (count++)
     {
         rt_pin_write(LED1_PIN, PIN_HIGH);
-        rt_pin_write(LED2_PIN, PIN_HIGH);
-        rt_pin_write(LED3_PIN, PIN_HIGH);
-        rt_thread_mdelay(500);
-        rt_pin_write(LED1_PIN, PIN_LOW);
         rt_pin_write(LED2_PIN, PIN_LOW);
+        rt_pin_write(LED3_PIN, PIN_HIGH);
+        rt_thread_mdelay(1000);
+        rt_pin_write(LED1_PIN, PIN_LOW);
+        rt_pin_write(LED2_PIN, PIN_HIGH);
         rt_pin_write(LED3_PIN, PIN_LOW);
-        rt_thread_mdelay(500);
+        rt_thread_mdelay(1000);
     }
 
     return RT_EOK;
