@@ -130,6 +130,15 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
   /* USER CODE BEGIN USART1_MspInit 1 */
 
   /* USER CODE END USART1_MspInit 1 */
+  } if(huart->Instance == USART6) {
+    __HAL_RCC_USART6_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF8_USART6;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
   }
 
 }
@@ -161,8 +170,10 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
   /* USER CODE BEGIN USART1_MspDeInit 1 */
 
   /* USER CODE END USART1_MspDeInit 1 */
+  } if(huart->Instance == USART6) {
+	__HAL_RCC_USART6_CLK_DISABLE();
+	HAL_GPIO_DeInit(GPIOC, GPIO_PIN_6|GPIO_PIN_7);
   }
-
 }
 
 /* USER CODE BEGIN 1 */

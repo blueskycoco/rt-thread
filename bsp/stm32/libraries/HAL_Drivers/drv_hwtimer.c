@@ -163,7 +163,7 @@ static void pclkx_doubler_get(rt_uint32_t *pclk1_doubler, rt_uint32_t *pclk2_dou
     RT_ASSERT(pclk1_doubler != RT_NULL);
     RT_ASSERT(pclk1_doubler != RT_NULL);
 
-    HAL_RCC_GetClockConfig(&RCC_ClkInitStruct, &flatency);
+    HAL_RCC_GetClockConfig(&RCC_ClkInitStruct, (uint32_t *)&flatency);
 
     *pclk1_doubler = 1;
     *pclk2_doubler = 1;
@@ -204,7 +204,7 @@ static void timer_init(struct rt_hwtimer_device *timer, rt_uint32_t state)
         tim = (TIM_HandleTypeDef *)timer->parent.user_data;
         tim_device = (struct stm32_hwtimer *)timer;
 
-        pclkx_doubler_get(&pclk1_doubler, &pclk2_doubler);
+        pclkx_doubler_get((rt_uint32_t *)&pclk1_doubler, (rt_uint32_t *)&pclk2_doubler);
 
         /* time init */
 #if defined(SOC_SERIES_STM32F2) || defined(SOC_SERIES_STM32F4) || defined(SOC_SERIES_STM32F7)
@@ -335,7 +335,7 @@ static rt_err_t timer_ctrl(rt_hwtimer_t *timer, rt_uint32_t cmd, void *arg)
         /* set timer frequence */
         freq = *((rt_uint32_t *)arg);
 
-        pclkx_doubler_get(&pclk1_doubler, &pclk2_doubler);
+        pclkx_doubler_get((rt_uint32_t *)&pclk1_doubler, (rt_uint32_t *)&pclk2_doubler);
 
 #if defined(SOC_SERIES_STM32F2) || defined(SOC_SERIES_STM32F4) || defined(SOC_SERIES_STM32F7)
         if (tim->Instance == TIM9 || tim->Instance == TIM10 || tim->Instance == TIM11)
