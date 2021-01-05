@@ -13,6 +13,7 @@
 #include <board.h>
 #include <ctype.h>
 #include "crc.h"
+#include "mem_list.h"
 static struct rt_thread uart_thread;
 ALIGN(RT_ALIGN_SIZE)
 static char uart_thread_stack[1024];
@@ -21,8 +22,6 @@ rt_device_t ts_device;
 rt_uint8_t hid_rcv[64] = {0};
 rt_size_t g_hid_size;
 rt_sem_t        isr_sem;
-rt_uint32_t all_len = 0;
-rt_uint8_t *all_data;
 /* defined the LED2 pin: PB7 */
 #define LED2_PIN    GET_PIN(B, 7)
 #if 0
@@ -101,15 +100,19 @@ static void uart_thread_entry(void *parameter)
 	{
 		rt_sem_take(&rx_ind, RT_WAITING_FOREVER);
 		/* handle host command */
+		len = 0;
 		do {
-		len = rt_device_read(device, 0, uart_buf, 64);
-		if (len > 0) {
-			rt_memcpy(all_data+all_len, uart_buf, len);
-			all_len += len;//dump_host_cmd(uart_buf, len);
-		} else
-			break;
+			len += rt_device_read(device, 0, uart_buf+len, 64-len);
+			if (len > 0) {
+				if (len == 64) {
+					insert_mem(TYPE_H2D, uart_buf, len);
+					break;
+				}
+			} else {
+				break;
+			}
 		} while (1);
-	} // while(1)
+	}
 }
 
 static int timestamp_init(void)
@@ -179,7 +182,7 @@ int main(void)
 	//						2048, 28, 20);
 	//  	rt_thread_startup(tid);
 	/* set LED2 pin mode to output */
-	all_data = (rt_uint8_t *)rt_malloc(sizeof(rt_uint8_t) * 8192);
+	rt_memlist_init();	
 	rt_pin_mode(LED2_PIN, PIN_MODE_OUTPUT);
 	timestamp_init();
 	mcu_cmd_init();
@@ -189,7 +192,6 @@ int main(void)
 		rt_thread_mdelay(500);
 		rt_pin_write(LED2_PIN, PIN_LOW);
 		rt_thread_mdelay(500);
-
 	}
 
 	return RT_EOK;
@@ -197,12 +199,19 @@ int main(void)
 #ifdef FINSH_USING_MSH
 int dump_len(void)
 {
+	rt_uint8_t *data;
 	rt_uint32_t i;
-
-	rt_kprintf("all_len: %d\r\n", all_len);
-	for (i=0; i<all_len; i++)
-		rt_kprintf("%c", all_data[i]);
-	all_len = 0;
+	rt_uint16_t len, all_len;
+	do {
+		remove_mem(TYPE_H2D, &data, &len);
+		if (data == RT_NULL)
+			break;
+		all_len += len;
+		rt_kprintf("============>[%04d]: ", all_len);
+		for (i=0; i<len; i++) {
+			rt_kprintf("%c", data[i]);
+		}
+	} while (1);
 	return 0;
 }
 MSH_CMD_EXPORT(dump_len, dump len);
