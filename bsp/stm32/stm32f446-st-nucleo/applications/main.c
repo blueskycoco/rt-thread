@@ -14,32 +14,43 @@
 #include <ctype.h>
 #include "crc.h"
 #include "mem_list.h"
+#include "icm20603.h"
 static struct rt_thread uart_thread;
 ALIGN(RT_ALIGN_SIZE)
-static char uart_thread_stack[1024];
-static struct rt_semaphore rx_ind;
-rt_device_t ts_device;
-rt_uint8_t hid_rcv[64] = {0};
+	static char uart_thread_stack[1024];
+	static struct rt_semaphore rx_ind;
+	rt_device_t ts_device;
+	rt_uint8_t hid_rcv[64] = {0};
 rt_size_t g_hid_size;
 rt_sem_t        isr_sem;
+rt_device_t hid_device;
+rt_bool_t 	hid_ready = RT_FALSE;
+icm20603_device_t icm_dev;
+rt_sem_t tx_comp;
 /* defined the LED2 pin: PB7 */
 #define LED2_PIN    GET_PIN(B, 7)
-#if 0
+#if 1
 #define ICM_INT_PIN GET_PIN(B, 4)
 static void icm_isr(void *parameter)
 {
 	rt_sem_release(isr_sem);
 }
+static rt_err_t event_hid_finish(rt_device_t dev, void *buffer)
+{
+    return rt_sem_release(tx_comp);
+}
 
 static void icm_thread_entry(void *parameter)
 {
-	rt_int16_t x, y, z;
+	rt_int16_t ax, ay, az;
+	rt_int16_t gx, gy, gz;
+	rt_uint8_t buf[13];
 
 	isr_sem = rt_sem_create("icm", 0, RT_IPC_FLAG_FIFO);
 	rt_pin_mode(ICM_INT_PIN, PIN_MODE_INPUT_PULLUP);
 	rt_pin_attach_irq(ICM_INT_PIN, PIN_IRQ_MODE_FALLING, icm_isr, RT_NULL);
 
-	icm20603_device_t icm_dev = icm20603_init();
+	icm_dev = icm20603_init();
 	icm20603_calib_level(icm_dev, 10);
 	rt_pin_irq_enable(ICM_INT_PIN, RT_TRUE);
 
@@ -50,10 +61,29 @@ static void icm_thread_entry(void *parameter)
 		{
 			continue;
 		}
-		icm20603_get_accel(icm_dev, &x, &y, &z);
-		rt_kprintf("accelerometer: X%6d    Y%6d    Z%6d\n", x, y, z);
-		icm20603_get_gyro(icm_dev, &x, &y, &z);
-		rt_kprintf("gyroscope    : X%6d    Y%6d    Z%6d\n", x, y, z);
+		icm20603_get_accel(icm_dev, (rt_int16_t *)&ax, (rt_int16_t *)&ay, (rt_int16_t *)&az);
+		icm20603_get_gyro(icm_dev, (rt_int16_t *)&gx, (rt_int16_t *)&gy, (rt_int16_t *)&gz);
+		//rt_kprintf("accelerometer: %10d, %10d, %10d     gyro: %10d, %10d, %10d\r\n",
+		//		ax, ay, az, gx, gy, gz);
+		buf[0] = 0x02;
+		buf[1] = (ax >> 8) & 0xff; 
+		buf[2] = ax & 0xff; 
+		buf[3] = (ay >> 8) & 0xff; 
+		buf[4] = ay & 0xff; 
+		buf[5] = (az >> 8) & 0xff; 
+		buf[6] = az & 0xff; 
+		buf[7] = (gx >> 8) & 0xff; 
+		buf[8] = gx & 0xff; 
+		buf[9] = (gy >> 8) & 0xff; 
+		buf[10] = gy & 0xff; 
+		buf[11] = (gz >> 8) & 0xff; 
+		buf[12] = gz & 0xff; 
+		if (hid_ready) {
+			if (rt_device_write(hid_device, 0x02, buf+1, 12) != 12)
+				rt_kprintf("hid write failed %d\r\n", errno);
+			else
+				rt_sem_take(tx_comp, -1);
+		}
 	}
 }
 #endif
@@ -91,7 +121,7 @@ static void uart_thread_entry(void *parameter)
 	rt_device_t device = (rt_device_t)parameter;
 
 	rt_sem_init(&rx_ind, "uart_rx_ind", 1, RT_IPC_FLAG_FIFO);
-	
+
 	rt_device_set_rx_indicate(device, uart_data_ind);
 
 	rt_kprintf("Ready.\n");
@@ -120,7 +150,7 @@ static int timestamp_init(void)
 	int err = 0;
 	rt_hwtimer_mode_t mode;
 	rt_hwtimerval_t val;
-	
+
 	if ((ts_device = rt_device_find("timer3")) == RT_NULL)
 	{
 		rt_kprintf("No Device: timer3\n");
@@ -132,7 +162,7 @@ static int timestamp_init(void)
 		rt_kprintf("Open timer3 Fail\n");
 		return -1;
 	}
-	
+
 	mode = HWTIMER_MODE_PERIOD;
 	err = rt_device_control(ts_device, HWTIMER_CTRL_MODE_SET, &mode);
 	val.sec = 10*60*60;
@@ -175,17 +205,40 @@ static int mcu_cmd_init(void)
 
 	return 0;
 }
+void HID_Report_Received(hid_report_t report)
+{
+	hid_ready = RT_TRUE;
+	icm20603_int_enable(icm_dev);
+}
+static int generic_hid_init(void)
+{
+	int err = 0;
+	hid_device = rt_device_find("hidd");
+	RT_ASSERT(hid_device != RT_NULL);
+
+	err = rt_device_open(hid_device, RT_DEVICE_FLAG_RDWR);
+
+	if (err != RT_EOK)
+	{
+		rt_kprintf("open dev failed!\n");
+		return -1;
+	}
+	tx_comp = rt_sem_create("hid", 0, RT_IPC_FLAG_FIFO);
+	rt_device_set_tx_complete(hid_device, event_hid_finish);
+	return 0;
+}
 int main(void)
 {
 	int count = 1;
-	//	rt_thread_t tid = rt_thread_create("icm", icm_thread_entry, RT_NULL,
-	//						2048, 28, 20);
-	//  	rt_thread_startup(tid);
+	rt_thread_t tid = rt_thread_create("icm", icm_thread_entry, RT_NULL,
+			2048, 28, 20);
+	rt_thread_startup(tid);
 	/* set LED2 pin mode to output */
 	rt_memlist_init();	
 	rt_pin_mode(LED2_PIN, PIN_MODE_OUTPUT);
 	timestamp_init();
-	mcu_cmd_init();
+	//mcu_cmd_init();
+	generic_hid_init();
 	while (count++)
 	{
 		rt_pin_write(LED2_PIN, PIN_HIGH);

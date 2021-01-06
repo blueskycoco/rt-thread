@@ -80,6 +80,18 @@ static rt_err_t read_regs(struct rt_spi_device *spi_dev, rt_uint8_t reg,
 	return (ret == len+1) ? RT_EOK : RT_ERROR;
 }
 
+static rt_err_t read_regs_ext(struct rt_spi_device *spi_dev, rt_uint8_t reg,
+		rt_uint8_t len, rt_uint8_t *buf)
+{
+	int i;
+	rt_uint8_t tx[32] = {0};
+	rt_uint8_t rx[32] = {0};
+	tx[0] = reg|0x80;
+	rt_memset(tx+1, 0xff, len);
+	rt_size_t ret = rt_spi_transfer(spi_dev, tx, rx, len+1);
+	memcpy(buf, rx, len);
+	return (ret == len+1) ? RT_EOK : RT_ERROR;
+}
 static rt_err_t reset_sensor(icm20603_device_t dev)
 {
     rt_uint8_t value = 0;
@@ -88,7 +100,10 @@ static rt_err_t reset_sensor(icm20603_device_t dev)
 
     return write_regs(dev->spi, ICM20603_PWR_MGMT1_REG, 1, &value);
 }
-
+void icm20603_int_enable(icm20603_device_t dev)
+{
+    icm20603_set_param(dev, ICM20603_INT_ENABLE, 1);
+}
 static rt_err_t icm20603_sensor_init(icm20603_device_t dev)
 {
     rt_err_t result = -RT_ERROR;
@@ -119,7 +134,7 @@ static rt_err_t icm20603_sensor_init(icm20603_device_t dev)
     }
 
     /* set gyroscope range, default 250 dps */
-    result = icm20603_set_param(dev, ICM20603_GYRO_CONFIG, 0);
+    result = icm20603_set_param(dev, ICM20603_GYRO_CONFIG, 3);
     if (result != RT_EOK)
     {
         LOG_E("This sensor initializes failure 4");
@@ -127,7 +142,7 @@ static rt_err_t icm20603_sensor_init(icm20603_device_t dev)
     }
 
     /* set accelerometer range, default 2g */
-    result = icm20603_set_param(dev, ICM20603_ACCEL_CONFIG1, 0);
+    result = icm20603_set_param(dev, ICM20603_ACCEL_CONFIG1, 3);
     if (result != RT_EOK)
     {
         LOG_E("This sensor initializes failure5");
@@ -142,7 +157,7 @@ static rt_err_t icm20603_sensor_init(icm20603_device_t dev)
         goto __exit;
     }
 
-    result = icm20603_set_param(dev, ICM20603_INT_ENABLE, 7);
+    result = icm20603_set_param(dev, ICM20603_INT_ENABLE, 0);
     if (result != RT_EOK)
     {
         LOG_E("This sensor initializes failure6");
@@ -332,9 +347,9 @@ rt_err_t icm20603_get_accel(icm20603_device_t dev, rt_int16_t *accel_x,
             }
             else
             {
-                *accel_x = (value[0] << 8) + value[1] - dev->accel_offset.x;
-                *accel_y = (value[2] << 8) + value[3] - dev->accel_offset.y;
-                *accel_z = (value[4] << 8) + value[5] - dev->accel_offset.z;
+                *accel_x = (value[0] << 8) + value[1];// - dev->accel_offset.x;
+                *accel_y = (value[2] << 8) + value[3];// - dev->accel_offset.y;
+                *accel_z = (value[4] << 8) + value[5];// - dev->accel_offset.z;
             }
         }
         else
@@ -386,9 +401,9 @@ rt_err_t icm20603_get_gyro(icm20603_device_t dev, rt_int16_t *gyro_x,
             }
             else
             {
-                *gyro_x = (value[0] << 8) + value[1] - dev->gyro_offset.x;
-                *gyro_y = (value[2] << 8) + value[3] - dev->gyro_offset.y;
-                *gyro_z = (value[4] << 8) + value[5] - dev->gyro_offset.z;
+                *gyro_x = (value[0] << 8) + value[1];// - dev->gyro_offset.x;
+                *gyro_y = (value[2] << 8) + value[3];// - dev->gyro_offset.y;
+                *gyro_z = (value[4] << 8) + value[5];// - dev->gyro_offset.z;
             }
         }
         else
@@ -440,6 +455,7 @@ rt_err_t icm20603_set_param(icm20603_device_t dev, icm20603_set_cmd_t cmd,
         result = read_regs(dev->spi, ICM20603_GYRO_CONFIG_REG, 1, &args);
         if (result == RT_EOK)
         {
+        	rt_kprintf("gyro args %x\r\n", args);
             args &= 0xE7; //clear [4:3]
             args |= value << 3;
             result = write_regs(dev->spi, ICM20603_GYRO_CONFIG_REG, 1, &args);
@@ -464,6 +480,7 @@ rt_err_t icm20603_set_param(icm20603_device_t dev, icm20603_set_cmd_t cmd,
         result = read_regs(dev->spi, ICM20603_ACCEL_CONFIG1_REG, 1, &args);
         if (result == RT_EOK)
         {
+        	rt_kprintf("accel args %x\r\n", args);
             args &= 0xE7; //clear [4:3]
             args |= value << 3;
             result = write_regs(dev->spi, ICM20603_ACCEL_CONFIG1_REG, 1, &args);
@@ -482,6 +499,10 @@ rt_err_t icm20603_set_param(icm20603_device_t dev, icm20603_set_cmd_t cmd,
     }
     case ICM20603_INT_ENABLE:
     {
+    	    rt_uint8_t tmp = 0x01;
+        result = write_regs(dev->spi, 0x1a, 1, &tmp);
+        	tmp = 0x00;
+        result = write_regs(dev->spi, 0x19, 1, &tmp);
         result = write_regs(dev->spi, ICM20603_INT_ENABLE_REG, 1, &value);
         break;
     }
