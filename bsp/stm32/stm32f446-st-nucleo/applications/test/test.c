@@ -42,15 +42,15 @@ int main(int argc, void* argv[])
 	rcv_len = hid_xfer(handle, 0x02, cmd, 64, 1000);
 	
 	while(1) {
-		len = hid_xfer(handle, 0x82, rsp, 13, 1000);
+		len = hid_xfer(handle, 0x82, rsp, 25, 1000);
 		if (len > 0) {
 #if 1
-			acc[0] = (rsp[1] << 8) | rsp[2];
-			acc[1] = (rsp[3] << 8) | rsp[4];
-			acc[2] = (rsp[5] << 8) | rsp[6];
-			gyro[0] = (rsp[7] << 8) | rsp[8];
-			gyro[1] = (rsp[9] << 8) | rsp[10];
-			gyro[2] = (rsp[11] << 8) | rsp[12];
+			acc[0] = (int16_t)((rsp[1] << 24) | (rsp[2] << 16) | (rsp[3] << 8) | (rsp[4] << 0));
+			acc[1] = (int16_t)((rsp[5] << 24) | (rsp[6] << 16) | (rsp[7] << 8) | (rsp[8] << 0));
+			acc[2] = (int16_t)((rsp[9] << 24) | (rsp[10] << 16) | (rsp[11] << 8) | (rsp[12] << 0));
+			gyro[0] = (int16_t)((rsp[13] << 24) | (rsp[14] << 16) | (rsp[15] << 8) | (rsp[16] << 0));
+			gyro[1] = (int16_t)((rsp[17] << 24) | (rsp[18] << 16) | (rsp[19] << 8) | (rsp[20] << 0));
+			gyro[2] = (int16_t)((rsp[21] << 24) | (rsp[22] << 16) | (rsp[23] << 8) | (rsp[24] << 0));
 			convert2float(acc, gyro, accf, gyrof);
 			printf("acc[%d] %10f %10f %10f, gyro %10f %10f %10f\r\n",
 					rsp[0], accf[0], accf[1], accf[2],

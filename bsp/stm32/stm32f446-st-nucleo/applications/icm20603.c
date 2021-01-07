@@ -23,7 +23,7 @@
 
 #define RT_ICM20603_DEFAULT_SPI_CFG                  \
 {                                                \
-    .mode = RT_SPI_MODE_3 | RT_SPI_MSB,          \
+    .mode = RT_SPI_MODE_0 | RT_SPI_MSB,          \
     .data_width = 8,                             \
     .max_hz = RT_ICM20603_SPI_MAX_HZ,                \
 }
@@ -100,9 +100,12 @@ static rt_err_t reset_sensor(icm20603_device_t dev)
 
     return write_regs(dev->spi, ICM20603_PWR_MGMT1_REG, 1, &value);
 }
-void icm20603_int_enable(icm20603_device_t dev)
+void icm20603_int_enable(icm20603_device_t dev, rt_bool_t on)
 {
-    icm20603_set_param(dev, ICM20603_INT_ENABLE, 1);
+	if (on)
+		icm20603_set_param(dev, ICM20603_INT_ENABLE, 1);
+	else
+		icm20603_set_param(dev, ICM20603_INT_ENABLE, 0);
 }
 static rt_err_t icm20603_sensor_init(icm20603_device_t dev)
 {
@@ -150,14 +153,14 @@ static rt_err_t icm20603_sensor_init(icm20603_device_t dev)
     }
 
     /* ACCEL_FCHOICE_B = 0 and A_DLPF_CFG[2:0] = 1 */
-    result = icm20603_set_param(dev, ICM20603_ACCEL_CONFIG2, 1);
+    result = icm20603_set_param(dev, ICM20603_ACCEL_CONFIG2, 7);
     if (result != RT_EOK)
     {
         LOG_E("This sensor initializes failure6");
         goto __exit;
     }
 
-    result = icm20603_set_param(dev, ICM20603_INT_ENABLE, 0);
+    result = icm20603_set_param(dev, ICM20603_INT_ENABLE, 1);
     if (result != RT_EOK)
     {
         LOG_E("This sensor initializes failure6");
@@ -312,7 +315,12 @@ void icm20603_deinit(icm20603_device_t dev)
     rt_mutex_delete(dev->lock);
     rt_free(dev);
 }
-
+void icm20603_int_status(icm20603_device_t dev)
+{
+	rt_uint8_t value;
+	read_regs(dev->spi, 0x3a, 1, &value);
+	return value;
+}
 /**
  * This function gets accelerometer by icm20603 sensor measurement
  *
@@ -499,9 +507,9 @@ rt_err_t icm20603_set_param(icm20603_device_t dev, icm20603_set_cmd_t cmd,
     }
     case ICM20603_INT_ENABLE:
     {
-    	    rt_uint8_t tmp = 0x01;
+	rt_uint8_t tmp = 0x01;
         result = write_regs(dev->spi, 0x1a, 1, &tmp);
-        	tmp = 0x00;
+        tmp = 0x00;
         result = write_regs(dev->spi, 0x19, 1, &tmp);
         result = write_regs(dev->spi, ICM20603_INT_ENABLE_REG, 1, &value);
         break;

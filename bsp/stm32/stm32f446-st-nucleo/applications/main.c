@@ -44,7 +44,8 @@ static void icm_thread_entry(void *parameter)
 {
 	rt_int16_t ax, ay, az;
 	rt_int16_t gx, gy, gz;
-	rt_uint8_t buf[13];
+	rt_uint8_t buf[32], int_status;
+	rt_uint32_t uax, uay, uaz, ugx, ugy, ugz;
 
 	isr_sem = rt_sem_create("icm", 0, RT_IPC_FLAG_FIFO);
 	rt_pin_mode(ICM_INT_PIN, PIN_MODE_INPUT_PULLUP);
@@ -52,37 +53,71 @@ static void icm_thread_entry(void *parameter)
 
 	icm_dev = icm20603_init();
 	icm20603_calib_level(icm_dev, 10);
-	rt_pin_irq_enable(ICM_INT_PIN, RT_TRUE);
+	//rt_pin_irq_enable(ICM_INT_PIN, RT_TRUE);
 
 	while (1)
 	{
-
 		if (rt_sem_take(isr_sem, -1) != RT_EOK)
 		{
+			rt_kprintf("wait imu timeout\r\n");
 			continue;
 		}
-		icm20603_get_accel(icm_dev, (rt_int16_t *)&ax, (rt_int16_t *)&ay, (rt_int16_t *)&az);
-		icm20603_get_gyro(icm_dev, (rt_int16_t *)&gx, (rt_int16_t *)&gy, (rt_int16_t *)&gz);
+		if (icm20603_int_status(icm_dev) & 0x01 != 0x01)
+			rt_kprintf("not ready\r\n");
+		icm20603_get_accel(icm_dev, (rt_int16_t *)&ax, (rt_int16_t *)&ay,
+				(rt_int16_t *)&az);
+		icm20603_get_gyro(icm_dev, (rt_int16_t *)&gx, (rt_int16_t *)&gy,
+				(rt_int16_t *)&gz);
 		//rt_kprintf("accelerometer: %10d, %10d, %10d     gyro: %10d, %10d, %10d\r\n",
 		//		ax, ay, az, gx, gy, gz);
+		uax = (rt_uint32_t)ax;
+		uay = (rt_uint32_t)ay;
+		uaz = (rt_uint32_t)az;
+		ugx = (rt_uint32_t)gx;
+		ugy = (rt_uint32_t)gy;
+		ugz = (rt_uint32_t)gz;
 		buf[0] = 0x02;
-		buf[1] = (ax >> 8) & 0xff; 
-		buf[2] = ax & 0xff; 
-		buf[3] = (ay >> 8) & 0xff; 
-		buf[4] = ay & 0xff; 
-		buf[5] = (az >> 8) & 0xff; 
-		buf[6] = az & 0xff; 
-		buf[7] = (gx >> 8) & 0xff; 
-		buf[8] = gx & 0xff; 
-		buf[9] = (gy >> 8) & 0xff; 
-		buf[10] = gy & 0xff; 
-		buf[11] = (gz >> 8) & 0xff; 
-		buf[12] = gz & 0xff; 
+		
+		buf[1]  = (uax >> 24) & 0xff; 
+		buf[2]  = (uax >> 16) & 0xff; 
+		buf[3]  = (uax >>  8) & 0xff; 
+		buf[4]  = (uax >>  0) & 0xff; 
+		
+		buf[5]  = (uay >> 24) & 0xff; 
+		buf[6]  = (uay >> 16) & 0xff; 
+		buf[7]  = (uay >>  8) & 0xff; 
+		buf[8]  = (uay >>  0) & 0xff; 
+		
+		buf[9]  = (uaz >> 24) & 0xff; 
+		buf[10] = (uaz >> 16) & 0xff; 
+		buf[11] = (uaz >>  8) & 0xff; 
+		buf[12] = (uaz >>  0) & 0xff; 
+		
+		buf[13] = (ugx >> 24) & 0xff; 
+		buf[14] = (ugx >> 16) & 0xff; 
+		buf[15] = (ugx >>  8) & 0xff; 
+		buf[16] = (ugx >>  0) & 0xff; 
+		
+		buf[17] = (ugy >> 24) & 0xff; 
+		buf[18] = (ugy >> 16) & 0xff; 
+		buf[19] = (ugy >>  8) & 0xff; 
+		buf[20] = (ugy >>  0) & 0xff; 
+		
+		buf[21] = (ugz >> 24) & 0xff; 
+		buf[22] = (ugz >> 16) & 0xff; 
+		buf[23] = (ugz >>  8) & 0xff; 
+		buf[24] = (ugz >>  0) & 0xff; 
+		
 		if (hid_ready) {
-			if (rt_device_write(hid_device, 0x02, buf+1, 12) != 12)
+			if (rt_device_write(hid_device, 0x02, buf+1, 24) != 24)
 				rt_kprintf("hid write failed %d\r\n", errno);
-			else
-				rt_sem_take(tx_comp, -1);
+			else {
+				if (rt_sem_take(tx_comp, 100) != RT_EOK) {
+					rt_kprintf("waiting hid out timeout\r\n");
+					hid_ready = RT_FALSE;
+					icm20603_int_enable(icm_dev, RT_FALSE);
+				}
+			}
 		}
 	}
 }
@@ -94,6 +129,11 @@ static rt_err_t uart_data_ind(rt_device_t dev, rt_size_t size)
 	return RT_EOK;
 }
 
+static rt_err_t usb_sof_ind(rt_device_t dev, rt_size_t size)
+{
+	rt_sem_release(isr_sem);
+	return RT_EOK;
+}
 static rt_uint32_t read_ts()
 {
 	rt_hwtimerval_t val,val1;
@@ -208,7 +248,7 @@ static int mcu_cmd_init(void)
 void HID_Report_Received(hid_report_t report)
 {
 	hid_ready = RT_TRUE;
-	icm20603_int_enable(icm_dev);
+	icm20603_int_enable(icm_dev, RT_TRUE);
 }
 static int generic_hid_init(void)
 {
@@ -225,6 +265,7 @@ static int generic_hid_init(void)
 	}
 	tx_comp = rt_sem_create("hid", 0, RT_IPC_FLAG_FIFO);
 	rt_device_set_tx_complete(hid_device, event_hid_finish);
+	rt_device_set_rx_indicate(hid_device, usb_sof_ind);
 	return 0;
 }
 int main(void)
