@@ -85,7 +85,9 @@ void icm20603_deinit(icm20603_device_t dev);
  *
  * @return the getting status of accelerometer, RT_EOK reprensents getting accelerometer successfully.
  */
-rt_err_t icm20603_get_accel(icm20603_device_t dev, rt_int16_t *accel_x, rt_int16_t *accel_y, rt_int16_t *accel_z);
+rt_err_t icm20603_get_accel(icm20603_device_t dev, rt_int16_t *accel_x,
+		rt_int16_t *accel_y, rt_int16_t *accel_z, rt_int16_t *gyro_x,
+		rt_int16_t *gyro_y, rt_int16_t *gyro_z);
 
 /**
  * This function gets gyroscope by icm20603 sensor measurement

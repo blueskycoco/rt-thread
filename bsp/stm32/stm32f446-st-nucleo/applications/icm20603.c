@@ -176,81 +176,6 @@ __exit:
     return result;
 }
 
-/**
- * This function calibrates original gyroscope and accelerometer, which are bias, in calibration mode
- *
- * @param dev the pointer of device driver structure
- * @param times averaging times in calibration mode
- *
- * @return the getting original status, RT_EOK reprensents getting gyroscope successfully.
- */
-rt_err_t icm20603_calib_level(icm20603_device_t dev, rt_size_t times)
-{
-    rt_int32_t accel[3] = {0, 0, 0};
-    rt_int32_t gyro[3] = {0, 0, 0};
-    rt_size_t i;
-    rt_err_t result;
-
-    RT_ASSERT(dev);
-
-    result = rt_mutex_take(dev->lock, RT_WAITING_FOREVER);
-    if (result == RT_EOK)
-    {
-        for (i = 0; i < times; i++)
-        {
-            rt_int16_t x, y, z;
-
-            /* read the sensor digital output */
-            result = icm20603_get_accel(dev, &x, &y, &z);
-            if (result == RT_EOK)
-            {
-                accel[0] += x;
-                accel[1] += y;
-                accel[2] += z;
-            }
-            else
-            {
-                break;
-            }
-
-            result = icm20603_get_gyro(dev, &x, &y, &z);
-            if (result == RT_EOK)
-            {
-                gyro[0] += x;
-                gyro[1] += y;
-                gyro[2] += z;
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        if (result == RT_EOK)
-        {
-            dev->accel_offset.x = (accel[0] / (int)times);
-            dev->accel_offset.y = (accel[1] / (int)times);
-            dev->accel_offset.z = (accel[2] / (int)times) - 0x3fff; //default full range
-
-            dev->gyro_offset.x = (int16_t)(gyro[0] / (int)times);
-            dev->gyro_offset.y = (int16_t)(gyro[1] / (int)times);
-            dev->gyro_offset.z = (int16_t)(gyro[2] / (int)times);
-        }
-    }
-
-    if (result == RT_EOK)
-    {
-        rt_mutex_release(dev->lock);
-    }
-    else
-    {
-        LOG_E("Can't calibrate the sensor");
-    }
-
-    return result;
-}
-
-
 icm20603_device_t icm20603_init(void)
 {
 	icm20603_device_t dev;
@@ -332,10 +257,11 @@ void icm20603_int_status(icm20603_device_t dev)
  * @return the getting status of accelerometer, RT_EOK reprensents  getting accelerometer successfully.
  */
 rt_err_t icm20603_get_accel(icm20603_device_t dev, rt_int16_t *accel_x,
-		rt_int16_t *accel_y, rt_int16_t *accel_z)
+		rt_int16_t *accel_y, rt_int16_t *accel_z, rt_int16_t *gyro_x,
+		rt_int16_t *gyro_y, rt_int16_t *gyro_z)
 {
     rt_err_t result = -RT_ERROR;
-    rt_uint8_t value[6];
+    rt_uint8_t value[14];
     rt_uint8_t range = 0;
 
     RT_ASSERT(dev);
@@ -348,6 +274,7 @@ rt_err_t icm20603_get_accel(icm20603_device_t dev, rt_int16_t *accel_x,
         if (range < 4 && result == RT_EOK)
         {
             result = read_regs(dev->spi, ICM20603_ACCEL_MEAS, 6, &value[0]); //self test x,y,z accelerometer;
+            result = read_regs(dev->spi, ICM20603_GYRO_MEAS, 6, &value[8]); //self test x,y,z gyroscope;
 
             if (result != RT_EOK)
             {
@@ -358,6 +285,9 @@ rt_err_t icm20603_get_accel(icm20603_device_t dev, rt_int16_t *accel_x,
                 *accel_x = (value[0] << 8) + value[1];// - dev->accel_offset.x;
                 *accel_y = (value[2] << 8) + value[3];// - dev->accel_offset.y;
                 *accel_z = (value[4] << 8) + value[5];// - dev->accel_offset.z;
+                *gyro_x = (value[8] << 8) + value[9];// - dev->accel_offset.x;
+                *gyro_y = (value[10] << 8) + value[11];// - dev->accel_offset.y;
+                *gyro_z = (value[12] << 8) + value[13];// - dev->accel_offset.z;
             }
         }
         else

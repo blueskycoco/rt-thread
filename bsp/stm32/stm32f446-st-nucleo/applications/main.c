@@ -52,7 +52,7 @@ static void icm_thread_entry(void *parameter)
 	rt_pin_attach_irq(ICM_INT_PIN, PIN_IRQ_MODE_FALLING, icm_isr, RT_NULL);
 
 	icm_dev = icm20603_init();
-	icm20603_calib_level(icm_dev, 10);
+	//icm20603_calib_level(icm_dev, 10);
 	//rt_pin_irq_enable(ICM_INT_PIN, RT_TRUE);
 
 	while (1)
@@ -64,10 +64,11 @@ static void icm_thread_entry(void *parameter)
 		}
 		if (icm20603_int_status(icm_dev) & 0x01 != 0x01)
 			rt_kprintf("not ready\r\n");
+		//icm20603_get_gyro(icm_dev, (rt_int16_t *)&gx, (rt_int16_t *)&gy,
+		//		(rt_int16_t *)&gz);
 		icm20603_get_accel(icm_dev, (rt_int16_t *)&ax, (rt_int16_t *)&ay,
-				(rt_int16_t *)&az);
-		icm20603_get_gyro(icm_dev, (rt_int16_t *)&gx, (rt_int16_t *)&gy,
-				(rt_int16_t *)&gz);
+				(rt_int16_t *)&az, (rt_int16_t *)&gx,
+				(rt_int16_t *)&gy, (rt_int16_t *)&gz);
 		//rt_kprintf("accelerometer: %10d, %10d, %10d     gyro: %10d, %10d, %10d\r\n",
 		//		ax, ay, az, gx, gy, gz);
 		uax = (rt_uint32_t)ax;
@@ -114,8 +115,6 @@ static void icm_thread_entry(void *parameter)
 			else {
 				if (rt_sem_take(tx_comp, 100) != RT_EOK) {
 					rt_kprintf("waiting hid out timeout\r\n");
-					hid_ready = RT_FALSE;
-					icm20603_int_enable(icm_dev, RT_FALSE);
 				}
 			}
 		}
@@ -248,7 +247,7 @@ static int mcu_cmd_init(void)
 void HID_Report_Received(hid_report_t report)
 {
 	hid_ready = RT_TRUE;
-	icm20603_int_enable(icm_dev, RT_TRUE);
+	rt_kprintf("app started\r\n");
 }
 static int generic_hid_init(void)
 {

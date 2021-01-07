@@ -52,8 +52,8 @@ int main(int argc, void* argv[])
 			gyro[1] = (int16_t)((rsp[17] << 24) | (rsp[18] << 16) | (rsp[19] << 8) | (rsp[20] << 0));
 			gyro[2] = (int16_t)((rsp[21] << 24) | (rsp[22] << 16) | (rsp[23] << 8) | (rsp[24] << 0));
 			convert2float(acc, gyro, accf, gyrof);
-			printf("acc[%d] %10f %10f %10f, gyro %10f %10f %10f\r\n",
-					rsp[0], accf[0], accf[1], accf[2],
+			printf("%10f, %10f, %10f, %10f, %10f, %10f\r\n",
+					accf[0], accf[1], accf[2],
 					gyrof[0], gyrof[1], gyrof[2]);
 #endif
 		} else {
