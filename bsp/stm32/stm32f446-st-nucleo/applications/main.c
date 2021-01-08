@@ -15,6 +15,8 @@
 #include "crc.h"
 #include "mem_list.h"
 #include "icm20603.h"
+#include "icm42688.h"
+
 static struct rt_thread uart_thread;
 ALIGN(RT_ALIGN_SIZE)
 	static char uart_thread_stack[1024];
@@ -26,6 +28,7 @@ rt_sem_t        isr_sem;
 rt_device_t hid_device;
 rt_bool_t 	hid_ready = RT_FALSE;
 icm20603_device_t icm_dev;
+icm42688_device_t icm_42688;
 rt_sem_t tx_comp;
 /* defined the LED2 pin: PB7 */
 #define LED2_PIN    GET_PIN(B, 7)
@@ -52,6 +55,7 @@ static void icm_thread_entry(void *parameter)
 	rt_pin_attach_irq(ICM_INT_PIN, PIN_IRQ_MODE_FALLING, icm_isr, RT_NULL);
 
 	icm_dev = icm20603_init();
+	icm_42688 = icm42688_init();
 	//icm20603_calib_level(icm_dev, 10);
 	//rt_pin_irq_enable(ICM_INT_PIN, RT_TRUE);
 
@@ -63,7 +67,9 @@ static void icm_thread_entry(void *parameter)
 			continue;
 		}
 		if (icm20603_int_status(icm_dev) & 0x01 != 0x01)
-			rt_kprintf("not ready\r\n");
+			rt_kprintf("icm20603 not ready\r\n");
+		if (icm42688_int_status(icm_42688) & 0x08 != 0x01)
+			rt_kprintf("icm42688 not ready\r\n");
 		//icm20603_get_gyro(icm_dev, (rt_int16_t *)&gx, (rt_int16_t *)&gy,
 		//		(rt_int16_t *)&gz);
 		icm20603_get_accel(icm_dev, (rt_int16_t *)&ax, (rt_int16_t *)&ay,
@@ -108,9 +114,48 @@ static void icm_thread_entry(void *parameter)
 		buf[22] = (ugz >> 16) & 0xff; 
 		buf[23] = (ugz >>  8) & 0xff; 
 		buf[24] = (ugz >>  0) & 0xff; 
+		icm42688_get_accel(icm_42688, (rt_int16_t *)&ax, (rt_int16_t *)&ay,
+				(rt_int16_t *)&az, (rt_int16_t *)&gx,
+				(rt_int16_t *)&gy, (rt_int16_t *)&gz);
+		uax = (rt_uint32_t)ax;
+		uay = (rt_uint32_t)ay;
+		uaz = (rt_uint32_t)az;
+		ugx = (rt_uint32_t)gx;
+		ugy = (rt_uint32_t)gy;
+		ugz = (rt_uint32_t)gz;
+		
+		buf[25]  = (uax >> 24) & 0xff; 
+		buf[26]  = (uax >> 16) & 0xff; 
+		buf[27]  = (uax >>  8) & 0xff; 
+		buf[28]  = (uax >>  0) & 0xff; 
+		
+		buf[29]  = (uay >> 24) & 0xff; 
+		buf[30]  = (uay >> 16) & 0xff; 
+		buf[31]  = (uay >>  8) & 0xff; 
+		buf[32]  = (uay >>  0) & 0xff; 
+		
+		buf[33]  = (uaz >> 24) & 0xff; 
+		buf[34] = (uaz >> 16) & 0xff; 
+		buf[35] = (uaz >>  8) & 0xff; 
+		buf[36] = (uaz >>  0) & 0xff; 
+		
+		buf[37] = (ugx >> 24) & 0xff; 
+		buf[38] = (ugx >> 16) & 0xff; 
+		buf[39] = (ugx >>  8) & 0xff; 
+		buf[40] = (ugx >>  0) & 0xff; 
+		
+		buf[41] = (ugy >> 24) & 0xff; 
+		buf[42] = (ugy >> 16) & 0xff; 
+		buf[43] = (ugy >>  8) & 0xff; 
+		buf[44] = (ugy >>  0) & 0xff; 
+		
+		buf[45] = (ugz >> 24) & 0xff; 
+		buf[46] = (ugz >> 16) & 0xff; 
+		buf[47] = (ugz >>  8) & 0xff; 
+		buf[48] = (ugz >>  0) & 0xff; 
 		
 		if (hid_ready) {
-			if (rt_device_write(hid_device, 0x02, buf+1, 24) != 24)
+			if (rt_device_write(hid_device, 0x02, buf+1, 48) != 48)
 				rt_kprintf("hid write failed %d\r\n", errno);
 			else {
 				if (rt_sem_take(tx_comp, 100) != RT_EOK) {

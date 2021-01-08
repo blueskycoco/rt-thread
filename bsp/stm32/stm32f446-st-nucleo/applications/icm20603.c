@@ -100,13 +100,6 @@ static rt_err_t reset_sensor(icm20603_device_t dev)
 
     return write_regs(dev->spi, ICM20603_PWR_MGMT1_REG, 1, &value);
 }
-void icm20603_int_enable(icm20603_device_t dev, rt_bool_t on)
-{
-	if (on)
-		icm20603_set_param(dev, ICM20603_INT_ENABLE, 1);
-	else
-		icm20603_set_param(dev, ICM20603_INT_ENABLE, 0);
-}
 static rt_err_t icm20603_sensor_init(icm20603_device_t dev)
 {
     rt_err_t result = -RT_ERROR;
@@ -181,6 +174,7 @@ icm20603_device_t icm20603_init(void)
 	icm20603_device_t dev;
 	struct rt_spi_configuration cfg = RT_ICM20603_DEFAULT_SPI_CFG;
 
+	rt_kprintf("to attach spi1\r\n");
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	rt_hw_spi_device_attach("spi1", "spi10", GPIOA, GPIO_PIN_4);
 
@@ -240,7 +234,7 @@ void icm20603_deinit(icm20603_device_t dev)
     rt_mutex_delete(dev->lock);
     rt_free(dev);
 }
-void icm20603_int_status(icm20603_device_t dev)
+rt_uint8_t icm20603_int_status(icm20603_device_t dev)
 {
 	rt_uint8_t value;
 	read_regs(dev->spi, 0x3a, 1, &value);
@@ -269,10 +263,6 @@ rt_err_t icm20603_get_accel(icm20603_device_t dev, rt_int16_t *accel_x,
     result = rt_mutex_take(dev->lock, RT_WAITING_FOREVER);
     if (result == RT_EOK)
     {
-        result = icm20603_get_param(dev, ICM20603_ACCEL_CONFIG1, &range); // default 2g
-
-        if (range < 4 && result == RT_EOK)
-        {
             result = read_regs(dev->spi, ICM20603_ACCEL_MEAS, 6, &value[0]); //self test x,y,z accelerometer;
             result = read_regs(dev->spi, ICM20603_GYRO_MEAS, 6, &value[8]); //self test x,y,z gyroscope;
 
@@ -289,71 +279,12 @@ rt_err_t icm20603_get_accel(icm20603_device_t dev, rt_int16_t *accel_x,
                 *gyro_y = (value[10] << 8) + value[11];// - dev->accel_offset.y;
                 *gyro_z = (value[12] << 8) + value[13];// - dev->accel_offset.z;
             }
-        }
-        else
-        {
-            LOG_E("Failed to get accelerometer value of icm20603");
-        }
 
         rt_mutex_release(dev->lock);
     }
     else
     {
         LOG_E("Failed to get accelerometer value of icm20603");
-    }
-
-    return result;
-}
-
-/**
- * This function gets gyroscope by icm20603 sensor measurement
- *
- * @param dev the pointer of device driver structure
- * @param gyro_x the gyroscope of x-axis digital output
- * @param gyro_y the gyroscope of y-axis digital output
- * @param gyro_z the gyroscope of z-axis digital output
- *
- * @return the getting status of gyroscope, RT_EOK reprensents getting gyroscope successfully.
- */
-rt_err_t icm20603_get_gyro(icm20603_device_t dev, rt_int16_t *gyro_x,
-		rt_int16_t *gyro_y, rt_int16_t *gyro_z)
-{
-    rt_err_t result = -RT_ERROR;
-    rt_uint8_t range = 0;
-    rt_uint8_t value[6];
-
-    RT_ASSERT(dev);
-
-    result = rt_mutex_take(dev->lock, RT_WAITING_FOREVER);
-    if (result == RT_EOK)
-    {
-        result = icm20603_get_param(dev, ICM20603_GYRO_CONFIG, &range); // default 250dps
-
-        if (range < 4 && result == RT_EOK)
-        {
-            result = read_regs(dev->spi, ICM20603_GYRO_MEAS, 6, &value[0]); //self test x,y,z gyroscope;
-
-            if (result != RT_EOK)
-            {
-                LOG_E("Failed to get gyroscope value of icm20603");
-            }
-            else
-            {
-                *gyro_x = (value[0] << 8) + value[1];// - dev->gyro_offset.x;
-                *gyro_y = (value[2] << 8) + value[3];// - dev->gyro_offset.y;
-                *gyro_z = (value[4] << 8) + value[5];// - dev->gyro_offset.z;
-            }
-        }
-        else
-        {
-            LOG_E("Failed to get gyroscope value of icm20603");
-        }
-
-        rt_mutex_release(dev->lock);
-    }
-    else
-    {
-        LOG_E("Failed to get gyroscope value of icm20603");
     }
 
     return result;
@@ -448,69 +379,6 @@ rt_err_t icm20603_set_param(icm20603_device_t dev, icm20603_set_cmd_t cmd,
     default:
     {
         LOG_E("This cmd'%2x' can not be set or supported", cmd);
-
-        return -RT_ERROR;
-    }
-    }
-
-    return result;
-}
-
-/**
- * This function gets parameter of icm20603 sensor
- *
- * @param dev the pointer of device driver structure
- * @param cmd the parameter cmd of device
- * @param value to get value in cmd register
- *
- * @return the getting parameter status,RT_EOK reprensents getting successfully.
- */
-rt_err_t icm20603_get_param(icm20603_device_t dev, icm20603_set_cmd_t cmd,
-			rt_uint8_t *value)
-{
-    rt_err_t result = -RT_ERROR;
-
-    RT_ASSERT(dev);
-
-    switch (cmd)
-    {
-    case ICM20603_GYRO_CONFIG:
-    {
-        rt_uint8_t args;
-
-        result = read_regs(dev->spi, ICM20603_GYRO_CONFIG_REG, 1, &args);
-        *value = (args >> 3) & 0x3;
-        break;
-    }
-    case ICM20603_ACCEL_CONFIG1:
-    {
-        rt_uint8_t args;
-
-        result = read_regs(dev->spi, ICM20603_ACCEL_CONFIG1_REG, 1, &args);
-        *value = (args >> 3) & 0x3;
-        break;
-    }
-    case ICM20603_ACCEL_CONFIG2:
-    {
-        rt_uint8_t args;
-
-        result = read_regs(dev->spi, ICM20603_ACCEL_CONFIG2_REG, 1, &args);
-        break;
-    }
-
-    case ICM20603_PWR_MGMT2:
-    {
-        result = read_regs(dev->spi, ICM20603_PWR_MGMT2_REG, 1, value);
-        break;
-    }
-    case ICM20603_INT_ENABLE:
-    {
-        result = read_regs(dev->spi, ICM20603_INT_ENABLE_REG, 1, value);
-        break;
-    }
-    default:
-    {
-        LOG_E("This cmd'%2x' can not be get or supported", cmd);
 
         return -RT_ERROR;
     }
