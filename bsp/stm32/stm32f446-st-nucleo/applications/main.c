@@ -32,6 +32,8 @@ icm42688_device_t icm_42688;
 rt_sem_t tx_comp;
 /* defined the LED2 pin: PB7 */
 #define LED2_PIN    GET_PIN(B, 7)
+#define LED1_PIN    GET_PIN(B, 0)
+#define LED3_PIN    GET_PIN(B, 14)
 #if 1
 #define ICM_INT_PIN GET_PIN(B, 4)
 static void icm_isr(void *parameter)
@@ -47,7 +49,7 @@ static void icm_thread_entry(void *parameter)
 {
 	rt_int16_t ax, ay, az;
 	rt_int16_t gx, gy, gz;
-	rt_uint8_t buf[32], int_status;
+	rt_uint8_t buf[64], int_status;
 	rt_uint32_t uax, uay, uaz, ugx, ugy, ugz;
 
 	isr_sem = rt_sem_create("icm", 0, RT_IPC_FLAG_FIFO);
@@ -155,10 +157,11 @@ static void icm_thread_entry(void *parameter)
 		buf[48] = (ugz >>  0) & 0xff; 
 		
 		if (hid_ready) {
-			if (rt_device_write(hid_device, 0x02, buf+1, 48) != 48)
+			if (rt_device_write(hid_device, 0x02, buf+1, 63) != 63)
 				rt_kprintf("hid write failed %d\r\n", errno);
 			else {
-				if (rt_sem_take(tx_comp, 100) != RT_EOK) {
+				if (rt_sem_take(tx_comp, 300) != RT_EOK) {
+					hid_ready = RT_FALSE;
 					rt_kprintf("waiting hid out timeout\r\n");
 				}
 			}
@@ -320,16 +323,26 @@ int main(void)
 	rt_thread_startup(tid);
 	/* set LED2 pin mode to output */
 	rt_memlist_init();	
+	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED2_PIN, PIN_MODE_OUTPUT);
+	rt_pin_mode(LED3_PIN, PIN_MODE_OUTPUT);
 	timestamp_init();
 	//mcu_cmd_init();
 	generic_hid_init();
 	while (count++)
 	{
+		rt_pin_write(LED1_PIN, PIN_HIGH);
+		rt_thread_mdelay(200);
 		rt_pin_write(LED2_PIN, PIN_HIGH);
-		rt_thread_mdelay(500);
+		rt_thread_mdelay(200);
+		rt_pin_write(LED3_PIN, PIN_HIGH);
+		rt_thread_mdelay(200);
+		rt_pin_write(LED1_PIN, PIN_LOW);
+		rt_thread_mdelay(200);
 		rt_pin_write(LED2_PIN, PIN_LOW);
-		rt_thread_mdelay(500);
+		rt_thread_mdelay(200);
+		rt_pin_write(LED3_PIN, PIN_LOW);
+		rt_thread_mdelay(200);
 	}
 
 	return RT_EOK;

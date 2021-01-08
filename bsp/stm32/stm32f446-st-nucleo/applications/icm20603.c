@@ -153,7 +153,7 @@ static rt_err_t icm20603_sensor_init(icm20603_device_t dev)
         goto __exit;
     }
 
-    result = icm20603_set_param(dev, ICM20603_INT_ENABLE, 1);
+    result = icm20603_set_param(dev, ICM20603_INT_ENABLE, 0);
     if (result != RT_EOK)
     {
         LOG_E("This sensor initializes failure6");
