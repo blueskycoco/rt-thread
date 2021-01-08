@@ -62,7 +62,7 @@ int main(int argc, void* argv[])
 			gyro[5] = (int16_t)((rsp[45] << 24) | (rsp[46] << 16) | (rsp[47] << 8) | (rsp[48] << 0));
 			convert2float(acc, gyro, accf, gyrof);
 			convert2float(acc+3, gyro+3, accf+3, gyrof+3);
-			printf("icm20602/icm42688 %10f, %10f, %10f, %10f, %10f, %10f,       %10f, %10f, %10f, %10f, %10f, %10f\r\n",
+			printf("%10f, %10f, %10f, %10f, %10f, %10f, %10f, %10f, %10f, %10f, %10f, %10f\r\n",
 					accf[0], accf[1], accf[2],
 					gyrof[0], gyrof[1], gyrof[2],
 					accf[3], accf[4], accf[5],
