@@ -16,6 +16,8 @@
 #include "mem_list.h"
 #include "icm20603.h"
 #include "icm42688.h"
+#include <fal.h>
+extern int fal_init(void);
 
 static struct rt_thread uart_thread;
 ALIGN(RT_ALIGN_SIZE)
@@ -352,6 +354,8 @@ int main(void)
 
 	return RT_EOK;
 }
+INIT_COMPONENT_EXPORT(fal_init);
+
 #ifdef FINSH_USING_MSH
 int dump_len(void)
 {

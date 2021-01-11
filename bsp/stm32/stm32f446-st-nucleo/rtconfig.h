@@ -56,7 +56,7 @@
 
 /* Command shell */
 
-//#define RT_USING_FINSH
+#define RT_USING_FINSH
 #define FINSH_THREAD_NAME "tshell"
 #define FINSH_USING_HISTORY
 #define FINSH_HISTORY_LINES 5
@@ -203,5 +203,12 @@
 #define RT_USING_HWCRYPTO
 #define RT_HWCRYPTO_USING_CRC
 #define BSP_USING_CRC
+
+#define BSP_USING_ON_CHIP_FLASH
+#define PKG_USING_FAL
+#define FAL_DEBUG 1
+#define FAL_PART_HAS_TABLE_CFG
+
+#define RT_USING_LIBC
 
 #endif

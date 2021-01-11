@@ -9,6 +9,10 @@ protocol/mem_list.c
 driver/crc.c
 driver/icm42688.c
 driver/icm20603.c
+driver/fal.c
+driver/fal_flash.c
+driver/fal_partition.c
+driver/fal_rtt.c
 ''')
 
 path += [cwd + '/protocol']
