@@ -133,4 +133,5 @@ rt_err_t icm20603_set_param(icm20603_device_t dev, icm20603_set_cmd_t cmd, rt_ui
  */
 rt_err_t icm20603_get_param(icm20603_device_t dev, icm20603_set_cmd_t cmd, rt_uint8_t *value);
 
+rt_uint8_t icm20603_int_status(icm20603_device_t dev);
 #endif /*__DRV_ICM20603_H__ */

@@ -155,7 +155,7 @@ static void icm_thread_entry(void *parameter)
 		buf[46] = (ugz >> 16) & 0xff; 
 		buf[47] = (ugz >>  8) & 0xff; 
 		buf[48] = (ugz >>  0) & 0xff; 
-		
+#ifdef RT_USING_USB_DEVICE	
 		if (hid_ready) {
 			if (rt_device_write(hid_device, 0x02, buf+1, 63) != 63)
 				rt_kprintf("hid write failed %d\r\n", errno);
@@ -166,6 +166,7 @@ static void icm_thread_entry(void *parameter)
 				}
 			}
 		}
+#endif
 	}
 }
 #endif
@@ -292,11 +293,13 @@ static int mcu_cmd_init(void)
 
 	return 0;
 }
+#ifdef RT_USING_USB_DEVICE
 void HID_Report_Received(hid_report_t report)
 {
 	hid_ready = RT_TRUE;
 	rt_kprintf("app started\r\n");
 }
+#endif
 static int generic_hid_init(void)
 {
 	int err = 0;
@@ -327,8 +330,10 @@ int main(void)
 	rt_pin_mode(LED2_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED3_PIN, PIN_MODE_OUTPUT);
 	timestamp_init();
-	//mcu_cmd_init();
+	mcu_cmd_init();
+#ifdef RT_USING_USB_DEVICE
 	generic_hid_init();
+#endif
 	while (count++)
 	{
 		rt_pin_write(LED1_PIN, PIN_HIGH);

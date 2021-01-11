@@ -133,4 +133,5 @@ rt_err_t icm42688_set_param(icm42688_device_t dev, icm42688_set_cmd_t cmd, rt_ui
  */
 rt_err_t icm42688_get_param(icm42688_device_t dev, icm42688_set_cmd_t cmd, rt_uint8_t *value);
 
+rt_uint8_t icm42688_int_status(icm42688_device_t dev);
 #endif /*__DRV_ICM42688_H__ */
