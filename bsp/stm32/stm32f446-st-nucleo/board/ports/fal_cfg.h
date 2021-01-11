@@ -72,9 +72,12 @@ extern struct fal_flash_dev nor_flash0;
 }
 
 #define ONCHIP_FLASH_PART_TABLE \
-    {FAL_PART_MAGIC_WROD, "bootloader", "onchip_flash_16k",  0 , FLASH_SIZE_GRANULARITY_16K , 0}, \
-    {FAL_PART_MAGIC_WROD, "param",      "onchip_flash_64k",  0 , FLASH_SIZE_GRANULARITY_64K , 0}, \
-    {FAL_PART_MAGIC_WROD, "app",        "onchip_flash_128k", 0 , FLASH_SIZE_GRANULARITY_128K, 0},
+    {FAL_PART_MAGIC_WROD, "bootloader_32k",  "onchip_flash_16k",  0 , FLASH_SIZE_GRANULARITY_16K/2 , 0}, \
+    {FAL_PART_MAGIC_WROD, "mcu_param1_16k",  "onchip_flash_16k",  FLASH_SIZE_GRANULARITY_16K/2 , FLASH_SIZE_GRANULARITY_16K/4 , 0}, \
+    {FAL_PART_MAGIC_WROD, "mcu_param2_16k",  "onchip_flash_16k",  (FLASH_SIZE_GRANULARITY_16K/4)*3 , FLASH_SIZE_GRANULARITY_16K/4 , 0}, \
+    {FAL_PART_MAGIC_WROD, "mcu_param3_64k",  "onchip_flash_64k",  0 , FLASH_SIZE_GRANULARITY_64K , 0}, \
+    {FAL_PART_MAGIC_WROD, "app_256k",        "onchip_flash_128k", 0 , (FLASH_SIZE_GRANULARITY_128K/3)*2, 0}, \
+    {FAL_PART_MAGIC_WROD, "misc_128k",       "onchip_flash_128k", (FLASH_SIZE_GRANULARITY_128K/3)*2 , (FLASH_SIZE_GRANULARITY_128K/3), 0},
 
 #define QSPI_FLASH_PART_TABLE 
 

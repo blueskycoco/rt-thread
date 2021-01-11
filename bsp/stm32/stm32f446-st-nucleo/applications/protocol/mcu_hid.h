@@ -1,25 +1,5 @@
 #ifndef _INCLUDED_MCU_HID_H_
 #define _INCLUDED_MCU_HID_H_
-
-#include <cyu3types.h>
-#include <cyu3os.h>
-#include <cyu3usbconst.h>
-#include <cyu3externcstart.h>
-
-/* for imu data upload, MCU config write/read */
-
-#define CY_MCU_HID_EP_INTR_IN	(0x86)          /* EP IN */
-#define CY_MCU_HID_EP_INTR_OUT	(0x06)          /* EP OUT */
-
-#define CY_MCU_HID_DMA_BUF_COUNT	(4)	/* DMA Buffer Count */
-
-#define CY_MCU_APP_HOST_CMD_EVENT	(1 << 0)	/* Host Cmd Event Flag */
-
-#define CY_MCU_HID_SET_IDLE	(0x0A)	/* HID Class Specific Setup Request */
-#define CY_MCU_GET_REPORT_DESC	(0x22)	/* HID Standard Request */
-
-#define CY_MCU_USB_HID_DESC_TYPE	(0x21)	/* HID Descriptor */
-
 /* host cmd */
 #define HOST_CMD 0
 #define DEVICE_EVENT 1
@@ -169,21 +149,9 @@ enum {
 };
 
 typedef uint16_t (*mcu_func)( uint8_t *in, uint16_t in_len, uint8_t *out);
-/* Extern definitions for the USB Enumeration descriptors */
-#include <cyu3externcend.h>
 
-
-void mcu_hid_init (void);
-CyBool_t mcu_hid_class_rqt(uint16_t wIndex, uint8_t bRequest);
-CyBool_t mcu_hid_stand_rqt(uint16_t wIndex, CyBool_t active);
-void mcu_hid_stop (void);
-void mcu_hid_start (void);
 void mcu_hid_event_set(uint32_t event);
 void build_event(uint8_t *msg, uint16_t msg_id, uint16_t len);
-CyU3PReturnStatus_t mcu_msg_send (
-        uint32_t *msg,
-        uint32_t wait,
-        CyBool_t pri);
 uint32_t mcu_event_get();
 void mcu_event_handler(uint32_t ev_stat);
 void handle_event_host_cmd();

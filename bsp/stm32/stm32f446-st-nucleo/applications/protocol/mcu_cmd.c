@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include "mcu_hid.h"
 #include "mcu_cmd.h"
-#include "rc4.h"
-#include "utils.h"
+//#include "rc4.h"
+//#include "utils.h"
 #include "param.h"
-#include "oled.h"
+//#include "oled.h"
 
 glasses_param g_param;
 void set_g_param(uint16_t ofs, uint8_t param1, uint8_t param2)
@@ -30,10 +30,10 @@ void set_g_param(uint16_t ofs, uint8_t param1, uint8_t param2)
 			break; 
 		case PARAM_VSYNC:
 			g_param.vsync = param1;
-			if (param1 == 0x01)
-				cx3_enable_vsync();
-			else
-				cx3_disable_vsync();
+			//if (param1 == 0x01)
+			//	cx3_enable_vsync();
+			//else
+			//	cx3_disable_vsync();
 			break; 
 		case PARAM_TEMP:
 			g_param.temp = param1;
@@ -58,7 +58,7 @@ void get_g_param()
 	param_get(PARAM_VSYNC, &g_param.vsync, 1);
 	param_get(PARAM_TEMP, &g_param.temp, 1);
 	param_get(PARAM_ENV_LIGHT, &g_param.env_light, 1);
-	param_get(PARAM_SLEEP_TIME, &g_param.sleep_time, 2);
+	param_get(PARAM_SLEEP_TIME, (rt_uint8_t *)&g_param.sleep_time, 2);
 }
 #define PAYLOAD_LEN_BASE 3	//err+payload
 static uint16_t handle_on_off(uint16_t ofs, uint8_t *in, uint16_t in_len,
@@ -71,7 +71,7 @@ static uint16_t handle_on_off(uint16_t ofs, uint8_t *in, uint16_t in_len,
 
 	if (in != NULL) {
 		int_val data;
-		memcpy(data.m_bytes, in, sizeof(uint32_t));
+		rt_memcpy(data.m_bytes, in, sizeof(uint32_t));
 		uint32_t host_data = data.m_int;
 
 		if (host_data == 0 || host_data == 1) {
@@ -84,7 +84,7 @@ static uint16_t handle_on_off(uint16_t ofs, uint8_t *in, uint16_t in_len,
 		int_val data;
 		param_get(ofs, &state, 1);
 		data.m_int = state;
-		memcpy(out+3, data.m_bytes, sizeof(uint32_t));
+		rt_memcpy(out+3, data.m_bytes, sizeof(uint32_t));
 		return PAYLOAD_LEN_BASE + sizeof(uint32_t);
 	}
 
@@ -98,7 +98,7 @@ static uint16_t _handle_uint32_t_data(uint32_t *data, uint32_t min, uint32_t max
 
 	if (in != NULL) {
 		int_val data_val;
-		memcpy(data_val.m_bytes, in, sizeof(uint32_t));
+		rt_memcpy(data_val.m_bytes, in, sizeof(uint32_t));
 		uint32_t host_data = data_val.m_int;
 
 		if ((host_data > min && host_data < max && max > min) ||
@@ -109,24 +109,24 @@ static uint16_t _handle_uint32_t_data(uint32_t *data, uint32_t min, uint32_t max
 	} else {
 		int_val data_val;
 		data_val.m_int = *data,
-		memcpy(out+3, data_val.m_bytes, sizeof(uint32_t));
+		rt_memcpy(out+3, data_val.m_bytes, sizeof(uint32_t));
 		return PAYLOAD_LEN_BASE + sizeof(uint32_t);
 	}
 
 	return PAYLOAD_LEN_BASE;
 }
 
-static uint16_t _handle_info(const uint8_t *info, uint16_t max, uint8_t *in,
+static uint16_t _handle_info(uint8_t *info, uint16_t max, uint8_t *in,
 		uint16_t in_len, uint8_t *out)
 {
 	out[0] = MCU_ERR_SUCCESS;
 
 	if (in != NULL && in_len > 0) {
-		memset(info, 0, 24);
-		memcpy(info, in, (in_len >= max) ? max : in_len);		
+		rt_memset(info, 0, 24);
+		rt_memcpy(info, in, (in_len >= max) ? max : in_len);		
 	} else if (out != NULL) {
-		memcpy(out+3, info, strlen(info));
-		return PAYLOAD_LEN_BASE+strlen(info);
+		rt_memcpy(out+3, info, rt_strlen(info));
+		return PAYLOAD_LEN_BASE+rt_strlen(info);
 	}
 
 	return PAYLOAD_LEN_BASE;
@@ -144,7 +144,7 @@ static uint16_t _handle_get_temp(float temp, uint8_t *in, uint16_t in_len,
 	if (in != NULL && in_len > 0) {
 		out[0] = MCU_ERR_INV_ARG;
 	} else if (out != NULL) {
-		memcpy(out+3, data.m_bytes, sizeof(float));
+		rt_memcpy(out+3, data.m_bytes, sizeof(float));
 		return PAYLOAD_LEN_BASE+sizeof(float);
 	}
 
@@ -178,7 +178,7 @@ uint16_t handle_brightness(uint8_t *in, uint16_t in_len, uint8_t *out)
 	result = _handle_uint32_t_data(&bri, 0, 8, in, in_len, out);
 
 	if (in != NULL && bri > 0 && bri < 8) {
-		oled_set_backlight(bri & 0xff);
+		//oled_set_backlight(bri & 0xff);
 		param_set(PARAM_BRIGHTNESS, (uint8_t *)&bri, 1);
 	}
 
@@ -197,7 +197,7 @@ uint16_t handle_dp_mode(uint8_t *in, uint16_t in_len, uint8_t *out)
 	result = _handle_uint32_t_data(&mode, 0, 4, in, in_len, out);
 
 	if (in != NULL && mode > 0 && mode < 4) {
-		lt7211b_set_mode(mode);
+		//lt7211b_set_mode(mode);
 		param_set(PARAM_DP_MODE, (uint8_t *)&mode, 1);
 	}
 
@@ -281,7 +281,7 @@ uint16_t handle_psensor_near(uint8_t *in, uint16_t in_len, uint8_t *out)
 	result = _handle_uint32_t_data(&near, 79, 0, in, in_len, out);
 
 	if (in != NULL && near > 79) {
-		set_psensor_near(near);
+		//set_psensor_near(near);
 		param_set(PARAM_PSENSOR_NEAR_THRO, (uint8_t *)&near, 2);
 	}
 
@@ -300,7 +300,7 @@ uint16_t handle_psensor_far(uint8_t *in, uint16_t in_len, uint8_t *out)
 	result = _handle_uint32_t_data(&far, 29, 0, in, in_len, out);
 
 	if (in != NULL && far > 29) {
-		set_psensor_far(far);
+		//set_psensor_far(far);
 		param_set(PARAM_PSENSOR_FAR_THRO, (uint8_t *)&far, 2);
 	}
 	return result;
@@ -309,7 +309,7 @@ uint16_t handle_psensor_far(uint8_t *in, uint16_t in_len, uint8_t *out)
 uint16_t handle_get_temp(uint8_t *in, uint16_t in_len, uint8_t *out)
 /* temperature */
 {
-	float temp = (float)temp_read(TEMP_ADC) / 1000.0f;
+	float temp = 0;//(float)temp_read(TEMP_ADC) / 1000.0f;
 	return _handle_get_temp(temp, in, in_len, out);
 }
 
@@ -325,7 +325,7 @@ uint16_t handle_oled_duty(uint8_t *in, uint16_t in_len, uint8_t *out)
 	result = _handle_uint32_t_data(&duty, 0, 101, in, in_len, out);
 
 	if (in != NULL && duty > 0 && duty < 101) {
-		oled_set_duty(duty & 0xff);	
+		//oled_set_duty(duty & 0xff);	
 		param_set(PARAM_DUTY, (uint8_t *)&duty, 1);
 	}
 
@@ -382,10 +382,10 @@ uint16_t handle_rgb_reset(uint8_t *in, uint16_t in_len, uint8_t *out)
 /* rgb reset */
 {
 	uint8_t reset;
-	rgb_power_ctl(CyFalse);
-	CyU3PThreadSleep(100);
-	rgb_power_ctl(CyTrue);
-	CyU3PThreadSleep(100);
+	//rgb_power_ctl(CyFalse);
+	//CyU3PThreadSleep(100);
+	//rgb_power_ctl(CyTrue);
+	//CyU3PThreadSleep(100);
 
 	return handle_just_set(&reset, in, in_len, out);
 }
@@ -408,9 +408,9 @@ uint16_t handle_reset(uint8_t *in, uint16_t in_len, uint8_t *out)
 /* reset mcu */
 {
 	uint8_t reset;
-	CyU3PConnectState (CyFalse, CyTrue);
-	CyU3PThreadSleep (1000);
-	CyU3PDeviceReset (CyFalse);
+	//CyU3PConnectState (CyFalse, CyTrue);
+	//CyU3PThreadSleep (1000);
+	//CyU3PDeviceReset (CyFalse);
 	return handle_just_set(&reset, in, in_len, out);
 }
 
@@ -426,7 +426,7 @@ uint16_t handle_brightness_v2(uint8_t *in, uint16_t in_len, uint8_t *out)
 	result = _handle_uint32_t_data(&bri, 0, 120, in, in_len, out);
 
 	if (in != NULL && bri > 0 && bri < 120) {
-		oled_set_backlight_ext(bri);
+		//oled_set_backlight_ext(bri);
 		param_set(PARAM_LIGHT_120_DEGRE, (uint8_t *)&bri, 2);
 	}
 
@@ -449,7 +449,7 @@ uint16_t handle_try_oled_power(uint8_t *in, uint16_t in_len, uint8_t *out)
 uint16_t handle_get_temp_v2(uint8_t *in, uint16_t in_len, uint8_t *out)
 /* temperature ext */
 {
-	float temp = (float)temp_read(TEMP_ADC) / 1000.0f;
+	float temp = 0;//(float)temp_read(TEMP_ADC) / 1000.0f;
 	return _handle_get_temp(temp, in, in_len, out);
 }
 
@@ -489,19 +489,19 @@ uint16_t handle_speaker_level(uint8_t *in, uint16_t in_len, uint8_t *out)
 
 uint16_t handle_cpu(uint8_t *in, uint16_t in_len, uint8_t *out)
 {
-	static const uint8_t cpu[24] = "ARM9";
+	uint8_t cpu[24] = "ARM9";
 	return _handle_info(cpu, 0, in, in_len, out);
 }
 
 uint16_t handle_rom(uint8_t *in, uint16_t in_len, uint8_t *out)
 {
-	static const uint8_t rom[24] = "1M bytes";
+	uint8_t rom[24] = "1M bytes";
 	return _handle_info(rom, 0, in, in_len, out);
 }
 
 uint16_t handle_ram(uint8_t *in, uint16_t in_len, uint8_t *out)
 {
-	static const uint8_t ram[24] = "512K bytes";
+	uint8_t ram[24] = "512K bytes";
 	return _handle_info(ram, 0, in, in_len, out);
 }
 

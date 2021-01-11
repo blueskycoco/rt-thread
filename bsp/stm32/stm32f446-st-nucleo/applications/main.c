@@ -17,6 +17,7 @@
 #include "icm20603.h"
 #include "icm42688.h"
 #include <fal.h>
+#include "param.h"
 extern int fal_init(void);
 
 static struct rt_thread uart_thread;
@@ -323,6 +324,10 @@ static int generic_hid_init(void)
 int main(void)
 {
 	int count = 1;
+
+	if (!param_init())
+		rt_kprintf("can't startup system\r\n");
+
 	rt_thread_t tid = rt_thread_create("icm", icm_thread_entry, RT_NULL,
 			2048, 28, 20);
 	rt_thread_startup(tid);
