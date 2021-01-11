@@ -18,6 +18,8 @@
 #include "icm42688.h"
 #include <fal.h>
 #include "param.h"
+#include "utils.h"
+
 extern int fal_init(void);
 
 static struct rt_thread uart_thread;
@@ -185,12 +187,6 @@ static rt_err_t usb_sof_ind(rt_device_t dev, rt_size_t size)
 	rt_sem_release(isr_sem);
 	return RT_EOK;
 }
-static rt_uint32_t read_ts()
-{
-	rt_hwtimerval_t val,val1;
-	rt_device_read(ts_device, 0, &val, sizeof(val));
-	return (val.sec*1000000+val.usec);
-}
 
 void dump_host_cmd(rt_uint8_t *cmd, rt_uint32_t len)
 {
@@ -236,32 +232,6 @@ static void uart_thread_entry(void *parameter)
 	}
 }
 
-static int timestamp_init(void)
-{
-	int err = 0;
-	rt_hwtimer_mode_t mode;
-	rt_hwtimerval_t val;
-
-	if ((ts_device = rt_device_find("timer3")) == RT_NULL)
-	{
-		rt_kprintf("No Device: timer3\n");
-		return -1;
-	}
-
-	if (rt_device_open(ts_device, RT_DEVICE_OFLAG_RDWR) != RT_EOK)
-	{
-		rt_kprintf("Open timer3 Fail\n");
-		return -1;
-	}
-
-	mode = HWTIMER_MODE_PERIOD;
-	err = rt_device_control(ts_device, HWTIMER_CTRL_MODE_SET, &mode);
-	val.sec = 10*60*60;
-	val.usec = 0;
-	rt_kprintf("SetTime: Sec %d, Usec %d\n", val.sec, val.usec);
-	if (rt_device_write(ts_device, 0, &val, sizeof(val)) != sizeof(val))
-		rt_kprintf("set timer failed\n");
-}
 
 static int mcu_cmd_init(void)
 {

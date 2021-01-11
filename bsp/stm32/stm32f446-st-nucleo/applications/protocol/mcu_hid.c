@@ -1,24 +1,11 @@
+#include <rtthread.h>
 #include <stdio.h>
-#include <cyu3system.h>
-#include <cyu3os.h>
-#include <cyu3dma.h>
-#include <cyu3error.h>
-#include <cyu3usb.h>
-#include <cyu3uart.h>
-#include <cyu3utils.h>
-#include <cyu3gpio.h>
-#include <gpio_regs.h>
-#include <stdio.h>
-#include "i2c.h"
-#include "spi.h"
-#include "eeprom_map.h"
 #include "mcu_hid.h"
-#include "slam_hid.h"
 #include "mcu_cmd.h"
-#include "cyfx3_uvc.h"
 #include "rc4.h"
+#include "crc.h"
 #include "utils.h"
-#include "irq.h"
+#include "mem_list.h"
 static uint16_t sw_major_version = 0x0000;
 static uint16_t sw_minor_version = 0x0001;
 static uint16_t sw_patch_version = 0x0000;
@@ -28,24 +15,19 @@ static uint16_t hw_minor_version = 0x0001;
 static uint16_t hw_patch_version = 0x0000;
 static uint32_t hw_build_date = 2020082514;
 static uint8_t heart_ts[2][8];
-#define dnprintf(fmt, arg...)                                            \
+#define nprintf(fmt, arg...)                                            \
 	do {                                                            \
 		if (debug)                                              \
-		nprintf("[MCU][%s]: " fmt, __func__, ## arg);\
+		rt_kprintf("[MCU][%s]: " fmt, __func__, ## arg);\
 	} while (0)
 
 #define PACKET_LEN 512
 #define MCU_QUEUE_SIZE           (256)
 #define MCU_MSG_SIZE             (8)
 
-extern CyU3PEvent      		main_event;
-CyU3PThread   mcu_thread_id;
-static CyBool_t use_g_msg = CyFalse;
+static rt_bool_t use_g_msg = RT_FALSE;
 static uint8_t g_msg[512] = {0};
-static CyU3PDmaChannel 	g_dma_ch_int_cpu_2_usb;
-static CyU3PDmaChannel 	g_dma_ch_int_usb_2_cpu;
 uint8_t host_alive = 0;
-static CyU3PQueue g_mcu_cmd_queue;
 mcu_func g_mcu_func[NR_MAX] = {
 	NULL,
 	&handle_brightness,	/* 0 - 7 */
@@ -86,33 +68,6 @@ mcu_func g_mcu_func[NR_MAX] = {
 	&handle_machine_id,
 	&handle_rgb_reset
 };
-extern void CyFxAppErrorHandler (
-		CyU3PReturnStatus_t result    /* API return status */
-		);
-CyU3PReturnStatus_t mcu_msg_send (
-		uint32_t *msg,
-		uint32_t wait,
-		CyBool_t pri)
-{
-	uint32_t status;
-
-	if (pri == CyTrue)
-	{
-		status = CyU3PQueuePrioritySend(&g_mcu_cmd_queue, msg, wait);
-	}
-	else
-	{
-		status = CyU3PQueueSend(&g_mcu_cmd_queue, msg, wait);
-	}
-
-	/* Set the Queue event */
-	if (status != 0)
-		nprintf("mcu send msg failed %x\r\n", status);
-
-	CyU3PEventSet(&main_event, EVENT_HOST_CMD,
-			CYU3P_EVENT_OR);
-	return status;
-}
 
 static void parse_host_cmd(uint8_t *cmd, uint16_t len)
 {
@@ -144,9 +99,9 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len)
 		(cmd[len-3] << 8) |
 		(cmd[len-2] << 16) |
 		(cmd[len-1] << 24);
-	if (crc != crc32((const char *)cmd, len-4)) {
+	if (crc != crc32((uint8_t *)cmd, len-4)) {
 		nprintf("invalid crc h %x != c %x\r\n", crc,
-				crc32((const char *)cmd, len-4));
+				crc32((uint8_t *)cmd, len-4));
 		msg[0] = MCU_ERR_CRC;
 		msg[1] = HOST_CMD;
 		goto FAIL;
@@ -159,14 +114,14 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len)
 
 	msg_id = (cmd[CMD_MSGID_1] << 8) | cmd[CMD_MSGID_0];
 	if (msg_id == HEART_CMD)
-		get_ts_64_ext(heart_ts[1]);
+		read_ts_64(heart_ts[1]);
 
 	set_rc4_key(cmd[7]%10, msg_id, cmd+CMD_TS_OFS);
 	rc4(cmd+CMD_RESERVE_OFS,
 			cmd+CMD_RESERVE_OFS, len - 4 - 1 - 8 - 2);
 
 	if (msg_id == HEART_CMD) {
-		CyU3PMemCopy(heart_ts[0], cmd+18, 8);
+		rt_memcpy(heart_ts[0], cmd+18, 8);
 	}
 
 	msg[0] = MCU_ERR_SUCCESS;
@@ -176,18 +131,18 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len)
 	msg[3] = cmd[CMD_MSGID_0];
 	msg[4] = cmd[CMD_PAYLOAD_LEN_1];
 	msg[5] = cmd[CMD_PAYLOAD_LEN_0];
-	CyU3PMemCopy(msg+6, cmd+CMD_RESERVE_OFS, 4);
+	rt_memcpy(msg+6, cmd+CMD_RESERVE_OFS, 4);
 	payload_len = (msg[4] << 8) | msg[5];
 	
 
 	if (payload_len <= 22) {
-		CyU3PMemCopy(msg+10, cmd+CMD_PAYLOAD_OFS, payload_len);
+		rt_memcpy(msg+10, cmd+CMD_PAYLOAD_OFS, payload_len);
 		use_g_msg = CyFalse;
 	} else if (payload_len < 512) {
 		nprintf("host payload len %d > 24, save global\r\n",
 				payload_len);
-		CyU3PMemCopy(g_msg+1, msg+2, 8);
-		CyU3PMemCopy(g_msg+9, cmd+CMD_PAYLOAD_OFS, payload_len);
+		rt_memcpy(g_msg+1, msg+2, 8);
+		rt_memcpy(g_msg+9, cmd+CMD_PAYLOAD_OFS, payload_len);
 		use_g_msg = CyTrue;
 	} else {
 		msg[0] = MCU_ERR_NREAL;
@@ -195,7 +150,7 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len)
 	}
 
 FAIL:	
-	if (CY_U3P_SUCCESS != mcu_msg_send((uint32_t *)msg, CYU3P_NO_WAIT, CyFalse))
+	if (RT_TRUE != mcu_msg_send(msg))
 		nprintf("not enough msg to send\r\n");
 }
 void build_event(uint8_t *msg, uint16_t msg_id, uint16_t len)
@@ -214,165 +169,6 @@ void build_event(uint8_t *msg, uint16_t msg_id, uint16_t len)
 	msg[7] = 0x00;
 	msg[8] = 0x00;
 	msg[9] = 0x00;
-}
-static void dma_cb_mcu_c2h(
-		CyU3PDmaChannel   *chHandle,
-		CyU3PDmaCbType_t   type,
-		CyU3PDmaCBInput_t *input)
-{
-	if (type == CY_U3P_DMA_CB_CONS_EVENT) {
-		host_alive = 1;
-	}
-}
-
-static void dma_cb_mcu_h2c(
-		CyU3PDmaChannel   *chHandle,
-		CyU3PDmaCbType_t   type,
-		CyU3PDmaCBInput_t *input)
-{
-	if (type == CY_U3P_DMA_CB_PROD_EVENT) {
-		parse_host_cmd(input->buffer_p.buffer, input->buffer_p.count);
-		CyU3PDmaChannelDiscardBuffer (chHandle);
-	}
-}
-
-void mcu_hid_start (void)
-{
-	CyU3PReturnStatus_t     result = CY_U3P_SUCCESS;
-	CyU3PDmaChannelConfig_t dma_cfg;
-	uint16_t                size = PACKET_LEN;
-	CyU3PEpConfig_t         ep_cfg;
-
-	CyU3PMemSet ((uint8_t *)&ep_cfg, 0, sizeof (ep_cfg));
-	ep_cfg.enable   = CyTrue;
-	ep_cfg.epType   = CY_U3P_USB_EP_INTR;
-	ep_cfg.burstLen = 1;
-	ep_cfg.streams  = 0;
-	ep_cfg.pcktSize = size;
-	ep_cfg.isoPkts  = 1;
-
-	result = CyU3PSetEpConfig (CY_MCU_HID_EP_INTR_IN, &ep_cfg);
-	if (result != CY_U3P_SUCCESS)
-	{
-		nprintf(
-				"CyU3PSetEpConfig failed, Error code = %d\r\n", 
-				result);
-		CyFxAppErrorHandler (result);
-	}
-
-	result = CyU3PSetEpConfig (CY_MCU_HID_EP_INTR_OUT, &ep_cfg);
-	if (result != CY_U3P_SUCCESS)
-	{
-		nprintf(
-				"CyU3PSetEpConfig failed, Error code = %d\r\n", 
-				result);
-		CyFxAppErrorHandler (result);
-	}
-
-	dma_cfg.size           = size;
-	dma_cfg.count          = CY_MCU_HID_DMA_BUF_COUNT;
-	dma_cfg.prodSckId      = CY_U3P_CPU_SOCKET_PROD;
-	dma_cfg.consSckId      = (CyU3PDmaSocketId_t) CY_U3P_UIB_SOCKET_CONS_6;
-	dma_cfg.dmaMode        = CY_U3P_DMA_MODE_BYTE;
-	dma_cfg.notification   = CY_U3P_DMA_CB_CONS_EVENT;
-	dma_cfg.cb             = dma_cb_mcu_c2h;
-	dma_cfg.prodHeader     = 0;
-	dma_cfg.prodFooter     = 0;
-	dma_cfg.consHeader     = 0;
-	dma_cfg.prodAvailCount = 0;
-	result = CyU3PDmaChannelCreate (&g_dma_ch_int_cpu_2_usb,
-			CY_U3P_DMA_TYPE_MANUAL_OUT, &dma_cfg);
-	if (result != CY_U3P_SUCCESS)
-	{
-		nprintf(
-				"CyU3PDmaChannelCreate failed, Error code = %d\r\n", 
-				result);
-		CyFxAppErrorHandler(result);
-	}
-
-	dma_cfg.prodSckId      = CY_U3P_UIB_SOCKET_PROD_6;
-	dma_cfg.consSckId      = (CyU3PDmaSocketId_t) CY_U3P_CPU_SOCKET_CONS;
-	dma_cfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
-	dma_cfg.cb             = dma_cb_mcu_h2c;
-
-	result = CyU3PDmaChannelCreate (&g_dma_ch_int_usb_2_cpu,
-			CY_U3P_DMA_TYPE_MANUAL_IN, &dma_cfg);
-	if (result != CY_U3P_SUCCESS)
-	{
-		nprintf(
-				"CyU3PDmaChannelCreate failed, Error code = %d\r\n", 
-				result);
-		CyFxAppErrorHandler(result);
-	}
-
-	CyU3PDmaChannelSetXfer (&g_dma_ch_int_cpu_2_usb, 0);
-	CyU3PDmaChannelSetXfer (&g_dma_ch_int_usb_2_cpu, 0);
-
-	CyU3PUsbFlushEp(CY_MCU_HID_EP_INTR_IN);
-	CyU3PUsbFlushEp(CY_MCU_HID_EP_INTR_OUT);
-}
-
-void mcu_hid_stop (void)
-{
-	CyU3PReturnStatus_t result = CY_U3P_SUCCESS;    
-	CyU3PEpConfig_t cfg; 
-
-	CyU3PUsbFlushEp(CY_MCU_HID_EP_INTR_IN);
-	CyU3PUsbFlushEp(CY_MCU_HID_EP_INTR_OUT);
-
-	CyU3PDmaChannelDestroy (&g_dma_ch_int_cpu_2_usb);
-	CyU3PDmaChannelDestroy (&g_dma_ch_int_usb_2_cpu);
-
-	CyU3PMemSet ((uint8_t *)&cfg, 0, sizeof (cfg));
-	cfg.enable = CyFalse;
-
-	result = CyU3PSetEpConfig(CY_MCU_HID_EP_INTR_IN, &cfg);
-	if (result != CY_U3P_SUCCESS)
-	{
-		nprintf(
-				"CyU3PSetEpConfig failed, Error code = %d\r\n", 
-				result);
-		CyFxAppErrorHandler (result);
-	}
-
-	result = CyU3PSetEpConfig(CY_MCU_HID_EP_INTR_OUT, &cfg);
-	if (result != CY_U3P_SUCCESS)
-	{
-		nprintf(
-				"CyU3PSetEpConfig failed, Error code = %d\r\n", 
-				result);
-		CyFxAppErrorHandler (result);
-	}
-}
-
-CyBool_t mcu_hid_stand_rqt(uint16_t wIndex, CyBool_t active)
-{
-	if (wIndex == CY_MCU_HID_EP_INTR_IN && active)
-	{
-		nprintf("mcu_hid_stand_rqt send report\r\n");
-		CyU3PUsbSetEpNak (CY_MCU_HID_EP_INTR_IN, CyTrue);
-		CyU3PBusyWait (125);
-
-		CyU3PDmaChannelReset (&g_dma_ch_int_cpu_2_usb);
-		CyU3PUsbResetEp (CY_MCU_HID_EP_INTR_IN);
-		CyU3PUsbStall (wIndex, CyFalse, CyTrue);
-
-		CyU3PUsbSetEpNak (CY_MCU_HID_EP_INTR_IN, CyFalse);
-
-		CyU3PUsbAckSetup ();
-		return CyTrue;
-	}
-	return CyFalse;
-}
-
-CyBool_t mcu_hid_class_rqt(uint16_t wIndex, uint8_t bRequest)
-{
-	if (wIndex == CY_MCU_HID_EP_INTR_IN && bRequest == CY_MCU_HID_SET_IDLE)
-	{
-		CyU3PUsbAckSetup ();
-		return CyTrue;
-	}
-	return CyFalse;
 }
 
 static uint16_t get_rsp_msg_id(uint16_t msg_id)
@@ -421,10 +217,10 @@ static uint16_t handle_cmd_id(uint16_t msg_id, uint8_t *cmd, uint16_t cmd_len,
 static uint16_t handle_event(uint16_t msg_id, uint8_t *event, uint16_t event_len,
 		uint8_t *rsp)
 {
-	CyU3PMemCopy(rsp, event, event_len);
+	rt_memcpy(rsp, event, event_len);
 	return event_len;
 }
-static get_sw_ver()
+static void get_sw_ver()
 {
 	char *p = (char *)CX3_FW_VERSION;
 	char *d = __DATE__;
@@ -445,31 +241,31 @@ static get_sw_ver()
 	sw_major_version = atoi(major);
 	sw_minor_version = atoi(minor);
 	sw_patch_version = atoi(patch);
-	CyU3PMemCopy(year, d+7, 4);
-	CyU3PMemCopy(day, d+4, 2);
-	if (strstr(d, "Jan"))
+	rt_memcpy(year, d+7, 4);
+	rt_memcpy(day, d+4, 2);
+	if (rt_strstr(d, "Jan"))
 		mon = 1;
-	else if (strstr(d, "Feb"))
+	else if (rt_strstr(d, "Feb"))
 		mon = 2;
-	else if (strstr(d, "Mar"))
+	else if (rt_strstr(d, "Mar"))
 		mon = 3;
-	else if (strstr(d, "Apr"))
+	else if (rt_strstr(d, "Apr"))
 		mon = 4;
-	else if (strstr(d, "May"))
+	else if (rt_strstr(d, "May"))
 		mon = 5;
-	else if (strstr(d, "Jun"))
+	else if (rt_strstr(d, "Jun"))
 		mon = 6;
-	else if (strstr(d, "Jul"))
+	else if (rt_strstr(d, "Jul"))
 		mon = 7;
-	else if (strstr(d, "Aug"))
+	else if (rt_strstr(d, "Aug"))
 		mon = 8;
-	else if (strstr(d, "Sep"))
+	else if (rt_strstr(d, "Sep"))
 		mon = 9;
-	else if (strstr(d, "Oct"))
+	else if (rt_strstr(d, "Oct"))
 		mon = 10;
-	else if (strstr(d, "Nov"))
+	else if (rt_strstr(d, "Nov"))
 		mon = 11;
-	else if (strstr(d, "Dec"))
+	else if (rt_strstr(d, "Dec"))
 		mon = 12;
 	
 	t[2] = 0;
@@ -516,9 +312,9 @@ static uint16_t fill_payload(uint16_t msg_id, uint8_t *cmd, uint16_t cmd_len,
 			break;
 		case HEART_CMD:
 			rsp[6] = MCU_ERR_SUCCESS;
-			CyU3PMemCopy(rsp+7, heart_ts[0], 8);
-			CyU3PMemCopy(rsp+15, heart_ts[1], 8);
-			get_ts_64_ext(rsp+23);
+			rt_memcpy(rsp+7, heart_ts[0], 8);
+			rt_memcpy(rsp+15, heart_ts[1], 8);
+			read_ts_64(rsp+23);
 			payload_len = 25;
 			break;
 		case HOST_CMD_GET:
@@ -551,9 +347,9 @@ static void mcu_msg_handler(CyU3PDmaChannel *chHandle, uint8_t *msg)
 	   err h/d msg_id  payload_len  reserve  payload
 	   */
 
-	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;    
+	rt_bool_t status = RT_TRUE;    
 	CyU3PDmaBuffer_t    out;
-	uint8_t *rsp;
+	uint8_t rsp[64] = {0};
 	uint16_t rsp_msg_id = 0;
 	uint16_t out_payload_len = 0;
 	uint8_t err = msg[0];
@@ -584,15 +380,15 @@ static void mcu_msg_handler(CyU3PDmaChannel *chHandle, uint8_t *msg)
 		return;
 	}
 
-	status = CyU3PDmaChannelGetBuffer (chHandle, &out, CYU3P_NO_WAIT);
-	if (status == CY_U3P_SUCCESS)
-	{
-		rsp = out.buffer;
-		CyU3PMemSet(out.buffer, 0, 512);
+	//status = CyU3PDmaChannelGetBuffer (chHandle, &out, CYU3P_NO_WAIT);
+	//if (status == CY_U3P_SUCCESS)
+	//{
+		//rsp = out.buffer;
+		//CyU3PMemSet(out.buffer, 0, 512);
 		/* msg 0 STX */
 		rsp[0] = HOST_CMD_STX;
 		/* msg 1 ts */
-		get_ts_64_ext(rsp+1);
+		read_ts_64(rsp+1);
 		/* msg 9 msg_id */
 		if (err == MCU_ERR_SUCCESS) {
 			if (HOST_CMD == msg[1])
@@ -626,143 +422,29 @@ static void mcu_msg_handler(CyU3PDmaChannel *chHandle, uint8_t *msg)
 		/* msg n crc */
 		uint16_t crc_ofs = 17 + out_payload_len;
 
-		uint32_t crc = crc32((const char *)rsp, crc_ofs);
+		uint32_t crc = crc32((uint8_t *)rsp, crc_ofs);
 		rsp[crc_ofs+3]   = (crc >> 24) & 0xff;
 		rsp[crc_ofs+2] = (crc >> 16) & 0xff;
 		rsp[crc_ofs+1] = (crc >> 8) & 0xff;
 		rsp[crc_ofs+0] = (crc >> 0) & 0xff;
+		if (!insert_mem(TYPE_D2H, rsp, crc_ofs+4))
+			nprintf("lost d2h packet\r\n");
 		//nprintf("begin host cmd ack %d\r\n",
 		//			crc_ofs+4);
-		status = CyU3PDmaChannelCommitBuffer (chHandle, crc_ofs+4,
-				CYU3P_NO_WAIT);
-		if (status != CY_U3P_SUCCESS)
-		{
-			nprintf("host mcu cmd op failed %x\r\n",
-					status);
-			CyU3PDmaChannelReset (chHandle);
-			CyU3PDmaChannelSetXfer (chHandle, 0);
-		}
-	} else {
-		nprintf("host mcu cmd op getBuf failed %x\r\n",
-				status);
+		//status = CyU3PDmaChannelCommitBuffer (chHandle, crc_ofs+4,
+		//		CYU3P_NO_WAIT);
+		//if (status != CY_U3P_SUCCESS)
+		//{
+		//	nprintf("host mcu cmd op failed %x\r\n",
+		//			status);
+		//	CyU3PDmaChannelReset (chHandle);
+		//	CyU3PDmaChannelSetXfer (chHandle, 0);
+		//}
+	//} else {
+	//	nprintf("host mcu cmd op getBuf failed %x\r\n",
+	//			status);
 		//CyU3PDmaChannelReset (chHandle);
 		//CyU3PDmaChannelSetXfer (chHandle, 0);
-		host_alive = 0;
-	}
-}
-
-void handle_event_host_cmd()
-{
-	uint32_t status;
-	uint8_t msg[32] = {0};
-	//nprintf("waiting mcu msg event\r\n");
-	for (;;)
-	{
-		status = CyU3PQueueReceive (&g_mcu_cmd_queue, msg,
-				CYU3P_NO_WAIT);
-		if (status == CY_U3P_SUCCESS)
-			mcu_msg_handler(&g_dma_ch_int_cpu_2_usb, msg);
-		else
-			break;
-
-	}
-}
-
-void mcu_hid_thread (uint32_t input)
-{
-	uint32_t status;
-	uint32_t ev_mask = 0;
-	uint32_t ev_stat;
-	
-	ev_mask = EVENT_TIMER | EVENT_IRQ_IO;
-
-	while (1) {
-	status = CyU3PEventGet (&main_event, ev_mask,
-			CYU3P_EVENT_OR_CLEAR, &ev_stat,
-			CYU3P_WAIT_FOREVER);
-	if (status == CY_U3P_SUCCESS) {
-		if (ev_stat & EVENT_TIMER)
-			handler_sensors();
-		if (ev_stat & EVENT_IRQ_IO)
-			handle_event_io();
-	}
-	}
-}
-uint32_t mcu_event_get()
-{
-	return EVENT_IRQ_KEY_BRI_UP	|
-		EVENT_IRQ_KEY_BRI_DOWN 	|
-		EVENT_IRQ_PSENSOR	|
-		EVENT_HOST_CMD		|
-		//EVENT_IRQ_IO		|
-		EVENT_IRQ_STROB		|
-		EVENT_IRQ_DP_STAT;
-}
-void mcu_event_handler(uint32_t ev_stat)
-{
-	int cnt = 0;
-	int irq = 0;
-	/*
-	if (ev_stat & EVENT_HOST_CMD) {
-		int irq = tc3589x_reg_read(0x91);	
-		if ((irq & 0xff) != 0) {
-			nprintf("Errata tc35894 timer %d\r\n", irq & 0xff);
-			ev_stat |= EVENT_IRQ_IO;
-		}
-	}*/
-
-	//if (ev_stat & EVENT_IRQ_IO) {
-	//	handle_event_io();
+	//	host_alive = 0;
 	//}
-	
-	if (ev_stat & EVENT_IRQ_STROB)
-		handle_event_strob();
-
-	if (ev_stat & EVENT_IRQ_DP_STAT)
-		handle_event_dp_stat();
-
-	if (ev_stat & EVENT_HOST_CMD)
-		handle_event_host_cmd();
-
-	/*while (1) {
-		int irq = tc3589x_reg_read(0x91);	
-		if ((irq & 0xff) != 0) {
-			nprintf("Errata tc35894 timer %d\r\n", cnt++);
-			handle_event_io();
-		} else
-			break;
-	}*/
 }
-void mcu_hid_init (void)
-{
-	void *pointer = CyU3PMemAlloc (MCU_QUEUE_SIZE);
-
-	if (pointer != NULL) {
-		uint32_t status = CyU3PQueueCreate (&g_mcu_cmd_queue,
-				MCU_MSG_SIZE, pointer, MCU_QUEUE_SIZE);
-		if (status != CY_U3P_SUCCESS)
-			nprintf("create mcu queue failed %x\r\n",
-					status);
-	} else
-		nprintf("malloc mem for queue failed\r\n");
-
-	void *ptr = CyU3PMemAlloc (0x1000);
-	if (ptr != NULL) {
-		uint32_t result = CyU3PThreadCreate (
-				&mcu_thread_id,
-				"31:mcu thread",
-				mcu_hid_thread,
-				0,
-				ptr,
-				0x1000,
-				8,
-				8,
-				CYU3P_NO_TIME_SLICE,
-				CYU3P_AUTO_START
-				);
-		if (result != 0)
-			nprintf("31:mcu thread create failed\r\n");
-	} else 
-		nprintf("mcu thread malloc failed\r\n");
-}
-

@@ -126,7 +126,7 @@ void ByteToHexStr(uint32_t source, char* dest)
     return ;
 }
 #else
-rt_uint32_t crc(uint8_t* buf, uint32_t len)
+rt_uint32_t crc32(uint8_t* buf, uint32_t len)
 {
 	struct rt_hwcrypto_ctx *ctx;
 	rt_uint32_t result = 0;

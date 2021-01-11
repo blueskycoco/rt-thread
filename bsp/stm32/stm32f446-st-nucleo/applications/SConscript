@@ -14,6 +14,7 @@ driver/fal_flash.c
 driver/fal_partition.c
 driver/fal_rtt.c
 driver/param.c
+driver/rc4.c
 protocol/mcu_cmd.c
 ''')
 

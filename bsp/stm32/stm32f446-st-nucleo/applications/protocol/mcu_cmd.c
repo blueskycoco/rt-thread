@@ -489,19 +489,19 @@ uint16_t handle_speaker_level(uint8_t *in, uint16_t in_len, uint8_t *out)
 
 uint16_t handle_cpu(uint8_t *in, uint16_t in_len, uint8_t *out)
 {
-	uint8_t cpu[24] = "ARM9";
+	uint8_t cpu[24] = "Cortex-M4";
 	return _handle_info(cpu, 0, in, in_len, out);
 }
 
 uint16_t handle_rom(uint8_t *in, uint16_t in_len, uint8_t *out)
 {
-	uint8_t rom[24] = "1M bytes";
+	uint8_t rom[24] = "512K bytes";
 	return _handle_info(rom, 0, in, in_len, out);
 }
 
 uint16_t handle_ram(uint8_t *in, uint16_t in_len, uint8_t *out)
 {
-	uint8_t ram[24] = "512K bytes";
+	uint8_t ram[24] = "128K bytes";
 	return _handle_info(ram, 0, in, in_len, out);
 }
 
