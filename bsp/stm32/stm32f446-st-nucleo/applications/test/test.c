@@ -44,7 +44,7 @@ int main(int argc, void* argv[])
 	while(1) {
 		len = hid_xfer(handle, 0x82, rsp, 64, 1000);
 		if (len > 0) {
-#if 1
+#if 0
 			acc[0] = (int16_t)((rsp[1] << 24) | (rsp[2] << 16) | (rsp[3] << 8) | (rsp[4] << 0));
 			acc[1] = (int16_t)((rsp[5] << 24) | (rsp[6] << 16) | (rsp[7] << 8) | (rsp[8] << 0));
 			acc[2] = (int16_t)((rsp[9] << 24) | (rsp[10] << 16) | (rsp[11] << 8) | (rsp[12] << 0));
