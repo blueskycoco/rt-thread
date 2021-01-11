@@ -1,4 +1,6 @@
 #include <rtthread.h>
+#include <hw_crc.h>
+#ifndef BSP_USING_CRC
 static const uint32_t CRC32_table[256] = {
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
     0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
@@ -123,3 +125,19 @@ void ByteToHexStr(uint32_t source, char* dest)
 
     return ;
 }
+#else
+rt_uint32_t crc(uint8_t* buf, uint32_t len)
+{
+	struct rt_hwcrypto_ctx *ctx;
+	rt_uint32_t result = 0;
+
+	ctx = rt_hwcrypto_crc_create(rt_hwcrypto_dev_default(),
+			HWCRYPTO_CRC_CRC32);
+	if (ctx != RT_NULL) {
+		result = rt_hwcrypto_crc_update(ctx, buf, len);
+		rt_hwcrypto_crc_destroy(ctx);
+	}
+	
+	return result;
+}
+#endif

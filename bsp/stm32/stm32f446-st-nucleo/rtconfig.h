@@ -199,4 +199,9 @@
 #define RT_USING_HWTIMER
 #define BSP_USING_TIM3
 #define BSP_USING_TIM
+
+#define RT_USING_HWCRYPTO
+#define RT_HWCRYPTO_USING_CRC
+#define BSP_USING_CRC
+
 #endif

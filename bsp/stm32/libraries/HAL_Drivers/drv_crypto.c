@@ -110,7 +110,7 @@ static rt_uint32_t _crc_update(struct hwcrypto_crc *ctx, const rt_uint8_t *in, r
     length /= 4;
 #endif /* defined(SOC_SERIES_STM32L4) || defined(SOC_SERIES_STM32F0) || defined(SOC_SERIES_STM32H7) || defined(SOC_SERIES_STM32F7) */
 
-    result = HAL_CRC_Accumulate(ctx->parent.contex, (rt_uint32_t *)in, length);
+    result = HAL_CRC_Accumulate(ctx->parent.contex, (uint32_t *)in, length);
 
 #if defined(SOC_SERIES_STM32L4) || defined(SOC_SERIES_STM32F0) || defined(SOC_SERIES_STM32H7) || defined(SOC_SERIES_STM32F7) || defined(SOC_SERIES_STM32WB) || defined(SOC_SERIES_STM32MP1)
     if (HW_TypeDef->Init.OutputDataInversionMode)
