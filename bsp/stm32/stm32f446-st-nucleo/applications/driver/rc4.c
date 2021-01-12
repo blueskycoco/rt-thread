@@ -9,7 +9,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  IMPORTS
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef FW_VERSION
 #include <rtthread.h>
+#endif
 #include <string.h>
 #include "rc4.h"
 #include <stdlib.h>
@@ -171,8 +173,8 @@ void set_rc4_key(uint8_t ofs, uint16_t msg_id, uint8_t *ts)
 	uint8_t index[10] = {0x00};
 	if (ofs >= 10)
 		return;
-	rt_memcpy(Key, (uint8_t *)Key_def, 256);
-	rt_memcpy(index, map[ofs], 10);
+	memcpy(Key, (uint8_t *)Key_def, 256);
+	memcpy(index, map[ofs], 10);
 	
 	Key[index[0]] = (msg_id >> 8) & 0xff;
 	Key[index[1]] = msg_id & 0xff;

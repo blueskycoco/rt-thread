@@ -136,7 +136,7 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len, uint8_t *msg)
 		msg[0] = MCU_ERR_NREAL;
 		msg[1] = HOST_CMD;
 	}
-
+	return;
 FAIL:	
 	LOG_E("not enough msg to send\r\n");
 }
@@ -426,6 +426,7 @@ static void mcu_cmd_handler(void *param)
 					RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR,
 					RT_WAITING_FOREVER, &status) == RT_EOK)
 		{
+			LOG_D("event 0x%x\r\n", status);
 			if (status & EVENT_OV2ST) {
 				remove_mem(TYPE_H2D, &cmd, &len);
 				if (len != 0) {
