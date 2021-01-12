@@ -94,6 +94,9 @@
 #define CMD_LEN_PAYLOAD_OFS 15
 #define CMD_PAYLOAD_OFS 17
 
+#define EVENT_ST2OV	(1 << 0)
+#define EVENT_OV2ST	(1 << 1)
+#define EVENT_TIMER	(1 << 2)
 enum {
 	/* base 20200825 */
 	NR_BRIGHTNESS = 1,
@@ -150,12 +153,16 @@ enum {
 
 typedef uint16_t (*mcu_func)( uint8_t *in, uint16_t in_len, uint8_t *out);
 
-void mcu_hid_event_set(uint32_t event);
 void build_event(uint8_t *msg, uint16_t msg_id, uint16_t len);
 uint32_t mcu_event_get();
 void mcu_event_handler(uint32_t ev_stat);
 void handle_event_host_cmd();
 void get_g_param();
+void notify_event(rt_uint32_t _event);
+void uart_rsp_out(rt_uint8_t *data, rt_uint16_t len);
+void handle_timer();
+void mcu_msg_send(rt_uint8_t *event);
+void protocol_init();
 /*[]*/
 #endif /* _INCLUDED_MCU_HID_H_ */
 

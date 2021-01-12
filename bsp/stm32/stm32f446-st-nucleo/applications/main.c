@@ -19,35 +19,63 @@
 #include <fal.h>
 #include "param.h"
 #include "utils.h"
+#include "mcu.h"
+
+#define DRV_DEBUG
+#define LOG_TAG             "main.mcu"
+#include <drv_log.h>
 
 extern int fal_init(void);
 
 static struct rt_thread uart_thread;
 ALIGN(RT_ALIGN_SIZE)
-	static char uart_thread_stack[1024];
-	static struct rt_semaphore rx_ind;
-	rt_device_t ts_device;
-	rt_uint8_t hid_rcv[64] = {0};
+static char uart_thread_stack[1024];
+rt_device_t uart_device;
+
+#ifdef RT_USING_USB_DEVICE	
+rt_uint8_t hid_rcv[64] = {0};
 rt_size_t g_hid_size;
-rt_sem_t        isr_sem;
 rt_device_t hid_device;
 rt_bool_t 	hid_ready = RT_FALSE;
 icm20603_device_t icm_dev;
 icm42688_device_t icm_42688;
-rt_sem_t tx_comp;
+rt_sem_t sof_sem;
+rt_sem_t hid_tx_comp;
+#endif
+rt_sem_t uart_rx_ind;
+rt_sem_t uart_tx_comp;
 /* defined the LED2 pin: PB7 */
 #define LED2_PIN    GET_PIN(B, 7)
 #define LED1_PIN    GET_PIN(B, 0)
 #define LED3_PIN    GET_PIN(B, 14)
-#if 1
 #define ICM_INT_PIN GET_PIN(B, 4)
+
+static rt_err_t uart_out_finish(rt_device_t dev, void *buffer)
+{
+    return rt_sem_release(uart_tx_comp);
+}
+
+static rt_err_t uart_data_ind(rt_device_t dev, rt_size_t size)
+{
+	rt_sem_release(uart_rx_ind);
+	return RT_EOK;
+}
+
+#ifdef RT_USING_USB_DEVICE	
+
 static void icm_isr(void *parameter)
 {
-	rt_sem_release(isr_sem);
+	rt_sem_release(sof_sem);
 }
+
 static rt_err_t event_hid_finish(rt_device_t dev, void *buffer)
 {
-    return rt_sem_release(tx_comp);
+    return rt_sem_release(hid_tx_comp);
+}
+static rt_err_t usb_sof_ind(rt_device_t dev, rt_size_t size)
+{
+	rt_sem_release(sof_sem);
+	return RT_EOK;
 }
 
 static void icm_thread_entry(void *parameter)
@@ -57,7 +85,7 @@ static void icm_thread_entry(void *parameter)
 	rt_uint8_t buf[64], int_status;
 	rt_uint32_t uax, uay, uaz, ugx, ugy, ugz;
 
-	isr_sem = rt_sem_create("icm", 0, RT_IPC_FLAG_FIFO);
+	sof_sem = rt_sem_create("icm", 0, RT_IPC_FLAG_FIFO);
 	rt_pin_mode(ICM_INT_PIN, PIN_MODE_INPUT_PULLUP);
 	rt_pin_attach_irq(ICM_INT_PIN, PIN_IRQ_MODE_FALLING, icm_isr, RT_NULL);
 
@@ -68,21 +96,21 @@ static void icm_thread_entry(void *parameter)
 
 	while (1)
 	{
-		if (rt_sem_take(isr_sem, -1) != RT_EOK)
+		if (rt_sem_take(sof_sem, -1) != RT_EOK)
 		{
-			rt_kprintf("wait imu timeout\r\n");
+			LOG_D("wait imu timeout\r\n");
 			continue;
 		}
 		if (icm20603_int_status(icm_dev) & 0x01 != 0x01)
-			rt_kprintf("icm20603 not ready\r\n");
+			LOG_D("icm20603 not ready\r\n");
 		if (icm42688_int_status(icm_42688) & 0x08 != 0x01)
-			rt_kprintf("icm42688 not ready\r\n");
+			LOG_D("icm42688 not ready\r\n");
 		//icm20603_get_gyro(icm_dev, (rt_int16_t *)&gx, (rt_int16_t *)&gy,
 		//		(rt_int16_t *)&gz);
 		icm20603_get_accel(icm_dev, (rt_int16_t *)&ax, (rt_int16_t *)&ay,
 				(rt_int16_t *)&az, (rt_int16_t *)&gx,
 				(rt_int16_t *)&gy, (rt_int16_t *)&gz);
-		//rt_kprintf("accelerometer: %10d, %10d, %10d     gyro: %10d, %10d, %10d\r\n",
+		//LOG_D("accelerometer: %10d, %10d, %10d     gyro: %10d, %10d, %10d\r\n",
 		//		ax, ay, az, gx, gy, gz);
 		uax = (rt_uint32_t)ax;
 		uay = (rt_uint32_t)ay;
@@ -160,45 +188,44 @@ static void icm_thread_entry(void *parameter)
 		buf[46] = (ugz >> 16) & 0xff; 
 		buf[47] = (ugz >>  8) & 0xff; 
 		buf[48] = (ugz >>  0) & 0xff; 
-#ifdef RT_USING_USB_DEVICE	
 		if (hid_ready) {
 			if (rt_device_write(hid_device, 0x02, buf+1, 63) != 63)
-				rt_kprintf("hid write failed %d\r\n", errno);
+				LOG_D("hid write failed %d\r\n", errno);
 			else {
-				if (rt_sem_take(tx_comp, 300) != RT_EOK) {
+				if (rt_sem_take(hid_tx_comp, 300) != RT_EOK) {
 					hid_ready = RT_FALSE;
-					rt_kprintf("waiting hid out timeout\r\n");
+					LOG_D("waiting hid out timeout\r\n");
 				}
 			}
 		}
-#endif
 	}
 }
 #endif
 
-static rt_err_t uart_data_ind(rt_device_t dev, rt_size_t size)
-{
-	rt_sem_release(&rx_ind);
-	return RT_EOK;
-}
-
-static rt_err_t usb_sof_ind(rt_device_t dev, rt_size_t size)
-{
-	rt_sem_release(isr_sem);
-	return RT_EOK;
-}
 
 void dump_host_cmd(rt_uint8_t *cmd, rt_uint32_t len)
 {
 	rt_uint32_t i;
 
-	rt_kprintf("\r\n=====================================>\r\nhost_cmd[%d]: ",
+	LOG_D("\r\n=====================================>\r\nhost_cmd[%d]: ",
 			len);
 	for (i=0; i<len; i++) {
-		rt_kprintf("%02x ", cmd[i]);
+		LOG_D("%02x ", cmd[i]);
 		if (i % 16 == 0 && i != 0)
-			rt_kprintf("\r\n");
+			LOG_D("\r\n");
 	}
+}
+
+void uart_rsp_out(rt_uint8_t *data, rt_uint16_t len)
+{
+	if (data == RT_NULL || len == 0)
+		return;
+
+	rt_device_write(uart_device, 0, data, len);
+	if (RT_EOK != rt_sem_take(uart_tx_comp, 100))
+		LOG_E("wait for uart tx comp failed\r\n");
+
+	notify_event(EVENT_ST2OV);
 }
 static void uart_thread_entry(void *parameter)
 {
@@ -207,22 +234,26 @@ static void uart_thread_entry(void *parameter)
 
 	rt_device_t device = (rt_device_t)parameter;
 
-	rt_sem_init(&rx_ind, "uart_rx_ind", 1, RT_IPC_FLAG_FIFO);
+	uart_rx_ind = rt_sem_create("uart_rx_ind", 0, RT_IPC_FLAG_FIFO);
+	uart_tx_comp = rt_sem_create("uart_tx_out", 0, RT_IPC_FLAG_FIFO);
 
 	rt_device_set_rx_indicate(device, uart_data_ind);
-
-	rt_kprintf("Ready.\n");
+	rt_device_set_tx_complete(device, uart_out_finish);
+	protocol_init();
+	LOG_D("Uart Ready.\n");
 
 	while (1)
 	{
-		rt_sem_take(&rx_ind, RT_WAITING_FOREVER);
+		rt_sem_take(uart_rx_ind, RT_WAITING_FOREVER);
 		/* handle host command */
 		len = 0;
 		do {
 			len += rt_device_read(device, 0, uart_buf+len, 64-len);
 			if (len > 0) {
 				if (len == 64) {
-					insert_mem(TYPE_H2D, uart_buf, len);
+					if (!insert_mem(TYPE_H2D, uart_buf, len))
+						LOG_E("queue host cmd failed\r\n");
+					notify_event(EVENT_OV2ST);
 					break;
 				}
 			} else {
@@ -236,7 +267,6 @@ static void uart_thread_entry(void *parameter)
 static int mcu_cmd_init(void)
 {
 	int err = 0;
-	rt_device_t uart_device;
 	struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
 
 	uart_device = rt_device_find("uart6");
@@ -248,7 +278,7 @@ static int mcu_cmd_init(void)
 
 	if (err != RT_EOK)
 	{
-		rt_kprintf("open dev failed!\n");
+		LOG_D("open dev failed!\n");
 		return -1;
 	}
 
@@ -270,9 +300,8 @@ static int mcu_cmd_init(void)
 void HID_Report_Received(hid_report_t report)
 {
 	hid_ready = RT_TRUE;
-	rt_kprintf("app started\r\n");
+	LOG_D("app started\r\n");
 }
-#endif
 static int generic_hid_init(void)
 {
 	int err = 0;
@@ -283,24 +312,27 @@ static int generic_hid_init(void)
 
 	if (err != RT_EOK)
 	{
-		rt_kprintf("open dev failed!\n");
+		LOG_D("open dev failed!\n");
 		return -1;
 	}
-	tx_comp = rt_sem_create("hid", 0, RT_IPC_FLAG_FIFO);
+	hid_tx_comp = rt_sem_create("hid", 0, RT_IPC_FLAG_FIFO);
 	rt_device_set_tx_complete(hid_device, event_hid_finish);
 	rt_device_set_rx_indicate(hid_device, usb_sof_ind);
 	return 0;
 }
+#endif
 int main(void)
 {
 	int count = 1;
 
 	if (!param_init())
-		rt_kprintf("can't startup system\r\n");
+		LOG_D("can't startup system\r\n");
 
+#ifdef RT_USING_USB_DEVICE
 	rt_thread_t tid = rt_thread_create("icm", icm_thread_entry, RT_NULL,
 			2048, 28, 20);
 	rt_thread_startup(tid);
+#endif
 	/* set LED2 pin mode to output */
 	rt_memlist_init();	
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
@@ -342,9 +374,9 @@ int dump_len(void)
 		if (data == RT_NULL)
 			break;
 		all_len += len;
-		rt_kprintf("============>[%04d]: ", all_len);
+		LOG_D("============>[%04d]: ", all_len);
 		for (i=0; i<len; i++) {
-			rt_kprintf("%c", data[i]);
+			LOG_D("%c", data[i]);
 		}
 	} while (1);
 	return 0;

@@ -1,10 +1,8 @@
+#include <rtthread.h>
 #include <stdio.h>
-#include "mcu_hid.h"
+#include "mcu.h"
 #include "mcu_cmd.h"
-//#include "rc4.h"
-//#include "utils.h"
 #include "param.h"
-//#include "oled.h"
 
 glasses_param g_param;
 void set_g_param(uint16_t ofs, uint8_t param1, uint8_t param2)

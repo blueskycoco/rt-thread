@@ -102,7 +102,7 @@ void remove_mem(rt_uint8_t type, rt_uint8_t **out, rt_uint16_t *len)
 	register rt_base_t level;
 
 	level = rt_hw_interrupt_disable();
-
+	*len = 0;
 	if (type == TYPE_D2H) {
 		insert = &rt_d2h_list;
 	} else {

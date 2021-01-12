@@ -1,6 +1,45 @@
 #include <rtthread.h>
+#include <rtdevice.h>
+#include <board.h>
 #include "utils.h"
+#include "mcu.h"
 
+rt_device_t ts_device;
+static rt_err_t timer_timeout(rt_device_t dev, rt_size_t size)
+{
+	notify_event(EVENT_TIMER);
+	return RT_EOK;
+}
+int normal_timer_init()
+{
+	int err = 0;
+	rt_device_t tim_dev;
+	rt_hwtimer_mode_t mode;
+	rt_hwtimerval_t val;
+
+	if ((tim_dev = rt_device_find("timer11")) == RT_NULL)
+	{
+		rt_kprintf("No Device: timer11\n");
+		return -1;
+	}
+
+	if (rt_device_open(tim_dev, RT_DEVICE_OFLAG_RDWR) != RT_EOK)
+	{
+		rt_kprintf("Open timer3 Fail\n");
+		return -1;
+	}
+
+	rt_device_set_rx_indicate(tim_dev, timer_timeout);
+	mode = HWTIMER_MODE_PERIOD;
+	err = rt_device_control(tim_dev, HWTIMER_CTRL_MODE_SET, &mode);
+	val.sec = 0;
+	val.usec = 10000;
+	rt_kprintf("SetTime: Sec %d, Usec %d\n", val.sec, val.usec);
+	if (rt_device_write(tim_dev, 0, &val, sizeof(val)) != sizeof(val))
+		rt_kprintf("set timer failed\n");
+	
+	return 0;
+}
 int timestamp_init()
 {
 	int err = 0;
