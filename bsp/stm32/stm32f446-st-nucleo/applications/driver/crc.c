@@ -1,9 +1,8 @@
 #include <rtthread.h>
-#include <hw_crc.h>
 #define DRV_DEBUG
 #define LOG_TAG             "driver.crc"
 #include <drv_log.h>
-#ifdef BSP_USING_CRC
+#ifndef BSP_USING_CRC
 static const uint32_t CRC32_table[256] = {
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
     0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
@@ -129,6 +128,7 @@ void ByteToHexStr(uint32_t source, char* dest)
     return ;
 }
 #else
+#include <hw_crc.h>
 uint32_t crc32(uint8_t* buf, uint32_t len)
 {
 	struct rt_hwcrypto_ctx *ctx;

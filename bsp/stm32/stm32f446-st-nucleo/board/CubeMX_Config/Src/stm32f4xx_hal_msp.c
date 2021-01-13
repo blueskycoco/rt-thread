@@ -374,7 +374,10 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 
   /* USER CODE END TIM11_MspInit 1 */
   }
-
+  else if(htim_base->Instance==TIM11)
+  {
+    __HAL_RCC_TIM11_CLK_ENABLE();
+  }
 }
 
 /**
@@ -396,7 +399,10 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 
   /* USER CODE END TIM11_MspDeInit 1 */
   }
-
+  else if(htim_base->Instance==TIM11)
+  {
+    __HAL_RCC_TIM11_CLK_DISABLE();
+  }
 }
 /* USER CODE END 1 */
 

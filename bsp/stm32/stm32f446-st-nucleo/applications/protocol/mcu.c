@@ -352,7 +352,7 @@ static void mcu_msg_handler(uint8_t *msg)
 		cmd_id = (cmd[2] << 8) | cmd[1];
 
 	if (err == MCU_ERR_SUCCESS)
-		;//dump_mcu_cmd(msg_id, cmd_id, cmd, cmd_len);
+		dump_mcu_cmd(msg_id, cmd_id, cmd, cmd_len);
 	else {
 		LOG_E("Error cmd %x from host\r\n", err);
 		return;
@@ -402,7 +402,7 @@ static void mcu_msg_handler(uint8_t *msg)
 	rsp[crc_ofs+0] = (crc >> 0) & 0xff;
 	rsp[62] = ((crc_ofs+4) >> 8) & 0xff;
 	rsp[63] = ((crc_ofs+4) >> 0) & 0xff;
-	LOG_D("%d crc %x", crc_ofs, crc);
+	//LOG_D("%d crc %x", crc_ofs, crc);
 	if (!insert_mem(TYPE_D2H, rsp, 64))
 		LOG_W("lost d2h packet\r\n");
 	notify_event(EVENT_ST2OV);
@@ -427,33 +427,34 @@ static void mcu_cmd_handler(void *param)
 	uint32_t status;
 	uint32_t state = EVENT_OV2ST | EVENT_ST2OV | EVENT_TIMER;	
 	
+	normal_timer_init();	
 	while (1)
 	{
 		if (rt_event_recv(&event_d2h, state,
 					RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR,
 					RT_WAITING_FOREVER, &status) == RT_EOK)
 		{
-			LOG_D("event 0x%x", status);
 			if (status & EVENT_OV2ST) {
+				//LOG_D("%ld event 0x%x", read_ts(), status);
 				remove_mem(TYPE_H2D, &cmd, &len);
 				if (len != 0) {
-					dump_host_cmd("h2d", cmd, len);
+					//dump_host_cmd("h2d", cmd, len);
 					parse_host_cmd(cmd, len, msg);
-					dump_host_cmd("msg", msg, 64);
+					//dump_host_cmd("msg", msg, 64);
 					mcu_msg_handler(msg);
 				}
 			}
 
 			if (status & EVENT_ST2OV) {
+				//LOG_D("%ld event 0x%x", read_ts(), status);
 				remove_mem(TYPE_D2H, &cmd, &len);
 				if (len > 0) {
-					dump_host_cmd("d2h", cmd, len);
+					//dump_host_cmd("d2h", cmd, len);
 					uart_rsp_out(cmd, len);
 				}
 			}
 			
 			if (status & EVENT_TIMER) {
-				LOG_D("timer");
 				handle_timer();
 			}
 		}

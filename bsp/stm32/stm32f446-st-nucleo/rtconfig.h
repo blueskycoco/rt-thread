@@ -201,9 +201,9 @@
 #define BSP_USING_TIM11
 #define BSP_USING_TIM
 
-#define RT_USING_HWCRYPTO
-#define RT_HWCRYPTO_USING_CRC
-#define BSP_USING_CRC
+//#define RT_USING_HWCRYPTO
+//#define RT_HWCRYPTO_USING_CRC
+//#define BSP_USING_CRC
 
 #define BSP_USING_ON_CHIP_FLASH
 #define PKG_USING_FAL
@@ -211,5 +211,5 @@
 #define FAL_PART_HAS_TABLE_CFG
 
 #define RT_USING_LIBC
-
+#define RT_PRINTF_LONGLONG
 #endif
