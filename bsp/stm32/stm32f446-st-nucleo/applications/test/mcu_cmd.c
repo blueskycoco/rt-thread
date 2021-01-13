@@ -522,11 +522,12 @@ int main(int argc, void *argv[])
 	//usb_xfer(dev, USB_ENDPOINT_IN, 0xE1, 0x00, 0x01, &glasses_v, 1);
 	//printf("glasses protocol version: %d\r\n", glasses_v);
 	//usb_xfer(dev, USB_ENDPOINT_OUT, 0xE1, 0x00, 0x00, &app_v, 1);
-	
-	if ((payload_len+21) == hid_xfer(dev, EP_MCU_OUT, cmd, payload_len+21,
+	cmd[62] = ((payload_len +21) >> 8) & 0xff;	
+	cmd[63] = ((payload_len +21) >> 0) & 0xff;	
+	if (64 == hid_xfer(dev, EP_MCU_OUT, cmd, 64,
 				5000)) {
 		while (1) {
-		rsp_len = hid_xfer(dev, EP_MCU_IN, rsp, 512, 5000);
+		rsp_len = hid_xfer(dev, EP_MCU_IN, rsp, 64, 5000);
 		printf("rsp len %d\r\n", rsp_len);
 		if (rsp_len != 0) {
 			if (debug) {
@@ -538,6 +539,8 @@ int main(int argc, void *argv[])
 			}
 			printf("\r\n");
 			}
+			rsp_len = (rsp[62] << 8) | rsp[63];
+			printf("second rsp len %d\r\n", rsp_len);
 			uint32_t crc = crc32((const char *)rsp, rsp_len - 4);
 			uint32_t crc_dev = (rsp[rsp_len - 1] << 24) |
 						(rsp[rsp_len - 2] << 16) |

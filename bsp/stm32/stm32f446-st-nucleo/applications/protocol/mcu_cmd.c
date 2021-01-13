@@ -56,7 +56,7 @@ void get_g_param()
 	param_get(PARAM_VSYNC, &g_param.vsync, 1);
 	param_get(PARAM_TEMP, &g_param.temp, 1);
 	param_get(PARAM_ENV_LIGHT, &g_param.env_light, 1);
-	param_get(PARAM_SLEEP_TIME, (rt_uint8_t *)&g_param.sleep_time, 2);
+	param_get(PARAM_SLEEP_TIME, (uint8_t *)&g_param.sleep_time, 2);
 }
 #define PAYLOAD_LEN_BASE 3	//err+payload
 static uint16_t handle_on_off(uint16_t ofs, uint8_t *in, uint16_t in_len,

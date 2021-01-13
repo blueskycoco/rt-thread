@@ -4,5 +4,5 @@
 #include <rthw.h>
 #include <rtthread.h>
 void ByteToHexStr(uint32_t source, char* dest);
-rt_uint32_t crc32(uint8_t* buf, uint32_t len);
+uint32_t crc32(uint8_t* buf, uint32_t len);
 #endif

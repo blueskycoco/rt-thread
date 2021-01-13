@@ -11,9 +11,9 @@ static rt_list_t rt_h2d_list;
 struct rt_mem_list
 {
 	rt_list_t list;
-	rt_uint8_t data[64];
-	rt_uint8_t used;
-	rt_uint16_t len;
+	uint8_t data[64];
+	uint8_t used;
+	uint16_t len;
 };
 typedef struct rt_mem_list *rt_memlist_t;
 
@@ -61,7 +61,7 @@ rt_bool_t h2d_list_isempty()
 	return res;
 }
 
-rt_bool_t insert_mem(rt_uint8_t type, rt_uint8_t* data, rt_uint16_t len)
+rt_bool_t insert_mem(uint8_t type, uint8_t* data, uint16_t len)
 {
 	int i;
 	rt_memlist_t ptr;
@@ -96,7 +96,7 @@ rt_bool_t insert_mem(rt_uint8_t type, rt_uint8_t* data, rt_uint16_t len)
 	return RT_TRUE;
 }
 
-void remove_mem(rt_uint8_t type, rt_uint8_t **out, rt_uint16_t *len)
+void remove_mem(uint8_t type, uint8_t **out, uint16_t *len)
 {
 	rt_list_t *insert;
 	register rt_base_t level;

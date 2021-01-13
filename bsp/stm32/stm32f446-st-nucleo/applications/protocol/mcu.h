@@ -158,11 +158,12 @@ uint32_t mcu_event_get();
 void mcu_event_handler(uint32_t ev_stat);
 void handle_event_host_cmd();
 void get_g_param();
-void notify_event(rt_uint32_t _event);
-void uart_rsp_out(rt_uint8_t *data, rt_uint16_t len);
+void notify_event(uint32_t _event);
+void uart_rsp_out(uint8_t *data, uint16_t len);
 void handle_timer();
-void mcu_msg_send(rt_uint8_t *event);
+void mcu_msg_send(uint8_t *event);
 void protocol_init();
+void dump_host_cmd(uint8_t *tag, uint8_t *cmd, uint32_t len);
 /*[]*/
 #endif /* _INCLUDED_MCU_HID_H_ */
 

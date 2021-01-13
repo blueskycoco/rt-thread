@@ -69,18 +69,18 @@ int timestamp_init()
 	return 0;
 }
 
-static rt_uint32_t read_ts()
+static uint32_t read_ts()
 {
 	rt_hwtimerval_t val,val1;
 	rt_device_read(ts_device, 0, &val, sizeof(val));
 	return (val.sec*1000000+val.usec);
 }
 
-void read_ts_64(rt_uint8_t *buf)
+void read_ts_64(uint8_t *buf)
 {
 	static uint32_t old_sensor_ts = 0;
 	static uint32_t up_ts = 0;
-	rt_uint32_t ts = read_ts();
+	uint32_t ts = read_ts();
 	
 	if (ts < old_sensor_ts) {
 		up_ts++;

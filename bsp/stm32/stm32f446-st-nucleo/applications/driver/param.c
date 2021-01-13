@@ -7,10 +7,10 @@
 #define DEFAULT_PARAM_BASE	"mcu_param2_16k"
 #define DEFAULT_PARAM_LEN	4096
 
-static rt_uint8_t *local_buf = RT_NULL;
+static uint8_t *local_buf = RT_NULL;
 static const struct fal_partition *part_dev = NULL;
 
-void param_get(rt_uint32_t ofs, rt_uint8_t *buf, rt_uint32_t len)
+void param_get(uint32_t ofs, uint8_t *buf, uint32_t len)
 {
 	if (ofs + len > DEFAULT_PARAM_LEN)
 		return;
@@ -18,7 +18,7 @@ void param_get(rt_uint32_t ofs, rt_uint8_t *buf, rt_uint32_t len)
 	rt_memcpy(buf, local_buf+ofs, len);
 }
 
-void param_set_once(rt_uint32_t ofs, rt_uint8_t *buf, rt_uint32_t len)
+void param_set_once(uint32_t ofs, uint8_t *buf, uint32_t len)
 {
 	if (ofs + len > DEFAULT_PARAM_LEN)
 		return;
@@ -29,7 +29,7 @@ void param_set_once(rt_uint32_t ofs, rt_uint8_t *buf, rt_uint32_t len)
 	rt_memcpy(local_buf+ofs, buf, len);
 }
 
-void param_set(rt_uint32_t ofs, rt_uint8_t *buf, rt_uint32_t len)
+void param_set(uint32_t ofs, uint8_t *buf, uint32_t len)
 {
 	register rt_base_t level;
 	if (ofs + len > DEFAULT_PARAM_LEN)
@@ -55,7 +55,7 @@ void param_set(rt_uint32_t ofs, rt_uint8_t *buf, rt_uint32_t len)
 
 rt_bool_t param_init()
 {
-	local_buf = (rt_uint8_t *)rt_malloc(DEFAULT_PARAM_LEN*sizeof(rt_uint8_t));
+	local_buf = (uint8_t *)rt_malloc(DEFAULT_PARAM_LEN*sizeof(uint8_t));
 	if (local_buf == RT_NULL) {
 		rt_kprintf("Init param failed, not enough memory\r\n");
 		return RT_FALSE;

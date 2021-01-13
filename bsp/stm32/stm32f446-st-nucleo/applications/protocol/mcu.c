@@ -70,6 +70,7 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len, uint8_t *msg)
 	uint32_t crc;
 	//uint8_t msg[32] = {0};
 	uint16_t msg_id, payload_len;
+	uint16_t _len;
 
 	/* protocl 
 	 * |plain           |Security                 |  |plain   |
@@ -90,14 +91,15 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len, uint8_t *msg)
 		msg[1] = HOST_CMD;
 		goto FAIL;
 	}
+	_len = (cmd[len-2] << 8) | cmd[len-1];
 
-	crc =   cmd[len-4] |
-		(cmd[len-3] << 8) |
-		(cmd[len-2] << 16) |
-		(cmd[len-1] << 24);
-	if (crc != crc32((uint8_t *)cmd, len-4)) {
+	crc =   cmd[_len-4] |
+		(cmd[_len-3] << 8) |
+		(cmd[_len-2] << 16) |
+		(cmd[_len-1] << 24);
+	if (crc != crc32((uint8_t *)cmd, _len-4)) {
 		LOG_E("invalid crc h %x != c %x\r\n", crc,
-				crc32((uint8_t *)cmd, len-4));
+				crc32((uint8_t *)cmd, _len-4));
 		msg[0] = MCU_ERR_CRC;
 		msg[1] = HOST_CMD;
 		goto FAIL;
@@ -114,7 +116,7 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len, uint8_t *msg)
 
 	set_rc4_key(cmd[7]%10, msg_id, cmd+CMD_TS_OFS);
 	rc4(cmd+CMD_RESERVE_OFS,
-			cmd+CMD_RESERVE_OFS, len - 4 - 1 - 8 - 2);
+			cmd+CMD_RESERVE_OFS, _len - 4 - 1 - 8 - 2);
 
 	if (msg_id == HEART_CMD) {
 		rt_memcpy(heart_ts[0], cmd+18, 8);
@@ -398,27 +400,32 @@ static void mcu_msg_handler(uint8_t *msg)
 	rsp[crc_ofs+2] = (crc >> 16) & 0xff;
 	rsp[crc_ofs+1] = (crc >> 8) & 0xff;
 	rsp[crc_ofs+0] = (crc >> 0) & 0xff;
-	if (!insert_mem(TYPE_D2H, rsp, crc_ofs+4))
+	rsp[62] = ((crc_ofs+4) >> 8) & 0xff;
+	rsp[63] = ((crc_ofs+4) >> 0) & 0xff;
+	LOG_D("%d crc %x", crc_ofs, crc);
+	if (!insert_mem(TYPE_D2H, rsp, 64))
 		LOG_W("lost d2h packet\r\n");
 	notify_event(EVENT_ST2OV);
 }
-void notify_event(rt_uint32_t _event)
+void notify_event(uint32_t _event)
 {
 	rt_event_send(&event_d2h, _event);
 }
 
-void mcu_msg_send(rt_uint8_t *event)
+void mcu_msg_send(uint8_t *event)
 {
 	mcu_msg_handler(event);
 }
-
+static void dump_data(uint8_t *data, uint16_t len)
+{
+}
 static void mcu_cmd_handler(void *param)
 {
 	uint8_t msg[64] = {0};
 	uint8_t *cmd = {0};
-	rt_uint16_t len;
-	rt_uint32_t status;
-	rt_uint32_t state = EVENT_OV2ST | EVENT_ST2OV | EVENT_TIMER;	
+	uint16_t len;
+	uint32_t status;
+	uint32_t state = EVENT_OV2ST | EVENT_ST2OV | EVENT_TIMER;	
 	
 	while (1)
 	{
@@ -426,11 +433,13 @@ static void mcu_cmd_handler(void *param)
 					RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR,
 					RT_WAITING_FOREVER, &status) == RT_EOK)
 		{
-			LOG_D("event 0x%x\r\n", status);
+			LOG_D("event 0x%x", status);
 			if (status & EVENT_OV2ST) {
 				remove_mem(TYPE_H2D, &cmd, &len);
 				if (len != 0) {
+					dump_host_cmd("h2d", cmd, len);
 					parse_host_cmd(cmd, len, msg);
+					dump_host_cmd("msg", msg, 64);
 					mcu_msg_handler(msg);
 				}
 			}
@@ -438,11 +447,13 @@ static void mcu_cmd_handler(void *param)
 			if (status & EVENT_ST2OV) {
 				remove_mem(TYPE_D2H, &cmd, &len);
 				if (len > 0) {
+					dump_host_cmd("d2h", cmd, len);
 					uart_rsp_out(cmd, len);
 				}
 			}
 			
 			if (status & EVENT_TIMER) {
+				LOG_D("timer");
 				handle_timer();
 			}
 		}

@@ -57,22 +57,22 @@
  *
  * @return the writing status of accelerometer, RT_EOK reprensents setting successfully.
  */
-static rt_err_t write_regs(struct rt_spi_device *spi_dev, rt_uint8_t reg,
-		rt_uint8_t len, rt_uint8_t *buf)
+static rt_err_t write_regs(struct rt_spi_device *spi_dev, uint8_t reg,
+		uint8_t len, uint8_t *buf)
 {
-	rt_uint8_t tx[32] = {0};
+	uint8_t tx[32] = {0};
 	tx[0] = reg;
 	memcpy(tx+1, buf, len);
 	int ret = rt_spi_send(spi_dev, tx, len+1);
 	return (ret == len+1) ? RT_EOK : RT_ERROR;
 }
 
-static rt_err_t read_regs(struct rt_spi_device *spi_dev, rt_uint8_t reg,
-		rt_uint8_t len, rt_uint8_t *buf)
+static rt_err_t read_regs(struct rt_spi_device *spi_dev, uint8_t reg,
+		uint8_t len, uint8_t *buf)
 {
 	int i;
-	rt_uint8_t tx[32] = {0};
-	rt_uint8_t rx[32] = {0};
+	uint8_t tx[32] = {0};
+	uint8_t rx[32] = {0};
 	tx[0] = reg|0x80;
 	rt_memset(tx+1, 0xff, len);
 	rt_size_t ret = rt_spi_transfer(spi_dev, tx, rx, len+1);
@@ -80,12 +80,12 @@ static rt_err_t read_regs(struct rt_spi_device *spi_dev, rt_uint8_t reg,
 	return (ret == len+1) ? RT_EOK : RT_ERROR;
 }
 
-static rt_err_t read_regs_ext(struct rt_spi_device *spi_dev, rt_uint8_t reg,
-		rt_uint8_t len, rt_uint8_t *buf)
+static rt_err_t read_regs_ext(struct rt_spi_device *spi_dev, uint8_t reg,
+		uint8_t len, uint8_t *buf)
 {
 	int i;
-	rt_uint8_t tx[32] = {0};
-	rt_uint8_t rx[32] = {0};
+	uint8_t tx[32] = {0};
+	uint8_t rx[32] = {0};
 	tx[0] = reg|0x80;
 	rt_memset(tx+1, 0xff, len);
 	rt_size_t ret = rt_spi_transfer(spi_dev, tx, rx, len+1);
@@ -94,8 +94,8 @@ static rt_err_t read_regs_ext(struct rt_spi_device *spi_dev, rt_uint8_t reg,
 }
 static rt_err_t reset_sensor(icm42688_device_t dev)
 {
-    rt_uint8_t value = 1;
-    rt_uint8_t bank = 0;
+    uint8_t value = 1;
+    uint8_t bank = 0;
 
     RT_ASSERT(dev);
     
@@ -214,10 +214,10 @@ void icm42688_deinit(icm42688_device_t dev)
     rt_mutex_delete(dev->lock);
     rt_free(dev);
 }
-rt_uint8_t icm42688_int_status(icm42688_device_t dev)
+uint8_t icm42688_int_status(icm42688_device_t dev)
 {
-	rt_uint8_t value;
-        rt_uint8_t bank = 0;
+	uint8_t value;
+        uint8_t bank = 0;
     	
     	write_regs(dev->spi, ICM42688_BANK_SEL, 1, &bank);
 	read_regs(dev->spi, 0x2d, 1, &value);
@@ -238,9 +238,9 @@ rt_err_t icm42688_get_accel(icm42688_device_t dev, rt_int16_t *accel_x,
 		rt_int16_t *gyro_y, rt_int16_t *gyro_z)
 {
     rt_err_t result = -RT_ERROR;
-    rt_uint8_t value[14];
-    rt_uint8_t range = 0;
-    rt_uint8_t bank = 0;
+    uint8_t value[14];
+    uint8_t range = 0;
+    uint8_t bank = 0;
 
     RT_ASSERT(dev);
 
@@ -293,9 +293,9 @@ rt_err_t icm42688_set_param(icm42688_device_t dev, icm42688_set_cmd_t cmd,
     {
     case ICM42688_GYRO_CONFIG:
     {
-        rt_uint8_t args;
-	rt_uint8_t bank = 4;
-	rt_uint8_t tmp;
+        uint8_t args;
+	uint8_t bank = 4;
+	uint8_t tmp;
 
     	//write_regs(dev->spi, ICM42688_BANK_SEL, 1, &bank);
     	//tmp = 0x0d;
@@ -326,8 +326,8 @@ rt_err_t icm42688_set_param(icm42688_device_t dev, icm42688_set_cmd_t cmd,
     }
     case ICM42688_ACCEL_CONFIG:
     {
-        rt_uint8_t args;
-	rt_uint8_t bank = 0;
+        uint8_t args;
+	uint8_t bank = 0;
 
     	write_regs(dev->spi, ICM42688_BANK_SEL, 1, &bank);
 	read_regs(dev->spi, ICM42688_PWR_MGMT2_REG, 1, &args);

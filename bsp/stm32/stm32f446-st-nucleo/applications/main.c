@@ -33,7 +33,7 @@ static char uart_thread_stack[1024];
 rt_device_t uart_device;
 
 #ifdef RT_USING_USB_DEVICE	
-rt_uint8_t hid_rcv[64] = {0};
+uint8_t hid_rcv[64] = {0};
 rt_size_t g_hid_size;
 rt_device_t hid_device;
 rt_bool_t 	hid_ready = RT_FALSE;
@@ -82,8 +82,8 @@ static void icm_thread_entry(void *parameter)
 {
 	rt_int16_t ax, ay, az;
 	rt_int16_t gx, gy, gz;
-	rt_uint8_t buf[64], int_status;
-	rt_uint32_t uax, uay, uaz, ugx, ugy, ugz;
+	uint8_t buf[64], int_status;
+	uint32_t uax, uay, uaz, ugx, ugy, ugz;
 
 	sof_sem = rt_sem_create("icm", 0, RT_IPC_FLAG_FIFO);
 	rt_pin_mode(ICM_INT_PIN, PIN_MODE_INPUT_PULLUP);
@@ -112,12 +112,12 @@ static void icm_thread_entry(void *parameter)
 				(rt_int16_t *)&gy, (rt_int16_t *)&gz);
 		//LOG_D("accelerometer: %10d, %10d, %10d     gyro: %10d, %10d, %10d\r\n",
 		//		ax, ay, az, gx, gy, gz);
-		uax = (rt_uint32_t)ax;
-		uay = (rt_uint32_t)ay;
-		uaz = (rt_uint32_t)az;
-		ugx = (rt_uint32_t)gx;
-		ugy = (rt_uint32_t)gy;
-		ugz = (rt_uint32_t)gz;
+		uax = (uint32_t)ax;
+		uay = (uint32_t)ay;
+		uaz = (uint32_t)az;
+		ugx = (uint32_t)gx;
+		ugy = (uint32_t)gy;
+		ugz = (uint32_t)gz;
 		buf[0] = 0x02;
 		
 		buf[1]  = (uax >> 24) & 0xff; 
@@ -152,12 +152,12 @@ static void icm_thread_entry(void *parameter)
 		icm42688_get_accel(icm_42688, (rt_int16_t *)&ax, (rt_int16_t *)&ay,
 				(rt_int16_t *)&az, (rt_int16_t *)&gx,
 				(rt_int16_t *)&gy, (rt_int16_t *)&gz);
-		uax = (rt_uint32_t)ax;
-		uay = (rt_uint32_t)ay;
-		uaz = (rt_uint32_t)az;
-		ugx = (rt_uint32_t)gx;
-		ugy = (rt_uint32_t)gy;
-		ugz = (rt_uint32_t)gz;
+		uax = (uint32_t)ax;
+		uay = (uint32_t)ay;
+		uaz = (uint32_t)az;
+		ugx = (uint32_t)gx;
+		ugy = (uint32_t)gy;
+		ugz = (uint32_t)gz;
 		
 		buf[25]  = (uax >> 24) & 0xff; 
 		buf[26]  = (uax >> 16) & 0xff; 
@@ -203,20 +203,21 @@ static void icm_thread_entry(void *parameter)
 #endif
 
 
-void dump_host_cmd(rt_uint8_t *cmd, rt_uint32_t len)
+void dump_host_cmd(uint8_t *tag, uint8_t *cmd, uint32_t len)
 {
-	rt_uint32_t i;
+	uint32_t i;
 
-	LOG_D("\r\n=====================================>\r\nhost_cmd[%d]: ",
-			len);
+	rt_kprintf("=====================================> %s[%d]: \r\n",
+			tag, len);
 	for (i=0; i<len; i++) {
-		LOG_D("%02x ", cmd[i]);
-		if (i % 16 == 0 && i != 0)
-			LOG_D("\r\n");
+		rt_kprintf("%02x ", cmd[i]);
+		if ((i+1) % 16 == 0 && i != 0)
+			rt_kprintf("\r\n");
 	}
+	rt_kprintf("\r\n\r\n");
 }
 
-void uart_rsp_out(rt_uint8_t *data, rt_uint16_t len)
+void uart_rsp_out(uint8_t *data, uint16_t len)
 {
 	if (data == RT_NULL || len == 0)
 		return;
@@ -230,7 +231,7 @@ void uart_rsp_out(rt_uint8_t *data, rt_uint16_t len)
 static void uart_thread_entry(void *parameter)
 {
 	int len;
-	rt_uint8_t uart_buf[64];
+	uint8_t uart_buf[64];
 
 	rt_device_t device = (rt_device_t)parameter;
 
@@ -366,9 +367,9 @@ INIT_COMPONENT_EXPORT(fal_init);
 #ifdef FINSH_USING_MSH
 int dump_len(void)
 {
-	rt_uint8_t *data;
-	rt_uint32_t i;
-	rt_uint16_t len, all_len;
+	uint8_t *data;
+	uint32_t i;
+	uint16_t len, all_len;
 	do {
 		remove_mem(TYPE_H2D, &data, &len);
 		if (data == RT_NULL)

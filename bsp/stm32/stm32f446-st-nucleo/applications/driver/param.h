@@ -80,8 +80,8 @@ typedef struct _glasses_param {
 	uint8_t env_light;
 } *pglasses_param, glasses_param;
 extern glasses_param g_param;
-void param_get(rt_uint32_t ofs, rt_uint8_t *buf, rt_uint32_t len);
-void param_set_once(rt_uint32_t ofs, rt_uint8_t *buf, rt_uint32_t len);
-void param_set(rt_uint32_t ofs, rt_uint8_t *buf, rt_uint32_t len);
+void param_get(uint32_t ofs, uint8_t *buf, uint32_t len);
+void param_set_once(uint32_t ofs, uint8_t *buf, uint32_t len);
+void param_set(uint32_t ofs, uint8_t *buf, uint32_t len);
 rt_bool_t param_init();
 #endif

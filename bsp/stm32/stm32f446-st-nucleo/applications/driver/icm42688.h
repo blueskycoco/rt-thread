@@ -120,7 +120,7 @@ rt_err_t icm42688_calib_level(icm42688_device_t dev, rt_size_t times);
  *
  * @return the setting parameter status, RT_EOK reprensents setting successfully.
  */
-rt_err_t icm42688_set_param(icm42688_device_t dev, icm42688_set_cmd_t cmd, rt_uint8_t value);
+rt_err_t icm42688_set_param(icm42688_device_t dev, icm42688_set_cmd_t cmd, uint8_t value);
 
 /**
  * This function gets parameter of icm42688 sensor
@@ -131,7 +131,7 @@ rt_err_t icm42688_set_param(icm42688_device_t dev, icm42688_set_cmd_t cmd, rt_ui
  *
  * @return the getting parameter status,RT_EOK reprensents getting successfully.
  */
-rt_err_t icm42688_get_param(icm42688_device_t dev, icm42688_set_cmd_t cmd, rt_uint8_t *value);
+rt_err_t icm42688_get_param(icm42688_device_t dev, icm42688_set_cmd_t cmd, uint8_t *value);
 
-rt_uint8_t icm42688_int_status(icm42688_device_t dev);
+uint8_t icm42688_int_status(icm42688_device_t dev);
 #endif /*__DRV_ICM42688_H__ */
