@@ -432,7 +432,8 @@ static void mcu_cmd_handler(void *param)
 	{
 		if (rt_event_recv(&event_d2h, state,
 					RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR,
-					RT_WAITING_FOREVER, &status) == RT_EOK)
+					RT_WAITING_FOREVER,
+					(rt_uint32_t *)&status) == RT_EOK)
 		{
 			if (status & EVENT_OV2ST) {
 				//LOG_D("%ld event 0x%x", read_ts(), status);
