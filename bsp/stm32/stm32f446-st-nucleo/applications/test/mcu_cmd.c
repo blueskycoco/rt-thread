@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "usb.h"
 #include "rc4.h"
-
+#define HID_REPORT_ID 0x01
 typedef struct _float_val {
 	union {
 		float m_float;
@@ -474,24 +474,25 @@ int main(int argc, void *argv[])
 	}
 	int64_val data;
 	data.m_int64 = get_ts();
-
-	cmd[0] = 0xfd;
-	memcpy(cmd+1, data.m_bytes, 8);
-	cmd[9] = (msg_id >> 0) & 0xff;
-	cmd[10] = (msg_id >> 8) & 0xff;
-	cmd[11] = 0x00;
+	
+	cmd[0] = HID_REPORT_ID;
+	cmd[1] = 0xfd;
+	memcpy(cmd+2, data.m_bytes, 8);
+	cmd[10] = (msg_id >> 0) & 0xff;
+	cmd[11] = (msg_id >> 8) & 0xff;
 	cmd[12] = 0x00;
 	cmd[13] = 0x00;
 	cmd[14] = 0x00;
-	cmd[15] = (payload_len >> 0) & 0xff;
-	cmd[16] = (payload_len >> 8) & 0xff;
+	cmd[15] = 0x00;
+	cmd[16] = (payload_len >> 0) & 0xff;
+	cmd[17] = (payload_len >> 8) & 0xff;
 	if (payload_len != 0) {
-		memcpy(cmd+17, payload, payload_len);
+		memcpy(cmd+18, payload, payload_len);
 	}
 
 	if (debug) {
-		printf("[%d]==>\r\n", payload_len+21);
-		for (i=0; i<payload_len+21; i++) {
+		printf("[%d]==>\r\n", payload_len+22);
+		for (i=0; i<payload_len+22; i++) {
 			if (i%16 == 0 && i != 0)
 				printf("\r\n");
 			printf("%02x ", cmd[i]);
@@ -500,13 +501,13 @@ int main(int argc, void *argv[])
 		printf("\r\n");
 	}
 
-	set_rc4_key(cmd[7]%10, msg_id, cmd+1);
-	rc4(cmd+11, cmd+11, 2+4+payload_len);
-	uint32_t crc = crc32((const char *)cmd, payload_len+17);
-	cmd[payload_len+17]   = (crc >> 0) & 0xff;
-	cmd[payload_len+18] = (crc >> 8) & 0xff;
-	cmd[payload_len+19] = (crc >> 16) & 0xff;
-	cmd[payload_len+20] = (crc >> 24) & 0xff;
+	set_rc4_key(cmd[8]%10, msg_id, cmd+2);
+	rc4(cmd+12, cmd+12, 2+4+payload_len);
+	uint32_t crc = crc32((const char *)cmd+1, payload_len+17);
+	cmd[payload_len+18]   = (crc >> 0) & 0xff;
+	cmd[payload_len+19] = (crc >> 8) & 0xff;
+	cmd[payload_len+20] = (crc >> 16) & 0xff;
+	cmd[payload_len+21] = (crc >> 24) & 0xff;
 
 	if (debug) {
 		printf("enc[%d]==>\r\n", payload_len+21);
@@ -522,8 +523,8 @@ int main(int argc, void *argv[])
 	//usb_xfer(dev, USB_ENDPOINT_IN, 0xE1, 0x00, 0x01, &glasses_v, 1);
 	//printf("glasses protocol version: %d\r\n", glasses_v);
 	//usb_xfer(dev, USB_ENDPOINT_OUT, 0xE1, 0x00, 0x00, &app_v, 1);
-	cmd[62] = ((payload_len +21) >> 8) & 0xff;	
-	cmd[63] = ((payload_len +21) >> 0) & 0xff;	
+	cmd[62] = ((payload_len +22) >> 8) & 0xff;	
+	cmd[63] = ((payload_len +22) >> 0) & 0xff;	
 	if (64 == hid_xfer(dev, EP_MCU_OUT, cmd, 64,
 				5000)) {
 		while (1) {
@@ -541,7 +542,7 @@ int main(int argc, void *argv[])
 			}
 			rsp_len = (rsp[62] << 8) | rsp[63];
 			printf("second rsp len %d\r\n", rsp_len);
-			uint32_t crc = crc32((const char *)rsp, rsp_len - 4);
+			uint32_t crc = crc32((const char *)rsp+1, rsp_len - 5);
 			uint32_t crc_dev = (rsp[rsp_len - 1] << 24) |
 						(rsp[rsp_len - 2] << 16) |
 						(rsp[rsp_len - 3] << 8) |
@@ -549,9 +550,9 @@ int main(int argc, void *argv[])
 			if (crc != crc_dev)
 				printf("rsp crc failed h %04x != c %04x\r\n",
 					crc, crc_dev);
-			uint16_t rsp_msg_id = (rsp[10] << 8)|rsp[9];
-			set_rc4_key(rsp[7]%10, rsp_msg_id, rsp+1);
-			rc4(rsp+11, rsp+11, rsp_len - 15);
+			uint16_t rsp_msg_id = (rsp[11] << 8)|rsp[10];
+			set_rc4_key(rsp[8]%10, rsp_msg_id, rsp+2);
+			rc4(rsp+12, rsp+12, rsp_len - 16);
 			
 			if (debug) {
 			printf("<==[%d]\r\n", rsp_len);
@@ -564,14 +565,14 @@ int main(int argc, void *argv[])
 			printf("\r\n");
 			}
 			int64_val ts;
-			memcpy(ts.m_bytes, rsp+1, 8);
+			memcpy(ts.m_bytes, rsp+2, 8);
 			printf("rsponse ts: %lld\r\n", ts.m_int64);
-			uint16_t rsp_payload_len = (rsp[16] << 8) | rsp[15];
+			uint16_t rsp_payload_len = (rsp[17] << 8) | rsp[16];
 			uint16_t rsp_msg_id1, rsp_mcu_cmd;
-			rsp_msg_id1 = (rsp[10] << 8) | rsp[9];
-			rsp_mcu_cmd = (rsp[19] << 8) | rsp[18];
+			rsp_msg_id1 = (rsp[11] << 8) | rsp[10];
+			rsp_mcu_cmd = (rsp[20] << 8) | rsp[19];
 			if (0 == parse_rsp(argv[1], rsp_msg_id1, rsp_mcu_cmd,
-						rsp+17, rsp_payload_len))
+						rsp+18, rsp_payload_len))
 						break;
 			cnt++;
 			if (cnt > 10)
