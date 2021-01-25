@@ -1,5 +1,6 @@
 #include <rtthread.h>
 #include <stdio.h>
+#include <stm32f4xx.h>
 #include "mcu.h"
 #include "mcu_cmd.h"
 #include "param.h"
@@ -402,13 +403,35 @@ uint16_t handle_dp_ota(uint8_t *in, uint16_t in_len, uint8_t *out)
 	return PAYLOAD_LEN_BASE;
 }
 
+static void reboot_handler(void *param)
+{
+	rt_thread_mdelay(1000);
+	rt_hw_interrupt_disable();
+	__set_FAULTMASK(1);
+	NVIC_SystemReset();
+}
 uint16_t handle_reset(uint8_t *in, uint16_t in_len, uint8_t *out)
 /* reset mcu */
 {
+	#define TYPE_WARM_BOOT 0x12345678
+	#define TYPE_COLD_BOOT 0x00000000
 	uint8_t reset;
-	//CyU3PConnectState (CyFalse, CyTrue);
-	//CyU3PThreadSleep (1000);
-	//CyU3PDeviceReset (CyFalse);
+	uint32_t tmp = 0U;
+	int_val data;
+	rt_memcpy(data.m_bytes, in, sizeof(uint32_t));
+	tmp = (uint32_t)0x40002850;
+	//tmp += (BackupRegister * 4U);
+	rt_kprintf("reboot flag %d, bkp %x\r\n", data.m_int, *(__IO uint32_t *)tmp);
+	HAL_PWR_EnableBkUpAccess();
+	if (data.m_int == 1)
+		*(__IO uint32_t *)tmp = (uint32_t)TYPE_WARM_BOOT;
+	else
+		*(__IO uint32_t *)tmp = (uint32_t)TYPE_COLD_BOOT;
+	HAL_PWR_DisableBkUpAccess();
+	rt_kprintf("bkp %x\r\n", *(__IO uint32_t *)tmp);
+	rt_thread_t tid = rt_thread_create("reboot", reboot_handler, RT_NULL,
+			1024, 28, 20);
+	rt_thread_startup(tid);
 	return handle_just_set(&reset, in, in_len, out);
 }
 

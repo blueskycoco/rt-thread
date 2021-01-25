@@ -185,9 +185,16 @@ int parse_rsp(const char *cmd, uint16_t msgid, uint16_t mcu_cmd,
 		patch = rsp[ofs++] | rsp[ofs++] << 8;
 		builddate = rsp[ofs++] << 0 | rsp[ofs++] << 8 |
 				rsp[ofs++] << 16 | rsp[ofs++] << 24;
-		printf("%s: err %d, major %d, minor %d, patch %d, "
+		if (len == 11)
+			printf("%s: err %d, major %d, minor %d, patch %d, "
 				"build_date %d\r\n",
 				cmd, rsp[0], major, minor, patch, builddate);
+		else
+			printf("%s: err %d, major %d, minor %d, patch %d, "
+				"build_date %d, %c%c%c%c\r\n",
+				cmd, rsp[0], major, minor, patch, builddate,
+				rsp[ofs], rsp[ofs+1], rsp[ofs+2], rsp[ofs+3]);
+
 		return 0;
 	} else if ((strcmp(cmd, "brightness") == 0 && mcu_cmd == NR_BRIGHTNESS||
 		   strcmp(cmd, "dp_mode") == 0 && mcu_cmd == NR_DISPLAY_2D_3D||
@@ -439,6 +446,7 @@ int main(int argc, void *argv[])
 			    cmd_id == NR_POWER_FUCTION ||
 			    cmd_id == NR_MAGNETIC_FUCTION ||
 			    cmd_id == NR_VSYNC_FUCTION ||
+			    cmd_id == NR_REBOOT ||
 			    cmd_id == NR_ENV_LIGHT ||
 			    cmd_id == NR_WORLD_LED ||
 			    cmd_id == NR_7211_UPDATE ||
@@ -518,6 +526,17 @@ int main(int argc, void *argv[])
 		}
 		printf("\r\n");
 	}
+	
+	do {
+                rsp_len = hid_xfer(dev, EP_MCU_IN, rsp, 64, 1000);
+                printf("rsp len %d\r\n", rsp_len);
+                for (i=0; i<rsp_len; i++) {
+                        if (i%16 == 0 && i != 0)
+                                printf("\r\n");
+                        printf("%02x ", rsp[i]);
+                }
+                printf("\r\n");
+        } while (rsp_len > 0);
 
 	//usb_xfer(dev, USB_ENDPOINT_OUT, 0xE2, 0x00, 0x01, NULL, 0);
 	//usb_xfer(dev, USB_ENDPOINT_IN, 0xE1, 0x00, 0x01, &glasses_v, 1);

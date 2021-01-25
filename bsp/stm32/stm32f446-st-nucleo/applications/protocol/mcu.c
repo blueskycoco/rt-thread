@@ -19,7 +19,7 @@ static uint16_t hw_patch_version = 0x0000;
 static uint32_t hw_build_date = 2020082514;
 static uint8_t heart_ts[2][8];
 
-
+#define HID_REPORT_ID 0x01
 #define DRV_DEBUG
 #define LOG_TAG             "protocol.mcu"
 #include <drv_log.h>
@@ -78,8 +78,8 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len, uint8_t *msg)
 	 * STX  TS   MSGID  RESERVED     LEN    PAYLOAD  CRC
 	 */
 
-	if (cmd[0] != HOST_CMD_STX) {
-		LOG_E("invalid cmd %x\r\n", cmd[0]);
+	if (cmd[1] != HOST_CMD_STX) {
+		LOG_E("invalid cmd %x\r\n", cmd[1]);
 		msg[0] = MCU_ERR_UNSUPPORT;
 		msg[1] = HOST_CMD;
 		goto FAIL;
@@ -97,9 +97,9 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len, uint8_t *msg)
 		(cmd[_len-3] << 8) |
 		(cmd[_len-2] << 16) |
 		(cmd[_len-1] << 24);
-	if (crc != crc32((uint8_t *)cmd, _len-4)) {
+	if (crc != crc32((uint8_t *)cmd+1, _len-5)) {
 		LOG_E("invalid crc h %x != c %x\r\n", crc,
-				crc32((uint8_t *)cmd, _len-4));
+				crc32((uint8_t *)cmd+1, _len-5));
 		msg[0] = MCU_ERR_CRC;
 		msg[1] = HOST_CMD;
 		goto FAIL;
@@ -110,30 +110,30 @@ static void parse_host_cmd(uint8_t *cmd, uint16_t len, uint8_t *msg)
 	   err h/d msg_id  payload_len  reserve  payload
 	   */
 
-	msg_id = (cmd[CMD_MSGID_1] << 8) | cmd[CMD_MSGID_0];
+	msg_id = (cmd[CMD_MSGID_1+1] << 8) | cmd[CMD_MSGID_0+1];
 	if (msg_id == HEART_CMD)
 		read_ts_64(heart_ts[1]);
 
-	set_rc4_key(cmd[7]%10, msg_id, cmd+CMD_TS_OFS);
-	rc4(cmd+CMD_RESERVE_OFS,
-			cmd+CMD_RESERVE_OFS, _len - 4 - 1 - 8 - 2);
+	set_rc4_key(cmd[8]%10, msg_id, cmd+CMD_TS_OFS+1);
+	rc4(cmd+CMD_RESERVE_OFS+1,
+			cmd+CMD_RESERVE_OFS+1, _len - 4 - 1 - 8 - 2 -1);
 
 	if (msg_id == HEART_CMD) {
-		rt_memcpy(heart_ts[0], cmd+18, 8);
+		rt_memcpy(heart_ts[0], cmd+19, 8);
 	}
 
 	msg[0] = MCU_ERR_SUCCESS;
 	msg[1] = HOST_CMD;
-	msg[2] = cmd[CMD_MSGID_1];
-	msg[3] = cmd[CMD_MSGID_0];
-	msg[4] = cmd[CMD_PAYLOAD_LEN_1];
-	msg[5] = cmd[CMD_PAYLOAD_LEN_0];
-	rt_memcpy(msg+6, cmd+CMD_RESERVE_OFS, 4);
+	msg[2] = cmd[CMD_MSGID_1+1];
+	msg[3] = cmd[CMD_MSGID_0+1];
+	msg[4] = cmd[CMD_PAYLOAD_LEN_1+1];
+	msg[5] = cmd[CMD_PAYLOAD_LEN_0+1];
+	rt_memcpy(msg+6, cmd+CMD_RESERVE_OFS+1, 4);
 	payload_len = (msg[4] << 8) | msg[5];
 
 
 	if (payload_len <= (64 - 10)) {
-		rt_memcpy(msg+10, cmd+CMD_PAYLOAD_OFS, payload_len);
+		rt_memcpy(msg+10, cmd+CMD_PAYLOAD_OFS+1, payload_len);
 	} else {
 		msg[0] = MCU_ERR_NREAL;
 		msg[1] = HOST_CMD;
@@ -347,7 +347,7 @@ static void mcu_msg_handler(uint8_t *msg)
 	uint8_t *cmd = (uint8_t *)(msg+10);
 	uint32_t reserve = (msg[6] << 24) | (msg[7] << 16) |
 		(msg[8] << 8) | msg[9];
-
+	int i;
 	if (msg_id == HOST_CMD_GET || msg_id == HOST_CMD_SET)
 		cmd_id = (cmd[2] << 8) | cmd[1];
 
@@ -358,10 +358,11 @@ static void mcu_msg_handler(uint8_t *msg)
 		return;
 	}
 
+	rsp[0] = HID_REPORT_ID;
 	/* msg 0 STX */
-	rsp[0] = HOST_CMD_STX;
+	rsp[1] = HOST_CMD_STX;
 	/* msg 1 ts */
-	read_ts_64(rsp+1);
+	read_ts_64(rsp+2);
 	/* msg 9 msg_id */
 	if (err == MCU_ERR_SUCCESS) {
 		if (HOST_CMD == msg[1])
@@ -371,16 +372,16 @@ static void mcu_msg_handler(uint8_t *msg)
 	} else {
 		rsp_msg_id = 0xffff;
 	}
-	rsp[CMD_MSGID_1] = (rsp_msg_id >> 8) & 0xff;
-	rsp[CMD_MSGID_0] = rsp_msg_id & 0xff;
+	rsp[CMD_MSGID_1+1] = (rsp_msg_id >> 8) & 0xff;
+	rsp[CMD_MSGID_0+1] = rsp_msg_id & 0xff;
 	/* msg 11 reserve,payload len,payload */
 	if (err == MCU_ERR_SUCCESS) {
 		out_payload_len = fill_payload(msg_id, cmd, cmd_len,
-				rsp+CMD_RESERVE_OFS);
+				rsp+CMD_RESERVE_OFS+1);
 	} else {
-		rsp[CMD_PAYLOAD_LEN_0] = 0x01;
-		rsp[CMD_PAYLOAD_LEN_1] = 0x00;
-		rsp[CMD_PAYLOAD_OFS] = err;
+		rsp[CMD_PAYLOAD_LEN_0+1] = 0x01;
+		rsp[CMD_PAYLOAD_LEN_1+1] = 0x00;
+		rsp[CMD_PAYLOAD_OFS+1] = err;
 		out_payload_len = 1;
 
 	}
@@ -389,19 +390,25 @@ static void mcu_msg_handler(uint8_t *msg)
 	  LOG_D("-> %x\r\n",
 	  rsp[i]);*/
 	/* encrypt reserve, payload len, payload */
-	set_rc4_key(rsp[7]%10, rsp_msg_id, rsp+1);
-	rc4(rsp+CMD_RESERVE_OFS,
-			rsp+CMD_RESERVE_OFS, out_payload_len+2+4);
+	set_rc4_key(rsp[8]%10, rsp_msg_id, rsp+2);
+	rc4(rsp+CMD_RESERVE_OFS+1,
+			rsp+CMD_RESERVE_OFS+1, out_payload_len+2+4);
 	/* msg n crc */
 	uint16_t crc_ofs = 17 + out_payload_len;
 
-	uint32_t crc = crc32((uint8_t *)rsp, crc_ofs);
-	rsp[crc_ofs+3]   = (crc >> 24) & 0xff;
-	rsp[crc_ofs+2] = (crc >> 16) & 0xff;
-	rsp[crc_ofs+1] = (crc >> 8) & 0xff;
-	rsp[crc_ofs+0] = (crc >> 0) & 0xff;
-	rsp[62] = ((crc_ofs+4) >> 8) & 0xff;
-	rsp[63] = ((crc_ofs+4) >> 0) & 0xff;
+	uint32_t crc = crc32((uint8_t *)rsp+1, crc_ofs);
+	rsp[crc_ofs+4]   = (crc >> 24) & 0xff;
+	rsp[crc_ofs+3] = (crc >> 16) & 0xff;
+	rsp[crc_ofs+2] = (crc >> 8) & 0xff;
+	rsp[crc_ofs+1] = (crc >> 0) & 0xff;
+	rsp[62] = ((crc_ofs+5) >> 8) & 0xff;
+	rsp[63] = ((crc_ofs+5) >> 0) & 0xff;
+			for(i=0; i<64; i++) {
+				if (i%16 == 0 && i != 0)
+				rt_kprintf("\r\n");
+				rt_kprintf("%02x ", rsp[i]);
+			}
+			printf("\r\n");
 	//LOG_D("%d crc %x", crc_ofs, crc);
 	if (!insert_mem(TYPE_D2H, rsp, 64))
 		LOG_W("lost d2h packet\r\n");
