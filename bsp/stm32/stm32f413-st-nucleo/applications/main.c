@@ -13,12 +13,19 @@
 #include <board.h>
 #include "crc.h"
 #include "oled.h"
+#include "mem_list.h"
+#include <fal.h>
+#include "param.h"
+#include "utils.h"
+#include "mcu.h"
+#define DRV_DEBUG
+#define LOG_TAG             "main.mcu"
+#include <drv_log.h>
 static struct rt_thread usb_thread;
 ALIGN(RT_ALIGN_SIZE)
-	static char usb_thread_stack[1024];
-	static struct rt_semaphore tx_sem_complete;
-	rt_device_t ts_device;
-	rt_uint8_t hid_rcv[64] = {0};
+static char usb_thread_stack[1024];
+static struct rt_semaphore tx_sem_complete;
+rt_uint8_t hid_rcv[64] = {0};
 rt_size_t g_hid_size = 0;
 rt_uint32_t g_vsync_count = 0;
 rt_uint32_t g_vsync_t3 = 0;
@@ -29,12 +36,6 @@ static struct rt_event light_event;
 static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size);
 #define VSYNC_INT_PIN GET_PIN(D, 2)
 
-static rt_uint32_t read_ts()
-{
-	rt_hwtimerval_t val,val1;
-	rt_device_read(ts_device, 0, &val, sizeof(val));
-	return (val.sec*1000000+val.usec);
-}
 static void vsync_isr(void *parameter)
 {
 	if (g_hid_size != 0) {
@@ -68,7 +69,7 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 		rt_sprintf(ts3_vsync_ascii, "%08x", g_vsync_t3);
 		rt_memcpy(tx+15, ts3_vsync_ascii, 8);
 		tx[23] = 0x3a;
-		uint32_t crc = heart_cmd_crc(tx, 24);
+		uint32_t crc = crc32(tx, 24);
 		rt_sprintf(crc_ascii, "%8x", crc);
 		rt_memcpy(tx+24, crc_ascii, 8);
 		tx[32] = 0x3a;
@@ -100,7 +101,7 @@ static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 		rt_sprintf(ts3_heart_ascii, "%08x", t3);
 		rt_memcpy(tx+32, ts3_heart_ascii, 8);
 		tx[40] = 0x3a;
-		uint32_t crc = heart_cmd_crc(tx, 41);
+		uint32_t crc = crc32(tx, 41);
 		rt_sprintf(crc_ascii, "%8x", crc);
 		rt_memcpy(tx+41, crc_ascii, 8);
 		tx[49] = 0x3a;
@@ -141,11 +142,11 @@ static void dump_data(rt_uint8_t *data, rt_size_t size)
 {
 	rt_size_t i;
 	rt_uint8_t *ptr = data;
-	/*for (i = 0; i < size; i++)
+	for (i = 0; i < size; i++)
 	  {
-	  rt_kprintf("%c", *ptr++);
+	  rt_kprintf("%x ", *ptr++);
 	  }
-	  rt_kprintf("\n");*/
+	  rt_kprintf("\n");
 
 	if (data[0] == ':' &&
 			data[1] == '@' &&
@@ -170,8 +171,6 @@ static int generic_hid_init(void)
 {
 	int err = 0;
 	rt_device_t hid_device;
-	rt_hwtimer_mode_t mode;
-	rt_hwtimerval_t val;
 	hid_device = rt_device_find("hidd");
 
 	RT_ASSERT(hid_device != RT_NULL);
@@ -183,27 +182,6 @@ static int generic_hid_init(void)
 		rt_kprintf("open dev failed!\n");
 		return -1;
 	}
-
-	if ((ts_device = rt_device_find("timer3")) == RT_NULL)
-	{
-		rt_kprintf("No Device: timer3\n");
-		return -1;
-	}
-
-	if (rt_device_open(ts_device, RT_DEVICE_OFLAG_RDWR) != RT_EOK)
-	{
-		rt_kprintf("Open timer3 Fail\n");
-		return -1;
-	}
-
-	mode = HWTIMER_MODE_PERIOD;
-	rt_device_control(ts_device, HWTIMER_CTRL_MODE_SET, &mode);
-	
-	val.sec = 5*60*60;
-	val.usec = 0;
-	rt_kprintf("SetTime: Sec %d, Usec %d\n", val.sec, val.usec);
-	if (rt_device_write(ts_device, 0, &val, sizeof(val)) != sizeof(val))
-		rt_kprintf("set timer failed\n");
 
 	rt_event_init(&light_event, "event", RT_IPC_FLAG_FIFO);
 	rt_sem_init(&tx_sem_complete, "tx_complete_sem_hid", 1, RT_IPC_FLAG_FIFO);
@@ -223,10 +201,16 @@ static int generic_hid_init(void)
 
 	return 0;
 }
+extern int fal_init(void);
+INIT_COMPONENT_EXPORT(fal_init);
 int main(void)
 {
 	int count = 1;
-	/* set LED1 pin mode to output */
+	
+	if (!param_init())
+		LOG_D("can't startup system\r\n");
+	rt_memlist_init();	
+	timestamp_init();
 	init_oled();
 	generic_hid_init();
 #if 0
