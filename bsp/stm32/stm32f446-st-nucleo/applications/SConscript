@@ -2,9 +2,28 @@ import rtconfig
 from building import *
 
 cwd     = GetCurrentDir()
-CPPPATH = [cwd, str(Dir('#'))]
-src     = Glob('*.c')
+path = [cwd, str(Dir('#'))]
+src = Split('''
+main.c
+protocol/mem_list.c
+driver/crc.c
+driver/icm42688.c
+driver/icm20603.c
+driver/fal.c
+driver/fal_flash.c
+driver/fal_partition.c
+driver/fal_rtt.c
+driver/param.c
+driver/rc4.c
+driver/event.c
+driver/utils.c
+protocol/mcu.c
+protocol/mcu_cmd.c
+''')
 
-group = DefineGroup('Applications', src, depend = [''], CPPPATH = CPPPATH)
+path += [cwd + '/protocol']
+path += [cwd + '/driver']
+
+group = DefineGroup('Applications', src, depend = [''], CPPPATH = path)
 
 Return('group')

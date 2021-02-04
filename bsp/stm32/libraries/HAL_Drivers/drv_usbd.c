@@ -208,6 +208,7 @@ static rt_err_t _init(rt_device_t device)
     pcd->Init.dev_endpoints = 8;
     pcd->Init.speed = USBD_PCD_SPEED;
     pcd->Init.ep0_mps = DEP0CTL_MPS_64;
+    pcd->Init.Sof_enable = 1;
 #if !defined(SOC_SERIES_STM32F1)
     pcd->Init.phy_itface = USBD_PCD_PHY_MODULE;
 #endif
