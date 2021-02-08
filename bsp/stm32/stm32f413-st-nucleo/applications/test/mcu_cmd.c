@@ -526,7 +526,7 @@ int main(int argc, void *argv[])
 		}
 		printf("\r\n");
 	}
-	
+#if 0	
 	do {
                 rsp_len = hid_xfer(dev, EP_MCU_IN, rsp, 64, 1000);
                 printf("rsp len %d\r\n", rsp_len);
@@ -537,7 +537,7 @@ int main(int argc, void *argv[])
                 }
                 printf("\r\n");
         } while (rsp_len > 0);
-
+#endif
 	//usb_xfer(dev, USB_ENDPOINT_OUT, 0xE2, 0x00, 0x01, NULL, 0);
 	//usb_xfer(dev, USB_ENDPOINT_IN, 0xE1, 0x00, 0x01, &glasses_v, 1);
 	//printf("glasses protocol version: %d\r\n", glasses_v);

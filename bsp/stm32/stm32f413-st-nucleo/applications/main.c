@@ -22,20 +22,21 @@
 #define LOG_TAG             "main.mcu"
 #include <drv_log.h>
 static struct rt_thread usb_thread;
+rt_device_t hid_device;
 ALIGN(RT_ALIGN_SIZE)
-static char usb_thread_stack[1024];
-static struct rt_semaphore tx_sem_complete;
-rt_uint8_t hid_rcv[64] = {0};
+	static char usb_thread_stack[1024];
+	//static struct rt_semaphore tx_sem_complete;
+	rt_uint8_t hid_rcv[64] = {0};
 rt_size_t g_hid_size = 0;
 rt_uint32_t g_vsync_count = 0;
 rt_uint32_t g_vsync_t3 = 0;
 rt_uint32_t g_heart_t2 = 0;
-static struct rt_event light_event;
+//static struct rt_event light_event;
 #define EVENT_VSYNC 0x01
 #define EVENT_HEART 0x02
 static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size);
 #define VSYNC_INT_PIN GET_PIN(D, 2)
-
+#if 0
 static void vsync_isr(void *parameter)
 {
 	if (g_hid_size != 0) {
@@ -44,12 +45,14 @@ static void vsync_isr(void *parameter)
 		rt_event_send(&light_event, EVENT_VSYNC);
 	}
 }
+#endif
 static rt_err_t event_hid_in(rt_device_t dev, void *buffer)
 {
-	rt_sem_release(&tx_sem_complete);
+	notify_event(EVENT_ST2OV);
+	//rt_sem_release(&tx_sem_complete);
 	return RT_EOK;
 }
-
+#if 0
 static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size)
 {
 	rt_uint8_t tx[64] = {0};
@@ -138,25 +141,28 @@ static void usb_thread_entry(void *parameter)
 
 	}
 }
+#endif
+void hid_out(uint8_t *data, uint16_t len)
+{
+	if (rt_device_write(hid_device, 0x01, data+1, len-1) != (len-1))
+		rt_kprintf("hid out failed\r\n");
+}
 static void dump_data(rt_uint8_t *data, rt_size_t size)
 {
 	rt_size_t i;
 	rt_uint8_t *ptr = data;
-	for (i = 0; i < size; i++)
-	  {
-	  rt_kprintf("%x ", *ptr++);
-	  }
-	  rt_kprintf("\n");
-
-	if (data[0] == ':' &&
-			data[1] == '@' &&
-			data[2] == ':' &&
-			data[3] == 'K') {
-		rt_memset(hid_rcv, 0, 64);
-		rt_memcpy(hid_rcv, data, size);
-		g_hid_size = size;
-		rt_event_send(&light_event, EVENT_HEART);
+	
+	rt_kprintf("\r\n");
+	for (i = 0; i < size; i++) {
+		if (i%16 == 0 && i!=0)
+			rt_kprintf("\r\n");
+		rt_kprintf("%02x ", *ptr++);
 	}
+	rt_kprintf("\r\n");
+
+	if (!insert_mem(TYPE_H2D, data, 64))
+		LOG_W("lost h2d packet\r\n");
+	notify_event(EVENT_OV2ST);
 }
 static void dump_report(struct hid_report * report)
 {
@@ -170,7 +176,6 @@ void HID_Report_Received(hid_report_t report)
 static int generic_hid_init(void)
 {
 	int err = 0;
-	rt_device_t hid_device;
 	hid_device = rt_device_find("hidd");
 
 	RT_ASSERT(hid_device != RT_NULL);
@@ -183,14 +188,14 @@ static int generic_hid_init(void)
 		return -1;
 	}
 
-	rt_event_init(&light_event, "event", RT_IPC_FLAG_FIFO);
-	rt_sem_init(&tx_sem_complete, "tx_complete_sem_hid", 1, RT_IPC_FLAG_FIFO);
+	//rt_event_init(&light_event, "event", RT_IPC_FLAG_FIFO);
+	//rt_sem_init(&tx_sem_complete, "tx_complete_sem_hid", 1, RT_IPC_FLAG_FIFO);
 
+	rt_device_set_tx_complete(hid_device, event_hid_in);
+#if 0
 	rt_pin_mode(VSYNC_INT_PIN, PIN_MODE_INPUT_PULLUP);
 	rt_pin_attach_irq(VSYNC_INT_PIN, PIN_IRQ_MODE_RISING, vsync_isr, RT_NULL);
 	rt_pin_irq_enable(VSYNC_INT_PIN, RT_TRUE);
-	rt_device_set_tx_complete(hid_device, event_hid_in);
-
 	rt_thread_init(&usb_thread,
 			"hidd_app",
 			usb_thread_entry, hid_device,
@@ -198,7 +203,7 @@ static int generic_hid_init(void)
 			10, 20);
 
 	rt_thread_startup(&usb_thread);
-
+#endif
 	return 0;
 }
 extern int fal_init(void);
@@ -206,12 +211,14 @@ INIT_COMPONENT_EXPORT(fal_init);
 int main(void)
 {
 	int count = 1;
-	
+
 	if (!param_init())
 		LOG_D("can't startup system\r\n");
+
 	rt_memlist_init();	
 	timestamp_init();
 	init_oled();
+	protocol_init();
 	generic_hid_init();
 #if 0
 	while (count++)
