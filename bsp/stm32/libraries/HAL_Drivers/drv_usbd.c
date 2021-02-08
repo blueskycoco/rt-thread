@@ -26,7 +26,7 @@ static struct ep_id _ep_pool[] =
     {0x1,  USB_EP_ATTR_INT,        USB_DIR_OUT,    64, ID_UNASSIGNED},
     {0x2,  USB_EP_ATTR_BULK,         USB_DIR_IN,     64, ID_UNASSIGNED},
     {0x2,  USB_EP_ATTR_BULK,         USB_DIR_OUT,    64, ID_UNASSIGNED},
-    {0x3,  USB_EP_ATTR_BULK,        USB_DIR_IN,     64, ID_UNASSIGNED},
+    {0x3,  USB_EP_ATTR_INT,        USB_DIR_IN,     64, ID_UNASSIGNED},
 #if !defined(SOC_SERIES_STM32F1)
     {0x3,  USB_EP_ATTR_BULK,        USB_DIR_OUT,    64, ID_UNASSIGNED},
 #endif

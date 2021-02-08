@@ -206,6 +206,35 @@ static int generic_hid_init(void)
 #endif
 	return 0;
 }
+int vcom_init(void)
+{
+    /* set console */
+    rt_console_set_device("vcom");
+    
+#if defined(RT_USING_POSIX)    
+    /* backup flag */
+    dev_old_flag = ioctl(libc_stdio_get_console(), F_GETFL, (void *) RT_NULL);
+    /* add non-block flag */
+    ioctl(libc_stdio_get_console(), F_SETFL, (void *) (dev_old_flag | O_NONBLOCK));
+    /* set tcp shell device for console */
+    libc_stdio_set_console("vcom", O_RDWR);
+   
+    /* resume finsh thread, make sure it will unblock from last device receive */
+    rt_thread_t tid = rt_thread_find(FINSH_THREAD_NAME);
+    if (tid)
+    {
+        rt_thread_resume(tid);
+        rt_schedule();
+    }
+#else
+    /* set finsh device */
+    finsh_set_device("vcom");
+#endif /* RT_USING_POSIX */
+    
+    return 0;
+}
+//INIT_APP_EXPORT(vcom_init);
+
 extern int fal_init(void);
 INIT_COMPONENT_EXPORT(fal_init);
 int main(void)
@@ -220,6 +249,7 @@ int main(void)
 	init_oled();
 	protocol_init();
 	generic_hid_init();
+	vcom_init();
 #if 0
 	while (count++)
 	{
