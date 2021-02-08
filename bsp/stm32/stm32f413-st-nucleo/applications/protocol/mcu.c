@@ -405,12 +405,12 @@ static void mcu_msg_handler(uint8_t *msg)
 	rsp[crc_ofs+1] = (crc >> 0) & 0xff;
 	rsp[62] = ((crc_ofs+5) >> 8) & 0xff;
 	rsp[63] = ((crc_ofs+5) >> 0) & 0xff;
-			for(i=0; i<64; i++) {
-				if (i%16 == 0 && i != 0)
-				rt_kprintf("\r\n");
-				rt_kprintf("%02x ", rsp[i]);
-			}
-			printf("\r\n");
+		//	for(i=0; i<64; i++) {
+		//		if (i%16 == 0 && i != 0)
+		//		rt_kprintf("\r\n");
+		//		rt_kprintf("%02x ", rsp[i]);
+		//	}
+		//	printf("\r\n");
 	//LOG_D("%d crc %x", crc_ofs, crc);
 	if (!insert_mem(TYPE_D2H, rsp, 64))
 		LOG_W("lost d2h packet\r\n");

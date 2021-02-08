@@ -2,7 +2,7 @@
 #define __USB_H
 #include <stdint.h>
 #define EP_MCU_OUT 	0x01
-#define EP_MCU_IN	0x83
+#define EP_MCU_IN	0x81
 #define EP_IMU_OUT	0x01
 #define EP_IMU_IN	0x81
 #define INTF_MCU	0x02

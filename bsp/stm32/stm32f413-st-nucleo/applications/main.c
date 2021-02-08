@@ -144,7 +144,17 @@ static void usb_thread_entry(void *parameter)
 #endif
 void hid_out(uint8_t *data, uint16_t len)
 {
-	if (rt_device_write(hid_device, 0x01, data+1, len-1) != (len-1))
+	int i;
+	rt_uint8_t *ptr = data;
+
+	rt_kprintf("\r\n");
+	for (i = 0; i < len; i++) {
+		if (i%16 == 0 && i!=0)
+			rt_kprintf("\r\n");
+		rt_kprintf("%02x ", *ptr++);
+	}
+	rt_kprintf("\r\n");
+	if (rt_device_write(hid_device, 0x01, data+1, (len-1)) != (len-1))
 		rt_kprintf("hid out failed\r\n");
 }
 static void dump_data(rt_uint8_t *data, rt_size_t size)
