@@ -97,7 +97,7 @@
 #define BSP_USING_USBD
 #define RT_USB_DEVICE_CDC
 #define RT_VCOM_TASK_STK_SIZE 2048
-#define RT_CDC_RX_BUFSIZE 128
+#define RT_CDC_RX_BUFSIZE 1280
 #define RT_VCOM_SERNO "32021919830108"
 #define RT_VCOM_SER_LEN 14
 #define RT_VCOM_TX_TIMEOUT 1000
@@ -186,5 +186,6 @@
 
 /* Board extended module Drivers */
 
+#define RT_USING_RYM
 
 #endif

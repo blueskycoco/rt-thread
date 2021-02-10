@@ -13,6 +13,7 @@
 #include <board.h>
 #include <finsh.h>
 #include <drv_common.h>
+#include <ymodem.h>
 #include "w25qxx.h"
 /* defined the LED0 pin: PI8 */
 #define LED0_PIN    GET_PIN(I, 8)
@@ -75,7 +76,8 @@ int main(void)
     
 	rt_pin_mode(LED0_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
-	vcom_init();
+	//vcom_init();
+	//jump();
 	while (count++)
 	{
 		rt_pin_write(LED0_PIN, PIN_HIGH);
@@ -94,4 +96,109 @@ static void boot(uint8_t argc, char **argv)
     jump();
 }
 FINSH_FUNCTION_EXPORT_ALIAS(boot, __cmd_boot, Jump to App);
+struct custom_ctx
+{
+    struct rym_ctx parent;
+    int fd;
+    int flen;
+    char fpath[256];
+};
+
+static enum rym_code _rym_recv_begin(
+    struct rym_ctx *ctx,
+    rt_uint8_t *buf,
+    rt_size_t len)
+{
+    struct custom_ctx *cctx = (struct custom_ctx *)ctx;
+
+    cctx->fpath[0] = '/';
+    rt_strncpy(&(cctx->fpath[1]), (const char *)buf, len - 1);
+#if 0
+	cctx->fd = open(cctx->fpath, O_CREAT | O_WRONLY | O_TRUNC, 0);
+    if (cctx->fd < 0)
+    {
+        rt_err_t err = rt_get_errno();
+        rt_kprintf("error creating file: %d\n", err);
+        return RYM_CODE_CAN;
+    }
+#endif
+    cctx->flen = atoi(1 + (const char *)buf + rt_strnlen((const char *)buf, len - 1));
+    if (cctx->flen == 0)
+        cctx->flen = -1;
+	rt_kprintf("file name %s, len %d\r\n", cctx->fpath, cctx->flen);
+	return RYM_CODE_ACK;
+}
+
+static enum rym_code _rym_recv_data(
+    struct rym_ctx *ctx,
+    rt_uint8_t *buf,
+    rt_size_t len)
+{
+    struct custom_ctx *cctx = (struct custom_ctx *)ctx;
+
+    //RT_ASSERT(cctx->fd >= 0);
+    if (cctx->flen == -1)
+    {
+        //write(cctx->fd, buf, len);
+    }
+    else
+    {
+        int wlen = len > cctx->flen ? cctx->flen : len;
+        //write(cctx->fd, buf, wlen);
+        cctx->flen -= wlen;
+    }
+	//rt_kprintf("rcv len %d\r\n", len);
+    return RYM_CODE_ACK;
+}
+
+static enum rym_code _rym_recv_end(
+    struct rym_ctx *ctx,
+    rt_uint8_t *buf,
+    rt_size_t len)
+{
+    struct custom_ctx *cctx = (struct custom_ctx *)ctx;
+
+    //RT_ASSERT(cctx->fd >= 0);
+    //close(cctx->fd);
+    cctx->fd = -1;
+	rt_kprintf("rcv file finish\r\n");
+    return RYM_CODE_ACK;
+}
+static rt_err_t rym_download_file(rt_device_t idev)
+{
+    rt_err_t res;
+    struct custom_ctx *ctx = rt_calloc(1, sizeof(*ctx));
+
+    if (!ctx)
+    {
+        rt_kprintf("rt_malloc failed\n");
+        return RT_ENOMEM;
+    }
+    ctx->fd = -1;
+    RT_ASSERT(idev);
+    res = rym_recv_on_device(&ctx->parent, idev, RT_DEVICE_OFLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
+                             _rym_recv_begin, _rym_recv_data, _rym_recv_end, 1000);
+    rt_free(ctx);
+
+    return res;
+}
+static rt_err_t ry(uint8_t argc, char **argv)
+{
+    rt_err_t res;
+    rt_device_t dev;
+
+    if (argc > 1)
+        dev = rt_device_find(argv[1]);
+    else
+        dev = rt_console_get_device();
+    if (!dev)
+    {
+        rt_kprintf("could not find device.\n");
+        return -RT_ERROR;
+    }
+    res = rym_download_file(dev);
+
+    return res;
+}
+MSH_CMD_EXPORT(ry, YMODEM Receive e.g: ry [uart0] default by console.);
 #endif /* RT_USING_FINSH */
