@@ -187,5 +187,6 @@
 /* Board extended module Drivers */
 
 #define RT_USING_RYM
+#define BSP_USING_SDRAM
 
 #endif
