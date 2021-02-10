@@ -9,6 +9,7 @@
  */
 
 #include "board.h"
+#include "w25qxx.h"
 
 /**
   * @brief System Clock Configuration
@@ -102,6 +103,11 @@ void SystemClock_Config(void)
   }
 
   HAL_PWREx_EnableUSBVoltageDetector();
+
+  MX_QUADSPI_Init();
+  W25QXX_ExitQPIMode();
+  W25QXX_Reset();
+	
 }
 
 /**

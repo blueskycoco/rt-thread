@@ -12,9 +12,16 @@
 #include <rtdevice.h>
 #include <board.h>
 #include <finsh.h>
+#include <drv_common.h>
+#include "w25qxx.h"
 /* defined the LED0 pin: PI8 */
 #define LED0_PIN    GET_PIN(I, 8)
 #define LED1_PIN    GET_PIN(C, 15)
+#define VECT_TAB_OFFSET      0x00000000UL
+#define APPLICATION_ADDRESS  (uint32_t)0x90000000
+
+typedef void (*pFunction)(void);
+pFunction JumpToApplication;
 int vcom_init(void)
 {
 	/* set console */
@@ -43,10 +50,29 @@ int vcom_init(void)
 
 	return 0;
 }
+void jump(void)
+{
+    W25QXX_Init();
+
+    W25Q_Memory_Mapped_Enable();
+	__HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+	rt_hw_interrupt_disable();
+    
+    //SCB_DisableICache();
+    //SCB_DisableDCache();
+
+    SysTick->CTRL = 0;
+
+    JumpToApplication = (pFunction)(*(__IO uint32_t *)(APPLICATION_ADDRESS + 4));
+    __set_MSP(*(__IO uint32_t *)APPLICATION_ADDRESS);
+
+    JumpToApplication();
+}
 int main(void)
 {
 	int count = 1;
 	/* set LED0 pin mode to output */
+    
 	rt_pin_mode(LED0_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
 	vcom_init();
@@ -61,3 +87,11 @@ int main(void)
 	}
 	return RT_EOK;
 }
+#ifdef RT_USING_FINSH
+#include <finsh.h>
+static void boot(uint8_t argc, char **argv)
+{
+    jump();
+}
+FINSH_FUNCTION_EXPORT_ALIAS(boot, __cmd_boot, Jump to App);
+#endif /* RT_USING_FINSH */
