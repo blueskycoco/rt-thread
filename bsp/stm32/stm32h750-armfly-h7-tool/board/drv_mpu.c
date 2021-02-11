@@ -36,7 +36,7 @@ int mpu_init(void)
 #ifdef BSP_USING_SDRAM
     /* Configure the MPU attributes as WT for SDRAM */
     MPU_InitStruct.Enable            = MPU_REGION_ENABLE;
-    MPU_InitStruct.BaseAddress       = 0xC0000000;
+    MPU_InitStruct.BaseAddress       = 0x60000000;
     MPU_InitStruct.Size              = MPU_REGION_SIZE_32MB;
     MPU_InitStruct.AccessPermission  = MPU_REGION_FULL_ACCESS;
     MPU_InitStruct.IsBufferable      = MPU_ACCESS_NOT_BUFFERABLE;

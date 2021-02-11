@@ -118,6 +118,8 @@ static int ota_app_vtor_reconfig(void)
 {
     #define RT_APP_PART_ADDR 0x08000000
     #define NVIC_VTOR_MASK   0x3FFFFF80
+    //#define RT_APP_PART_ADDR 0x60000000
+    //#define NVIC_VTOR_MASK   0xFFFFFF80
     /* Set the Vector Table base location by user application firmware definition */
     SCB->VTOR = RT_APP_PART_ADDR & NVIC_VTOR_MASK;
 
