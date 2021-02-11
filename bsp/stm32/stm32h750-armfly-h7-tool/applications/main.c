@@ -14,13 +14,16 @@
 #include <finsh.h>
 #include <drv_common.h>
 #include <ymodem.h>
+#include <sdram_port.h>
+#include "stm32h7xx_hal.h"
 #include "w25qxx.h"
 /* defined the LED0 pin: PI8 */
 #define LED0_PIN    GET_PIN(I, 8)
 #define LED1_PIN    GET_PIN(C, 15)
 #define VECT_TAB_OFFSET      0x00000000UL
 #define APPLICATION_ADDRESS  (uint32_t)0x90000000
-
+#define SDRAM_ADDRESS  (uint32_t)0x60000000
+static rt_uint32_t ofs = 0;
 typedef void (*pFunction)(void);
 pFunction JumpToApplication;
 int vcom_init(void)
@@ -51,21 +54,25 @@ int vcom_init(void)
 
 	return 0;
 }
-void jump(void)
+void jump(uint32_t addr)
 {
-    W25QXX_Init();
-
-    W25Q_Memory_Mapped_Enable();
-	__HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+	if (addr == APPLICATION_ADDRESS) {
+    	rt_kprintf("boot to qspi\r\n");
+    	W25QXX_Init();
+    	W25Q_Memory_Mapped_Enable();
+		__HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+  		//HAL_SDRAM_MspDeInit(RT_NULL);
+    	//SCB_DisableICache();
+    	//SCB_DisableDCache();
+	} else {
+		rt_kprintf("boot to sdram\r\n");
+	}
 	rt_hw_interrupt_disable();
-    
-    //SCB_DisableICache();
-    //SCB_DisableDCache();
 
     SysTick->CTRL = 0;
 
-    JumpToApplication = (pFunction)(*(__IO uint32_t *)(APPLICATION_ADDRESS + 4));
-    __set_MSP(*(__IO uint32_t *)APPLICATION_ADDRESS);
+    JumpToApplication = (pFunction)(*(__IO uint32_t *)(addr + 4));
+    __set_MSP(*(__IO uint32_t *)addr);
 
     JumpToApplication();
 }
@@ -93,9 +100,14 @@ int main(void)
 #include <finsh.h>
 static void boot(uint8_t argc, char **argv)
 {
-    jump();
+    jump(APPLICATION_ADDRESS);
 }
 FINSH_FUNCTION_EXPORT_ALIAS(boot, __cmd_boot, Jump to App);
+static void go(uint8_t argc, char **argv)
+{
+    jump(SDRAM_ADDRESS);
+}
+FINSH_FUNCTION_EXPORT_ALIAS(go, __cmd_go, Jump to SDRAM);
 struct custom_ctx
 {
     struct rym_ctx parent;
@@ -126,6 +138,7 @@ static enum rym_code _rym_recv_begin(
     if (cctx->flen == 0)
         cctx->flen = -1;
 	rt_kprintf("file name %s, len %d\r\n", cctx->fpath, cctx->flen);
+	ofs = 0;
 	return RYM_CODE_ACK;
 }
 
@@ -147,6 +160,9 @@ static enum rym_code _rym_recv_data(
         //write(cctx->fd, buf, wlen);
         cctx->flen -= wlen;
     }
+	
+    rt_memcpy((__IO uint16_t *)(SDRAM_BANK_ADDR + ofs), (uint16_t *)buf, len/2);
+    ofs += (len/2);
 	//rt_kprintf("rcv len %d\r\n", len);
     return RYM_CODE_ACK;
 }
