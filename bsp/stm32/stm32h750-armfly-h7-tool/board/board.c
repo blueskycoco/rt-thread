@@ -10,6 +10,7 @@
 
 #include "board.h"
 #include "w25qxx.h"
+#include <sdram_port.h>
 
 /**
   * @brief System Clock Configuration
@@ -42,7 +43,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLM = 5;
   RCC_OscInitStruct.PLL.PLLN = 192;
   RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
@@ -68,10 +69,12 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_UART4|RCC_PERIPHCLK_USART1
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_UART4|RCC_PERIPHCLK_USART3
                               |RCC_PERIPHCLK_RNG|RCC_PERIPHCLK_SDMMC
                               |RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_QSPI
-                              |RCC_PERIPHCLK_USB|RCC_PERIPHCLK_FMC;
+                              |RCC_PERIPHCLK_USB|RCC_PERIPHCLK_FMC
+                              |RCC_PERIPHCLK_SPI1|RCC_PERIPHCLK_SPI4
+                              |RCC_PERIPHCLK_LTDC;
   PeriphClkInitStruct.PLL2.PLL2M = 2;
   PeriphClkInitStruct.PLL2.PLL2N = 64;
   PeriphClkInitStruct.PLL2.PLL2P = 2;
@@ -80,17 +83,18 @@ void SystemClock_Config(void)
   PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_3;
   PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
   PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
-  PeriphClkInitStruct.PLL3.PLL3M = 25;
-  PeriphClkInitStruct.PLL3.PLL3N = 336;
-  PeriphClkInitStruct.PLL3.PLL3P = 2;
-  PeriphClkInitStruct.PLL3.PLL3Q = 2;
-  PeriphClkInitStruct.PLL3.PLL3R = 7;
-  PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_0;
-  PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOMEDIUM;
+  PeriphClkInitStruct.PLL3.PLL3M = 5;
+  PeriphClkInitStruct.PLL3.PLL3N = 160;
+  PeriphClkInitStruct.PLL3.PLL3P = 8;
+  PeriphClkInitStruct.PLL3.PLL3Q = 8;
+  PeriphClkInitStruct.PLL3.PLL3R = 24;
+  PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_2;
+  PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
   PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
   PeriphClkInitStruct.FmcClockSelection = RCC_FMCCLKSOURCE_PLL2;
   PeriphClkInitStruct.QspiClockSelection = RCC_QSPICLKSOURCE_D1HCLK;
   PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL2;
+  PeriphClkInitStruct.Spi45ClockSelection = RCC_SPI45CLKSOURCE_PLL3;
   PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
   PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
   PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_D2PCLK2;
@@ -103,11 +107,11 @@ void SystemClock_Config(void)
   }
 
   HAL_PWREx_EnableUSBVoltageDetector();
-
+#if 1
   MX_QUADSPI_Init();
   W25QXX_ExitQPIMode();
   W25QXX_Reset();
-	
+#endif
 }
 
 /**
@@ -116,12 +120,12 @@ void SystemClock_Config(void)
 */
 static int ota_app_vtor_reconfig(void)
 {
-    #define RT_APP_PART_ADDR 0x08000000
-    #define NVIC_VTOR_MASK   0x3FFFFF80
-    //#define RT_APP_PART_ADDR 0x60000000
-    //#define NVIC_VTOR_MASK   0xFFFFFF80
+    //#define RT_APP_PART_ADDR 0x08000000
+    //#define NVIC_VTOR_MASK   0x3FFFFF80
+    #define RT_APP_PART_ADDR 0x60000000
+    #define NVIC_VTOR_MASK   0xFFFFFF80
     /* Set the Vector Table base location by user application firmware definition */
-    SCB->VTOR = RT_APP_PART_ADDR & NVIC_VTOR_MASK;
+    SCB->VTOR = 0x24000000;//SDRAM_BANK_ADDR;// & NVIC_VTOR_MASK;
 
     return 0;
 }

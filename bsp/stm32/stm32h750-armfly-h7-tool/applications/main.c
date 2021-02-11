@@ -17,13 +17,19 @@
 #include <sdram_port.h>
 #include "stm32h7xx_hal.h"
 #include "w25qxx.h"
+#include "md5.h"
 /* defined the LED0 pin: PI8 */
 #define LED0_PIN    GET_PIN(I, 8)
 #define LED1_PIN    GET_PIN(C, 15)
 #define VECT_TAB_OFFSET      0x00000000UL
 #define APPLICATION_ADDRESS  (uint32_t)0x90000000
-#define SDRAM_ADDRESS  (uint32_t)0x60000000
+#ifdef SDRAM_BANK_ADDR
+#undef SDRAM_BANK_ADDR
+#endif
+#define SDRAM_BANK_ADDR 0x24000000
 static rt_uint32_t ofs = 0;
+static rt_uint32_t file_len = 0;
+rt_uint8_t *rcv = RT_NULL;
 typedef void (*pFunction)(void);
 pFunction JumpToApplication;
 int vcom_init(void)
@@ -54,35 +60,37 @@ int vcom_init(void)
 
 	return 0;
 }
+extern void release_resource();
 void jump(uint32_t addr)
 {
 	if (addr == APPLICATION_ADDRESS) {
-    	rt_kprintf("boot to qspi\r\n");
     	W25QXX_Init();
     	W25Q_Memory_Mapped_Enable();
 		__HAL_RCC_USB_OTG_FS_CLK_DISABLE();
   		//HAL_SDRAM_MspDeInit(RT_NULL);
-    	//SCB_DisableICache();
-    	//SCB_DisableDCache();
 	} else {
-		rt_kprintf("boot to sdram\r\n");
+		rt_kprintf("to release resource\r\n");
+		release_resource();
 	}
-	rt_hw_interrupt_disable();
+	//rt_hw_interrupt_disable();
 
     SysTick->CTRL = 0;
 
     JumpToApplication = (pFunction)(*(__IO uint32_t *)(addr + 4));
     __set_MSP(*(__IO uint32_t *)addr);
 
+    //SCB_DisableICache();
+    SCB_DisableDCache();
     JumpToApplication();
 }
 int main(void)
 {
 	int count = 1;
 	/* set LED0 pin mode to output */
-    
+   rt_kprintf("APP\r\n"); 
 	rt_pin_mode(LED0_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
+	rcv = (rt_uint8_t *)rt_malloc(200*1024);
 	//vcom_init();
 	//jump();
 	while (count++)
@@ -105,7 +113,8 @@ static void boot(uint8_t argc, char **argv)
 FINSH_FUNCTION_EXPORT_ALIAS(boot, __cmd_boot, Jump to App);
 static void go(uint8_t argc, char **argv)
 {
-    jump(SDRAM_ADDRESS);
+    //jump(SDRAM_BANK_ADDR);
+    jump(0x24000000);
 }
 FINSH_FUNCTION_EXPORT_ALIAS(go, __cmd_go, Jump to SDRAM);
 struct custom_ctx
@@ -139,6 +148,7 @@ static enum rym_code _rym_recv_begin(
         cctx->flen = -1;
 	rt_kprintf("file name %s, len %d\r\n", cctx->fpath, cctx->flen);
 	ofs = 0;
+	file_len = cctx->flen;
 	return RYM_CODE_ACK;
 }
 
@@ -161,8 +171,10 @@ static enum rym_code _rym_recv_data(
         cctx->flen -= wlen;
     }
 	
-    rt_memcpy((__IO uint16_t *)(SDRAM_BANK_ADDR + ofs), (uint16_t *)buf, len/2);
-    ofs += (len/2);
+    rt_memcpy((__IO uint8_t *)(SDRAM_BANK_ADDR + ofs), (uint8_t *)buf, len);
+    //ofs += (len/2);
+    //rt_memcpy(rcv + ofs, buf, len);
+    ofs += len;
 	//rt_kprintf("rcv len %d\r\n", len);
     return RYM_CODE_ACK;
 }
@@ -173,12 +185,22 @@ static enum rym_code _rym_recv_end(
     rt_size_t len)
 {
     struct custom_ctx *cctx = (struct custom_ctx *)ctx;
-
+	uint8_t decrypt[16] = {0};
+	MD5_CTX md5;
+    int i;
     //RT_ASSERT(cctx->fd >= 0);
     //close(cctx->fd);
     cctx->fd = -1;
-	rt_kprintf("rcv file finish\r\n");
-    return RYM_CODE_ACK;
+	rt_kprintf("rcv file finish\r\nmd5: ");
+	MD5Init(&md5);
+	//MD5Update(&md5, rcv, file_len);
+	MD5Update(&md5, SDRAM_BANK_ADDR, file_len);
+	//MD5Update(&md5, 0x08000000, 95060);
+	MD5Final(&md5, decrypt);
+	for (i=0; i<16; i++)
+		rt_kprintf("%02x", decrypt[i]);
+	rt_kprintf("\r\n");
+	return RYM_CODE_ACK;
 }
 static rt_err_t rym_download_file(rt_device_t idev)
 {

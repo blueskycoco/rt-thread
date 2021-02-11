@@ -185,7 +185,7 @@ static int SDRAM_Init(void)
 #endif
     }
 
-  HAL_SetFMCMemorySwappingConfig(FMC_SWAPBMAP_SDRAM_SRAM);
+	HAL_SetFMCMemorySwappingConfig(FMC_SWAPBMAP_SDRAM_SRAM);
     return result;
 }
 INIT_BOARD_EXPORT(SDRAM_Init);
