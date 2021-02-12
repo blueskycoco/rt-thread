@@ -105,7 +105,7 @@ static int SDRAM_Init(void)
 {
     int result = RT_EOK;
     FMC_SDRAM_TimingTypeDef SDRAM_Timing;
-
+    
     /* SDRAM device configuration */
     hsdram1.Instance = FMC_SDRAM_DEVICE;
     SDRAM_Timing.LoadToActiveDelay    = LOADTOACTIVEDELAY;
@@ -185,7 +185,6 @@ static int SDRAM_Init(void)
 #endif
     }
 
-	HAL_SetFMCMemorySwappingConfig(FMC_SWAPBMAP_SDRAM_SRAM);
     return result;
 }
 INIT_BOARD_EXPORT(SDRAM_Init);

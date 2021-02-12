@@ -26,10 +26,9 @@
 #ifdef SDRAM_BANK_ADDR
 #undef SDRAM_BANK_ADDR
 #endif
-#define SDRAM_BANK_ADDR 0x24000000
+#define SDRAM_BANK_ADDR 0x60000000
 static rt_uint32_t ofs = 0;
 static rt_uint32_t file_len = 0;
-rt_uint8_t *rcv = RT_NULL;
 typedef void (*pFunction)(void);
 pFunction JumpToApplication;
 int vcom_init(void)
@@ -75,10 +74,9 @@ void jump(uint32_t addr)
 	//rt_hw_interrupt_disable();
 
     SysTick->CTRL = 0;
-
     JumpToApplication = (pFunction)(*(__IO uint32_t *)(addr + 4));
     __set_MSP(*(__IO uint32_t *)addr);
-
+    //__set_FAULTMASK(1);
     //SCB_DisableICache();
     SCB_DisableDCache();
     JumpToApplication();
@@ -87,10 +85,9 @@ int main(void)
 {
 	int count = 1;
 	/* set LED0 pin mode to output */
-   rt_kprintf("APP\r\n"); 
+    rt_kprintf("BOOT\r\n"); 
 	rt_pin_mode(LED0_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
-	rcv = (rt_uint8_t *)rt_malloc(200*1024);
 	//vcom_init();
 	//jump();
 	while (count++)
@@ -113,8 +110,8 @@ static void boot(uint8_t argc, char **argv)
 FINSH_FUNCTION_EXPORT_ALIAS(boot, __cmd_boot, Jump to App);
 static void go(uint8_t argc, char **argv)
 {
-    //jump(SDRAM_BANK_ADDR);
-    jump(0x24000000);
+    jump(SDRAM_BANK_ADDR);
+    //jump(0x24000000);
 }
 FINSH_FUNCTION_EXPORT_ALIAS(go, __cmd_go, Jump to SDRAM);
 struct custom_ctx
@@ -134,21 +131,12 @@ static enum rym_code _rym_recv_begin(
 
     cctx->fpath[0] = '/';
     rt_strncpy(&(cctx->fpath[1]), (const char *)buf, len - 1);
-#if 0
-	cctx->fd = open(cctx->fpath, O_CREAT | O_WRONLY | O_TRUNC, 0);
-    if (cctx->fd < 0)
-    {
-        rt_err_t err = rt_get_errno();
-        rt_kprintf("error creating file: %d\n", err);
-        return RYM_CODE_CAN;
-    }
-#endif
-    cctx->flen = atoi(1 + (const char *)buf + rt_strnlen((const char *)buf, len - 1));
-    if (cctx->flen == 0)
-        cctx->flen = -1;
-	rt_kprintf("file name %s, len %d\r\n", cctx->fpath, cctx->flen);
+    
+    file_len = atoi(1 + (const char *)buf + rt_strnlen((const char *)buf, len - 1));
+    if (file_len == 0)
+        file_len = -1;
+	rt_kprintf("file name %s, len %d\r\n", cctx->fpath, file_len);
 	ofs = 0;
-	file_len = cctx->flen;
 	return RYM_CODE_ACK;
 }
 
@@ -159,23 +147,8 @@ static enum rym_code _rym_recv_data(
 {
     struct custom_ctx *cctx = (struct custom_ctx *)ctx;
 
-    //RT_ASSERT(cctx->fd >= 0);
-    if (cctx->flen == -1)
-    {
-        //write(cctx->fd, buf, len);
-    }
-    else
-    {
-        int wlen = len > cctx->flen ? cctx->flen : len;
-        //write(cctx->fd, buf, wlen);
-        cctx->flen -= wlen;
-    }
-	
     rt_memcpy((__IO uint8_t *)(SDRAM_BANK_ADDR + ofs), (uint8_t *)buf, len);
-    //ofs += (len/2);
-    //rt_memcpy(rcv + ofs, buf, len);
     ofs += len;
-	//rt_kprintf("rcv len %d\r\n", len);
     return RYM_CODE_ACK;
 }
 
@@ -188,14 +161,10 @@ static enum rym_code _rym_recv_end(
 	uint8_t decrypt[16] = {0};
 	MD5_CTX md5;
     int i;
-    //RT_ASSERT(cctx->fd >= 0);
-    //close(cctx->fd);
     cctx->fd = -1;
 	rt_kprintf("rcv file finish\r\nmd5: ");
 	MD5Init(&md5);
-	//MD5Update(&md5, rcv, file_len);
 	MD5Update(&md5, SDRAM_BANK_ADDR, file_len);
-	//MD5Update(&md5, 0x08000000, 95060);
 	MD5Final(&md5, decrypt);
 	for (i=0; i<16; i++)
 		rt_kprintf("%02x", decrypt[i]);
@@ -228,7 +197,8 @@ static rt_err_t ry(uint8_t argc, char **argv)
     if (argc > 1)
         dev = rt_device_find(argv[1]);
     else
-        dev = rt_console_get_device();
+        dev = rt_device_find("vcom");
+        //dev = rt_console_get_device();
     if (!dev)
     {
         rt_kprintf("could not find device.\n");

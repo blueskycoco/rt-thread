@@ -941,6 +941,7 @@ static void HAL_FMC_MspInit(void){
 
   /* Peripheral clock enable */
   __HAL_RCC_FMC_CLK_ENABLE();
+  HAL_SetFMCMemorySwappingConfig(FMC_SWAPBMAP_SDRAM_SRAM);
 
   /** FMC GPIO Configuration
   PE1   ------> FMC_NBL1
@@ -1163,9 +1164,9 @@ void release_resource()
 		HAL_GPIO_DeInit(GPIOI, GPIO_PIN_9);
 		__HAL_RCC_USART1_CLK_DISABLE();
 		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_10|GPIO_PIN_9);
-		  	   __HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+		__HAL_RCC_USB_OTG_FS_CLK_DISABLE();
 		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_12);
-  		HAL_FMC_MspDeInit();
+  		//HAL_FMC_MspDeInit();
 }
 /* USER CODE END 1 */
 
