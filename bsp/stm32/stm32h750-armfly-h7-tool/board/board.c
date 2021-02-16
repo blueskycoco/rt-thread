@@ -95,7 +95,7 @@ void SystemClock_Config(void)
   PeriphClkInitStruct.QspiClockSelection = RCC_QSPICLKSOURCE_D1HCLK;
   PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL2;
   PeriphClkInitStruct.Spi45ClockSelection = RCC_SPI45CLKSOURCE_PLL3;
-  PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
+  PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL2;
   PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
   PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_D2PCLK2;
   PeriphClkInitStruct.RngClockSelection = RCC_RNGCLKSOURCE_HSI48;
@@ -107,11 +107,6 @@ void SystemClock_Config(void)
   }
 
   HAL_PWREx_EnableUSBVoltageDetector();
-#if 1
-  MX_QUADSPI_Init();
-  W25QXX_ExitQPIMode();
-  W25QXX_Reset();
-#endif
 }
 
 /**

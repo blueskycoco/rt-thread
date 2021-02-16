@@ -23,13 +23,11 @@
 #define LED1_PIN    GET_PIN(C, 15)
 #define VECT_TAB_OFFSET      0x00000000UL
 #define APPLICATION_ADDRESS  (uint32_t)0x90000000
-#ifdef SDRAM_BANK_ADDR
-#undef SDRAM_BANK_ADDR
-#endif
-#define SDRAM_BANK_ADDR 0x60000000
 static rt_uint32_t ofs = 0;
 static rt_uint32_t file_len = 0;
+rt_uint32_t down_addr = SDRAM_BANK_ADDR;
 typedef void (*pFunction)(void);
+static rt_err_t rym_download_file(rt_device_t idev);
 pFunction JumpToApplication;
 int vcom_init(void)
 {
@@ -68,17 +66,36 @@ void jump(uint32_t addr)
 		__HAL_RCC_USB_OTG_FS_CLK_DISABLE();
   		//HAL_SDRAM_MspDeInit(RT_NULL);
 	} else {
-		rt_kprintf("to release resource\r\n");
+		//rt_kprintf("to release resource\r\n");
+    	rt_hw_interrupt_disable();
 		release_resource();
+		//rt_thread_mdelay(100);
 	}
-	//rt_hw_interrupt_disable();
+#if 0
+	if (((*(__IO uint32_t*)(addr + 4)) & 0xFF000000 ) == addr)
+		rt_kprintf("addr verify ok\r\n");
+	else	
+		rt_kprintf("addr verify failed %x %x\r\n", addr, ((*(__IO uint32_t*)(addr + 4)) & 0xFF000000 ));
 
-    SysTick->CTRL = 0;
-    JumpToApplication = (pFunction)(*(__IO uint32_t *)(addr + 4));
-    __set_MSP(*(__IO uint32_t *)addr);
-    //__set_FAULTMASK(1);
+	uint32_t ret = ((*(__IO uint32_t*)addr) & 0x2FFE0000 );
+	if (ret == 0x24000000)
+		rt_kprintf("instr verify ok\r\n");
+	else
+		rt_kprintf("instr verify failed, %x\r\n", ret);
+#endif
     //SCB_DisableICache();
     SCB_DisableDCache();
+    SysTick->CTRL = 0;
+    __set_MSP(*(__IO uint32_t *)addr);
+    JumpToApplication = (pFunction)(*(__IO uint32_t *)(addr + 4));
+#if 0
+    SCB->VTOR = addr;
+    __set_PSP(*(volatile unsigned int*) addr);
+    __set_CONTROL(0);
+    __set_MSP(*(volatile unsigned int*) addr);
+    //__set_FAULTMASK(1);
+#endif
+    rt_kprintf("before jump, %x\r\n", addr);
     JumpToApplication();
 }
 int main(void)
@@ -103,6 +120,19 @@ int main(void)
 }
 #ifdef RT_USING_FINSH
 #include <finsh.h>
+static void md5_sdram(uint8_t argc, char **argv)
+{
+	MD5_CTX md5;
+    int i;
+	uint8_t decrypt[16] = {0};
+	MD5Init(&md5);
+	MD5Update(&md5, down_addr, atoi(argv[1]));
+	MD5Final(&md5, decrypt);
+	for (i=0; i<16; i++)
+		rt_kprintf("%02x", decrypt[i]);
+	rt_kprintf("\r\n");
+}
+FINSH_FUNCTION_EXPORT_ALIAS(md5_sdram, __cmd_md5, md5 sdram);
 static void boot(uint8_t argc, char **argv)
 {
     jump(APPLICATION_ADDRESS);
@@ -110,7 +140,7 @@ static void boot(uint8_t argc, char **argv)
 FINSH_FUNCTION_EXPORT_ALIAS(boot, __cmd_boot, Jump to App);
 static void go(uint8_t argc, char **argv)
 {
-    jump(SDRAM_BANK_ADDR);
+    jump(down_addr);
     //jump(0x24000000);
 }
 FINSH_FUNCTION_EXPORT_ALIAS(go, __cmd_go, Jump to SDRAM);
@@ -147,7 +177,7 @@ static enum rym_code _rym_recv_data(
 {
     struct custom_ctx *cctx = (struct custom_ctx *)ctx;
 
-    rt_memcpy((__IO uint8_t *)(SDRAM_BANK_ADDR + ofs), (uint8_t *)buf, len);
+    rt_memcpy((__IO uint8_t *)(down_addr + ofs), (uint8_t *)buf, len);
     ofs += len;
     return RYM_CODE_ACK;
 }
@@ -164,7 +194,7 @@ static enum rym_code _rym_recv_end(
     cctx->fd = -1;
 	rt_kprintf("rcv file finish\r\nmd5: ");
 	MD5Init(&md5);
-	MD5Update(&md5, SDRAM_BANK_ADDR, file_len);
+	MD5Update(&md5, down_addr, file_len);
 	MD5Final(&md5, decrypt);
 	for (i=0; i<16; i++)
 		rt_kprintf("%02x", decrypt[i]);
@@ -195,10 +225,9 @@ static rt_err_t ry(uint8_t argc, char **argv)
     rt_device_t dev;
 
     if (argc > 1)
-        dev = rt_device_find(argv[1]);
-    else
-        dev = rt_device_find("vcom");
-        //dev = rt_console_get_device();
+        down_addr = 0x24000000;
+    //dev = rt_console_get_device();
+    dev = rt_device_find("vcom");
     if (!dev)
     {
         rt_kprintf("could not find device.\n");

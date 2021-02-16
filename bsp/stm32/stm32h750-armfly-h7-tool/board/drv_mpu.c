@@ -38,7 +38,7 @@ int mpu_init(void)
     /* Configure the MPU attributes as WT for SDRAM */
     MPU_InitStruct.Enable            = MPU_REGION_ENABLE;
     MPU_InitStruct.BaseAddress       = SDRAM_BANK_ADDR;
-    MPU_InitStruct.Size              = MPU_REGION_SIZE_16MB;
+    MPU_InitStruct.Size              = MPU_REGION_SIZE_32MB;
     MPU_InitStruct.AccessPermission  = MPU_REGION_FULL_ACCESS;
     MPU_InitStruct.IsBufferable      = MPU_ACCESS_NOT_BUFFERABLE;
     MPU_InitStruct.IsCacheable       = MPU_ACCESS_CACHEABLE;
@@ -108,6 +108,5 @@ int mpu_init(void)
     SCB_EnableDCache();
     
     return RT_EOK;
-
 }
 INIT_BOARD_EXPORT(mpu_init);

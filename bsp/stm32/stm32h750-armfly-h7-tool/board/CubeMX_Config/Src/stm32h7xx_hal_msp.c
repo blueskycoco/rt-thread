@@ -941,7 +941,7 @@ static void HAL_FMC_MspInit(void){
 
   /* Peripheral clock enable */
   __HAL_RCC_FMC_CLK_ENABLE();
-  HAL_SetFMCMemorySwappingConfig(FMC_SWAPBMAP_SDRAM_SRAM);
+  //HAL_SetFMCMemorySwappingConfig(FMC_SWAPBMAP_SDRAM_SRAM);
 
   /** FMC GPIO Configuration
   PE1   ------> FMC_NBL1
@@ -1136,8 +1136,8 @@ void HAL_SDRAM_MspDeInit(SDRAM_HandleTypeDef* hsdram){
 /* USER CODE BEGIN 1 */
 void release_resource()
 {
-		__HAL_RCC_ADC3_CLK_DISABLE();
 		HAL_GPIO_DeInit(GPIOF, GPIO_PIN_3|GPIO_PIN_8);
+		__HAL_RCC_ADC3_CLK_DISABLE();
 		__HAL_RCC_CRC_CLK_DISABLE();
 		__HAL_RCC_DAC12_CLK_DISABLE();
 		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4);
@@ -1159,9 +1159,9 @@ void release_resource()
 		__HAL_RCC_TIM12_CLK_DISABLE();
 		HAL_GPIO_DeInit(GPIOH, GPIO_PIN_9);
 		HAL_GPIO_DeInit(GPIOB, GPIO_PIN_14);
-		__HAL_RCC_UART4_CLK_DISABLE();
-		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0);
-		HAL_GPIO_DeInit(GPIOI, GPIO_PIN_9);
+		//__HAL_RCC_UART4_CLK_DISABLE();
+		//HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0);
+		//HAL_GPIO_DeInit(GPIOI, GPIO_PIN_9);
 		__HAL_RCC_USART1_CLK_DISABLE();
 		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_10|GPIO_PIN_9);
 		__HAL_RCC_USB_OTG_FS_CLK_DISABLE();

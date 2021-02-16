@@ -225,6 +225,7 @@ int sdram_test(void)
 
     /* read data */
     LOG_D("start Reading and verifying data, waiting....");
+    start_time = rt_tick_get();
     for (i = 0; i < SDRAM_SIZE / data_width; i++)
     {
 #if SDRAM_DATA_WIDTH == 8
@@ -251,6 +252,9 @@ int sdram_test(void)
 #endif
     }
 
+    time_cast = rt_tick_get() - start_time;
+    LOG_D("Read data success, total time: %d.%03dS.", time_cast / RT_TICK_PER_SECOND,
+          time_cast % RT_TICK_PER_SECOND / ((RT_TICK_PER_SECOND * 1 + 999) / 1000));
     if (i >= SDRAM_SIZE / data_width)
     {
         LOG_D("SDRAM test success!");
