@@ -65,6 +65,8 @@ static int rt_qspi_flash_init(void)
     {
         return -RT_ERROR;
     }
+
+    fal_init();
     return RT_EOK;
 }
 INIT_ENV_EXPORT(rt_qspi_flash_init);

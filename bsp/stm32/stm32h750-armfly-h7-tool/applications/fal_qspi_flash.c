@@ -64,7 +64,8 @@ static int init(void)
 
     if (NULL == sfud_dev)
     {
-        return -1;
+    	rt_kprintf("can't find qspi sfud dev\r\n");
+    	return -1;
     }
 
     /* update the flash chip information */

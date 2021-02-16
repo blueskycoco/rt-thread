@@ -64,6 +64,7 @@ static int init(void)
 
     if (NULL == sfud_dev)
     {
+    	rt_kprintf("can't find spi sfud dev\r\n");
         return -1;
     }
 

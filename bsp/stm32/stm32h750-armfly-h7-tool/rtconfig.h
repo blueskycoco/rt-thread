@@ -6,7 +6,7 @@
 
 /* RT-Thread Kernel */
 
-#define RT_NAME_MAX 8
+#define RT_NAME_MAX 16
 #define RT_ALIGN_SIZE 4
 #define RT_THREAD_PRIORITY_32
 #define RT_THREAD_PRIORITY_MAX 32
@@ -187,7 +187,7 @@
 /* Board extended module Drivers */
 
 #define RT_USING_RYM
-#define BSP_USING_SDRAM
+//#define BSP_USING_SDRAM
 
 #define PKG_USING_FAL
 #define FAL_DEBUG_CONFIG

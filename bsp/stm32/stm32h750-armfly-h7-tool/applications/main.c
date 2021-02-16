@@ -15,6 +15,7 @@
 #include <drv_common.h>
 #include <ymodem.h>
 #include <sdram_port.h>
+#include <fal.h>
 #include "stm32h7xx_hal.h"
 #include "w25qxx.h"
 #include "md5.h"
@@ -25,7 +26,8 @@
 #define APPLICATION_ADDRESS  (uint32_t)0x90000000
 static rt_uint32_t ofs = 0;
 static rt_uint32_t file_len = 0;
-rt_uint32_t down_addr = SDRAM_BANK_ADDR;
+static fal_partition_t qspi_part = RT_NULL;
+rt_uint32_t down_addr = 0x24000000;//SDRAM_BANK_ADDR;
 typedef void (*pFunction)(void);
 static rt_err_t rym_download_file(rt_device_t idev);
 pFunction JumpToApplication;
@@ -61,8 +63,12 @@ extern void release_resource();
 void jump(uint32_t addr)
 {
 	if (addr == APPLICATION_ADDRESS) {
+    	if (qspi_part == RT_NULL) {
+    	W25QXX_ExitQPIMode();
+    	W25QXX_Reset();
     	W25QXX_Init();
     	W25Q_Memory_Mapped_Enable();
+		}
 		__HAL_RCC_USB_OTG_FS_CLK_DISABLE();
   		
   		//HAL_SDRAM_MspDeInit(RT_NULL);
@@ -171,6 +177,15 @@ static enum rym_code _rym_recv_begin(
         file_len = -1;
 	rt_kprintf("file name %s, len %d\r\n", cctx->fpath, file_len);
 	ofs = 0;
+	qspi_part = fal_partition_find("app");
+	if (qspi_part == RT_NULL)
+		rt_kprintf("can't find qspi part\r\n");
+	else {
+		if ((fal_partition_erase(qspi_part, 0, 200*1024) < 0))
+			rt_kprintf("erase qspi part failed\r\n");
+		else
+			rt_kprintf("erase qspi flash %d bytes done\r\n", file_len);
+	}
 	return RYM_CODE_ACK;
 }
 
@@ -179,9 +194,18 @@ static enum rym_code _rym_recv_data(
     rt_uint8_t *buf,
     rt_size_t len)
 {
-    struct custom_ctx *cctx = (struct custom_ctx *)ctx;
+	uint8_t verify[1024] = {0};
+	struct custom_ctx *cctx = (struct custom_ctx *)ctx;
 
     rt_memcpy((__IO uint8_t *)(down_addr + ofs), (uint8_t *)buf, len);
+    if (fal_partition_write(qspi_part, ofs, buf, len) < 0) {
+		rt_kprintf("write qspi flash %d failed\r\n", ofs);
+	}
+    if (fal_partition_read(qspi_part, ofs, verify, len) < 0) {
+		rt_kprintf("read qspi flash %d failed\r\n", ofs);
+	}
+	if (memcmp(verify, buf, len) != 0)
+		rt_kprintf("write to %d, read back different\r\n", ofs);
     ofs += len;
     return RYM_CODE_ACK;
 }
@@ -197,8 +221,14 @@ static enum rym_code _rym_recv_end(
     int i;
     cctx->fd = -1;
 	rt_kprintf("rcv file finish\r\nmd5: ");
+#if 1
+    W25QXX_ExitQPIMode();
+    W25QXX_Reset();
+    W25QXX_Init();
+    W25Q_Memory_Mapped_Enable();
+#endif
 	MD5Init(&md5);
-	MD5Update(&md5, down_addr, file_len);
+	MD5Update(&md5, 0x90000000, file_len);
 	MD5Final(&md5, decrypt);
 	for (i=0; i<16; i++)
 		rt_kprintf("%02x", decrypt[i]);
