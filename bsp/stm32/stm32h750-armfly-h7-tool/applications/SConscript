@@ -7,6 +7,14 @@ src     = Split("""
 main.c
 w25qxx.c
 md5.c
+fal_qspi_flash.c
+fal.c
+fal_flash.c
+fal_partition.c
+fal_rtt.c
+fal_flash_sfud_port.c
+drv_spi_flash.c
+drv_qspi_flash.c
 """)
 
 path = [cwd]

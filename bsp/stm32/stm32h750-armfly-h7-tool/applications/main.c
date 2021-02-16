@@ -64,6 +64,7 @@ void jump(uint32_t addr)
     	W25QXX_Init();
     	W25Q_Memory_Mapped_Enable();
 		__HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+  		
   		//HAL_SDRAM_MspDeInit(RT_NULL);
 	} else {
 		//rt_kprintf("to release resource\r\n");
@@ -83,9 +84,12 @@ void jump(uint32_t addr)
 	else
 		rt_kprintf("instr verify failed, %x\r\n", ret);
 #endif
-    //SCB_DisableICache();
+   	//SCB_InvalidateICache();
+   	HAL_MPU_Disable();
+   	SCB_DisableICache();
     SCB_DisableDCache();
     SysTick->CTRL = 0;
+    //__set_CONTROL(0);
     __set_MSP(*(__IO uint32_t *)addr);
     JumpToApplication = (pFunction)(*(__IO uint32_t *)(addr + 4));
 #if 0
@@ -106,7 +110,7 @@ int main(void)
 	rt_pin_mode(LED0_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
 	//vcom_init();
-	//jump();
+	//jump(APPLICATION_ADDRESS);
 	while (count++)
 	{
 		rt_pin_write(LED0_PIN, PIN_HIGH);

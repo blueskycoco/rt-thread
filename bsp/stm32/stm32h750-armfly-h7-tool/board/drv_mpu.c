@@ -11,6 +11,7 @@
 #include "stm32h7xx.h"
 #include "board.h"
 #include <sdram_port.h>
+#include "w25qxx.h"
 
 int mpu_init(void)
 {
@@ -107,6 +108,10 @@ int mpu_init(void)
     SCB_EnableICache();
     SCB_EnableDCache();
     
+    MX_QUADSPI_Init();
+
+    W25QXX_ExitQPIMode();
+    W25QXX_Reset();
     return RT_EOK;
 }
 INIT_BOARD_EXPORT(mpu_init);
