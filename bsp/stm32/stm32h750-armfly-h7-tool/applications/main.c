@@ -181,7 +181,7 @@ static enum rym_code _rym_recv_begin(
 	if (qspi_part == RT_NULL)
 		rt_kprintf("can't find qspi part\r\n");
 	else {
-		if ((fal_partition_erase(qspi_part, 0, 200*1024) < 0))
+		if ((fal_partition_erase(qspi_part, 0, file_len) < 0))
 			rt_kprintf("erase qspi part failed\r\n");
 		else
 			rt_kprintf("erase qspi flash %d bytes done\r\n", file_len);
