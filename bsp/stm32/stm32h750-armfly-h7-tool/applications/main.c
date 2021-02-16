@@ -27,7 +27,7 @@
 static rt_uint32_t ofs = 0;
 static rt_uint32_t file_len = 0;
 static fal_partition_t qspi_part = RT_NULL;
-rt_uint32_t down_addr = 0x24000000;//SDRAM_BANK_ADDR;
+rt_uint32_t down_addr = SDRAM_BANK_ADDR;
 typedef void (*pFunction)(void);
 static rt_err_t rym_download_file(rt_device_t idev);
 pFunction JumpToApplication;
@@ -197,7 +197,7 @@ static enum rym_code _rym_recv_data(
 	uint8_t verify[1024] = {0};
 	struct custom_ctx *cctx = (struct custom_ctx *)ctx;
 
-    rt_memcpy((__IO uint8_t *)(down_addr + ofs), (uint8_t *)buf, len);
+    //rt_memcpy((__IO uint8_t *)(down_addr + ofs), (uint8_t *)buf, len);
     if (fal_partition_write(qspi_part, ofs, buf, len) < 0) {
 		rt_kprintf("write qspi flash %d failed\r\n", ofs);
 	}
