@@ -74,10 +74,10 @@ void jump(uint32_t addr)
   		//HAL_SDRAM_MspDeInit(RT_NULL);
 	} else {
 		//rt_kprintf("to release resource\r\n");
-    	rt_hw_interrupt_disable();
 		release_resource();
 		//rt_thread_mdelay(100);
 	}
+    	rt_hw_interrupt_disable();
 #if 0
 	if (((*(__IO uint32_t*)(addr + 4)) & 0xFF000000 ) == addr)
 		rt_kprintf("addr verify ok\r\n");
@@ -98,8 +98,8 @@ void jump(uint32_t addr)
     //__set_CONTROL(0);
     __set_MSP(*(__IO uint32_t *)addr);
     JumpToApplication = (pFunction)(*(__IO uint32_t *)(addr + 4));
-#if 0
     SCB->VTOR = addr;
+#if 0
     __set_PSP(*(volatile unsigned int*) addr);
     __set_CONTROL(0);
     __set_MSP(*(volatile unsigned int*) addr);
