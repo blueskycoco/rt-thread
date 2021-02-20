@@ -23,11 +23,13 @@
 #define LED0_PIN    GET_PIN(I, 8)
 #define LED1_PIN    GET_PIN(C, 15)
 #define VECT_TAB_OFFSET      0x00000000UL
-#define APPLICATION_ADDRESS  (uint32_t)0x90000000
+#define UBOOT_ADDRESS  (uint32_t)0x90000000
+#define KERNEL_ADDRESS  (uint32_t)0x90080000
+static rt_bool_t ota_kernel = RT_FALSE;
 static rt_uint32_t ofs = 0;
 static rt_uint32_t file_len = 0;
 static fal_partition_t qspi_part = RT_NULL;
-rt_uint32_t down_addr = SDRAM_BANK_ADDR;
+rt_uint32_t down_addr = UBOOT_ADDRESS;
 typedef void (*pFunction)(void);
 static rt_err_t rym_download_file(rt_device_t idev);
 pFunction JumpToApplication;
@@ -62,7 +64,7 @@ int vcom_init(void)
 extern void release_resource();
 void jump(uint32_t addr)
 {
-	if (addr == APPLICATION_ADDRESS) {
+	if (addr == UBOOT_ADDRESS) {
     	if (qspi_part == RT_NULL) {
     	W25QXX_ExitQPIMode();
     	W25QXX_Reset();
@@ -112,11 +114,11 @@ int main(void)
 {
 	int count = 1;
 	/* set LED0 pin mode to output */
-    rt_kprintf("BOOT\r\n"); 
+    	rt_kprintf("BOOT\r\n"); 
 	rt_pin_mode(LED0_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
 	//vcom_init();
-	//jump(APPLICATION_ADDRESS);
+	//jump(UBOOT_ADDRESS);
 	while (count++)
 	{
 		rt_pin_write(LED0_PIN, PIN_HIGH);
@@ -145,7 +147,7 @@ static void md5_sdram(uint8_t argc, char **argv)
 FINSH_FUNCTION_EXPORT_ALIAS(md5_sdram, __cmd_md5, md5 sdram);
 static void boot(uint8_t argc, char **argv)
 {
-    jump(APPLICATION_ADDRESS);
+    jump(UBOOT_ADDRESS);
 }
 FINSH_FUNCTION_EXPORT_ALIAS(boot, __cmd_boot, Jump to App);
 static void go(uint8_t argc, char **argv)
@@ -177,7 +179,10 @@ static enum rym_code _rym_recv_begin(
         file_len = -1;
 	rt_kprintf("file name %s, len %d\r\n", cctx->fpath, file_len);
 	ofs = 0;
-	qspi_part = fal_partition_find("app");
+	if (ota_kernel)
+	qspi_part = fal_partition_find("linux");
+	else
+	qspi_part = fal_partition_find("u-boot");
 	if (qspi_part == RT_NULL)
 		rt_kprintf("can't find qspi part\r\n");
 	else {
@@ -228,7 +233,7 @@ static enum rym_code _rym_recv_end(
     W25Q_Memory_Mapped_Enable();
 #endif
 	MD5Init(&md5);
-	MD5Update(&md5, 0x90000000, file_len);
+	MD5Update(&md5, down_addr, file_len);
 	MD5Final(&md5, decrypt);
 	for (i=0; i<16; i++)
 		rt_kprintf("%02x", decrypt[i]);
@@ -258,8 +263,14 @@ static rt_err_t ry(uint8_t argc, char **argv)
     rt_err_t res;
     rt_device_t dev;
 
-    if (argc > 1)
-        down_addr = 0x24000000;
+    if (argc > 1 && strcmp(argv[1], "linux") == 0)
+    {
+    	    ota_kernel = RT_TRUE;
+    	    down_addr = KERNEL_ADDRESS;
+    } else {
+    	    ota_kernel = RT_FALSE;
+		down_addr = UBOOT_ADDRESS;
+    }
     //dev = rt_console_get_device();
     dev = rt_device_find("vcom");
     if (!dev)
