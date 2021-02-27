@@ -76,10 +76,12 @@ void jump(uint32_t addr)
   		//HAL_SDRAM_MspDeInit(RT_NULL);
 	} else {
 		//rt_kprintf("to release resource\r\n");
-		release_resource();
 		//rt_thread_mdelay(100);
+	release_resource();
 	}
-    	rt_hw_interrupt_disable();
+	HAL_NVIC_DisableIRQ(UART4_IRQn);
+    	HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
+    	//rt_hw_interrupt_disable();
 #if 0
 	if (((*(__IO uint32_t*)(addr + 4)) & 0xFF000000 ) == addr)
 		rt_kprintf("addr verify ok\r\n");
@@ -177,7 +179,7 @@ static enum rym_code _rym_recv_begin(
     file_len = atoi(1 + (const char *)buf + rt_strnlen((const char *)buf, len - 1));
     if (file_len == 0)
         file_len = -1;
-	rt_kprintf("file name %s, len %d\r\n", cctx->fpath, file_len);
+	//rt_kprintf("file name %s, len %d\r\n", cctx->fpath, file_len);
 	ofs = 0;
 	if (ota_kernel)
 	qspi_part = fal_partition_find("linux");
@@ -188,8 +190,8 @@ static enum rym_code _rym_recv_begin(
 	else {
 		if ((fal_partition_erase(qspi_part, 0, file_len) < 0))
 			rt_kprintf("erase qspi part failed\r\n");
-		else
-			rt_kprintf("erase qspi flash %d bytes done\r\n", file_len);
+		//else
+		//	rt_kprintf("erase qspi flash %d bytes done\r\n", file_len);
 	}
 	return RYM_CODE_ACK;
 }
@@ -271,8 +273,8 @@ static rt_err_t ry(uint8_t argc, char **argv)
     	    ota_kernel = RT_FALSE;
 		down_addr = UBOOT_ADDRESS;
     }
-    //dev = rt_console_get_device();
-    dev = rt_device_find("vcom");
+    dev = rt_console_get_device();
+    //dev = rt_device_find("vcom");
     if (!dev)
     {
         rt_kprintf("could not find device.\n");
