@@ -44,12 +44,7 @@ extern struct fal_flash_dev nor_flash1;
 #ifdef FAL_PART_HAS_TABLE_CFG
 #define FAL_PART_TABLE                                                                     \
 {                                                                                          \
-    {FAL_PART_MAGIC_WORD, "wifi_image", NOR_FLASH_DEV_NAME,            0,      512*1024, 0}, \
-    {FAL_PART_MAGIC_WORD, "bt_image",   NOR_FLASH_DEV_NAME,     512*1024,      512*1024, 0}, \
-    {FAL_PART_MAGIC_WORD, "download",   NOR_FLASH_DEV_NAME,    1024*1024,   2*1024*1024, 0}, \
-    {FAL_PART_MAGIC_WORD, "easyflash",  NOR_FLASH_DEV_NAME,  3*1024*1024,   1*1024*1024, 0}, \
-    {FAL_PART_MAGIC_WORD, "filesystem", NOR_FLASH_DEV_NAME,  4*1024*1024,  10*1024*1024, 0}, \
-    {FAL_PART_MAGIC_WORD, "factory",    NOR_FLASH_DEV_NAME, 14*1024*1024,   2*1024*1024, 0}, \
+    {FAL_PART_MAGIC_WORD, "root", NOR_FLASH_DEV_NAME, 	       0,   16*1024*1024, 0}, \
     {FAL_PART_MAGIC_WORD, "u-boot",     QSPI_FLASH_DEV_NAME,           0,  512*1024, 0},   \
     {FAL_PART_MAGIC_WORD, "linux",      QSPI_FLASH_DEV_NAME,           512*1024,  7680*1024, 0},   \
 }

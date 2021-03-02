@@ -25,7 +25,7 @@
 #define VECT_TAB_OFFSET      0x00000000UL
 #define UBOOT_ADDRESS  (uint32_t)0x90000000
 #define KERNEL_ADDRESS  (uint32_t)0x90080000
-static rt_bool_t ota_kernel = RT_FALSE;
+static rt_uint8_t ota_type = 0; //0 u-boot, 1 kernel, 2 root filesystem
 static rt_uint32_t ofs = 0;
 static rt_uint32_t file_len = 0;
 static fal_partition_t qspi_part = RT_NULL;
@@ -181,10 +181,12 @@ static enum rym_code _rym_recv_begin(
         file_len = -1;
 	//rt_kprintf("file name %s, len %d\r\n", cctx->fpath, file_len);
 	ofs = 0;
-	if (ota_kernel)
+	if (ota_type == 1)
 	qspi_part = fal_partition_find("linux");
-	else
+	else if (ota_type == 0)
 	qspi_part = fal_partition_find("u-boot");
+	else if (ota_type == 2)
+	qspi_part = fal_partition_find("root");
 	if (qspi_part == RT_NULL)
 		rt_kprintf("can't find qspi part\r\n");
 	else {
@@ -267,10 +269,13 @@ static rt_err_t ry(uint8_t argc, char **argv)
 
     if (argc > 1 && strcmp(argv[1], "linux") == 0)
     {
-    	    ota_kernel = RT_TRUE;
+    	    ota_type = 1;
     	    down_addr = KERNEL_ADDRESS;
+    } else if (argc > 1 && strcmp(argv[1], "root") == 0) {
+    	    ota_type = 2;
+		down_addr = UBOOT_ADDRESS;
     } else {
-    	    ota_kernel = RT_FALSE;
+    	    ota_type = 0;
 		down_addr = UBOOT_ADDRESS;
     }
     dev = rt_console_get_device();
