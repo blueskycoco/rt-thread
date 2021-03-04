@@ -62,6 +62,19 @@ int vcom_init(void)
 	return 0;
 }
 extern void release_resource();
+void switch_back_to_msp()
+{
+	__asm volatile (
+		"PUSH {r0, r1, lr} \n"
+		"LDR r0, =#0x90000000 \n"
+		"MSR msp, r0 \n"
+		"MRS r0, control \n"
+		"BICS r0, r0, #0x6 \n"
+		"MSR control, r0 \n"
+		"DSB \n"
+		"ISB \n"
+		);
+}
 void jump(uint32_t addr)
 {
 	if (addr == UBOOT_ADDRESS) {
@@ -81,7 +94,7 @@ void jump(uint32_t addr)
 	}
 	HAL_NVIC_DisableIRQ(UART4_IRQn);
     	HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
-    	//rt_hw_interrupt_disable();
+    	rt_hw_interrupt_disable();
 #if 0
 	if (((*(__IO uint32_t*)(addr + 4)) & 0xFF000000 ) == addr)
 		rt_kprintf("addr verify ok\r\n");
@@ -99,8 +112,9 @@ void jump(uint32_t addr)
    	SCB_DisableICache();
     SCB_DisableDCache();
     SysTick->CTRL = 0;
-    //__set_CONTROL(0);
+    switch_back_to_msp();
     __set_MSP(*(__IO uint32_t *)addr);
+    //__set_CONTROL(0);
     JumpToApplication = (pFunction)(*(__IO uint32_t *)(addr + 4));
     SCB->VTOR = addr;
 #if 0
@@ -109,7 +123,10 @@ void jump(uint32_t addr)
     __set_MSP(*(volatile unsigned int*) addr);
     //__set_FAULTMASK(1);
 #endif
-    rt_kprintf("before jump, %x\r\n", addr);
+    rt_kprintf("before jump, %x msp %x psp %x ctl %x\r\n",
+    		    addr, __get_MSP(), __get_PSP(),
+    		    __get_CONTROL());
+    //rt_hw_context_switch_to(__get_PSP());
     JumpToApplication();
 }
 int main(void)
