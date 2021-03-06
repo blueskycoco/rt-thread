@@ -180,11 +180,14 @@ int parse_rsp(const char *cmd, uint16_t msgid, uint16_t mcu_cmd,
 		uint16_t major, minor, patch;
 		uint32_t builddate;
 		ofs = 1;
-		major = rsp[ofs++] | rsp[ofs++] << 8;
-		minor = rsp[ofs++] | rsp[ofs++] << 8;
-		patch = rsp[ofs++] | rsp[ofs++] << 8;
-		builddate = rsp[ofs++] << 0 | rsp[ofs++] << 8 |
-				rsp[ofs++] << 16 | rsp[ofs++] << 24;
+		major = rsp[ofs] | (rsp[ofs+1] << 8);
+		ofs += 2;
+		minor = rsp[ofs] | (rsp[ofs+1] << 8);
+		ofs += 2;
+		patch = rsp[ofs] | (rsp[ofs+1] << 8);
+		ofs += 2;
+		builddate = (rsp[ofs] << 0) | (rsp[ofs+1] << 8) |
+				(rsp[ofs+2] << 16) | (rsp[ofs+3] << 24);
 		if (len == 11)
 			printf("%s: err %d, major %d, minor %d, patch %d, "
 				"build_date %d\r\n",
