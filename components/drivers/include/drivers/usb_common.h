@@ -301,7 +301,7 @@ struct uconfig_descriptor
     rt_uint8_t iConfiguration;
     rt_uint8_t bmAttributes;
     rt_uint8_t MaxPower;
-    rt_uint8_t data[256];
+    rt_uint8_t data[2048];
 };
 typedef struct uconfig_descriptor* ucfg_desc_t;
 

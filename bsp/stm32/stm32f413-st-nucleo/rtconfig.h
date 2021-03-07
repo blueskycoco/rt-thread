@@ -202,7 +202,7 @@
 #define BSP_USING_SPI1
 #define BSP_USING_OLED
 /* Board extended module Drivers */
-//#define RT_USB_DEVICE_AUDIO_MIC
+#define RT_USB_DEVICE_AUDIO_MIC
 #define RT_USB_DEVICE_AUDIO_SPEAKER
 #define RT_USING_AUDIO
 #define RT_AUDIO_REPLAY_MP_BLOCK_COUNT 5
