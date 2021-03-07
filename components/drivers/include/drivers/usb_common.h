@@ -112,7 +112,7 @@ extern "C" {
 #define USB_STRING_CONFIG_INDEX         0x04
 #define USB_STRING_INTERFACE_INDEX      0x05
 #define USB_STRING_OS_INDEX             0x06
-#define USB_STRING_MAX                  USB_STRING_OS_INDEX
+#define USB_STRING_MAX                  0xff//USB_STRING_OS_INDEX
 
 #define USB_STRING_OS                   "MSFT100A"
 
