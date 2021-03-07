@@ -21,8 +21,8 @@
 const static char* ustring[] =
 {
     "Language",
-    "RT-Thread Team.",
-    "RTT Composite Device",
+    "Nreal Co.,Ltd.",
+    "Nreal Composite Device",
     "320219198301",
     "Configuration",
     "Interface",

@@ -129,7 +129,7 @@ const static char *_ustring[] =
 {
     "Language",
     "RT-Thread Team.",
-    "Microphone",
+    "Nreal Audio Mic",
     "32021919830108",
     "Configuration",
     "Interface",

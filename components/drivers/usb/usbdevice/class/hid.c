@@ -366,7 +366,7 @@ const static char* _ustring[] =
 {
     "Language",
     "RT-Thread Team.",
-    "RTT HID-Device",
+    "Nreal Glasses Mcu",
     "32021919830108",
     "Configuration",
     "Interface",

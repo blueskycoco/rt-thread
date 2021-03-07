@@ -259,7 +259,7 @@ int main(void)
 	init_oled();
 	protocol_init();
 	generic_hid_init();
-	//vcom_init();
+	vcom_init();
 #if 0
 	while (count++)
 	{

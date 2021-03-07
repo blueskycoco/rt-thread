@@ -247,7 +247,7 @@ const static char* _ustring[] =
 {
     "Language",
     "RT-Thread Team.",
-    "RTT Virtual Serial",
+    "Nreal Glasses Vcom",
     serno,
     "Configuration",
     "Interface",
