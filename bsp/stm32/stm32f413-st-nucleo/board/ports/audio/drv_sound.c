@@ -1,206 +1,230 @@
 /*
  * Copyright (c) 2006-2018, RT-Thread Development Team
- * 
+ *
  * SPDX-License-Identifier: Apache-2.0
  *
- * Date           Author       Notes
- * 2019-07-31     Zero-Free    first implementation
+ * Change Logs:
+ * Date           Author         Notes
+ * 2019-07-28     Ernest         the first version
  */
 
-#include <board.h>
-
+#include "board.h"
+#include "drv_wm8978.h"
 #include "drv_sound.h"
-#include "drv_es8388.h"
 
 #define DBG_TAG              "drv.sound"
 #define DBG_LVL              DBG_INFO
 #include <rtdbg.h>
 
-#define TX_FIFO_SIZE         (2048)
+#define	CODEC_I2C_NAME  ("i2c2")
 
-struct sound_device
+#define TX_DMA_FIFO_SIZE (2048)
+
+struct drv_sai _sai_a = {0};
+
+struct stm32_audio
 {
+    struct rt_i2c_bus_device *i2c_bus;
     struct rt_audio_device audio;
     struct rt_audio_configure replay_config;
+    int replay_volume;
     rt_uint8_t *tx_fifo;
-    rt_uint8_t volume;
+    rt_bool_t startup;
+};
+struct stm32_audio _stm32_audio_play = {0};
+
+/* sample_rate, PLLI2SN(50.7), PLLI2SQ, PLLI2SDivQ, MCKDIV */
+const rt_uint32_t SAI_PSC_TBL[][5] =
+{
+    {AUDIO_FREQUENCY_048K, 206, 7, 0, 12},
+    {AUDIO_FREQUENCY_044K, 257, 2, 18, 2},
+    {AUDIO_FREQUENCY_032K, 206, 7, 0, 6},
+    {AUDIO_FREQUENCY_022K, 257, 2, 18, 1},
+    {AUDIO_FREQUENCY_016K, 206, 7, 0, 3},
+    {AUDIO_FREQUENCY_011K, 257, 2, 18, 0},
+    {AUDIO_FREQUENCY_008K, 206, 7, 0, 2},
 };
 
-static struct sound_device snd_dev = {0};
-SAI_HandleTypeDef SAI1A_Handler = {0};
-DMA_HandleTypeDef SAI1_TXDMA_Handler = {0};
-
-static void SAIA_Init(void)
+void SAIA_samplerate_set(rt_uint32_t freq)
 {
-    RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-    /* Configure and enable PLLSAI1 clock to generate 45.714286MHz */
-    PeriphClkInit.PeriphClockSelection        = RCC_PERIPHCLK_SAIA;
-    PeriphClkInit.SaiAClockSelection          = RCC_SAIACLKSOURCE_PLLSAI;
-    PeriphClkInit.PLLSAI2.PLLSAI2Source       = RCC_PLLSOURCE_HSE;
-    PeriphClkInit.PLLSAI2.PLLSAI2M            = 1;
-    PeriphClkInit.PLLSAI2.PLLSAI2N            = 40;
-    PeriphClkInit.PLLSAI2.PLLSAI2P            = RCC_PLLP_DIV7;
-    PeriphClkInit.PLLSAI2.PLLSAI2R            = RCC_PLLR_DIV2;
-    PeriphClkInit.PLLSAI2.PLLSAI2ClockOut     = RCC_PLLSAI2_SAI2CLK;
-    HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit);
-
-    HAL_SAI_DeInit(&SAI1A_Handler);
-    SAI1A_Handler.Init.AudioFrequency         = SAI_AUDIO_FREQUENCY_44K;
-    SAI1A_Handler.Instance                    = SAI1_Block_A;
-    SAI1A_Handler.Init.AudioMode              = SAI_MODEMASTER_TX;
-    SAI1A_Handler.Init.Synchro                = SAI_ASYNCHRONOUS;
-    SAI1A_Handler.Init.OutputDrive            = SAI_OUTPUTDRIVE_ENABLE;
-    SAI1A_Handler.Init.NoDivider              = SAI_MASTERDIVIDER_ENABLE;
-    SAI1A_Handler.Init.FIFOThreshold          = SAI_FIFOTHRESHOLD_EMPTY;
-    SAI1A_Handler.Init.MonoStereoMode         = SAI_STEREOMODE;
-    SAI1A_Handler.Init.Protocol               = SAI_FREE_PROTOCOL;
-    SAI1A_Handler.Init.DataSize               = SAI_DATASIZE_16;
-    SAI1A_Handler.Init.FirstBit               = SAI_FIRSTBIT_MSB;
-    SAI1A_Handler.Init.ClockStrobing          = SAI_CLOCKSTROBING_RISINGEDGE;
-
-    SAI1A_Handler.FrameInit.FrameLength       = 64;
-    SAI1A_Handler.FrameInit.ActiveFrameLength = 32;
-    SAI1A_Handler.FrameInit.FSDefinition      = SAI_FS_CHANNEL_IDENTIFICATION;
-    SAI1A_Handler.FrameInit.FSPolarity        = SAI_FS_ACTIVE_LOW;
-    SAI1A_Handler.FrameInit.FSOffset          = SAI_FS_BEFOREFIRSTBIT;
-    SAI1A_Handler.SlotInit.FirstBitOffset     = 0;
-    SAI1A_Handler.SlotInit.SlotSize           = SAI_SLOTSIZE_32B;
-    SAI1A_Handler.SlotInit.SlotNumber         = 2;
-    SAI1A_Handler.SlotInit.SlotActive         = SAI_SLOTACTIVE_0 | SAI_SLOTACTIVE_1;
-
-    HAL_SAI_Init(&SAI1A_Handler);
-    __HAL_SAI_ENABLE(&SAI1A_Handler);
-
-    /* Configure DMA used for SAI1 */
-    __HAL_RCC_DMA2_CLK_ENABLE();
-#if 0
-    SAI1_TXDMA_Handler.Init.Request             = DMA_REQUEST_1;
-    SAI1_TXDMA_Handler.Init.Direction           = DMA_MEMORY_TO_PERIPH;
-    SAI1_TXDMA_Handler.Init.PeriphInc           = DMA_PINC_DISABLE;
-    SAI1_TXDMA_Handler.Init.MemInc              = DMA_MINC_ENABLE;
-    SAI1_TXDMA_Handler.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    SAI1_TXDMA_Handler.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
-    SAI1_TXDMA_Handler.Init.Mode                = DMA_CIRCULAR;
-    SAI1_TXDMA_Handler.Init.Priority            = DMA_PRIORITY_HIGH;
-    SAI1_TXDMA_Handler.Instance                 = DMA2_Channel1;
-#else
-    SAI1_TXDMA_Handler.Init.Channel             = DMA_CHANNEL_0;
-    SAI1_TXDMA_Handler.Init.Direction           = DMA_MEMORY_TO_PERIPH;
-    SAI1_TXDMA_Handler.Init.PeriphInc           = DMA_PINC_DISABLE;
-    SAI1_TXDMA_Handler.Init.MemInc              = DMA_MINC_ENABLE;
-    SAI1_TXDMA_Handler.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    SAI1_TXDMA_Handler.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
-    SAI1_TXDMA_Handler.Init.Mode                = DMA_CIRCULAR;
-    SAI1_TXDMA_Handler.Init.Priority            = DMA_PRIORITY_HIGH;
-    SAI1_TXDMA_Handler.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;         
-    SAI1_TXDMA_Handler.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;
-    SAI1_TXDMA_Handler.Init.MemBurst            = DMA_MBURST_SINGLE;
-    SAI1_TXDMA_Handler.Init.PeriphBurst         = DMA_MBURST_SINGLE; 
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
+    int i;
     
-    SAI1_TXDMA_Handler.Instance = DMA2_Stream3;
-#endif
-    __HAL_LINKDMA(&SAI1A_Handler, hdmatx, SAI1_TXDMA_Handler);
-    HAL_DMA_DeInit(&SAI1_TXDMA_Handler);
-    HAL_DMA_Init(&SAI1_TXDMA_Handler);
-    __HAL_DMA_ENABLE(&SAI1_TXDMA_Handler);
+    /* check frequence */
+    for (i = 0; i < (sizeof(SAI_PSC_TBL) / sizeof(SAI_PSC_TBL[0])); i++)
+    {
+        if ((freq) == SAI_PSC_TBL[i][0])break;
+    }
+    if (i == (sizeof(SAI_PSC_TBL) / sizeof(SAI_PSC_TBL[0])))
+    {
+        LOG_E("Can not support this frequence: %d.", freq);
+        return;
+    }
+    
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_PLLI2S;
+    PeriphClkInitStruct.PLLI2S.PLLI2SN = SAI_PSC_TBL[i][1];
+    PeriphClkInitStruct.PLLI2S.PLLI2SQ = SAI_PSC_TBL[i][2];
+    PeriphClkInitStruct.PLLI2SDivR = SAI_PSC_TBL[i][3] + 1;
+    
+    HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
 
-    HAL_NVIC_SetPriority(DMA2_Channel1_IRQn, 0x01, 0);
-    HAL_NVIC_EnableIRQ(DMA2_Channel1_IRQn);
+    __HAL_RCC_SAI_BLOCKACLKSOURCE_CONFIG(RCC_SAIACLKSOURCE_PLLI2SR);
+
+    __HAL_SAI_DISABLE(&_sai_a.hsai);
+    _sai_a.hsai.Init.AudioFrequency = freq;
+    HAL_SAI_Init(&_sai_a.hsai);
+    __HAL_SAI_ENABLE(&_sai_a.hsai);
+}
+
+void SAIA_channels_set(rt_uint16_t channels)
+{
+    if (channels == 2)
+    {
+        _sai_a.hsai.Init.MonoStereoMode = SAI_STEREOMODE;
+    }
+    else
+    {
+        _sai_a.hsai.Init.MonoStereoMode = SAI_MONOMODE;
+    }
+    __HAL_SAI_DISABLE(&_sai_a.hsai);
+    HAL_SAI_Init(&_sai_a.hsai);
+    __HAL_SAI_ENABLE(&_sai_a.hsai);
+}
+
+void SAIA_samplebits_set(rt_uint16_t samplebits)
+{
+    switch (samplebits)
+    {
+    case 16:
+        _sai_a.hsai.Init.DataSize = SAI_DATASIZE_16;
+        break;
+    case 24:
+        _sai_a.hsai.Init.DataSize = SAI_DATASIZE_24;
+        break;
+    case 32:
+        _sai_a.hsai.Init.DataSize = SAI_DATASIZE_32;
+        break;
+    default:
+        _sai_a.hsai.Init.DataSize = SAI_DATASIZE_16;
+        break;
+    }
+    __HAL_SAI_DISABLE(&_sai_a.hsai);
+    HAL_SAI_Init(&_sai_a.hsai);
+    __HAL_SAI_ENABLE(&_sai_a.hsai);
+}
+
+void SAIA_config_set(struct rt_audio_configure config)
+{
+    SAIA_channels_set(config.channels);
+    SAIA_samplerate_set(config.samplerate);
+    SAIA_samplebits_set(config.samplebits);
+}
+
+/* initial sai A */
+rt_err_t SAIA_config_init(void)
+{
+    _sai_a.hsai.Instance = SAI1_Block_A;
+    _sai_a.hsai.Init.AudioMode = SAI_MODEMASTER_TX;
+    _sai_a.hsai.Init.Synchro = SAI_ASYNCHRONOUS;
+    _sai_a.hsai.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
+    _sai_a.hsai.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
+    _sai_a.hsai.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_1QF;
+    _sai_a.hsai.Init.ClockSource = SAI_CLKSOURCE_PLLI2S;
+
+    _sai_a.hsai.Init.Protocol = SAI_FREE_PROTOCOL;
+    _sai_a.hsai.Init.DataSize = SAI_DATASIZE_16;
+    _sai_a.hsai.Init.FirstBit = SAI_FIRSTBIT_MSB;
+    _sai_a.hsai.Init.ClockStrobing = SAI_CLOCKSTROBING_RISINGEDGE;
+
+    //frame
+    _sai_a.hsai.FrameInit.FrameLength = 64;
+    _sai_a.hsai.FrameInit.ActiveFrameLength = 32;
+    _sai_a.hsai.FrameInit.FSDefinition = SAI_FS_CHANNEL_IDENTIFICATION;
+    _sai_a.hsai.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
+    _sai_a.hsai.FrameInit.FSOffset = SAI_FS_BEFOREFIRSTBIT;
+
+    //slot
+    _sai_a.hsai.SlotInit.FirstBitOffset = 0;
+    _sai_a.hsai.SlotInit.SlotSize = SAI_SLOTSIZE_32B;
+    _sai_a.hsai.SlotInit.SlotNumber = 2;
+    _sai_a.hsai.SlotInit.SlotActive = SAI_SLOTACTIVE_0 | SAI_SLOTACTIVE_1;
+
+    HAL_SAI_Init(&_sai_a.hsai);
+    __HAL_SAI_ENABLE(&_sai_a.hsai);
+
+    return RT_EOK;
+}
+
+rt_err_t SAIA_tx_dma(void)
+{
+    __HAL_RCC_DMA2_CLK_ENABLE();
+    __HAL_LINKDMA(&_sai_a.hsai, hdmatx, _sai_a.hdma);
+
+    _sai_a.hdma.Instance                 = DMA2_Stream3;
+    _sai_a.hdma.Init.Channel             = DMA_CHANNEL_0;
+    _sai_a.hdma.Init.Direction           = DMA_MEMORY_TO_PERIPH;
+    _sai_a.hdma.Init.PeriphInc           = DMA_PINC_DISABLE;
+    _sai_a.hdma.Init.MemInc              = DMA_MINC_ENABLE;
+
+    _sai_a.hdma.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    _sai_a.hdma.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
+
+    _sai_a.hdma.Init.Mode                = DMA_CIRCULAR;
+    _sai_a.hdma.Init.Priority            = DMA_PRIORITY_HIGH;
+    _sai_a.hdma.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
+    _sai_a.hdma.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;
+    _sai_a.hdma.Init.MemBurst            = DMA_MBURST_SINGLE;
+    _sai_a.hdma.Init.PeriphBurst         = DMA_PBURST_SINGLE;
+
+    HAL_DMA_DeInit(&_sai_a.hdma);
+    HAL_DMA_Init(&_sai_a.hdma);
+
+    __HAL_DMA_DISABLE(&_sai_a.hdma);
+
+    __HAL_DMA_ENABLE_IT(&_sai_a.hdma, DMA_IT_TC);
+    __HAL_DMA_CLEAR_FLAG(&_sai_a.hdma, DMA_FLAG_TCIF3_7);
+    /* set nvic */
+    HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
+    return RT_EOK;
 }
 
 void DMA2_Stream3_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(&SAI1_TXDMA_Handler);
+    rt_interrupt_enter();
+    HAL_DMA_IRQHandler(_sai_a.hsai.hdmatx);
+    rt_interrupt_leave();
 }
 
 void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai)
 {
-    if (hsai == &SAI1A_Handler)
-    {
-        rt_audio_tx_complete(&snd_dev.audio);
-    }
+    rt_audio_tx_complete(&_stm32_audio_play.audio);
 }
 
 void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai)
 {
-    if (hsai == &SAI1A_Handler)
-    {
-        rt_audio_tx_complete(&snd_dev.audio);
-    }
+    rt_audio_tx_complete(&_stm32_audio_play.audio);
 }
 
-void SAIA_Frequency_Set(uint32_t frequency)
+rt_err_t sai_a_init()
 {
-    RCC_PeriphCLKInitTypeDef PeriphClkInit;
+    /* set sai_a DMA */
+    SAIA_tx_dma();
+    SAIA_config_init();
 
-    HAL_RCCEx_GetPeriphCLKConfig(&PeriphClkInit);
-
-    if ((frequency == SAI_AUDIO_FREQUENCY_11K) || (frequency == SAI_AUDIO_FREQUENCY_22K) || (frequency == SAI_AUDIO_FREQUENCY_44K))
-    {
-        /* Configure and enable PLLSAI1 clock to generate 45.714286MHz */
-        PeriphClkInit.PeriphClockSelection      = RCC_PERIPHCLK_SAI1;
-        PeriphClkInit.Sai1ClockSelection        = RCC_SAI1CLKSOURCE_PLLSAI2;
-        PeriphClkInit.PLLSAI2.PLLSAI2Source     = RCC_PLLSOURCE_HSE;
-        PeriphClkInit.PLLSAI2.PLLSAI2M          = 1;
-        PeriphClkInit.PLLSAI2.PLLSAI2N          = 40;
-        PeriphClkInit.PLLSAI2.PLLSAI2ClockOut   = RCC_PLLSAI2_SAI2CLK;
-
-        HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit);
-    }
-    else
-    {
-        /* Configure and enable PLLSAI1 clock to generate 49.142857MHz */
-        PeriphClkInit.PeriphClockSelection      = RCC_PERIPHCLK_SAI1;
-        PeriphClkInit.Sai1ClockSelection        = RCC_SAI1CLKSOURCE_PLLSAI2;
-        PeriphClkInit.PLLSAI2.PLLSAI2Source     = RCC_PLLSOURCE_HSE;
-        PeriphClkInit.PLLSAI2.PLLSAI2M          = 1;
-        PeriphClkInit.PLLSAI2.PLLSAI2N          = 43;
-        PeriphClkInit.PLLSAI2.PLLSAI2P          = RCC_PLLP_DIV7;
-        PeriphClkInit.PLLSAI2.PLLSAI2ClockOut   = RCC_PLLSAI2_SAI2CLK;
-
-        HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit);
-    }
-
-    /* Disable SAI peripheral to allow access to SAI internal registers */
-    __HAL_SAI_DISABLE(&SAI1A_Handler);
-    /* Update the SAI audio frequency configuration */
-    SAI1A_Handler.Init.AudioFrequency         = frequency;
-    HAL_SAI_Init(&SAI1A_Handler);
-    /* Enable SAI peripheral to generate MCLK */
-    __HAL_SAI_ENABLE(&SAI1A_Handler);
+    return RT_EOK;
 }
 
-void SAIA_Channels_Set(uint8_t channels)
-{
-    if (channels == 1)
-    {
-        SAI1A_Handler.Init.MonoStereoMode         = SAI_MONOMODE;
-    }
-    else
-    {
-        SAI1A_Handler.Init.MonoStereoMode         = SAI_STEREOMODE;
-    }
-
-    __HAL_SAI_DISABLE(&SAI1A_Handler);
-    HAL_SAI_Init(&SAI1A_Handler);
-    __HAL_SAI_ENABLE(&SAI1A_Handler);
-}
-
-/**
- * RT-Thread Audio Device Driver Interface
- */
-static rt_err_t sound_getcaps(struct rt_audio_device *audio, struct rt_audio_caps *caps)
+static rt_err_t stm32_player_getcaps(struct rt_audio_device *audio, struct rt_audio_caps *caps)
 {
     rt_err_t result = RT_EOK;
-    struct sound_device *snd_dev;
+    struct stm32_audio *st_audio = (struct stm32_audio *)audio->parent.user_data;
 
-    RT_ASSERT(audio != RT_NULL);
-    snd_dev = (struct sound_device *)audio->parent.user_data;
+    LOG_D("%s:main_type: %d, sub_type: %d", __FUNCTION__, caps->main_type, caps->sub_type);
 
     switch (caps->main_type)
     {
-    case AUDIO_TYPE_QUERY: /* qurey the types of hw_codec device */
+    case AUDIO_TYPE_QUERY: /* query the types of hw_codec device */
     {
         switch (caps->sub_type)
         {
@@ -221,21 +245,21 @@ static rt_err_t sound_getcaps(struct rt_audio_device *audio, struct rt_audio_cap
         switch (caps->sub_type)
         {
         case AUDIO_DSP_PARAM:
-            caps->udata.config.samplerate   = snd_dev->replay_config.samplerate;
-            caps->udata.config.channels     = snd_dev->replay_config.channels;
-            caps->udata.config.samplebits   = snd_dev->replay_config.samplebits;
+            caps->udata.config.channels     = st_audio->replay_config.channels;
+            caps->udata.config.samplebits   = st_audio->replay_config.samplebits;
+            caps->udata.config.samplerate   = st_audio->replay_config.samplerate;
             break;
 
         case AUDIO_DSP_SAMPLERATE:
-            caps->udata.config.samplerate   = snd_dev->replay_config.samplerate;
+            caps->udata.config.samplerate   = st_audio->replay_config.samplerate;
             break;
 
         case AUDIO_DSP_CHANNELS:
-            caps->udata.config.channels     = snd_dev->replay_config.channels;
+            caps->udata.config.channels     = st_audio->replay_config.channels;
             break;
 
         case AUDIO_DSP_SAMPLEBITS:
-            caps->udata.config.samplebits   = snd_dev->replay_config.samplebits;
+            caps->udata.config.samplebits     = st_audio->replay_config.samplebits;
             break;
 
         default:
@@ -251,11 +275,14 @@ static rt_err_t sound_getcaps(struct rt_audio_device *audio, struct rt_audio_cap
         switch (caps->sub_type)
         {
         case AUDIO_MIXER_QUERY:
-            caps->udata.mask = AUDIO_MIXER_VOLUME;
+            caps->udata.mask = AUDIO_MIXER_VOLUME | AUDIO_MIXER_LINE;
             break;
 
         case AUDIO_MIXER_VOLUME:
-            caps->udata.value =  es8388_volume_get();
+            caps->udata.value = st_audio->replay_volume;
+            break;
+
+        case AUDIO_MIXER_LINE:
             break;
 
         default:
@@ -274,13 +301,12 @@ static rt_err_t sound_getcaps(struct rt_audio_device *audio, struct rt_audio_cap
     return result;
 }
 
-static rt_err_t sound_configure(struct rt_audio_device *audio, struct rt_audio_caps *caps)
+static rt_err_t  stm32_player_configure(struct rt_audio_device *audio, struct rt_audio_caps *caps)
 {
     rt_err_t result = RT_EOK;
-    struct sound_device *snd_dev;
+    struct stm32_audio *st_audio = (struct stm32_audio *)audio->parent.user_data;
 
-    RT_ASSERT(audio != RT_NULL);
-    snd_dev = (struct sound_device *)audio->parent.user_data;
+    LOG_D("%s:main_type: %d, sub_type: %d", __FUNCTION__, caps->main_type, caps->sub_type);
 
     switch (caps->main_type)
     {
@@ -288,13 +314,21 @@ static rt_err_t sound_configure(struct rt_audio_device *audio, struct rt_audio_c
     {
         switch (caps->sub_type)
         {
+        case AUDIO_MIXER_MUTE:
+        {
+            /* set mute mode */
+            wm8978_mute_enabled(_stm32_audio_play.i2c_bus, RT_FALSE);
+            break;
+        }
+
         case AUDIO_MIXER_VOLUME:
         {
-            rt_uint8_t volume = caps->udata.value;
+            int volume = caps->udata.value;
 
-            es8388_volume_set(volume);
-            snd_dev->volume = volume;
-            LOG_D("set volume %d", volume);
+            st_audio->replay_volume = volume;
+            /* set mixer volume */
+            wm8978_set_volume(_stm32_audio_play.i2c_bus, volume);
+
             break;
         }
 
@@ -312,39 +346,34 @@ static rt_err_t sound_configure(struct rt_audio_device *audio, struct rt_audio_c
         {
         case AUDIO_DSP_PARAM:
         {
-            /* set samplerate */
-            SAIA_Frequency_Set(caps->udata.config.samplerate);
-            /* set channels */
-            SAIA_Channels_Set(caps->udata.config.channels);
+            struct rt_audio_configure config = caps->udata.config;
 
-            /* save configs */
-            snd_dev->replay_config.samplerate = caps->udata.config.samplerate;
-            snd_dev->replay_config.channels   = caps->udata.config.channels;
-            snd_dev->replay_config.samplebits = caps->udata.config.samplebits;
-            LOG_D("set samplerate %d", snd_dev->replay_config.samplerate);
+            st_audio->replay_config.samplerate = config.samplerate;
+            st_audio->replay_config.samplebits = config.samplebits;
+            st_audio->replay_config.channels = config.channels;
+
+            SAIA_config_set(config);
             break;
         }
 
         case AUDIO_DSP_SAMPLERATE:
         {
-            SAIA_Frequency_Set(caps->udata.config.samplerate);
-            snd_dev->replay_config.samplerate = caps->udata.config.samplerate;
-            LOG_D("set samplerate %d", snd_dev->replay_config.samplerate);
+            st_audio->replay_config.samplerate = caps->udata.config.samplerate;
+            SAIA_samplerate_set(caps->udata.config.samplerate);
             break;
         }
 
         case AUDIO_DSP_CHANNELS:
         {
-            SAIA_Channels_Set(caps->udata.config.channels);
-            snd_dev->replay_config.channels   = caps->udata.config.channels;
-            LOG_D("set channels %d", snd_dev->replay_config.channels);
+            st_audio->replay_config.channels = caps->udata.config.channels;
+            SAIA_channels_set(caps->udata.config.channels);
             break;
         }
 
         case AUDIO_DSP_SAMPLEBITS:
         {
-            /* not support */
-            snd_dev->replay_config.samplebits = caps->udata.config.samplebits;
+            st_audio->replay_config.samplebits = caps->udata.config.samplebits;
+            SAIA_samplebits_set(caps->udata.config.samplebits);
             break;
         }
 
@@ -352,7 +381,6 @@ static rt_err_t sound_configure(struct rt_audio_device *audio, struct rt_audio_c
             result = -RT_ERROR;
             break;
         }
-
         break;
     }
 
@@ -363,62 +391,39 @@ static rt_err_t sound_configure(struct rt_audio_device *audio, struct rt_audio_c
     return result;
 }
 
-static rt_err_t sound_init(struct rt_audio_device *audio)
+static rt_err_t stm32_player_init(struct rt_audio_device *audio)
 {
-    rt_err_t result = RT_EOK;
-    struct sound_device *snd_dev;
+    /* initialize wm8978 */
+    _stm32_audio_play.i2c_bus = (struct rt_i2c_bus_device *)rt_device_find(CODEC_I2C_NAME);
 
-    RT_ASSERT(audio != RT_NULL);
-    snd_dev = (struct sound_device *)audio->parent.user_data;
-
-    es8388_init("i2c3", GET_PIN(A, 5));
-    SAIA_Init();
-
-    /* set default params */
-    SAIA_Frequency_Set(snd_dev->replay_config.samplerate);
-    SAIA_Channels_Set(snd_dev->replay_config.channels);
-
-    return result;
+    sai_a_init();
+    wm8978_init(_stm32_audio_play.i2c_bus);
+    return RT_EOK;
 }
 
-static rt_err_t sound_start(struct rt_audio_device *audio, int stream)
+static rt_err_t stm32_player_start(struct rt_audio_device *audio, int stream)
 {
-    struct sound_device *snd_dev;
-
-    RT_ASSERT(audio != RT_NULL);
-    snd_dev = (struct sound_device *)audio->parent.user_data;
-
     if (stream == AUDIO_STREAM_REPLAY)
     {
-        LOG_D("open sound device");
-        es8388_start(ES_MODE_DAC);
-        HAL_SAI_Transmit_DMA(&SAI1A_Handler, snd_dev->tx_fifo, TX_FIFO_SIZE / 2);
+        HAL_SAI_Transmit_DMA(&_sai_a.hsai, _stm32_audio_play.tx_fifo, TX_DMA_FIFO_SIZE / 2);
+        wm8978_player_start(_stm32_audio_play.i2c_bus);
     }
 
     return RT_EOK;
 }
 
-static rt_err_t sound_stop(struct rt_audio_device *audio, int stream)
+static rt_err_t stm32_player_stop(struct rt_audio_device *audio, int stream)
 {
-    RT_ASSERT(audio != RT_NULL);
-
     if (stream == AUDIO_STREAM_REPLAY)
     {
-        HAL_SAI_DMAStop(&SAI1A_Handler);
-        es8388_stop(ES_MODE_DAC);
-        LOG_D("close sound device");
+        HAL_SAI_DMAStop(&_sai_a.hsai);
     }
 
     return RT_EOK;
 }
 
-static void sound_buffer_info(struct rt_audio_device *audio, struct rt_audio_buf_info *info)
+static void stm32_player_buffer_info(struct rt_audio_device *audio, struct rt_audio_buf_info *info)
 {
-    struct sound_device *snd_dev;
-
-    RT_ASSERT(audio != RT_NULL);
-    snd_dev = (struct sound_device *)audio->parent.user_data;
-
     /**
      *               TX_FIFO
      * +----------------+----------------+
@@ -426,47 +431,38 @@ static void sound_buffer_info(struct rt_audio_device *audio, struct rt_audio_buf
      * +----------------+----------------+
      *  \  block_size  /
      */
-    info->buffer      = snd_dev->tx_fifo;
-    info->total_size  = TX_FIFO_SIZE;
-    info->block_size  = TX_FIFO_SIZE / 2;
+    info->buffer = _stm32_audio_play.tx_fifo;
+    info->total_size = TX_DMA_FIFO_SIZE;
+    info->block_size = TX_DMA_FIFO_SIZE / 2;
     info->block_count = 2;
 }
-
-static struct rt_audio_ops snd_ops =
+static struct rt_audio_ops _p_audio_ops =
 {
-    .getcaps     = sound_getcaps,
-    .configure   = sound_configure,
-    .init        = sound_init,
-    .start       = sound_start,
-    .stop        = sound_stop,
+    .getcaps     = stm32_player_getcaps,
+    .configure   = stm32_player_configure,
+    .init        = stm32_player_init,
+    .start       = stm32_player_start,
+    .stop        = stm32_player_stop,
     .transmit    = RT_NULL,
-    .buffer_info = sound_buffer_info,
+    .buffer_info = stm32_player_buffer_info,
 };
 
 int rt_hw_sound_init(void)
 {
     rt_uint8_t *tx_fifo;
 
-    if (snd_dev.tx_fifo)
-        return RT_EOK;
-
-    tx_fifo = rt_malloc(TX_FIFO_SIZE);
+    /* player */
+    tx_fifo = rt_malloc(TX_DMA_FIFO_SIZE);
     if (tx_fifo == RT_NULL)
-        return -RT_ENOMEM;
-    rt_memset(tx_fifo, 0, TX_FIFO_SIZE);
-    snd_dev.tx_fifo = tx_fifo;
-
-    /* init default configuration */
     {
-        snd_dev.replay_config.samplerate = 44100;
-        snd_dev.replay_config.channels   = 2;
-        snd_dev.replay_config.samplebits = 16;
-        snd_dev.volume                   = 55;
+        return -RT_ENOMEM;
     }
+    rt_memset(tx_fifo, 0, TX_DMA_FIFO_SIZE);
+    _stm32_audio_play.tx_fifo = tx_fifo;
 
     /* register sound device */
-    snd_dev.audio.ops = &snd_ops;
-    rt_audio_register(&snd_dev.audio, "sound0", RT_DEVICE_FLAG_WRONLY, &snd_dev);
+    _stm32_audio_play.audio.ops = &_p_audio_ops;
+    rt_audio_register(&_stm32_audio_play.audio, "sound0", RT_DEVICE_FLAG_WRONLY, &_stm32_audio_play);
 
     return RT_EOK;
 }
