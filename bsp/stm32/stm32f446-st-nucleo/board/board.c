@@ -28,9 +28,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 180;
+  RCC_OscInitStruct.PLL.PLLN = 192;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 8;
   RCC_OscInitStruct.PLL.PLLR = 2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -45,11 +45,11 @@ void SystemClock_Config(void)
   /**Initializes the CPU, AHB and APB busses clocks 
   */
 
-  PeriphClkInitStruct.PLLSAI.PLLSAIM = 8;
-  PeriphClkInitStruct.PLLSAI.PLLSAIN = 384;
-  PeriphClkInitStruct.PLLSAI.PLLSAIP = RCC_PLLSAIP_DIV8;
+  //PeriphClkInitStruct.PLLI2S.PLLI2SM = 8;
+  //PeriphClkInitStruct.PLLI2S.PLLI2SN = 384;
+  //PeriphClkInitStruct.PLLI2S.PLLI2SP = RCC_PLLI2SP_DIV8;
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_CK48;
-  PeriphClkInitStruct.Clk48ClockSelection = RCC_CK48CLKSOURCE_PLLSAIP;
+  PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48CLKSOURCE_PLLQ;
   HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
 
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -78,4 +78,4 @@ static int ota_app_vtor_reconfig(void)
 
     return 0;
 }
-INIT_BOARD_EXPORT(ota_app_vtor_reconfig);
+//INIT_BOARD_EXPORT(ota_app_vtor_reconfig);

@@ -5,7 +5,7 @@
 #define EP_MCU_IN	0x81
 #define EP_IMU_OUT	0x01
 #define EP_IMU_IN	0x81
-#define INTF_MCU	0x00
+#define INTF_MCU	0x02
 #define INTF_IMU	0x01
 void *open_usb(uint8_t intf);
 void close_usb(void *dev, uint8_t intf);

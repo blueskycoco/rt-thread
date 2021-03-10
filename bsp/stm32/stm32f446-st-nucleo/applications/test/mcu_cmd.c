@@ -180,11 +180,14 @@ int parse_rsp(const char *cmd, uint16_t msgid, uint16_t mcu_cmd,
 		uint16_t major, minor, patch;
 		uint32_t builddate;
 		ofs = 1;
-		major = rsp[ofs++] | rsp[ofs++] << 8;
-		minor = rsp[ofs++] | rsp[ofs++] << 8;
-		patch = rsp[ofs++] | rsp[ofs++] << 8;
-		builddate = rsp[ofs++] << 0 | rsp[ofs++] << 8 |
-				rsp[ofs++] << 16 | rsp[ofs++] << 24;
+		major = rsp[ofs] | (rsp[ofs+1] << 8);
+		ofs += 2;
+		minor = rsp[ofs] | (rsp[ofs+1] << 8);
+		ofs += 2;
+		patch = rsp[ofs] | (rsp[ofs+1] << 8);
+		ofs += 2;
+		builddate = (rsp[ofs] << 0) | (rsp[ofs+1] << 8) |
+				(rsp[ofs+2] << 16) | (rsp[ofs+3] << 24);
 		if (len == 11)
 			printf("%s: err %d, major %d, minor %d, patch %d, "
 				"build_date %d\r\n",
@@ -526,7 +529,7 @@ int main(int argc, void *argv[])
 		}
 		printf("\r\n");
 	}
-	
+#if 0	
 	do {
                 rsp_len = hid_xfer(dev, EP_MCU_IN, rsp, 64, 1000);
                 printf("rsp len %d\r\n", rsp_len);
@@ -537,7 +540,7 @@ int main(int argc, void *argv[])
                 }
                 printf("\r\n");
         } while (rsp_len > 0);
-
+#endif
 	//usb_xfer(dev, USB_ENDPOINT_OUT, 0xE2, 0x00, 0x01, NULL, 0);
 	//usb_xfer(dev, USB_ENDPOINT_IN, 0xE1, 0x00, 0x01, &glasses_v, 1);
 	//printf("glasses protocol version: %d\r\n", glasses_v);

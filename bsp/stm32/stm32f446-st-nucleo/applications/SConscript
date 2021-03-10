@@ -3,12 +3,11 @@ from building import *
 
 cwd     = GetCurrentDir()
 path = [cwd, str(Dir('#'))]
-src = Split('''
+src     = Split("""
 main.c
+oled.c
 protocol/mem_list.c
 driver/crc.c
-driver/icm42688.c
-driver/icm20603.c
 driver/fal.c
 driver/fal_flash.c
 driver/fal_partition.c
@@ -19,7 +18,7 @@ driver/event.c
 driver/utils.c
 protocol/mcu.c
 protocol/mcu_cmd.c
-''')
+""")
 
 path += [cwd + '/protocol']
 path += [cwd + '/driver']

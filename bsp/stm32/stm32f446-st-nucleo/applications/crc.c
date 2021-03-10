@@ -1,9 +1,4 @@
 #include <rtthread.h>
-#include "crc.h"
-#define DRV_DEBUG
-#define LOG_TAG             "driver.crc"
-#include <drv_log.h>
-#ifndef BSP_USING_CRC
 static const uint32_t CRC32_table[256] = {
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
     0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
@@ -71,7 +66,7 @@ static const uint32_t CRC32_table[256] = {
     0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 };
 
-uint32_t crc32(uint8_t* buf, uint32_t len)
+uint32_t heart_cmd_crc(uint8_t* buf, uint32_t len)
 {
     uint32_t CRC32_data = 0xFFFFFFFF;
 	uint32_t i;
@@ -128,21 +123,3 @@ void ByteToHexStr(uint32_t source, char* dest)
 
     return ;
 }
-#else
-#include <hw_crc.h>
-uint32_t crc32(uint8_t* buf, uint32_t len)
-{
-	struct rt_hwcrypto_ctx *ctx;
-	uint32_t result = 0;
-
-	ctx = rt_hwcrypto_crc_create(rt_hwcrypto_dev_default(),
-			HWCRYPTO_CRC_CRC32);
-	if (ctx != RT_NULL) {
-		result = rt_hwcrypto_crc_update(ctx, buf, len);
-		rt_hwcrypto_crc_destroy(ctx);
-	} else
-		LOG_E("create crc ctx failed");
-	
-	return result;
-}
-#endif

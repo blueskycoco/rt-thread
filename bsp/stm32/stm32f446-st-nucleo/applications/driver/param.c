@@ -4,7 +4,7 @@
 #include <string.h>
 #include "param.h"
 
-#define DEFAULT_PARAM_BASE	"mcu_param2_16k"
+#define DEFAULT_PARAM_BASE	"mcu_param1_16k"
 #define DEFAULT_PARAM_LEN	4096
 
 static uint8_t *local_buf = RT_NULL;
@@ -55,6 +55,7 @@ void param_set(uint32_t ofs, uint8_t *buf, uint32_t len)
 
 rt_bool_t param_init()
 {
+	int i;
 	local_buf = (uint8_t *)rt_malloc(DEFAULT_PARAM_LEN*sizeof(uint8_t));
 	if (local_buf == RT_NULL) {
 		rt_kprintf("Init param failed, not enough memory\r\n");
@@ -71,6 +72,10 @@ rt_bool_t param_init()
 		rt_kprintf("Can't get param\r\n");
 		return RT_FALSE;
 	}
-
+	for (i=0; i<512; i++) {
+		if (i!= 0 && i%16 == 0)
+			rt_kprintf("\r\n");
+		rt_kprintf("%02x ", local_buf[i]);
+	}
 	return RT_TRUE;
 }
