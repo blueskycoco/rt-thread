@@ -238,6 +238,6 @@
 #define BSP_USING_I2C1
 #define BSP_I2C1_SCL_PIN 88
 #define BSP_I2C1_SDA_PIN 87
-//#define RT_I2C_BITOPS_DEBUG 1
+#define RT_I2C_BITOPS_DEBUG 1
 //#define RT_I2C_DEBUG 1
 #endif

@@ -13,7 +13,7 @@
 #include "drv_sound.h"
 
 #define DBG_TAG              "drv.sound"
-#define DBG_LVL              DBG_INFO
+#define DBG_LVL              DBG_LOG//DBG_INFO
 #include <rtdbg.h>
 
 #define	CODEC_I2C_NAME  ("i2c1")
@@ -60,11 +60,18 @@ void SAIA_samplerate_set(rt_uint32_t freq)
         LOG_E("Can not support this frequence: %d.", freq);
         return;
     }
-    
+
+    LOG_D("freq %d\r\n", freq);
+    /*
+    	f(PLLSAI clock input) = 192Mhz
+     	f(VCO clock) = f(PLLSAI clock input) × (PLLSAIN / PLLM)
+	f(PLL SAI 48MHz clock output) = f(VCO clock) / PLLSAIP
+	f(PLL SAI1 clock output) = f(VCO clock) / PLLSAIQ
+    */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SAI1;
     PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLSAI;
-    PeriphClkInitStruct.PLLSAI.PLLSAIM = SAI_PSC_TBL[i][1];
-    PeriphClkInitStruct.PLLSAI.PLLSAIN = SAI_PSC_TBL[i][2];
+    PeriphClkInitStruct.PLLSAI.PLLSAIN = SAI_PSC_TBL[i][1];
+    PeriphClkInitStruct.PLLSAI.PLLSAIM = SAI_PSC_TBL[i][2];
     //PeriphClkInitStruct.PLLSAI.PLLSAIQ = SAI_PSC_TBL[i][2];
     PeriphClkInitStruct.PLLSAIDivQ = SAI_PSC_TBL[i][3] + 1;
     
@@ -397,6 +404,7 @@ static rt_err_t stm32_player_init(struct rt_audio_device *audio)
 {
     /* initialize wm8978 */
     _stm32_audio_play.i2c_bus = (struct rt_i2c_bus_device *)rt_device_find(CODEC_I2C_NAME);
+	rt_kprintf("%s %d\r\n", __func__, __LINE__);
     LOG_D("%s %d", __func__, __LINE__);
 	rt_kprintf("%s %d\r\n", __func__, __LINE__);
     sai_a_init();

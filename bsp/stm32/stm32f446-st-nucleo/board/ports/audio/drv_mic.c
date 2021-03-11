@@ -298,7 +298,7 @@ static rt_err_t  stm32_mic_configure(struct rt_audio_device *audio, struct rt_au
 static rt_err_t stm32_mic_init(struct rt_audio_device *audio)
 {
     rt_err_t result = RT_EOK;
-
+	rt_kprintf("%s %d\r\n", __func__, __LINE__);
     /* initialize wm8978 */
     _stm32_audio_record.i2c_bus = (struct rt_i2c_bus_device *)rt_device_find(CODEC_I2C_NAME);
     if (_stm32_audio_record.i2c_bus != RT_NULL)
