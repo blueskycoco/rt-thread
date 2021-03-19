@@ -35,7 +35,7 @@ struct stm32_audio _stm32_audio_play = {0};
 
 /* sample_rate, PLLI2SN(50.7), PLLI2SQ, PLLI2SDivQ, MCKDIV */
 const rt_uint32_t SAI_PSC_TBL[][5] =
-{
+{   /* freq                N    Q  DivQ  MCLK_DIV */
     {AUDIO_FREQUENCY_048K, 206, 7, 0, 12},
     {AUDIO_FREQUENCY_044K, 257, 2, 18, 2},
     {AUDIO_FREQUENCY_032K, 206, 7, 0, 6},
@@ -43,6 +43,7 @@ const rt_uint32_t SAI_PSC_TBL[][5] =
     {AUDIO_FREQUENCY_016K, 206, 7, 0, 3},
     {AUDIO_FREQUENCY_011K, 257, 2, 18, 0},
     {AUDIO_FREQUENCY_008K, 206, 7, 0, 2},
+    {96000, 		   344, 7, 0, 2},
 };
 
 void SAIA_samplerate_set(rt_uint32_t freq)
@@ -63,26 +64,28 @@ void SAIA_samplerate_set(rt_uint32_t freq)
 
     LOG_D("freq %d\r\n", freq);
     /*
-    	f(PLLSAI clock input) = 192Mhz
-     	f(VCO clock) = f(PLLSAI clock input) × (PLLSAIN / PLLM)
-	f(PLL SAI 48MHz clock output) = f(VCO clock) / PLLSAIP
-	f(PLL SAI1 clock output) = f(VCO clock) / PLLSAIQ
+    	PLLI2S clock input = 8Mhz, M = 8
+       	f(VCO clock) = f(PLLI2S clock input) × (PLLI2SN / PLLI2SM)
+	f(PLL I2S clock output) = f(VCO clock) / PLLI2SR
+	f(PLL SPDIFRX clock output) = f(VCO clock) / PLLI2SP
+	SAI1 clock frequency = VCO frequency / PLLI2SQ with 2 ≤ PLLI2SIQ ≤
     */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SAI1;
     PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLSAI;
     PeriphClkInitStruct.PLLSAI.PLLSAIN = SAI_PSC_TBL[i][1];
-    PeriphClkInitStruct.PLLSAI.PLLSAIM = SAI_PSC_TBL[i][2];
-    //PeriphClkInitStruct.PLLSAI.PLLSAIQ = SAI_PSC_TBL[i][2];
+    PeriphClkInitStruct.PLLSAI.PLLSAIQ = SAI_PSC_TBL[i][2];
+    PeriphClkInitStruct.PLLSAI.PLLSAIM = 8;
     PeriphClkInitStruct.PLLSAIDivQ = SAI_PSC_TBL[i][3] + 1;
     
     HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
 
-    __HAL_RCC_SAI1_CONFIG(RCC_SAI1CLKSOURCE_PLLI2S);
+    //__HAL_RCC_SAI1_CONFIG(RCC_SAI1CLKSOURCE_PLLI2S);
 
     __HAL_SAI_DISABLE(&_sai_a.hsai);
-    _sai_a.hsai.Init.AudioFrequency = freq;
+    _sai_a.hsai.Init.AudioFrequency = 48000;//freq;
     HAL_SAI_Init(&_sai_a.hsai);
     __HAL_SAI_ENABLE(&_sai_a.hsai);
+    
 }
 
 void SAIA_channels_set(rt_uint16_t channels)
@@ -408,6 +411,7 @@ static rt_err_t stm32_player_init(struct rt_audio_device *audio)
     LOG_D("%s %d", __func__, __LINE__);
 	rt_kprintf("%s %d\r\n", __func__, __LINE__);
     sai_a_init();
+    SAIA_samplerate_set(96000);
     LOG_D("%s %d", __func__, __LINE__);
     wm8978_init(_stm32_audio_play.i2c_bus);
     LOG_D("%s %d", __func__, __LINE__);

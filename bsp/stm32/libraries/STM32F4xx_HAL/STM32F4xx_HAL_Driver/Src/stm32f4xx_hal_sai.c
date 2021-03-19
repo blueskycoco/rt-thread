@@ -453,7 +453,7 @@ HAL_StatusTypeDef HAL_SAI_Init(SAI_HandleTypeDef *hsai)
   {
     /* Get SAI clock source based on Source clock selection from RCC */
     freq = SAI_GetInputClock(hsai);
-
+	rt_kprintf("%s %d: freq %d\r\n", __func__, __LINE__, freq);
     /* (saiclocksource x 10) to keep Significant digits */
     tmpregisterGCR = (((freq * 10U) / ((hsai->Init.AudioFrequency) * 512U)));
 
@@ -464,6 +464,7 @@ HAL_StatusTypeDef HAL_SAI_Init(SAI_HandleTypeDef *hsai)
     {
       hsai->Init.Mckdiv+= 1U;
     }
+    rt_kprintf("%s %d: Mckdiv %d\r\n", __func__, __LINE__, hsai->Init.Mckdiv);
   }
 
   /* Compute CKSTR bits of SAI CR1 according to ClockStrobing and AudioMode */
