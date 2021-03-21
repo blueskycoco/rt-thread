@@ -110,10 +110,21 @@ void jump(uint32_t addr)
     rt_kprintf("before jump, %x\r\n", addr);
     JumpToApplication();
 }
+void switch_baud_2m()
+{
+    rt_device_t dev = rt_console_get_device();
+
+    if (dev != RT_NULL) {
+        struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+        config.baud_rate = BAUD_RATE_2000000;
+        rt_device_control(dev, RT_DEVICE_CTRL_CONFIG, &config);
+    }
+}
 int main(void)
 {
 	int count = 1;
 	/* set LED0 pin mode to output */
+    	//switch_baud_2m();
     	rt_kprintf("BOOT\r\n"); 
 	rt_pin_mode(LED0_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
