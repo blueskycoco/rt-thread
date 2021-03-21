@@ -5,8 +5,7 @@
  *
  * Change Logs:
  * Date           Author       Notes
- * 2021-03-17     supperthomas first version
- * 2021-03-21     dillon       add qspi/spi flash download, boot
+ * 2019-10-25     zylx         first version
  */
 
 #include <rtthread.h>
@@ -24,7 +23,7 @@
 #define VECT_TAB_OFFSET      0x00000000UL
 #define UBOOT_ADDRESS  (uint32_t)0x90000000
 #define KERNEL_ADDRESS  (uint32_t)0x90080000
-static rt_bool_t ota_kernel = RT_FALSE;
+static rt_uint8_t ota_type = 0; //0 u-boot, 1 kernel, 2 root filesystem
 static rt_uint32_t ofs = 0;
 static rt_uint32_t file_len = 0;
 static fal_partition_t qspi_part = RT_NULL;
@@ -60,7 +59,19 @@ int vcom_init(void)
 
 	return 0;
 }
-extern void release_resource();
+void switch_back_to_msp()
+{
+	__asm volatile (
+		"PUSH {r0, r1, lr} \n"
+		"LDR r0, =#0x90000000 \n"
+		"MSR msp, r0 \n"
+		"MRS r0, control \n"
+		"BICS r0, r0, #0x6 \n"
+		"MSR control, r0 \n"
+		"DSB \n"
+		"ISB \n"
+		);
+}
 void jump(uint32_t addr)
 {
 	if (addr == UBOOT_ADDRESS) {
@@ -74,12 +85,11 @@ void jump(uint32_t addr)
   		
   		//HAL_SDRAM_MspDeInit(RT_NULL);
 	} else {
-		//rt_kprintf("to release resource\r\n");
 		//rt_thread_mdelay(100);
 	}
 	HAL_NVIC_DisableIRQ(UART4_IRQn);
     	HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
-    	//rt_hw_interrupt_disable();
+    	rt_hw_interrupt_disable();
 #if 0
 	if (((*(__IO uint32_t*)(addr + 4)) & 0xFF000000 ) == addr)
 		rt_kprintf("addr verify ok\r\n");
@@ -97,8 +107,9 @@ void jump(uint32_t addr)
    	SCB_DisableICache();
     SCB_DisableDCache();
     SysTick->CTRL = 0;
-    //__set_CONTROL(0);
+    switch_back_to_msp();
     __set_MSP(*(__IO uint32_t *)addr);
+    //__set_CONTROL(0);
     JumpToApplication = (pFunction)(*(__IO uint32_t *)(addr + 4));
     SCB->VTOR = addr;
 #if 0
@@ -107,24 +118,27 @@ void jump(uint32_t addr)
     __set_MSP(*(volatile unsigned int*) addr);
     //__set_FAULTMASK(1);
 #endif
-    rt_kprintf("before jump, %x\r\n", addr);
+    rt_kprintf("before jump, %x msp %x psp %x ctl %x\r\n",
+    		    addr, __get_MSP(), __get_PSP(),
+    		    __get_CONTROL());
+    //rt_hw_context_switch_to(__get_PSP());
     JumpToApplication();
 }
 void switch_baud_2m()
 {
-    rt_device_t dev = rt_console_get_device();
-
-    if (dev != RT_NULL) {
-        struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
-        config.baud_rate = BAUD_RATE_2000000;
-        rt_device_control(dev, RT_DEVICE_CTRL_CONFIG, &config);
+    rt_device_t serial = rt_console_get_device();
+    
+    if (serial != RT_NULL) {
+    	struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+    	config.baud_rate = BAUD_RATE_2000000;
+    	rt_device_control(serial, RT_DEVICE_CTRL_CONFIG, &config);
     }
 }
 int main(void)
 {
 	int count = 1;
 	/* set LED0 pin mode to output */
-    	//switch_baud_2m();
+	switch_baud_2m();
     	rt_kprintf("BOOT\r\n"); 
 	rt_pin_mode(LED0_PIN, PIN_MODE_OUTPUT);
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
@@ -177,10 +191,12 @@ static enum rym_code _rym_recv_begin(
         file_len = -1;
 	//rt_kprintf("file name %s, len %d\r\n", cctx->fpath, file_len);
 	ofs = 0;
-	if (ota_kernel)
+	if (ota_type == 1)
 	qspi_part = fal_partition_find("linux");
-	else
+	else if (ota_type == 0)
 	qspi_part = fal_partition_find("u-boot");
+	else if (ota_type == 2)
+	qspi_part = fal_partition_find("root");
 	if (qspi_part == RT_NULL)
 		rt_kprintf("can't find qspi part\r\n");
 	else {
@@ -255,10 +271,13 @@ static rt_err_t ry(uint8_t argc, char **argv)
 
     if (argc > 1 && strcmp(argv[1], "linux") == 0)
     {
-    	    ota_kernel = RT_TRUE;
+    	    ota_type = 1;
     	    down_addr = KERNEL_ADDRESS;
+    } else if (argc > 1 && strcmp(argv[1], "root") == 0) {
+    	    ota_type = 2;
+		down_addr = UBOOT_ADDRESS;
     } else {
-    	    ota_kernel = RT_FALSE;
+    	    ota_type = 0;
 		down_addr = UBOOT_ADDRESS;
     }
     dev = rt_console_get_device();
