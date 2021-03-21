@@ -50,6 +50,7 @@ menu "On-chip Peripheral Drivers"
             config BSP_USING_UART4
                 bool "Enable UART4"
                 default y
+            
         endif
 
 
