@@ -728,7 +728,7 @@ void wm8978_player_start(struct rt_i2c_bus_device *dev)
     wm8978_DAC_enabled(dev, 1);
 
     /* Set output volume. */
-    wm8978_set_volume(dev, 50);
+    wm8978_set_volume(dev, 90);
     rt_hw_interrupt_enable(level);
 }
 
