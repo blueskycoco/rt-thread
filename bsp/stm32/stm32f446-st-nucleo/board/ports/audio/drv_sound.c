@@ -40,7 +40,7 @@ const rt_uint32_t SAI_PSC_TBL[][5] =
     {AUDIO_FREQUENCY_044K, 257, 2, 18, 2},
     {AUDIO_FREQUENCY_032K, 206, 7, 0, 6},
     {AUDIO_FREQUENCY_022K, 257, 2, 18, 1},
-    {AUDIO_FREQUENCY_016K, 206, 7, 0, 3},
+    {AUDIO_FREQUENCY_016K, 344, 7, 0, 3},
     {AUDIO_FREQUENCY_011K, 257, 2, 18, 0},
     {AUDIO_FREQUENCY_008K, 206, 7, 0, 2},
     {96000, 		   344, 7, 0, 2},
@@ -50,7 +50,12 @@ void SAIA_samplerate_set(rt_uint32_t freq)
 {
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
     int i;
-    
+    static rt_uint32_t _freq = 0;
+    static rt_uint8_t flag = 0;
+
+    if (freq == _freq)
+    	    return;
+    _freq = freq;
     /* check frequence */
     for (i = 0; i < (sizeof(SAI_PSC_TBL) / sizeof(SAI_PSC_TBL[0])); i++)
     {
@@ -78,18 +83,26 @@ void SAIA_samplerate_set(rt_uint32_t freq)
     PeriphClkInitStruct.PLLSAIDivQ = SAI_PSC_TBL[i][3] + 1;
     
     HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-
     //__HAL_RCC_SAI1_CONFIG(RCC_SAI1CLKSOURCE_PLLI2S);
 
     __HAL_SAI_DISABLE(&_sai_a.hsai);
-    _sai_a.hsai.Init.AudioFrequency = 48000;//freq;
+    _sai_a.hsai.Init.AudioFrequency = freq;
     HAL_SAI_Init(&_sai_a.hsai);
     __HAL_SAI_ENABLE(&_sai_a.hsai);
     
+    if (flag == 0) {
+    	flag = 1;
+    	wm8978_init(_stm32_audio_play.i2c_bus);
+    }
 }
 
 void SAIA_channels_set(rt_uint16_t channels)
 {
+	static rt_uint16_t _channels = 0;
+
+	if (_channels == channels)
+		return;
+	_channels = channels;
     if (channels == 2)
     {
         _sai_a.hsai.Init.MonoStereoMode = SAI_STEREOMODE;
@@ -105,6 +118,10 @@ void SAIA_channels_set(rt_uint16_t channels)
 
 void SAIA_samplebits_set(rt_uint16_t samplebits)
 {
+	static rt_uint16_t _samplebits = 0;
+	if (_samplebits == samplebits)
+		return;
+	_samplebits = samplebits;
     switch (samplebits)
     {
     case 16:
@@ -407,14 +424,7 @@ static rt_err_t stm32_player_init(struct rt_audio_device *audio)
 {
     /* initialize wm8978 */
     _stm32_audio_play.i2c_bus = (struct rt_i2c_bus_device *)rt_device_find(CODEC_I2C_NAME);
-	rt_kprintf("%s %d\r\n", __func__, __LINE__);
-    LOG_D("%s %d", __func__, __LINE__);
-	rt_kprintf("%s %d\r\n", __func__, __LINE__);
     sai_a_init();
-    SAIA_samplerate_set(96000);
-    LOG_D("%s %d", __func__, __LINE__);
-    wm8978_init(_stm32_audio_play.i2c_bus);
-    LOG_D("%s %d", __func__, __LINE__);
     return RT_EOK;
 }
 

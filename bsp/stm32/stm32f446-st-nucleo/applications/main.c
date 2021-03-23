@@ -36,8 +36,8 @@ rt_uint32_t g_heart_t2 = 0;
 #define EVENT_HEART 0x02
 static void handle_heart(rt_device_t device, rt_uint8_t *data, rt_size_t size);
 #define VSYNC_INT_PIN GET_PIN(D, 2)
-#define SCL_PIN GET_PIN(F, 7)
-#define SDA_PIN GET_PIN(F, 8)
+#define SCL_PIN GET_PIN(C, 4)
+#define SDA_PIN GET_PIN(C, 5)
 #define LED1_PIN GET_PIN(B, 14)
 #if 0
 static void vsync_isr(void *parameter)
@@ -263,7 +263,7 @@ int main(void)
 	init_oled();
 	protocol_init();
 	generic_hid_init();
-	vcom_init();
+	//vcom_init();
 	rt_pin_mode(LED1_PIN, PIN_MODE_OUTPUT);
 	//rt_pin_mode(87, PIN_MODE_OUTPUT);
 	//rt_pin_mode(88, PIN_MODE_OUTPUT);

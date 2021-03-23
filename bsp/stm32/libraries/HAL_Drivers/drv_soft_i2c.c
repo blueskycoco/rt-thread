@@ -51,7 +51,7 @@ static void stm32_i2c_gpio_init(struct stm32_i2c *i2c)
     struct stm32_soft_i2c_config* cfg = (struct stm32_soft_i2c_config*)i2c->ops.data;
 
     rt_pin_mode(cfg->scl, PIN_MODE_OUTPUT);
-    rt_pin_mode(cfg->sda, PIN_MODE_OUTPUT);
+    rt_pin_mode(cfg->sda, PIN_MODE_OUTPUT_OD);
 
     rt_pin_write(cfg->scl, PIN_HIGH);
     rt_pin_write(cfg->sda, PIN_HIGH);
