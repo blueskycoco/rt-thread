@@ -182,8 +182,8 @@
 #define BSP_USING_SPI4
 #define BSP_USING_ICM_20603
 #define BSP_USING_ICM_42688
-//#define BSP_SPI1_RX_USING_DMA
-//#define BSP_SPI4_RX_USING_DMA
+#define BSP_SPI1_RX_USING_DMA
+#define BSP_SPI4_RX_USING_DMA
 /* Board extended module Drivers */
 #define RT_USING_USB_DEVICE
 #define RT_USBD_THREAD_STACK_SZ 4096

@@ -76,14 +76,14 @@ void SAIA_samplerate_set(rt_uint32_t freq)
 	SAI1 clock frequency = VCO frequency / PLLI2SQ with 2 ≤ PLLI2SIQ ≤
     */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SAI1;
-    PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLI2S;
-    PeriphClkInitStruct.PLLI2S.PLLI2SN = SAI_PSC_TBL[i][1];
-    PeriphClkInitStruct.PLLI2S.PLLI2SQ = SAI_PSC_TBL[i][2];
-    PeriphClkInitStruct.PLLI2S.PLLI2SM = 8;
-    PeriphClkInitStruct.PLLI2SDivQ = SAI_PSC_TBL[i][3] + 1;
+    PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLSAI;
+    PeriphClkInitStruct.PLLSAI.PLLSAIN = SAI_PSC_TBL[i][1];
+    PeriphClkInitStruct.PLLSAI.PLLSAIQ = SAI_PSC_TBL[i][2];
+    PeriphClkInitStruct.PLLSAI.PLLSAIM = 8;
+    PeriphClkInitStruct.PLLSAIDivQ = SAI_PSC_TBL[i][3] + 1;
     
     HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-    __HAL_RCC_SAI1_CONFIG(RCC_SAI1CLKSOURCE_PLLI2S);
+    //__HAL_RCC_SAI1_CONFIG(RCC_SAI1CLKSOURCE_PLLI2S);
 
     __HAL_SAI_DISABLE(&_sai_a.hsai);
     _sai_a.hsai.Init.AudioFrequency = freq;
@@ -158,7 +158,7 @@ rt_err_t SAIA_config_init(void)
     _sai_a.hsai.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
     _sai_a.hsai.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
     _sai_a.hsai.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_1QF;
-    _sai_a.hsai.Init.ClockSource = SAI_CLKSOURCE_PLLI2S;
+    _sai_a.hsai.Init.ClockSource = SAI_CLKSOURCE_PLLSAI;
 
     _sai_a.hsai.Init.Protocol = SAI_FREE_PROTOCOL;
     _sai_a.hsai.Init.DataSize = SAI_DATASIZE_16;
@@ -189,7 +189,7 @@ rt_err_t SAIA_tx_dma(void)
     __HAL_RCC_DMA2_CLK_ENABLE();
     __HAL_LINKDMA(&_sai_a.hsai, hdmatx, _sai_a.hdma);
 
-    _sai_a.hdma.Instance                 = DMA2_Stream3;
+    _sai_a.hdma.Instance                 = DMA2_Stream1;
     _sai_a.hdma.Init.Channel             = DMA_CHANNEL_0;
     _sai_a.hdma.Init.Direction           = DMA_MEMORY_TO_PERIPH;
     _sai_a.hdma.Init.PeriphInc           = DMA_PINC_DISABLE;
@@ -211,14 +211,14 @@ rt_err_t SAIA_tx_dma(void)
     __HAL_DMA_DISABLE(&_sai_a.hdma);
 
     __HAL_DMA_ENABLE_IT(&_sai_a.hdma, DMA_IT_TC);
-    __HAL_DMA_CLEAR_FLAG(&_sai_a.hdma, DMA_FLAG_TCIF3_7);
+    __HAL_DMA_CLEAR_FLAG(&_sai_a.hdma, DMA_FLAG_TCIF1_5);
     /* set nvic */
-    HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
+    HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
     return RT_EOK;
 }
 
-void DMA2_Stream3_IRQHandler(void)
+void DMA2_Stream1_IRQHandler(void)
 {
     rt_interrupt_enter();
     HAL_DMA_IRQHandler(_sai_a.hsai.hdmatx);
