@@ -17,7 +17,7 @@
 #define DBG_LVL              DBG_INFO
 #include <rtdbg.h>
 
-#define AUDIO_SAMPLERATE   16000
+#define AUDIO_SAMPLERATE   32000
 #define AUDIO_CHANNEL      1
 #define RESOLUTION_BITS    16
 
@@ -44,7 +44,7 @@
 #define UAC_CS_ENDPOINT             0x25
 
 #define UAC_MAX_PACKET_SIZE         64
-#define UAC_EP_MAX_PACKET_SIZE      32
+#define UAC_EP_MAX_PACKET_SIZE      64
 #define UAC_CHANNEL_NUM             AUDIO_CHANNEL
 #define UAC_INTR_NUM                1
 #define UAC_CH_NUM                  1
@@ -162,9 +162,9 @@ static struct uac_ac_descriptor ac_desc =
         USB_SUBCLASS_AUDIOCONTROL,
         0x00,
 #ifdef RT_USB_DEVICE_COMPOSITE
-		SPK_INTF_STR_INDEX,
+        SPK_INTF_STR_INDEX,
 #else
-		0x00,
+        0x00,
 #endif
     },
     /* Header Descriptor */
@@ -196,7 +196,7 @@ static struct uac_ac_descriptor ac_desc =
         UAC_CS_INTERFACE,
         UAC_OUTPUT_TERMINAL,
         0x02,      /* Terminal ID: 2 */
-        0x0302,    /* Terminal Type: Headphones (0x0302) */
+        0x0301,    /* Terminal Type: Headphones (0x0302) */
         0x00,      /* Assoc Terminal: 0 */
         0x01,      /* Source ID: 1 */
         0x00,      /* Terminal: 0 */
@@ -272,7 +272,7 @@ static struct uac_as_descriptor as_desc =
         USB_DYNAMIC | USB_DIR_OUT,
         USB_EP_ATTR_ISOC,
         UAC_EP_MAX_PACKET_SIZE,
-        0x01,
+        0x04,
     },
     /* AS Endpoint Descriptor */
     {
@@ -335,6 +335,7 @@ void speaker_entry(void *parameter)
                 else
                     break;
             }
+            //rt_kprintf("e %x %x\r\n", e, EVENT_AUDIO_DATA);
             if (e & EVENT_AUDIO_DATA)
             {
                 index = (speaker.buffer_index >= AUDIO_BUFFER_SZ / 2) ? 0 : (AUDIO_BUFFER_SZ / 2);

@@ -36,9 +36,9 @@ struct stm32_audio _stm32_audio_play = {0};
 /* sample_rate, PLLI2SN(50.7), PLLI2SQ, PLLI2SDivQ, MCKDIV */
 const rt_uint32_t SAI_PSC_TBL[][5] =
 {   /* freq                N    Q  DivQ  MCLK_DIV */
-    {AUDIO_FREQUENCY_048K, 206, 7, 0, 12},
+    {AUDIO_FREQUENCY_048K, 344, 7, 0, 12},
     {AUDIO_FREQUENCY_044K, 257, 2, 18, 2},
-    {AUDIO_FREQUENCY_032K, 206, 7, 0, 6},
+    {AUDIO_FREQUENCY_032K, 344, 7, 0, 6},
     {AUDIO_FREQUENCY_022K, 257, 2, 18, 1},
     {AUDIO_FREQUENCY_016K, 344, 7, 0, 3},
     {AUDIO_FREQUENCY_011K, 257, 2, 18, 0},
