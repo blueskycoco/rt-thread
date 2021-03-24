@@ -708,7 +708,7 @@ void wm8978_player_start(struct rt_i2c_bus_device *dev)
     /* Set BIASEN=1 in register R1. */
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT1 | BUFDCOPEN | BUFIOEN | VMIDSEL_75K);
     /* Set L/ROUT2EN=1 in register R3. */
-    wm8978_write_reg(dev, REG_POWER_MANAGEMENT3 | LMIXEN | RMIXEN | DACENL | DACENR | LOUT2EN | ROUT2EN);
+    wm8978_write_reg(dev, REG_POWER_MANAGEMENT3 | LMIXEN | RMIXEN | DACENL | DACENR);// | LOUT2EN | ROUT2EN);
     /* Enable other outputs as required. */
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT2 | LOUT1EN | ROUT1EN | BOOSTENL | BOOSTENR | INPPGAENL | INPPGAENR);
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT2 | LOUT1EN | ROUT1EN | BOOSTENL | BOOSTENR | INPPGAENL | INPPGAENR | ADCENL | ADCENR);
