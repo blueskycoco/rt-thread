@@ -76,14 +76,14 @@ void SAIA_samplerate_set(rt_uint32_t freq)
 	SAI1 clock frequency = VCO frequency / PLLI2SQ with 2 ≤ PLLI2SIQ ≤
     */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SAI1;
-    PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLSAI;
-    PeriphClkInitStruct.PLLSAI.PLLSAIN = SAI_PSC_TBL[i][1];
-    PeriphClkInitStruct.PLLSAI.PLLSAIQ = SAI_PSC_TBL[i][2];
-    PeriphClkInitStruct.PLLSAI.PLLSAIM = 8;
-    PeriphClkInitStruct.PLLSAIDivQ = SAI_PSC_TBL[i][3] + 1;
+    PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLI2S;
+    PeriphClkInitStruct.PLLI2S.PLLI2SN = SAI_PSC_TBL[i][1];
+    PeriphClkInitStruct.PLLI2S.PLLI2SQ = SAI_PSC_TBL[i][2];
+    PeriphClkInitStruct.PLLI2S.PLLI2SM = 8;
+    PeriphClkInitStruct.PLLI2SDivQ = SAI_PSC_TBL[i][3] + 1;
     
     HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-    //__HAL_RCC_SAI1_CONFIG(RCC_SAI1CLKSOURCE_PLLI2S);
+    __HAL_RCC_SAI1_CONFIG(RCC_SAI1CLKSOURCE_PLLI2S);
 
     __HAL_SAI_DISABLE(&_sai_a.hsai);
     _sai_a.hsai.Init.AudioFrequency = freq;
@@ -158,7 +158,7 @@ rt_err_t SAIA_config_init(void)
     _sai_a.hsai.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
     _sai_a.hsai.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
     _sai_a.hsai.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_1QF;
-    _sai_a.hsai.Init.ClockSource = SAI_CLKSOURCE_PLLSAI;
+    _sai_a.hsai.Init.ClockSource = SAI_CLKSOURCE_PLLI2S;
 
     _sai_a.hsai.Init.Protocol = SAI_FREE_PROTOCOL;
     _sai_a.hsai.Init.DataSize = SAI_DATASIZE_16;

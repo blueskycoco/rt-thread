@@ -716,7 +716,7 @@ void wm8978_player_start(struct rt_i2c_bus_device *dev)
     /* Digital inferface setup. */
     wm8978_write_reg(dev, REG_AUDIO_INTERFACE | BCP_NORMAL | LRP_NORMAL | WL_16BITS | FMT_I2S);
 
-    wm8978_write_reg(dev, REG_ADDITIONAL | WM_SR_8KHZ);
+    wm8978_write_reg(dev, REG_ADDITIONAL | WM_SR_48KHZ);
 
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT1 | BUFDCOPEN | BUFIOEN | VMIDSEL_75K | MICBEN | BIASEN);
     wm8978_write_reg(dev, REG_CLOCK_GEN | CLKSEL_MCLK | MCLK_DIV1);
@@ -728,7 +728,7 @@ void wm8978_player_start(struct rt_i2c_bus_device *dev)
     wm8978_DAC_enabled(dev, 1);
 
     /* Set output volume. */
-    wm8978_set_volume(dev, 90);
+    wm8978_set_volume(dev, 80);
     rt_hw_interrupt_enable(level);
 }
 

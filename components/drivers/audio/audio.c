@@ -15,7 +15,7 @@
 #include <rtdevice.h>
 
 #define DBG_TAG              "audio"
-#define DBG_LVL              DBG_INFO
+#define DBG_LVL              DBG_LOG
 #include <rtdbg.h>
 
 #ifndef MIN

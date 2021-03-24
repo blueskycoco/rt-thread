@@ -17,8 +17,8 @@
 #define DBG_LVL              DBG_INFO
 #include <rtdbg.h>
 
-#define AUDIO_SAMPLERATE   32000
-#define AUDIO_CHANNEL      1
+#define AUDIO_SAMPLERATE   48000
+#define AUDIO_CHANNEL      2
 #define RESOLUTION_BITS    16
 
 #define RESOLUTION_BYTE     (RESOLUTION_BITS / 8)
@@ -44,7 +44,7 @@
 #define UAC_CS_ENDPOINT             0x25
 
 #define UAC_MAX_PACKET_SIZE         64
-#define UAC_EP_MAX_PACKET_SIZE      64
+#define UAC_EP_MAX_PACKET_SIZE      192
 #define UAC_CHANNEL_NUM             AUDIO_CHANNEL
 #define UAC_INTR_NUM                1
 #define UAC_CH_NUM                  1

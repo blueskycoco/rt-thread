@@ -28,7 +28,7 @@ static struct ep_id _ep_pool[] =
     {0x2,  USB_EP_ATTR_BULK,        USB_DIR_IN,     64, ID_UNASSIGNED},
     {0x2,  USB_EP_ATTR_BULK,        USB_DIR_OUT,    64, ID_UNASSIGNED},
     {0x3,  USB_EP_ATTR_ISOC,        USB_DIR_IN,     64, ID_UNASSIGNED},
-    {0x3,  USB_EP_ATTR_ISOC,        USB_DIR_OUT,    64, ID_UNASSIGNED},
+    {0x3,  USB_EP_ATTR_ISOC,        USB_DIR_OUT,    192, ID_UNASSIGNED},
     {0xFF, USB_EP_ATTR_TYPE_MASK,   USB_DIR_MASK,   0,  ID_ASSIGNED  },
 };
 
@@ -38,6 +38,16 @@ void USBD_IRQ_HANDLER(void)
     HAL_PCD_IRQHandler(&_stm_pcd);
     /* leave interrupt */
     rt_interrupt_leave();
+}
+
+void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
+{
+	//rt_kprintf("%s %d: epnum %d\r\n", __func__, __LINE__, epnum);
+}
+
+void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
+{
+	//rt_kprintf("%s %d: epnum %d\r\n", __func__, __LINE__, epnum);
 }
 
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *pcd)
@@ -221,7 +231,7 @@ static rt_err_t _init(rt_device_t device)
     HAL_PCDEx_SetTxFiFo(pcd, 0, 0x40);
     HAL_PCDEx_SetTxFiFo(pcd, 1, 0x40);
     HAL_PCDEx_SetTxFiFo(pcd, 2, 0x40);
-    HAL_PCDEx_SetTxFiFo(pcd, 3, 0x40);
+    HAL_PCDEx_SetTxFiFo(pcd, 3, 0x60);
     HAL_PCDEx_SetTxFiFo(pcd, 4, 0x20);
 #else
     HAL_PCDEx_PMAConfig(pcd, 0x00, PCD_SNG_BUF, 0x18);
