@@ -17,8 +17,8 @@
 #define DBG_LVL              DBG_INFO
 #include <rtdbg.h>
 
-#define RECORD_SAMPLERATE   16000
-#define RECORD_CHANNEL      1
+#define RECORD_SAMPLERATE   48000
+#define RECORD_CHANNEL      2
 #define RESOLUTION_BITS     16
 
 #define RESOLUTION_BYTE     (RESOLUTION_BITS / 8)
@@ -44,7 +44,7 @@
 #define UAC_CS_ENDPOINT             0x25
 
 #define UAC_MAX_PACKET_SIZE         64
-#define UAC_EP_MAX_PACKET_SIZE      32
+#define UAC_EP_MAX_PACKET_SIZE      192
 #define UAC_CHANNEL_NUM             RECORD_CHANNEL
 #define UAC_INTR_NUM                1
 #define UAC_CH_NUM                  1
@@ -272,7 +272,7 @@ static struct uac_as_descriptor as_desc =
         USB_DYNAMIC | USB_DIR_IN,
         USB_EP_ATTR_ISOC,
         UAC_EP_MAX_PACKET_SIZE,
-        0x01,
+        0x03,
     },
     /* AS Endpoint Descriptor */
     {
