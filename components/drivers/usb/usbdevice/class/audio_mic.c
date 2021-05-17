@@ -162,9 +162,9 @@ static struct uac_ac_descriptor ac_desc =
         USB_SUBCLASS_AUDIOCONTROL,
         0x00,
 #ifdef RT_USB_DEVICE_COMPOSITE
-		MIC_INTF_STR_INDEX,
+        MIC_INTF_STR_INDEX,
 #else
-		0x00,
+        0x00,
 #endif
     },
     /* Header Descriptor */

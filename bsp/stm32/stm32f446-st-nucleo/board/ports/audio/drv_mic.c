@@ -20,6 +20,7 @@
 #define CODEC_I2C_NAME ("i2c1")
 #define RX_DMA_FIFO_SIZE (2048)
 
+extern rt_uint8_t speaker_running;
 extern struct drv_sai _sai_a;
 static struct drv_sai _sai_b = {0};
 
@@ -149,13 +150,13 @@ static void SAIB_tx_dma(void)
 
 static rt_err_t sai_record_init()
 {
-    SAIA_config_init();
+    //SAIA_config_init();
     SAIB_config_init();
 
     /* set record samplerate */
-    SAIA_config_set(_stm32_audio_record.config);
+    //SAIA_config_set(_stm32_audio_record.config);
     SAIB_config_set(_stm32_audio_record.config);
-    SAIA_tx_dma();
+    //SAIA_tx_dma();
     SAIB_tx_dma();
 
     return RT_EOK;
@@ -229,7 +230,8 @@ static void start_record_mode(void)
     rt_uint8_t temp[4] = {0};
 
     HAL_SAI_DMAStop(&_sai_b.hsai);
-    HAL_SAI_Transmit(&_sai_a.hsai, temp, 4, 0);
+    if (speaker_running == 0)
+        HAL_SAI_Transmit(&_sai_a.hsai, temp, 4, 0);
     HAL_SAI_Receive_DMA(&_sai_b.hsai, _stm32_audio_record.rx_fifo, RX_DMA_FIFO_SIZE / 2);
 }
 
@@ -253,7 +255,8 @@ static rt_err_t  stm32_mic_configure(struct rt_audio_device *audio, struct rt_au
             _stm32_audio_record.config.samplebits = caps->udata.config.samplebits;
 
             HAL_SAI_DMAStop(&_sai_b.hsai);
-            SAIA_config_set(caps->udata.config);
+            if (speaker_running == 0)
+                SAIA_config_set(caps->udata.config);
             SAIB_config_set(caps->udata.config);
             break;
         }
@@ -267,7 +270,8 @@ static rt_err_t  stm32_mic_configure(struct rt_audio_device *audio, struct rt_au
         case AUDIO_DSP_CHANNELS:
         {
             _stm32_audio_record.config.channels = caps->udata.config.channels;
-            SAIA_channels_set(caps->udata.config.channels);
+            if (speaker_running == 0)
+                SAIA_channels_set(caps->udata.config.channels);
             SAIB_channels_set(caps->udata.config.channels);
             break;
         }
@@ -275,7 +279,8 @@ static rt_err_t  stm32_mic_configure(struct rt_audio_device *audio, struct rt_au
         case AUDIO_DSP_SAMPLEBITS:
         {
             _stm32_audio_record.config.samplebits = caps->udata.config.samplebits;
-            SAIA_samplebits_set(caps->udata.config.samplebits);
+            if (speaker_running == 0)
+                SAIA_samplebits_set(caps->udata.config.samplebits);
             break;
         }
 
@@ -343,7 +348,8 @@ static rt_err_t stm32_mic_stop(struct rt_audio_device *audio, int stream)
     if (stream == AUDIO_STREAM_RECORD)
     {
         HAL_SAI_DMAStop(&_sai_b.hsai);
-        HAL_SAI_DMAStop(&_sai_a.hsai);
+        if (speaker_running == 0)
+            HAL_SAI_DMAStop(&_sai_a.hsai);
         wm8978_mic_enabled(_stm32_audio_record.i2c_bus, 0);
     }
 

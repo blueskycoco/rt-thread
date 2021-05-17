@@ -67,7 +67,7 @@ static rt_err_t _audio_send_replay_frame(struct rt_audio_device *audio)
             result = rt_data_queue_peek(&audio->replay->queue, (const void **)&data, &src_size);
             if (result != RT_EOK)
             {
-                LOG_D("under run %d, remain %d", audio->replay->pos, remain_bytes);
+                LOG_D("%s under run %d, remain %d", __func__, audio->replay->pos, remain_bytes);
                 audio->replay->pos -= remain_bytes;
                 audio->replay->pos += dst_size;
                 audio->replay->pos %= buf_info->total_size;

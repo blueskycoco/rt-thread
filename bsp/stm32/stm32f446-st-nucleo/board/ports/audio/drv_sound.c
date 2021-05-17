@@ -19,7 +19,7 @@
 #define	CODEC_I2C_NAME  ("i2c1")
 
 #define TX_DMA_FIFO_SIZE (2048)
-
+rt_uint8_t speaker_running = 0;
 struct drv_sai _sai_a = {0};
 
 struct stm32_audio
@@ -425,6 +425,7 @@ static rt_err_t stm32_player_init(struct rt_audio_device *audio)
     /* initialize wm8978 */
     _stm32_audio_play.i2c_bus = (struct rt_i2c_bus_device *)rt_device_find(CODEC_I2C_NAME);
     sai_a_init();
+	rt_kprintf("%s %d\r\n", __func__, __LINE__);
     return RT_EOK;
 }
 
@@ -432,6 +433,7 @@ static rt_err_t stm32_player_start(struct rt_audio_device *audio, int stream)
 {
     if (stream == AUDIO_STREAM_REPLAY)
     {
+        speaker_running = 1;
         HAL_SAI_Transmit_DMA(&_sai_a.hsai, _stm32_audio_play.tx_fifo, TX_DMA_FIFO_SIZE / 2);
         wm8978_player_start(_stm32_audio_play.i2c_bus);
     }
@@ -443,6 +445,7 @@ static rt_err_t stm32_player_stop(struct rt_audio_device *audio, int stream)
 {
     if (stream == AUDIO_STREAM_REPLAY)
     {
+        speaker_running = 0;
         HAL_SAI_DMAStop(&_sai_a.hsai);
     }
 

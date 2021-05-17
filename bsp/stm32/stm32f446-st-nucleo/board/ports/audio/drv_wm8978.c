@@ -688,7 +688,7 @@ void wm8978_player_start(struct rt_i2c_bus_device *dev)
 {
     rt_base_t level = rt_hw_interrupt_disable();
     wm8978_reset(dev);
-
+#if 0
     /* 1.5x boost power up sequence,Mute all outputs. */
     wm8978_write_reg(dev, REG_LOUT1_VOL | LOUT1MUTE);
     wm8978_write_reg(dev, REG_ROUT1_VOL | ROUT1MUTE);
@@ -708,7 +708,7 @@ void wm8978_player_start(struct rt_i2c_bus_device *dev)
     /* Set BIASEN=1 in register R1. */
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT1 | BUFDCOPEN | BUFIOEN | VMIDSEL_75K);
     /* Set L/ROUT2EN=1 in register R3. */
-    wm8978_write_reg(dev, REG_POWER_MANAGEMENT3 | LMIXEN | RMIXEN | DACENL | DACENR);// | LOUT2EN | ROUT2EN);
+    wm8978_write_reg(dev, REG_POWER_MANAGEMENT3 | LMIXEN | RMIXEN | DACENL | DACENR | LOUT2EN | ROUT2EN);
     /* Enable other outputs as required. */
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT2 | LOUT1EN | ROUT1EN | BOOSTENL | BOOSTENR | INPPGAENL | INPPGAENR);
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT2 | LOUT1EN | ROUT1EN | BOOSTENL | BOOSTENR | INPPGAENL | INPPGAENR | ADCENL | ADCENR);
@@ -718,7 +718,7 @@ void wm8978_player_start(struct rt_i2c_bus_device *dev)
 
     wm8978_write_reg(dev, REG_ADDITIONAL | WM_SR_48KHZ);
 
-    wm8978_write_reg(dev, REG_POWER_MANAGEMENT1 | BUFDCOPEN | BUFIOEN | VMIDSEL_75K | MICBEN | BIASEN);
+    wm8978_write_reg(dev, REG_POWER_MANAGEMENT1 | BUFDCOPEN | BUFIOEN | VMIDSEL_5K | MICBEN | BIASEN);
     wm8978_write_reg(dev, REG_CLOCK_GEN | CLKSEL_MCLK | MCLK_DIV1);
 
     /* Enable DAC 128x oversampling. */
@@ -729,15 +729,32 @@ void wm8978_player_start(struct rt_i2c_bus_device *dev)
 
     /* Set output volume. */
     wm8978_set_volume(dev, 80);
+#else
+    wm8978_write_reg(dev, REG_POWER_MANAGEMENT1 | BIASEN | VMIDSEL_5K);
+    wm8978_write_reg(dev, REG_POWER_MANAGEMENT2 | LOUT1EN | ROUT1EN | BOOSTENL | BOOSTENR);
+    wm8978_write_reg(dev, REG_POWER_MANAGEMENT3 | LMIXEN | RMIXEN | DACENL | DACENR);
+    wm8978_write_reg(dev, REG_CLOCK_GEN | CLKSEL_MCLK | MCLK_DIV1);
+    wm8978_write_reg(dev, REG_BEEP | INVROUT2);
+    wm8978_write_reg(dev, REG_LEFT_ADC_BOOST | PGABOOSTL);
+    wm8978_write_reg(dev, REG_RIGHT_ADC_BOOST | PGABOOSTR);
+    wm8978_write_reg(dev, REG_OUTPUT | TSDEN);
+    wm8978_write_reg(dev, REG_DAC | DACOSR128);
+    wm8978_write_reg(dev, REG_ADC | ADCOSR128);
+    wm8978_write_reg(dev, REG_AUDIO_INTERFACE | WL_16BITS | FMT_I2S);
+    wm8978_output_set(dev, 1, 0);
+    wm8978_set_volume(dev, 80);
+#endif
     rt_hw_interrupt_enable(level);
 }
 
 void wm8978_record_start(struct rt_i2c_bus_device *dev)
 {
+    rt_uint16_t val = 0;
     rt_base_t level = rt_hw_interrupt_disable();
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT1 | MICBEN | BIASEN | VMIDSEL_5K);
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT2 | ROUT1EN | LOUT1EN | BOOSTENR | BOOSTENL);
-    wm8978_write_reg(dev, REG_POWER_MANAGEMENT3 | LOUT2EN | ROUT2EN | RMIXEN | LMIXEN);
+    val = wm8978_read_reg(dev, REG_POWER_MANAGEMENT3);
+    wm8978_write_reg(dev, REG_POWER_MANAGEMENT3 | LOUT2EN | ROUT2EN | RMIXEN | LMIXEN | val);
     /* mclk be supplied by outside */
     wm8978_write_reg(dev, REG_CLOCK_GEN);
 
@@ -748,11 +765,11 @@ void wm8978_record_start(struct rt_i2c_bus_device *dev)
     wm8978_write_reg(dev, (REG_DAC | RMIXEN));
     wm8978_write_reg(dev, (REG_ADC | ADCOSR128));
     wm8978_ADC_enabled(dev, 1);
-    wm8978_DAC_enabled(dev, 0);
+    //wm8978_DAC_enabled(dev, 0);
     wm8978_mic_enabled(dev, 1);
     wm8978_linein_enabled(dev, 1);
     wm8978_aux_enabled(dev, 0);
-    wm8978_output_set(dev, 0, 0);
+    //wm8978_output_set(dev, 0, 0);
     wm8978_aux_gain(dev, 5);
     wm8978_mic_gain(dev, 50);
     rt_hw_interrupt_enable(level);
@@ -772,7 +789,7 @@ rt_err_t wm8978_init(struct rt_i2c_bus_device *dev)
     wm8978_write_reg(dev, (REG_LEFT_ADC_BOOST | PGABOOSTL));
     wm8978_write_reg(dev, (REG_RIGHT_ADC_BOOST | PGABOOSTR));
     wm8978_write_reg(dev, (REG_OUTPUT | TSDEN | SPKBOOST));
-    wm8978_write_reg(dev, (REG_DAC | RMIXEN));
+    //wm8978_write_reg(dev, (REG_DAC | RMIXEN));
     wm8978_write_reg(dev, (REG_ADC | ADCOSR128));
 
     wm8978_interface_cfg(dev, I2S_FOMAT_SELECT, 16);
