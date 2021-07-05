@@ -23,7 +23,7 @@
 
 #define RESOLUTION_BYTE     (RESOLUTION_BITS / 8)
 #define AUDIO_PER_MS_SZ    ((AUDIO_SAMPLERATE * AUDIO_CHANNEL * RESOLUTION_BYTE) / 1000)
-#define AUDIO_BUFFER_SZ    (AUDIO_PER_MS_SZ * 20)  /* 20ms */
+#define AUDIO_BUFFER_SZ    (AUDIO_PER_MS_SZ * 80)  /* 20ms */
 
 #if defined(RT_USBD_SPEAKER_DEVICE_NAME)
     #define SPEAKER_DEVICE_NAME    RT_USBD_SPEAKER_DEVICE_NAME
@@ -272,7 +272,7 @@ static struct uac_as_descriptor as_desc =
         USB_DYNAMIC | USB_DIR_OUT,
         USB_EP_ATTR_ISOC,
         UAC_EP_MAX_PACKET_SIZE,
-        0x03,
+        0x01,
     },
     /* AS Endpoint Descriptor */
     {
