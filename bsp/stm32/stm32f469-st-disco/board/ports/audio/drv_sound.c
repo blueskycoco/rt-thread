@@ -13,7 +13,7 @@
 #include "drv_sound.h"
 
 #define DBG_TAG              "drv.sound"
-#define DBG_LVL              DBG_LOG
+#define DBG_LVL              DBG_INFO
 #include <rtdbg.h>
 
 #define CODEC_I2C_NAME  ("i2c1")
@@ -420,7 +420,6 @@ static rt_err_t stm32_player_init(struct rt_audio_device *audio)
     sai_a_init();
     rt_pin_mode(GET_PIN(E, 2), PIN_MODE_OUTPUT);
     rt_pin_write(GET_PIN(E, 2), PIN_HIGH);
-    LOG_D("%s %d", __func__, __LINE__);
     cs43l22_Init(_stm32_audio_play.i2c_bus, AUDIO_I2C_ADDRESS,
 		OUTPUT_DEVICE_HEADPHONE, 0xfe, I2S_AUDIOFREQ_48K);
     return RT_EOK;
