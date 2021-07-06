@@ -18,7 +18,7 @@
 
 #define	CODEC_I2C_NAME  ("i2c1")
 
-#define TX_DMA_FIFO_SIZE (2048)
+#define TX_DMA_FIFO_SIZE (4096)
 rt_uint8_t speaker_running = 0;
 struct drv_sai _sai_a = {0};
 

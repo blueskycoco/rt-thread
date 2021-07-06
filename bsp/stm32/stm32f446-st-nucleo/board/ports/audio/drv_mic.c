@@ -377,8 +377,8 @@ int rt_hw_mic_init(void)
         return -RT_ENOMEM;
     }
 
-    _stm32_audio_record.config.channels = 1;
-    _stm32_audio_record.config.samplerate = 16000;
+    _stm32_audio_record.config.channels = 2;
+    _stm32_audio_record.config.samplerate = 48000;
     _stm32_audio_record.config.samplebits = 16;
 
     /* register mic device */
