@@ -436,6 +436,7 @@ static rt_err_t stm32_player_start(struct rt_audio_device *audio, int stream)
         speaker_running = 1;
         HAL_SAI_Transmit_DMA(&_sai_a.hsai, _stm32_audio_play.tx_fifo, TX_DMA_FIFO_SIZE / 2);
         wm8978_player_start(_stm32_audio_play.i2c_bus);
+    	//wm8978_mute_enabled(_stm32_audio_play.i2c_bus, RT_TRUE);
     }
 
     return RT_EOK;

@@ -779,8 +779,8 @@ rt_err_t wm8978_init(struct rt_i2c_bus_device *dev)
 {
     rt_base_t level = rt_hw_interrupt_disable();
     wm8978_reset(dev);
-    wm8978_write_reg(dev, REG_POWER_MANAGEMENT1 | MICBEN | BIASEN | VMIDSEL_5K);
-    wm8978_write_reg(dev, REG_POWER_MANAGEMENT2 | ROUT1EN | LOUT1EN | BOOSTENR | BOOSTENL);
+    wm8978_write_reg(dev, REG_POWER_MANAGEMENT1 | MICBEN /*| BIASEN*/ | VMIDSEL_5K);
+    wm8978_write_reg(dev, REG_POWER_MANAGEMENT2 | /*ROUT1EN | LOUT1EN | */BOOSTENR | BOOSTENL);
     wm8978_write_reg(dev, REG_POWER_MANAGEMENT3 | LOUT2EN | ROUT2EN | RMIXEN | LMIXEN);
     /* mclk be supplied by outside */
     wm8978_write_reg(dev, REG_CLOCK_GEN);

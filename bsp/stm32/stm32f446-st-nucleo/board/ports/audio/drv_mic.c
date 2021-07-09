@@ -150,16 +150,16 @@ static void SAIB_tx_dma(void)
 
 static rt_err_t sai_record_init()
 {
-    if (speaker_running == 0)
-    	SAIA_config_init();
+    //if (speaker_running == 0)
+    //	SAIA_config_init();
     SAIB_config_init();
 
     /* set record samplerate */
-    if (speaker_running == 0)
-    	SAIA_config_set(_stm32_audio_record.config);
+    //if (speaker_running == 0)
+    //	SAIA_config_set(_stm32_audio_record.config);
     SAIB_config_set(_stm32_audio_record.config);
-    if (speaker_running == 0)
-    	SAIA_tx_dma();
+    //if (speaker_running == 0)
+    //	SAIA_tx_dma();
     SAIB_tx_dma();
 
     return RT_EOK;

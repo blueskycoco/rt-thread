@@ -40,12 +40,8 @@ void USBD_IRQ_HANDLER(void)
     rt_interrupt_leave();
 }
 
-void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
-{
-	rt_kprintf("%s %d: epnum %d\r\n", __func__, __LINE__, epnum);
-}
 
-void isoc_resume(PCD_HandleTypeDef *hpcd)
+void isoc_in_resume(PCD_HandleTypeDef *hpcd)
 {
   	USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
   	uint32_t USBx_BASE = (uint32_t)USBx;
@@ -56,10 +52,24 @@ void isoc_resume(PCD_HandleTypeDef *hpcd)
         USBx_INEP(0x03)->DIEPCTL &= ~USB_OTG_DIEPCTL_EPDIS;
 }
 
+void isoc_out_resume(PCD_HandleTypeDef *hpcd)
+{
+  	USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
+  	uint32_t USBx_BASE = (uint32_t)USBx;
+        USBx_OUTEP(0x03)->DOEPCTL |= USB_OTG_DOEPCTL_EPDIS;
+	HAL_PCD_EP_Flush(hpcd, 0x03);
+        USBx_OUTEP(0x03)->DOEPCTL &= ~USB_OTG_DOEPCTL_EPDIS;
+}
+
+void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
+{
+	//isoc_out_resume(hpcd);
+}
+
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 {
 	rt_kprintf("%s %d: epnum %d\r\n", __func__, __LINE__, epnum);
-	isoc_resume(hpcd);
+	isoc_in_resume(hpcd);
 }
 
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *pcd)

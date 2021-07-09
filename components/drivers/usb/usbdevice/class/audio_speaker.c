@@ -286,6 +286,7 @@ void speaker_entry(void *parameter)
 {
     struct rt_audio_caps caps = {0};
     rt_uint32_t e, index;
+    rt_uint8_t opened = 0;
 
     speaker.buffer = rt_malloc(AUDIO_BUFFER_SZ);
     if (speaker.buffer == RT_NULL)
@@ -315,14 +316,6 @@ void speaker_entry(void *parameter)
         }
         LOG_D("play start");
 
-        rt_device_open(speaker.dev, RT_DEVICE_OFLAG_WRONLY);
-
-        caps.main_type               = AUDIO_TYPE_OUTPUT;
-        caps.sub_type                = AUDIO_DSP_PARAM;
-        caps.udata.config.samplerate = AUDIO_SAMPLERATE;
-        caps.udata.config.channels   = AUDIO_CHANNEL;
-        caps.udata.config.samplebits = RESOLUTION_BITS;
-        rt_device_control(speaker.dev, AUDIO_CTL_CONFIGURE, &caps);
 
         while (1)
         {
@@ -338,6 +331,16 @@ void speaker_entry(void *parameter)
             //rt_kprintf("e %x %x\r\n", e, EVENT_AUDIO_DATA);
             if (e & EVENT_AUDIO_DATA)
             {
+            	if (opened == 0) {
+        		rt_device_open(speaker.dev, RT_DEVICE_OFLAG_WRONLY);
+			opened = 1;
+		        caps.main_type               = AUDIO_TYPE_OUTPUT;
+		        caps.sub_type                = AUDIO_DSP_PARAM;
+		        caps.udata.config.samplerate = AUDIO_SAMPLERATE;
+		        caps.udata.config.channels   = AUDIO_CHANNEL;
+		        caps.udata.config.samplebits = RESOLUTION_BITS;
+		        rt_device_control(speaker.dev, AUDIO_CTL_CONFIGURE, &caps);
+		}
                 index = (speaker.buffer_index >= AUDIO_BUFFER_SZ / 2) ? 0 : (AUDIO_BUFFER_SZ / 2);
                 rt_device_write(speaker.dev, 0, speaker.buffer + index, AUDIO_BUFFER_SZ / 2);
             }
@@ -348,6 +351,7 @@ void speaker_entry(void *parameter)
         }
         LOG_D("play stop");
         rt_device_close(speaker.dev);
+        opened = 0;
     }
 
 __exit:
