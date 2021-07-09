@@ -14,7 +14,7 @@
 #include "audio.h"
 
 #define DBG_TAG              "usbd.audio.mic"
-#define DBG_LVL              DBG_INFO
+#define DBG_LVL              DBG_LOG
 #include <rtdbg.h>
 
 #define RECORD_SAMPLERATE   48000
@@ -356,11 +356,10 @@ __exit:
 
 static rt_err_t _record_start(ufunction_t func)
 {
-    mic.ep->request.buffer = RT_NULL;
+    mic.ep->request.buffer = mic.buffer + mic.buffer_index;
     mic.ep->request.size = UAC_EP_MAX_PACKET_SIZE;
     mic.ep->request.req_type = UIO_REQUEST_WRITE;
     rt_usbd_io_request(func->device, mic.ep, &mic.ep->request);
-
     mic.open_count ++;
     rt_event_send(mic.event, EVENT_RECORD_START);
     return 0;
@@ -368,7 +367,9 @@ static rt_err_t _record_start(ufunction_t func)
 
 static rt_err_t _record_stop(ufunction_t func)
 {
-    mic.open_count --;
+    mic.buffer_index = 0;
+    if (mic.open_count > 0)
+    	mic.open_count --;
     rt_event_send(mic.event, EVENT_RECORD_STOP);
     return 0;
 }
@@ -376,7 +377,7 @@ static rt_err_t _record_stop(ufunction_t func)
 static rt_err_t _ep_data_in_handler(ufunction_t func, rt_size_t size)
 {
     RT_ASSERT(func != RT_NULL);
-    LOG_D("_ep_data_in_handler");
+    //LOG_D("_ep_data_in_handler");
 
     mic.ep->request.buffer = mic.buffer + mic.buffer_index;
     mic.ep->request.size = UAC_EP_MAX_PACKET_SIZE;
